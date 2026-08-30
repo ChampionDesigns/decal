@@ -34,13 +34,6 @@ export const KV_STORE_PATH = 'store';
 /** Default API base. Injected in the app; a constant only so tests do not invent one. */
 export const DEFAULT_API_BASE = '/api/v1';
 
-/**
- * @param {object} options
- * @param {string} options.namespace       e.g. 'decal' or 'decal.numpad'
- * @param {Function} options.fetch         injected — never reaches for globalThis.fetch
- * @param {string} [options.baseUrl]       e.g. 'http://machine:3000/api/v1'
- * @param {object} [options.logger]
- */
 export function createReaKvBackend({ namespace, fetch: fetchImpl, baseUrl = DEFAULT_API_BASE, logger } = {}) {
     if (!namespace) throw new Error('rea-kv-backend: a namespace is required');
     if (typeof fetchImpl !== 'function') throw new Error('rea-kv-backend: a fetch implementation is required');
@@ -104,21 +97,6 @@ export function createReaKvBackend({ namespace, fetch: fetchImpl, baseUrl = DEFA
             }
         },
 
-        /**
-         * Enumerate this namespace's keys. Not used by the router; kept because the route
-         * exists and a settings/debug view wants it.
-         *
-         * IT THROWS, like every other method here. It used to log a failure at warn and
-         * return `[]`, and a non-array body was coerced to `[]` too — a dead server and a
-         * shape this build cannot read both rendering as "the namespace is empty", which is
-         * SCOPE Part 3 §7's CB-21 verbatim and contradicts this module's own header ("a
-         * failure is logged and surfaced"). An empty namespace is a real answer and the
-         * server gives it as `[]`; nothing else may spell it.
-         *
-         * CAVEAT, verified ReaPrime-side and NOT worked around here (SCOPE Part 3 §5):
-         * namespace enumeration only sees namespaces touched since boot, so a backup can
-         * omit a namespace that exists on disk. That is upstream work, not a skin fix.
-         */
         async keys() {
             const response = await fetchImpl(nsPath, { method: 'GET' });
             if (!response.ok) {

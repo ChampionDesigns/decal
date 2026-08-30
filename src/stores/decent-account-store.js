@@ -1,21 +1,5 @@
 /**
- * decent-account-store.js — whether this ReaPrime is signed in to a Decent account.
- *
- * ONE ROUTE AND ONE BOOLEAN, and that is the whole surface at the pin:
- *
- *   GET /api/v1/account/decent -> 200 {loggedIn: bool}
- *     `AccountHandler._handleStatus`, `lib/src/services/webserver/account_handler.dart:12`
- *
- * THERE IS NO SIGN-IN ROUTE HERE, AND THE LEAF SAYS SO RATHER THAN OFFERING A FORM.
- * `DecentAccountService` owns the credentials and ReaPrime signs in through its own
- * Flutter UI; the only account traffic the web API carries is this read and the
- * `/api/v1/account/proxy/<rest>` pass-through, which forwards an ALREADY-AUTHENTICATED
- * request and cannot establish a session. A username and password box here would collect
- * credentials it has nowhere to send.
- *
- * SO THE LEAF IS A READING, NOT A CONTROL, and it was EMPTY before — which told the user
- * nothing at all. Knowing that the machine is signed in, or is not, is the useful half
- * and it is the half that exists.
+ * Whether this ReaPrime is signed in to a Decent account.
  */
 
 import { callRoute } from '../data/rea-routes.js';

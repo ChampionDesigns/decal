@@ -1,53 +1,5 @@
 /**
- * presence-store.js — sleep timeout, presence detection and the wake schedules.
- *
- * THE LEAF SHIPPED ITS LAYOUT AND NOT ITS DATA, and this store is the other half. Its
- * own comment said why, and the sentence is worth keeping because it was right:
- *
- *   "Every control in Slate's version is a WRITE — enable presence, set the sleep
- *   timeout, add a schedule, delete one, toggle one — and their door is `GET/POST
- *   /api/v1/presence/settings` plus `/presence/schedules`, which are RECORDED (both have
- *   fixtures) and UNADOPTED: no client addresses them … a control that cannot write is a
- *   lie about the machine."
- *
- * Adopting them is what changed. Both routes were already in the generated table, both
- * fixtures were already served, and `putPresenceSchedulesById` already had a contract
- * row — so what was missing was a caller, which is the definition of a door with nobody
- * walking through it.
- *
- * ===========================================================================
- * ONE READ SERVES BOTH CARDS
- * ===========================================================================
- *
- * `GET /presence/settings` returns the settings AND the schedules — the handler
- * deserialises `wakeSchedules` and puts them in the same body. `GET /presence/schedules`
- * returns the same list on its own. So this store reads the first and never the second:
- * two reads for one answer is two chances to show a schedule list that disagrees with
- * the switch above it.
- *
- * THE THREE WRITES ARE THE OTHER THREE ROUTES, and each re-reads rather than patching a
- * local copy. The machine is the owner, the handler CLAMPS the sleep timeout
- * (`normalizeSleepTimeoutPreferenceMinutes`, 0..240) and mints the schedule id, so the
- * value shown after a write is the value it holds.
- *
- * ===========================================================================
- * WHAT THE HANDLER REFUSES, read at 2b047d02
- * ===========================================================================
- *
- *   sleepTimeoutMinutes   `v is! int` -> 400. Then CLAMPED to 0..240, never refused for
- *                         range — so a bad number comes back as a different number and
- *                         the re-read is the only way to see it.
- *   userPresenceEnabled   `v is! bool` -> 400.
- *   keepAwakeFor          `< 0 || > 720` -> 400. `0` and `null` both mean "clear".
- *   hour / minute         0..23 and 0..59 -> 400 outside.
- *   daysOfWeek            weekdays 1..7, ISO — Monday is 1 and Sunday is 7. An EMPTY set
- *                         is legal and means every day (`matchesTime` only filters when
- *                         the set is non-empty), which is why the UI says "Every day"
- *                         rather than "No days".
- *
- * A SCHEDULE'S TIME IS "HH:MM" ON THE WIRE. `WakeSchedule.toJson` pads both halves, and
- * `fromJson` splits on the colon — the same string `<ui-time-picker>` speaks
- * (`time-picker-core.js` `formatTime24`/`parseTime24`), so no format is invented here.
+ * Sleep timeout, presence detection and the wake schedules.
  */
 
 import { callRoute } from '../data/rea-routes.js';
@@ -62,32 +14,11 @@ export const PRESENCE_STATUS = Object.freeze({
     UNAVAILABLE: 'unavailable',
 });
 
-/**
- * The sleep-timeout band, from `lib/src/settings/sleep_timeout_preference.dart`:
- * `kMinSleepTimeoutPreferenceMinutes = 0`, `kMaxSleepTimeoutPreferenceMinutes = 240`.
- *
- * NOT IN `machine-limits.js`, for the reason `NIGHT_MODE_MINUTE_RANGE` is not either:
- * that table is the MACHINE's ranges (B2/R2) and this is a server-side clamp on an app
- * preference. It is here because the handler CLAMPS rather than refuses, so a control
- * that offered 300 would appear to work and quietly become 240.
- */
-/* 5-300 IN FIVES SINCE 26 AUGUST 2026 (Ben: "5 minute steps, 5 to 300 minutes"). It was
- * 0-240 in ones, which had two problems and the smaller one was the step: a stepper
- * walking a four-hour range one minute at a time cannot reach its own top. The larger was
- * the FLOOR — zero meant "never sleeps by itself", a second job hidden in the bottom of a
- * range, and the page has an Automatic sleep switch now that says it properly. */
 export const SLEEP_TIMEOUT_RANGE = Object.freeze({ min: 5, max: 300, step: 5, unit: 'min' });
 
 /** `keepAwakeFor` bounds, from `_addScheduleHandler`. 0 and null both clear it. */
 export const KEEP_AWAKE_RANGE = Object.freeze({ min: 0, max: 720, step: 15, unit: 'min' });
 
-/**
- * The four presets Slate offers for the sleep timeout, plus its Custom escape.
- *
- * These are Slate's own four (`settings.js`, `[15, 30, 45, 60].map`). They are OPTIONS,
- * not a range: any integer in `SLEEP_TIMEOUT_RANGE` is valid and the leaf's stepper can
- * reach it, so this list is a shortcut rather than a constraint.
- */
 export const SLEEP_TIMEOUT_PRESETS = Object.freeze([15, 30, 45, 60]);
 
 const EMPTY_STATE = Object.freeze({
@@ -135,13 +66,6 @@ export function createPresenceStore({ transport, logger = null } = {}) {
         });
     }
 
-    /**
-     * Every write ends in a re-read, and the re-read is not politeness.
-     *
-     * The handler CLAMPS the sleep timeout and MINTS the schedule id, so the only way to
-     * show what the server holds is to ask it. A failed write leaves the shown values
-     * alone and sets `writeError`; it never rolls a local copy forward.
-     */
     async function writeThrough(routeId, options, label) {
         const result = await callRoute(transport, routeId, options);
         if (!result.ok) {
@@ -178,11 +102,6 @@ export function createPresenceStore({ transport, logger = null } = {}) {
             return writeThrough('postPresenceSettings', { body: { userPresenceEnabled: enabled } }, 'presence enabled');
         },
 
-        /**
-         * `sleepTimeoutMinutes`. INTEGER OR NOTHING: the handler tests `v is! int`, and a
-         * Dart int is not a JS float that happens to be whole — 30.0 serialises as `30.0`
-         * and is refused. `Math.round` is the boundary, here, once.
-         */
         setSleepTimeout(minutes) {
             if (!Number.isFinite(minutes)) return Promise.resolve(false);
             const whole = Math.round(minutes);
@@ -200,7 +119,6 @@ export function createPresenceStore({ transport, logger = null } = {}) {
             return writeThrough('postPresenceSchedules', { body }, 'add schedule');
         },
 
-        /** Change one. Any subset; an absent field is left as it was by the handler. */
         updateSchedule(id, patch) {
             if (typeof id !== 'string' || !id) return Promise.resolve(false);
             if (!patch || typeof patch !== 'object') return Promise.resolve(false);
@@ -242,8 +160,6 @@ export function createPresenceStore({ transport, logger = null } = {}) {
     };
 }
 
-/* ---------------------------------------------------------------- validation */
-
 /** "HH:MM", the shape `WakeSchedule.toJson` writes and `fromJson` splits. */
 function isTime24(value) {
     return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -274,9 +190,6 @@ function scheduleBody({ time, days, enabled, keepAwakeFor }) {
     const keep = normaliseKeepAwake(keepAwakeFor);
     if (keep === false) return null;
     const body = { time, daysOfWeek: [...days].sort((a, b) => a - b), enabled };
-    /* SENT ONLY WHEN IT IS A NUMBER. The handler reads `json['keepAwakeFor'] as int?`,
-     * so null is legal — but an absent key and a null key mean the same thing there and
-     * the smaller body is the one that reads correctly in a capture. */
     if (keep !== null) body.keepAwakeFor = keep;
     return body;
 }

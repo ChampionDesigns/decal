@@ -46,16 +46,6 @@ export const ORIGIN_RULE = Object.freeze({
     FIRST_POURING: 'firstPouringSample',
     /** No pouring sample: the first stamped sample. Steam, water, flush, an aborted shot. */
     FIRST_SAMPLE: 'firstSample',
-    /**
-     * An origin the CALLER chose, by a rule it did not name.
-     *
-     * `buildTimeAxis(samples, {originMs})` used to label a supplied origin `firstSample`
-     * unconditionally, which is wrong for the only caller that will ever supply one: the
-     * shot buffer holds an origin it decided incrementally, and for every espresso shot that
-     * origin is `firstPouringSample`. The axis then reported a rule the chart does not have.
-     * A caller that knows its rule passes `originRule` and gets it back; one that does not
-     * gets this, which claims nothing.
-     */
     GIVEN: 'given',
     /** Nothing carried a readable stamp. There is no axis; there is nothing to draw. */
     NONE: 'none',
@@ -63,16 +53,6 @@ export const ORIGIN_RULE = Object.freeze({
 
 const ORIGIN_RULES = new Set(Object.values(ORIGIN_RULE));
 
-/**
- * Parse one of ReaPrime's `timestamp` fields to epoch milliseconds.
- *
- * Every stamp on the wire is `DateTime.toIso8601String()`. Absent, null or unparseable
- * comes back as an ABSENCE (`src/data/reading.js`), which is not a number and cannot be
- * plotted or averaged by accident — `Number(...)` of one is NaN.
- *
- * @param {object|null|undefined} source  a frame carrying `timestamp`
- * @returns {number|{noReading: true, reason: string}}
- */
 export function stampMs(source) {
     if (!source || typeof source !== 'object') return noReading(ABSENCE.NO_SOURCE);
     if (!hasKey(source, 'timestamp')) return noReading(ABSENCE.ABSENT);
@@ -85,49 +65,16 @@ export function stampMs(source) {
     return Number.isFinite(parsed) ? parsed : noReading(ABSENCE.NON_FINITE);
 }
 
-/**
- * The stamp of one buffered SAMPLE — the recorded shape `{machine, scale, volume, sensors}`
- * that `shot-buffer.js` accumulates and that `GET /api/v1/shots/<id>` serves.
- *
- * The machine's stamp is the sample's stamp. The scale frame carried alongside has its own,
- * later or earlier one, and that skew is kept visible rather than averaged away: a scale
- * frame is attached to the sample that was current when it arrived, exactly as ReaPrime's
- * own recorder does it (`ShotSnapshot`).
- */
 export function sampleStampMs(sample) {
     return stampMs(sample && sample.machine);
 }
 
-/**
- * Seconds from the origin. A plain subtraction, deliberately: this is the whole arithmetic
- * of the time axis, and the temptation this module resists is adding to it.
- *
- * @returns {number|null} null when either end is not a readable stamp — a gap, not a zero
- */
 export function elapsedSeconds(stamp, originMs) {
     if (typeof stamp !== 'number' || !Number.isFinite(stamp)) return null;
     if (typeof originMs !== 'number' || !Number.isFinite(originMs)) return null;
     return (stamp - originMs) / 1000;
 }
 
-/**
- * Choose t=0.
- *
- * The espresso rule matches how a recorded shot is drawn today — the first sample the
- * machine reported as pouring — so live and history put t=0 in the same place and a shot
- * does not shift when it is reopened from history. `isPouring` comes from the GENERATED
- * machine enums, which is why the old skin's non-existent `'ending'` substate cannot creep
- * back in here.
- *
- * The second rule is not a fallback in the A7 sense: it invents no value and hides no
- * absence. It is the honest answer for a session that never pours — a steam session, a
- * flush, a shot aborted during preinfusion — and it is REPORTED, so a caller that cares
- * which rule fired can ask.
- *
- * @param {Array<object>} samples
- * @param {{stampOf?: (sample: object) => number|object}} [options]
- * @returns {{originMs: number|null, rule: string, index: number}}
- */
 export function chooseOrigin(samples, { stampOf = sampleStampMs } = {}) {
     const list = Array.isArray(samples) ? samples : [];
     let firstStamped = -1;
@@ -149,27 +96,6 @@ export function chooseOrigin(samples, { stampOf = sampleStampMs } = {}) {
     };
 }
 
-/**
- * Build the axis for a run of samples.
- *
- * Returns one entry per PLOTTABLE sample plus the counts that say what was left out, so
- * "the chart is short" is a number a caller can read rather than a thing someone notices
- * on screen. Nothing here fills, smooths, sorts or clamps.
- *
- * @param {Array<object>} samples
- * @param {object} [options]
- * @param {number|null} [options.originMs]  a chosen origin; omit to choose one here
- * @param {string} [options.originRule]     how the caller chose it, one of ORIGIN_RULE.
- *        Required in spirit whenever `originMs` is given and the caller knows: the rule
- *        "changes what the chart means", so reporting the wrong one is worse than reporting
- *        `given`. An unknown rule throws rather than being carried through.
- * @param {(sample: object) => number|object} [options.stampOf]
- * @returns {{
- *   originMs: number|null, rule: string,
- *   seconds: number[], indices: number[],
- *   unstamped: number, nonMonotonic: number, span: number|null
- * }}
- */
 export function buildTimeAxis(samples, { originMs = undefined, originRule = undefined, stampOf = sampleStampMs } = {}) {
     const list = Array.isArray(samples) ? samples : [];
     if (originRule !== undefined && !ORIGIN_RULES.has(originRule)) {
@@ -222,20 +148,11 @@ export function buildTimeAxis(samples, { originMs = undefined, originRule = unde
     };
 }
 
-/**
- * What this axis is, in one field, so a screen can label it honestly and a future reader
- * can tell at a glance whether R4 has landed.
- *
- * `'arrival'` is the only answer today. When R4 serves the decoded machine clock, a second
- * source appears here and the label changes with it — one place, not per screen.
- */
 export const TIME_SOURCE = Object.freeze({
     /** ReaPrime's own stamp, taken when it decoded the packet. Carries transport jitter. */
     ARRIVAL: 'arrival',
 });
 
-/** The axis source in force. A constant until R4 lands — deliberately a function, so the
- *  day it becomes a per-shot question the call sites already ask it. */
 export function timeSourceOf() {
     return TIME_SOURCE.ARRIVAL;
 }

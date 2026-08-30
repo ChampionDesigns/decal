@@ -40,14 +40,6 @@ import { ABSENCE, noReading, readNumber, readValue, hasKey } from '../data/readi
 import { isFrameObject } from '../data/rea-ws-channels.js';
 import { isMachineState, isMachineSubstate } from '../data/machine-state.js';
 
-/**
- * `enum ShotState` — `shot_state_event.dart`. The SEQUENCER's view of the shot, which is
- * not the machine's state enum and must not be compared to it.
- *
- * Pinned by test against the Dart at the pinned commit (`test/feed-readers.test.mjs`),
- * the same protection the generated machine-state enum gets — a name that stops existing
- * upstream turns a test red instead of quietly never matching.
- */
 export const SHOT_STATES = Object.freeze(['idle', 'preheating', 'pouring', 'stopping', 'finished']);
 
 export const SHOT_STATE = Object.freeze({
@@ -87,13 +79,6 @@ const SHOT_DECISION_KIND_SET = new Set(SHOT_DECISION_KINDS);
 const SHOT_DECISION_REASON_SET = new Set(SHOT_DECISION_REASONS);
 const UPDATE_PHASE_SET = new Set(UPDATE_PHASES);
 
-/**
- * Read a boolean channel written unconditionally.
- *
- * `ABSENCE.NON_FINITE` is reading.js's "the key is here and it is not what this channel
- * carries"; for a boolean channel that is a wrong-typed value. Reusing the reason rather
- * than inventing a parallel vocabulary keeps one absence enum in the tree.
- */
 function readFlag(source, key) {
     if (!source || typeof source !== 'object') return noReading(ABSENCE.NO_SOURCE);
     if (!hasKey(source, key)) return noReading(ABSENCE.ABSENT);
@@ -112,25 +97,6 @@ function readName(source, key, known) {
     };
 }
 
-/**
- * Read one `/ws/v1/machine/shotState` frame.
- *
- * THE SERVER-SIDE VIEW OF SHOT PROGRESSION, and the reason the rewrite does not re-derive
- * phase from raw machine-state transitions (SCOPE Part 3 §2). Two facts from the publisher
- * that a consumer will otherwise get wrong:
- *
- *   1. `ShotState.idle` is NOT published from the sequencer's state stream
- *      (`if (state != ShotState.idle)`), but an idle frame IS published on cleanup by
- *      `_publishIdleFrame` — with `shotId: null`. So "idle with no shot id" is the end of
- *      a shot, and it is the only idle a live subscriber sees.
- *   2. The socket is fed from a `BehaviorSubject.seeded(ShotStateEvent.idle())`, so a late
- *      subscriber is immediately told the CURRENT shot state. That is server-side replay,
- *      and it is why a subscriber that joins mid-shot learns the shot exists — while still
- *      having missed every earlier sample, which is the shot buffer's problem, not this
- *      reader's.
- *
- * @param {object|null|undefined} frame
- */
 export function readShotStateFrame(frame) {
     const present = isFrameObject(frame);
     const state = readName(frame, 'state', SHOT_STATE_SET);
@@ -185,14 +151,6 @@ export function isShotRunning(reading) {
             || reading.state === SHOT_STATE.STOPPING);
 }
 
-/**
- * Read one `/ws/v1/display` frame (`DisplayState.toJson`).
- *
- * `platformSupported` is the honest capability answer for this surface: a platform with no
- * brightness control says so, and a slider that does nothing is not drawn. Absent means a
- * malformed frame, not "unsupported" — the two are different and only one of them is the
- * server's answer.
- */
 export function readDisplayFrame(frame) {
     const present = isFrameObject(frame);
     const platform = present && isFrameObject(frame.platformSupported) ? frame.platformSupported : null;
@@ -213,13 +171,6 @@ export function readDisplayFrame(frame) {
     });
 }
 
-/**
- * Read one `/ws/v1/update` frame (`AppUpdateState.toJson`).
- *
- * `installable` is the server's own answer to "can this platform install in-app", and the
- * `install` command on a platform that cannot replies with an error envelope carrying the
- * release URL — a signal with a payload. The skin asks; it never sniffs the platform.
- */
 export function readUpdateFrame(frame) {
     const phase = readName(frame, 'phase', UPDATE_PHASE_SET);
     return Object.freeze({

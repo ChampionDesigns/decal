@@ -47,21 +47,6 @@ export function isReaFailure(value) {
     return !!value && typeof value === 'object' && value.ok === false && KINDS.includes(value.kind);
 }
 
-/**
- * Build a failure result.
- *
- * Frozen, so a caller cannot patch a plausible value onto a failure and pass it on — the
- * defensive-scaffolding habit this rewrite is shedding did exactly that in five places.
- *
- * @param {string} kind    one of REA_ERROR
- * @param {object} detail
- * @param {number|null} [detail.status]   HTTP status, or null for network/timeout
- * @param {string} detail.message         human-readable, already includes the server's
- * @param {object|string|null} [detail.problem]  the server's parsed body, verbatim
- * @param {string} detail.method
- * @param {string} detail.url
- * @param {Error|null} [detail.cause]
- */
 export function reaFailure(kind, { status = null, message, problem = null, method, url, cause = null }) {
     if (!KINDS.includes(kind)) throw new Error(`rea-errors: unknown kind ${kind}`);
     return Object.freeze({
@@ -76,14 +61,6 @@ export function reaFailure(kind, { status = null, message, problem = null, metho
     });
 }
 
-/**
- * Build a success result.
- *
- * `notModified` is a first-class outcome rather than an error: the server said the body
- * the caller already holds is current, which is information, not a fault. `data` is the
- * stored body in that case — see rea-conditional.js — so a caller that does not care
- * about revalidation can ignore the flag entirely and still be correct.
- */
 export function reaSuccess({ status, data, etag = null, notModified = false, method, url }) {
     return Object.freeze({ ok: true, status, data, etag, notModified, method, url });
 }
@@ -117,14 +94,6 @@ export class ReaError extends Error {
     }
 }
 
-/**
- * `data` on success; throws {@link ReaError} on failure.
- *
- * Deliberately NOT the default shape. Returning failures makes ignoring one a visible
- * choice at the call site; throwing makes ignoring one the default, which is how 55
- * `try`/`catch` blocks accumulated in a single 2,406-line module (E2: 274 lines of
- * defensive scaffolding, almost all of it `catch (e) { logger.error(...); throw e; }`).
- */
 export function unwrapRea(result) {
     if (result && result.ok) return result.data;
     throw new ReaError(result);

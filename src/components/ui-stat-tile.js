@@ -1,9 +1,5 @@
 /**
- * <ui-stat-tile> — a labelled reading: a microcap over a number, with an optional
- * unit beside it.
- *
- * It formats nothing and knows no channels. The caller passes a formatted string and,
- * if it wants one, a tint.
+ * <ui-stat-tile> — a labelled reading: a microcap over a number, with an optional unit beside it.
  */
 
 import { css, html, nothing } from 'lit';

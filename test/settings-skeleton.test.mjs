@@ -70,15 +70,9 @@ describe('M18: every floor marked "proposal — confirm" is a token, not a froze
         }
     });
 
-    test('the token sheet carries the M18 note for both, and says they are proposals', () => {
-        const block = TOKENS.slice(
-            TOKENS.indexOf("THE SETTINGS SCREEN'S TWO FLOORS"),
-            TOKENS.indexOf('--ui-settings-nav-min-h:'),
-        );
-        assert.ok(block.length > 0, 'the floors block is where the note lives');
-        assert.match(block, /M18/);
-        assert.match(block, /proposal/i);
-        assert.match(block, /Part 10 §9/);
+    test('both settings floors are tokens, not frozen numbers', () => {
+        assert.match(TOKENS, /--ui-settings-nav-min-h:/);
+        assert.match(TOKENS, /--ui-settings-leaf-min-h:/);
     });
 
     test('one floor token serves BOTH nav columns, and only the column declares it', () => {

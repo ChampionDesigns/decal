@@ -79,25 +79,10 @@ export const WS_SIGNAL = Object.freeze({
     TRANSPORT_ERROR: 'transportError',
 });
 
-/**
- * The default socket factory: the vendored ReconnectingWebSocket.
- *
- * Exported rather than used as a default value, so `createReaSockets` still REQUIRES a
- * factory. The app shell passes this one; the tests pass a fake. That is the same rule the
- * transport applies to `fetch`, and it is why neither module needs a loader hook to test.
- *
- * @param {object} [options] forwarded to ReconnectingWebSocket (reconnectInterval, ...)
- */
 export function reconnectingSocketFactory(options = {}) {
     return (url) => new ReconnectingWebSocket(url, [], { reconnectInterval: 5000, ...options });
 }
 
-/**
- * @param {object} deps
- * @param {(url: string) => object} deps.createSocket  injected socket factory
- * @param {string} deps.socketBaseUrl                  e.g. reaSocketBase({hostname})
- * @param {{info?: Function, warn?: Function, debug?: Function}} [deps.logger]
- */
 export function createReaSockets({ createSocket, socketBaseUrl, logger = null } = {}) {
     if (typeof createSocket !== 'function') {
         throw new Error('createReaSockets: a socket factory must be injected (see reconnectingSocketFactory)');
@@ -111,16 +96,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
 
     const urlFor = (path) => `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
-    /**
-     * Get (or create) the channel for a key. Rule A lives in this one Map lookup.
-     *
-     * @param {object} spec
-     * @param {string} spec.key            lifecycle identity; one live socket per key
-     * @param {string} spec.path           the /ws/v1 path to dial
-     * @param {object} [spec.channel]      a WS_CHANNELS row, for classification
-     * @param {number|null} [spec.maxAttempts]  rule G; null = reconnect for ever
-     * @param {boolean} [spec.retain]      rule E opt-out: stay open with no subscribers
-     */
     function channel({ key, path, channel: row = undefined, maxAttempts = null, retain = false }) {
         if (typeof key !== 'string' || !key) throw new Error('sockets.channel: key is required');
         if (typeof path !== 'string' || !path) throw new Error('sockets.channel: path is required');
@@ -269,17 +244,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
             note('debug', `opened ${state.url}`);
         }
 
-        /**
-         * Close, and say what the channel becomes.
-         *
-         * THE DEFAULT PRESERVES A VERDICT. It used to be a flat `IDLE`, which meant rule E's
-         * refcount close — `if (!retain && fanout.size() === 0) closeNow()` — silently
-         * un-latched rule G: a plugin channel that had been declared UNAVAILABLE went back
-         * to IDLE the moment the last screen unmounted, and the next subscriber opened a
-         * second socket and restarted the reconnect loop the cap exists to stop. Coming back
-         * is still an explicit act — `handle.open()` and `retarget()` both pass a status or
-         * force — it is just no longer something an unmount does by accident.
-         */
         function closeNow(nextStatus = (state.status === WS_STATE.UNAVAILABLE ? WS_STATE.UNAVAILABLE : WS_STATE.IDLE)) {
             const socket = state.socket;
             const listeners = state.listeners;
@@ -296,12 +260,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
             get path() { return state.path; },
             get url() { return state.url; },
 
-            /**
-             * Observe frames. Opens the socket on the first subscriber (rule E) and
-             * replays the latest frame to a late one (the shareReplay(1) mirror).
-             *
-             * @returns {() => void} unsubscribe — closes the socket when it was the last
-             */
             subscribe(listener) {
                 const off = fanout.subscribe(listener);
                 open();
@@ -325,13 +283,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
                 return fanout.last();
             },
 
-            /**
-             * Send a command. Returns a result rather than throwing or queueing: there is
-             * no send buffer, because a command replayed on reconnect arrives minutes after
-             * the user asked for it, attributed to an intent they have moved on from.
-             *
-             * @returns {{ok: true}|{ok: false, reason: string}}
-             */
             send(payload) {
                 if (row && row.commands && payload && typeof payload === 'object'
                     && typeof payload.command === 'string') {
@@ -356,12 +307,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
                 }
             },
 
-            /**
-             * Point this channel at a different path — a new sensor id, a different plugin
-             * feed. Rule B and rule D: close the old socket first, drop its replay value,
-             * then open the new one. Subscribers stay subscribed throughout and see the
-             * change as an absence followed by fresh frames, never as a silent swap.
-             */
             retarget(nextPath) {
                 if (typeof nextPath !== 'string' || !nextPath) {
                     throw new Error(`sockets.retarget(${key}): a path is required`);

@@ -1,39 +1,5 @@
 /**
- * live-refusal.js — `<live-refusal>`, B9's surface. It shows what the server said.
- *
- * ITEM `live-refusal-surface`. SCOPE.md:1861-1868: "v1 builds the refusal surface and
- * wires it to every refusal ReaPrime can already report — the arm-time 400 (`Unsupported
- * profile`) exists today and needs zero upstream work; the alert banner (#49) takes a
- * message, it does not know the message. When R7 lands, the same surface carries the
- * machine-side refusal."
- *
- * ===========================================================================
- * THE WHOLE POINT: THIS ELEMENT KNOWS NOTHING ABOUT PROFILES
- * ===========================================================================
- *
- * It takes `{kind, error, message}` — `profileRefusal()`'s output, verbatim from
- * `src/data/rea-profile.js`, which reads it out of the 400 body and words nothing. It has
- * no capability check, no profile model, no list of refusable step types, and no sentence
- * of its own describing WHY something was refused. That is what lets R7's machine-side
- * refusal ride this same element later with no change here at all: a refusal is a
- * `{kind, error, message}`, whoever produced it.
- *
- * There are exactly two strings in this file and neither describes a refusal: a label for
- * the dismiss control, and a fallback headline for a refusal that arrived with no `error`
- * string — which the address layer cannot produce (`profileRefusal` returns null on an
- * empty `error`) but a future producer might.
- *
- * WHAT IT DOES ADD, and why it is not "just render the message": `kind` distinguishes the
- * two 400s the route can answer, and they mean different things to a person —
- * "'unsupported' says 'this machine cannot run this profile', 'invalid' says 'this profile
- * is malformed'" (`rea-profile.js`). The kind is a REFLECTED ATTRIBUTE (Appendix 15) so
- * the two are distinguishable to a suite, to a screen sheet, and to anyone reading the
- * DOM — without this file writing a sentence about either.
- *
- * UNCONDITIONAL IS ENFORCED UPSTREAM, in `src/stores/profile-arm-store.js`: always send,
- * always read the answer, never pre-filter on `capabilities.profileModes()`. This element
- * renders whatever it is given, so a capability check here would be the same defect in a
- * different file — and there is none.
+ * <live-refusal>, B9's surface.
  */
 
 import { css, html, nothing, svg } from 'lit';
@@ -118,12 +84,6 @@ export class LiveRefusal extends UiElement {
         `;
     }
 
-    /**
-     * The user acknowledged it. An EVENT, not a local clear: the arm store owns the state
-     * (`clear()`), and an element that hid the banner locally would leave the store saying
-     * `refused` with nothing on screen — two owners of one visual state, which is L11's
-     * shape in another region.
-     */
     #dismiss = () => {
         this.dispatchEvent(new CustomEvent('refusal-dismiss', { bubbles: true, composed: true }));
     };

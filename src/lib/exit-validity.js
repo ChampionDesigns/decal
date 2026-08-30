@@ -32,23 +32,10 @@ export function isDeadExit(exit) {
     return deadExitReason(exit) !== null;
 }
 
-/**
- * The floor for an exit threshold stepper.
- *
- * A "falls below" threshold floors at one increment rather than zero, so the
- * dead state cannot be dialled in at all. "Rises past" keeps its zero — the
- * value is reachable and the flag explains the consequence.
- */
 export function exitValueMin(condition, step = 0.1) {
     return condition === 'under' ? step : 0;
 }
 
-/**
- * The note shown beside a flagged exit: what will actually end the step.
- *
- * Worded from the step's REMAINING exits rather than an assumed duration cap —
- * a step with a 100 mL volume exit is not "runs until the profile ends".
- */
 export function remainingExitsNote(step) {
     const remaining = [];
     if (Number(step?.volume) > 0) remaining.push(`${Number(step.volume)} mL`);

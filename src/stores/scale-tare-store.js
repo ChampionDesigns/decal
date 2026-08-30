@@ -1,35 +1,5 @@
 /**
- * scale-tare-store.js — the one caller of `PUT /api/v1/scale/tare`, and the only place
- * that decides whether a tare actually happened.
- *
- * Ben, 23 Aug 2026: "with slate, if you tough the weight value it sends the tare command
- * to the machine resetting the weigh to 0.0g".
- *
- * ===========================================================================
- * A 200 IS NOT A TARE, AND THAT IS THE WHOLE OF THIS FILE
- * ===========================================================================
- * TWO refusals sit behind this route and only one of them answers.
- *
- *   REAPRIME REFUSES VISIBLY. `scale_handler.dart` returns 400 with
- *   `{type: 'block_tare_during_shot'}` when `blockTareDuringShot` is set, a shot is
- *   active and the gateway is not in full mode. That is a real answer and it is
- *   reported as a refusal, in the machine's own words.
- *
- *   THE FIRMWARE REFUSES SILENTLY. `doLCTare()` returns early while a shot runs — a
- *   mid-pour re-zero moves the mass reference under the running shot and stop-at-weight
- *   would over-deliver — and it says so only on its own serial console. The MMR write
- *   still succeeds, so ReaPrime answers 200 and the client learns nothing.
- *
- * Slate shipped exactly that bug and fixed it (`f813dea`): it awaited the write and
- * toasted "Scale tared" over a refusal. Its answer, and this one, is reaprime's own
- * advice in `integrated_scale_capability`: A TARE MUST BE CONFIRMED BY WATCHING THE
- * WEIGHT, NOT THE FLAG. So the request is only the first half; the second half watches
- * the scale feed settle near zero, and on timeout NAMES THE LIKELY CAUSE rather than
- * reporting a bare failure.
- *
- * WHAT IT DELIBERATELY DOES NOT DO: it does not read the shot state to predict a
- * refusal. Predicting is how Slate's B10 defect worked — re-implementing the server's
- * rule in the client, where it drifts. The machine decides; this watches.
+ * The one caller of PUT /api/v1/scale/tare, and the only place that decides whether a tare actually happened.
  */
 
 import { createStore } from './store.js';
@@ -50,12 +20,6 @@ export const TARE_STATUS = Object.freeze({
     ERROR: 'error',
 });
 
-/**
- * How near zero counts as tared. A settled platform reads a few hundredths; a cup that
- * has not moved reads its own mass. Half a gram is well inside the first and nowhere
- * near the second — the same threshold Slate uses to detect the boundary tare in a shot
- * series, for the same reason.
- */
 export const TARE_ZERO_G = 0.5;
 
 /** How long to watch before giving up. Long enough for a scale's own settle. */
@@ -71,20 +35,6 @@ const NO_ATTEMPT = Object.freeze({
     weight: null,
 });
 
-/**
- * @param deps.transport  the shared transport — the route is addressed by ID, never spelled
- * @param deps.scale      the SCALE FEED store, watched to confirm. Injected rather than
- *                        reached for: this store owns no feed and starts nothing.
- * @param {Function} [deps.setTimer]    injected one-shot timer (see below)
- * @param {Function} [deps.clearTimer]  its cancel
- *
- * THE TIMER IS INJECTED, WHICH IS PATTERN A. "A store that starts its own timer outlives
- * whatever wanted it" — the store suite scans this directory for scheduling calls and
- * allows only lines a file has DECLARED, which is how the rule stays enforced rather than
- * remembered. The confirm window needs a deadline (a scale that never answers must not
- * leave the surface stuck on WORKING), so the deadline is a parameter and a caller under
- * test can drive it without a real clock.
- */
 export function createScaleTareStore({
     transport,
     scale,
@@ -114,12 +64,6 @@ export function createScaleTareStore({
         return typeof value === 'number' && Number.isFinite(value) ? value : null;
     };
 
-    /**
-     * Watch until the weight is near zero, or until the budget runs out.
-     *
-     * Subscribes rather than polls: the feed publishes on every frame, so the first
-     * settled reading answers immediately instead of on the next tick of a timer.
-     */
     const confirm = () => new Promise((resolve) => {
         const started = now();
         let stop = null;
@@ -143,12 +87,6 @@ export function createScaleTareStore({
         subscribe: store.subscribe,
         get: store.get,
 
-        /**
-         * Ask the machine to tare, then find out whether it did.
-         *
-         * Concurrent presses join one attempt: a second tare on top of a first tells the
-         * machine nothing new and would race its own confirmation.
-         */
         async tare() {
             if (inFlight) return inFlight;
             patch({ status: TARE_STATUS.WORKING, refusal: null, error: null, weight: null });

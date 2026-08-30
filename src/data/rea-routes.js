@@ -62,8 +62,6 @@ export class ReaRouteError extends Error {
     }
 }
 
-/* ------------------------------------------------------------------ lookup */
-
 /** The row for a generated id, or a hard failure. An unknown id is never a soft miss. */
 export function routeById(id) {
     const route = REST_ROUTE_BY_ID[id];
@@ -97,12 +95,6 @@ export function pathMatchesTemplate(template, path) {
     return t.every((segment, i) => (isParamSegment(segment) ? p[i].length > 0 : segment === p[i]));
 }
 
-/**
- * The row a concrete request would use, or null.
- *
- * This is the primitive Gate D's COVERAGE half needs: a route string in the client with no
- * table entry is a build failure, and "no table entry" means this returned null.
- */
 export function findRoute(method, path) {
     const wanted = method.toUpperCase();
     const bare = path.startsWith('/api/v1') ? path.slice('/api/v1'.length) : path;
@@ -119,15 +111,6 @@ export function channelFor(route) {
     return channel;
 }
 
-/* ---------------------------------------------------------------- spelling */
-
-/**
- * Fill a route's path parameters. Every value is percent-encoded — identically to
- * `reaPath` in the transport, which `test/rea-routes.test.mjs` asserts value-for-value.
- *
- * Encoding is not optional: `rest_v1.yml` warns in prose that device ids carry colons and
- * slashes, and the old client interpolated one into a query string raw.
- */
 export function buildPath(route, params = {}) {
     const given = Object.keys(params);
     const unknown = given.filter((name) => !route.pathParams.includes(name));
@@ -143,13 +126,6 @@ export function buildPath(route, params = {}) {
     });
 }
 
-/**
- * Check a query object against the documented parameters and return it unchanged.
- *
- * Returns the same object rather than a filtered copy on purpose: silently dropping an
- * unknown key is the failure mode this exists to prevent. `undefined` and `null` values
- * are left for `reaQuery` to omit.
- */
 export function buildQuery(route, query = null) {
     if (!query) return null;
     const declared = new Set(route.query.map((q) => q.name));
@@ -174,14 +150,6 @@ export function buildQuery(route, query = null) {
     return query;
 }
 
-/* ------------------------------------------------------------------ calling */
-
-/**
- * Make one call by route id, through an injected transport.
- *
- * The transport owns the base URL, the timeout, `If-None-Match` and the typed failure;
- * this adds the spelling and nothing else. The result is returned verbatim.
- */
 export function callRoute(transport, id, { params = {}, query = null, body = undefined, ...options } = {}) {
     if (!transport || typeof transport.request !== 'function') {
         throw new ReaRouteError('callRoute: a transport must be injected (see createReaTransport)');
@@ -211,16 +179,6 @@ export function socketUrl(transport, channelRoute, params = {}) {
     return transport.socketUrl(path);
 }
 
-/* ------------------------------------------------------- the demand surface */
-
-/**
- * Every exported helper, with the wave item that asked for it.
- *
- * This list is the demand-driven rule made checkable: `test/rea-routes.test.mjs` asserts
- * the helper set and this table are the same set, so a helper cannot be added without
- * naming its consumer, and a consumer that goes away leaves a helper that fails the test.
- * Everything else in the 143-row table is reached through `callRoute`.
- */
 export const HELPER_DEMAND = Object.freeze([
     Object.freeze({ helper: 'capabilities', routeId: 'getMachineCapabilities', wantedBy: 'gate4-capabilities-store', consumer: 'src/stores/capabilities-store.js' }),
     Object.freeze({ helper: 'cupWarmer', routeId: 'getMachineCupWarmer', wantedBy: 'gate4-cupwarmer-store', consumer: 'src/stores/cup-warmer.js' }),
@@ -229,27 +187,6 @@ export const HELPER_DEMAND = Object.freeze([
     Object.freeze({ helper: 'setCupWarmerPreheat', routeId: 'putMachineCupWarmerPreheat', wantedBy: 'gate4-cupwarmer-store', consumer: 'src/stores/cup-warmer.js' }),
 ]);
 
-/**
- * THE FIVE HELPERS THAT WERE HERE AND ARE NOT, and why deleting beats keeping.
- *
- * `sensors`, `connectDevice`, `shots`, `latestShot` and `shot` were declared with a
- * `wantedBy` naming an item — and had ZERO consumers anywhere under src/. Two of them were
- * the sharper case: the very items named as the demand, `rea-sensors.js` and
- * `rea-devices.js`, went and spelled their own paths instead. The demand list's guard only
- * asserted that the exported set equalled this table, so a table row was enough to make a
- * helper look wanted; `test/rea-routes.test.mjs` now requires a NAMED consumer file that
- * exists and actually calls the helper.
- *
- * Nothing is lost by the deletion: `callRoute(transport, id, …)` reaches all 143 rows with
- * the same spelling from the same table, which is what the two cluster modules now do. A
- * helper comes back the day a store calls it — with its consumer named in the row.
- *
- * The rows spell the id under `id` rather than `routeId`, and describe the spelling in
- * prose rather than in a call expression, because Gate D's scan reads route ids out of the
- * TEXT of a module: a retired row written the obvious way would register these five as
- * addressed by this file, which is the opposite of what it says. A list of what is NOT
- * called must not read as a call site.
- */
 export const RETIRED_HELPERS = Object.freeze([
     Object.freeze({ helper: 'sensors', id: 'getSensors', reachedBy: 'by id from src/data/rea-sensors.js' }),
     Object.freeze({ helper: 'connectDevice', id: 'putDevicesConnect', reachedBy: 'by id from src/data/rea-devices.js' }),

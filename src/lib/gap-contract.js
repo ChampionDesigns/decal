@@ -68,27 +68,8 @@ export const GAP_MEANING = Object.freeze({
     OUTSIDE: 'outside',
 });
 
-/**
- * Floating-point slack for an interpolated value.
- *
- * Interpolation is one multiply and one add, so the error is at the last bit; anything
- * looser would let a resampler that rounds to one decimal pass, and rounding a series
- * before it is drawn is its own defect.
- */
 export const GAP_TOLERANCE = 1e-9;
 
-/**
- * The contract.
- *
- * Each case names ONE claim, states the axis, the channel as the channel spoke it, and the
- * column that must come out. `expect` entries are a number (that value, within
- * `GAP_TOLERANCE`) or `null` (a break — and `undefined`, `NaN` and `0` are all failures
- * there, because a break is the absence of a number and zero is a measurement).
- *
- * `carrier` is the second channel used by `checkChannelAligner`: it holds every axis
- * instant so a union-forming aligner produces the axis this case names. It is never the
- * channel under test.
- */
 export const GAP_CONTRACT = Object.freeze([
     Object.freeze({
         id: 'bridge-unspoken-interior',
@@ -161,14 +142,6 @@ export const GAP_CONTRACT = Object.freeze([
     }),
 ]);
 
-/**
- * The pair claim: the two meanings must be DISTINGUISHABLE.
- *
- * Two channels sampled at the same instants, differing only in whether the middle slot was
- * spoken as null or not sampled at all, must produce different columns. A resampler that
- * treats absence and gating alike passes every single-source case above by accident and
- * fails this one, which is why it is stated separately.
- */
 export const GAP_DISTINCTION = Object.freeze({
     id: 'the-two-meanings-are-distinguishable',
     claim: 'unspoken and gated at the same instant produce different columns',
@@ -224,17 +197,6 @@ const report = (results) => Object.freeze({
     failed: Object.freeze(results.filter((r) => !r.ok).map((r) => r.id)),
 });
 
-/**
- * Hold a resampler to the contract.
- *
- * THE SIGNATURE IS THE ONE THE PORT REPLACES: `resample(axis, srcX, srcY)` returning one
- * column of `axis.length` entries, each a number or null. That is deliberately the shape
- * the defective function already has, so the port can be checked as it is written rather
- * than after it has been wrapped in something.
- *
- * @param {(axis: number[], srcX: number[], srcY: Array<number|null>) => Array<number|null>} resample
- * @returns {{ok: boolean, cases: object[], failed: string[]}}
- */
 export function checkResampler(resample, { tolerance = GAP_TOLERANCE } = {}) {
     if (typeof resample !== 'function') {
         throw new TypeError('checkResampler: a resample(axis, srcX, srcY) function is required');
@@ -273,17 +235,6 @@ export function checkResampler(resample, { tolerance = GAP_TOLERANCE } = {}) {
     return report([...results, distinction]);
 }
 
-/**
- * The same contract, for an aligner that forms its own axis from a channel map.
- *
- * `src/lib/chart-align.js` `alignChannels(channels, keys)` is that shape, and running the
- * contract against it is how this file proves the policy is SATISFIABLE by shipped code
- * rather than only stated. The carrier channel holds every axis instant, so the union the
- * aligner forms is the axis the case names; the channel under test is read out of the
- * second column.
- *
- * @param {(channels: object, keys: string[]) => Array<Array<number|null>>} align
- */
 export function checkChannelAligner(align, { tolerance = GAP_TOLERANCE } = {}) {
     if (typeof align !== 'function') {
         throw new TypeError('checkChannelAligner: an align(channels, keys) function is required');

@@ -1,40 +1,9 @@
 /**
- * icons.js — the drawn marks this skin uses more than once, as Lit templates.
- *
- * ===========================================================================
- * WHY A MODULE AND NOT AN SVG AT EACH CALL SITE
- * ===========================================================================
- *
- * Ben, 25 August 2026, on the profile editor: "copy Slates edit icon and remove the box
- * around it, this will also be the same icon used for the step title." Two call sites,
- * one mark. Pasting the same eleven path commands twice is the second source this
- * codebase spends its comments avoiding — and the failure is quiet: one copy gets a
- * stroke width and the other does not, and nobody sees it until the two are photographed
- * side by side.
- *
- * NOT A COMPONENT. An icon is not a control; it has no state, no events and no box of
- * its own. `<ui-icon-button>` is the control, and what it takes is a slotted `<svg>`
- * (`ui-icon-button.js` styles `::slotted(svg)`), so a function that returns the svg is
- * exactly the seam that already exists.
- *
- * `currentColor` AND NO SIZE. The mark takes its colour from whatever draws it and its
- * size from the button's own glyph token, so a caller states neither. An svg carrying a
- * fill or a pixel size is an icon that cannot be re-used, which is how a second copy
- * gets made.
+ * The drawn marks this skin uses more than once, as Lit templates.
  */
 
 import { html, svg } from 'lit';
 
-/**
- * The rename pencil.
- *
- * ORACLE: Slate's `#editor-title-pencil`, read off `src/profiles/profile_editor.html:10`
- * — viewBox 0 0 24 24, `stroke="currentColor"`, `stroke-width="1.7"`, round caps and
- * joins, two paths: the underline and the nib. Copied path for path.
- *
- * `aria-hidden` because every caller names its own button. An icon that announced itself
- * inside a labelled button is the same name twice.
- */
 export function penIcon() {
     return html`<svg
         viewBox="0 0 24 24"
@@ -49,14 +18,6 @@ export function penIcon() {
     ></path></svg>`;
 }
 
-/**
- * The version-history mark: a clock face inside a counter-clockwise arrow.
- *
- * ORACLE: Slate's `#editor-history-btn`, read off
- * `src/profiles/profile_editor.html:27-31` — viewBox 0 0 24 24, `stroke="currentColor"`,
- * `stroke-width="1.8"`, round caps and joins, three paths: the arc, the arrow head, and
- * the hands. Copied path for path.
- */
 export function historyIcon() {
     return html`<svg
         viewBox="0 0 24 24"
@@ -71,18 +32,6 @@ export function historyIcon() {
     ></path><path d="M12 7v5l3 2"></path></svg>`;
 }
 
-/**
- * The way out of a full-screen surface: an arrow with a stem, pointing left.
- *
- * ORACLE: Slate's `#expanded-chart-back` and `#hv-back`, read off `app/index.html:465`
- * and `:501` — viewBox 0 0 24 24, `stroke="currentColor"`, `stroke-width="2"`, round caps
- * and joins, two paths: the stem and the head. Copied path for path.
- *
- * AND IT IS DELIBERATELY NOT A CHEVRON, which is Slate's own note beside it: "This header
- * used to hold three chevrons in a row — prev, next, back — two of them the same glyph
- * meaning different things. Back gets an arrow with a stem, which reads as 'out of here'
- * rather than 'one to the left'."
- */
 export function backIcon() {
     return html`<svg
         viewBox="0 0 24 24"
@@ -95,29 +44,6 @@ export function backIcon() {
     ><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>`;
 }
 
-/* ===========================================================================
- * THE WEATHER MARKS — Lucide's, copied path for path.
- * ===========================================================================
- * Open-Meteo answers with a WMO code and `weather-model.js markFor()` groups the
- * hundred of them onto these ten. The set is LUCIDE's (ISC licence) rather than drawn
- * here, for a reason beyond saving the drawing: Decide already ships `lucide.ttf`, so
- * the app and the skin speak one visual language, and a mark a person has seen in the
- * app means the same thing in the corner.
- *
- * They follow this file's own rule — `currentColor` and no size — so the corner sets
- * both. Stroke width is 1.5 rather than the editor marks' 1.7: these are drawn at 54 px
- * where 1.7 reads heavy, and Lucide's own default is 2 at 24 px.
- * =========================================================================== */
-
-/**
- * THE FRAGMENTS USE LIT'S `svg` TEMPLATE, NOT `html`, AND THAT IS NOT A STYLE CHOICE.
- *
- * A fragment written with `html` is parsed as HTML, so its <path> elements are created
- * in the HTML namespace: they become HTMLUnknownElement, and an SVG renderer draws
- * nothing from them. On the tablet that showed as a correctly sized, correctly coloured,
- * completely invisible mark whose paths measured 0 x 0 — the svg was there, the stroke
- * resolved, and there was no error anywhere. `svg` puts them in the SVG namespace.
- */
 const weatherSvg = (paths) => html`<svg
     viewBox="0 0 24 24"
     fill="none"
@@ -196,11 +122,6 @@ export function placeIcon() {
     ></path><circle cx="12" cy="10" r="2.6"></circle>`);
 }
 
-/**
- * THE ONE PLACE A MARK NAME BECOMES A MARK. `weather-model.js markFor()` returns the
- * name; this returns the drawing. Keeping the table here rather than in the model keeps
- * the model DOM-free, which is what lets `node:test` drive it.
- */
 const WEATHER_MARKS = Object.freeze({
     clear: clearIcon,
     clearNight: clearNightIcon,
@@ -219,13 +140,6 @@ export function weatherIcon(mark) {
     return (WEATHER_MARKS[mark] || overcastIcon)();
 }
 
-/**
- * THE GEAR, for a plugin row that has settings to open.
- *
- * Lucide's `settings-2` — the sliders form rather than the cog, because at 20px a cog's
- * teeth close up into a disc and stop reading as anything. Same ISC set as the weather
- * marks above, and the same `currentColor` and no-size rule: the button sizes it.
- */
 export function gearIcon() {
     return html`<svg
         viewBox="0 0 24 24"

@@ -1,9 +1,5 @@
 /**
  * <ui-bank> — a segmented bank: a row of equal cells, one of them chosen.
- *
- * It speaks one of three ARIA spellings (radio, tablist, toolbar) chosen by mode.
- * The spelling changes the roles and the state attribute and nothing else: the paint
- * and the keyboard are the same in all three.
  */
 
 import { css, html, nothing } from 'lit';

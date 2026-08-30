@@ -50,52 +50,11 @@ export const AMBIGUITY = Object.freeze({
     SCALE_PICKER: 'scalePicker',
 });
 
-/**
- * `ConnectionErrorSeverity` (connection_error.dart) — the two levels ReaPrime stamps on
- * every `ConnectionError`, and it USES the difference rather than writing `error` twice.
- * Measured at the pin: a machine disconnecting unexpectedly is `error`
- * (`disconnect_supervisor.dart:134`), the SAME event for a scale is `warning` (`:153`),
- * and a profile that failed to upload is `warning` (`workflow_device_sync.dart:155`).
- *
- * So this is upstream's own answer to "does this deserve the alarm", published on the wire
- * and, until 28 August 2026, read by nothing here. `connection-surface.js` reads it now.
- */
 export const CONNECTION_ERROR_SEVERITY = Object.freeze({
     WARNING: 'warning',
     ERROR: 'error',
 });
 
-/**
- * THE ERROR KINDS THAT ARE ABOUT THE SCAN TRANSPORT AND NOT ABOUT A CONNECTION.
- *
- * This is `ConnectionErrorKind.sticky` (connection_error.dart:13-17) copied verbatim, and
- * the two names describe one set for one reason. Upstream calls it `sticky` for its
- * MECHANISM: `StatusPublisher.publish` clears an ordinary error when the phase moves into
- * scanning/connectingMachine/connectingScale/ready, and deliberately does NOT clear these
- * three (`status_publisher.dart:30-45`) — it even re-attaches them to a later status that
- * carries no error of its own. It is named here for what makes that correct: every member
- * is a statement about the RADIO, not about a device or an attempt.
- *
- *   adapterOff                  the Bluetooth adapter is switched off
- *   bluetoothPermissionDenied   the app may not use it
- *   scanFailed                  the sweep itself would not start
- *
- * None of the three is reachable by connecting to something, and none of them stops
- * anything that is ALREADY connected — which is exactly why upstream lets them outlive a
- * phase change, and exactly why they must not be read as "could not connect". See
- * `connection-surface.js`'s ERROR_SCOPE for the rule this feeds and Ben's bug of
- * 28 August 2026 for why it exists.
- *
- * WHY A PINNED SET AND NOT A FIELD ON THE WIRE. There is no `scope` on `ConnectionError`.
- * The nearest structural proxy is `deviceId`, which the connection kinds carry
- * (`connection_manager.dart:370`, `disconnect_supervisor.dart:136`) and the scan kinds do
- * not (`connection_manager.dart:447-467`, `scan_orchestrator.dart:130-141`) — but it is an
- * OPTIONAL key, so its absence is "no device was named", never "this is about the radio".
- * Reading a scope out of a missing key would be the invention A7 forbids. A hand-placed
- * copy of upstream's own set, pinned by `test/rea-dart-freshness.test.mjs` against the
- * Dart that declares it, is the honest form: a fourth member upstream adds fails a test
- * here, where a person decides what it is, instead of arriving silently on a bench frame.
- */
 export const SCAN_SCOPED_ERROR_KINDS = Object.freeze([
     'adapterOff',
     'bluetoothPermissionDenied',
@@ -130,30 +89,11 @@ export const DEVICE_TYPE = Object.freeze({
 const PHASES = new Set(Object.values(CONNECTION_PHASE));
 const AMBIGUITIES = new Set(Object.values(AMBIGUITY));
 
-/**
- * THE TWO REST PATHS THIS MODULE CALLS — TAKEN FROM THE GENERATED TABLE, NOT SPELLED HERE.
- *
- * This was a five-row literal table, three rows of which were never called at all, sitting
- * beside a generated table carrying every path ReaPrime documents. Two copies of one
- * server truth is two things to drift, and `routeById` fails loudly on an id the pinned
- * spec does not carry, where a string literal fails silently by 404ing at runtime.
- *
- * The three uncalled rows (`/devices`, `/devices/scan`, `/devices/forget`) are gone: the
- * connection state arrives on the socket, and a caller that later needs one of them reaches
- * it with `callRoute(transport, 'getDevices')` — same table, no new addressing.
- */
 export const DEVICES_ROUTES = Object.freeze({
     connect: routeById('putDevicesConnect').route,
     disconnect: routeById('putDevicesDisconnect').route,
 });
 
-/**
- * Read one device list entry (`DeviceListEntry.toJson`).
- *
- * `available: false` is a REMEMBERED device — one ReaPrime knows about but cannot see
- * right now. It is a real, useful third state between "connected" and "not there", and it
- * is the reason a picker can offer a machine that is asleep.
- */
 function readDevice(entry) {
     if (!entry || typeof entry !== 'object') return null;
     if (typeof entry.id !== 'string') return null;
@@ -177,16 +117,6 @@ function readDeviceList(value) {
     return Object.freeze(read);
 }
 
-/**
- * Read `connectionStatus` (`DevicesStateAggregator._buildSnapshot`).
- *
- * ReaPrime writes all five keys unconditionally, `pendingAmbiguity` and `error` as null
- * when there is none, so here NULL is the absence signal and an ABSENT key is a malformed
- * frame — the opposite of the machine snapshot's rule, and true of this frame because the
- * handler builds the map literally rather than conditionally.
- *
- * @returns {object|null} null if the block is malformed
- */
 export function readConnectionStatus(status) {
     if (!status || typeof status !== 'object') return null;
     if (typeof status.phase !== 'string') return null;
@@ -253,15 +183,6 @@ export function readDevicesFrame(frame) {
     });
 }
 
-/**
- * Read a connect/disconnect result — from the socket, or out of the REST response.
- *
- * The two transports answer with the SAME body; only the envelope differs. Over REST the
- * outcome is also encoded in the status (200 connected/alreadyConnected, 409 conflict,
- * 503 failed, 504 timedOut), so a failure result still carries a readable body, and
- * `connectResult` reads it from `problem` — that is reading the server's own answer, not
- * manufacturing one.
- */
 export function readConnectResult(body) {
     if (!body || typeof body !== 'object') return null;
     const outcome = typeof body.outcome === 'string' ? body.outcome : null;
@@ -280,14 +201,6 @@ export function readConnectResult(body) {
     });
 }
 
-/**
- * The devices link: the socket, parsed, plus the answer path.
- *
- * @param {object} deps
- * @param {object} deps.sockets    createReaSockets(...)
- * @param {object} deps.transport  createReaTransport(...) — the answer goes over REST
- * @param {object} [deps.logger]
- */
 export function createDevicesLink({ sockets, transport, logger = null } = {}) {
     if (!sockets || typeof sockets.channel !== 'function') {
         throw new Error('createDevicesLink: sockets must be injected');
@@ -302,11 +215,6 @@ export function createDevicesLink({ sockets, transport, logger = null } = {}) {
     return {
         channel,
 
-        /**
-         * Observe the parsed connection state. A malformed frame delivers `null` — the
-         * subscriber is told "unknown", which is a state it can render, rather than being
-         * told a lie it cannot detect.
-         */
         subscribe(listener) {
             return channel.subscribe((frame) => {
                 const state = readDevicesFrame(frame);
@@ -325,19 +233,6 @@ export function createDevicesLink({ sockets, transport, logger = null } = {}) {
             return readDevicesFrame(channel.last());
         },
 
-        /**
-         * ANSWER the pending choice, or connect on purpose. Same route either way:
-         * `_connectDevice` checks `pendingAmbiguity` itself and routes to
-         * `selectMachine`/`selectScale` when a selection session is open, `connectMachine`/
-         * `connectScale` when it is not. So the skin does not need to know which it is —
-         * and cannot get it wrong.
-         *
-         * PUT /api/v1/devices/connect  {deviceId}  -> DevicesHandler._handleConnect
-         *   200 connected|alreadyConnected · 409 conflict · 503 failed · 504 timedOut
-         *   400 {'error': 'Missing deviceId'} · 404 {'error': 'Device not found: <id>'}
-         *
-         * @returns {{ok: boolean, result: object|null, failure: object|null}}
-         */
         async connect(deviceId) {
             return this._deviceCommand(DEVICES_ROUTES.connect, deviceId);
         },
@@ -361,13 +256,6 @@ export function createDevicesLink({ sockets, transport, logger = null } = {}) {
             return { ok: false, result: readConnectResult(response.problem), failure: response };
         },
 
-        /**
-         * The same answer over the socket: `{"command":"connect","deviceId":…}`
-         * (`DevicesHandler._handleCommand`). Offered because the spec names both
-         * transports, and because commands on this socket are serialised server-side
-         * through one queue. The REST route above is the primary path: it returns a status
-         * the caller can await, where the socket reply arrives later as a signal.
-         */
         connectOverSocket(deviceId) {
             if (typeof deviceId !== 'string' || !deviceId) {
                 throw new Error('devices: deviceId is required');

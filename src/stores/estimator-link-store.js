@@ -53,18 +53,6 @@ import { ESTIMATOR_CHANNELS, ESTIMATOR_MEASURED_POWER_MIN_REV } from '../data/re
 import { WS_SIGNAL } from '../data/rea-sockets.js';
 import { WS_MESSAGE } from '../data/rea-ws-channels.js';
 
-/**
- * THE NINE CHANNELS THE LINK FOLDS ONTO A SAMPLE.
- *
- * Exactly the nine the old map carried — its left-hand side was accurate, and it is kept.
- * What is gone is its right-hand side: no channel is renamed to a machine-snapshot key on
- * the way past. The sensor's full seventeen stay available on `state.channels`; these nine
- * are what a sample-shaped consumer reads, and the three duplicated quantities (B6) are all
- * inside them.
- *
- * `hydraulicPowerMeasured` needs BengleEstSample rev >= 3 and is simply absent below it —
- * which is a data state, not an error, and not a reason to substitute the derived twin.
- */
 export const ESTIMATOR_LINK_CHANNELS = Object.freeze([
     'r1',
     'r2',
@@ -77,15 +65,6 @@ export const ESTIMATOR_LINK_CHANNELS = Object.freeze([
     'hydraulicPowerMeasured',
 ]);
 
-/**
- * And they are required to BE nine of the seventeen, at import.
- *
- * This module already imports `ESTIMATOR_CHANNELS` — the checked-against-Dart list — and
- * then hand-wrote a subset of it beside the import, with a test that asserted the length
- * and three members. A subset assertion is the whole guard that was missing: it costs
- * nothing and turns "the firmware renamed a collapse channel" from nine silent absences
- * into a failure that names the key.
- */
 for (const channel of ESTIMATOR_LINK_CHANNELS) {
     if (!ESTIMATOR_CHANNELS.includes(channel)) {
         throw new Error(
@@ -120,13 +99,6 @@ const EMPTY = Object.freeze({
     updatedAt: null,
 });
 
-/**
- * @param {object} deps
- * @param {object} deps.discovery  createSensorDiscovery(...) — owns the poll, the R3 gate
- *                                 and re-discovery on close
- * @param {object} [deps.logger]
- * @param {() => number} [deps.now]
- */
 export function createEstimatorLinkStore({ discovery, logger = null, now = () => Date.now() } = {}) {
     if (!discovery || typeof discovery.subscribe !== 'function' || typeof discovery.onSignal !== 'function') {
         throw new Error('createEstimatorLinkStore: sensor discovery must be injected (see createSensorDiscovery)');
@@ -142,12 +114,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
     const publish = (next) => store.set(next);
     const state = () => store.get();
 
-    /**
-     * WHO IS ATTACHED IS DISCOVERY'S ANSWER, NOT A SECOND COPY HERE. The id derives from
-     * the machine's deviceId, so it changes on a machine swap; a remembered one is the
-     * defect. `state.sensorId` records which sensor the HELD FRAME came from, which is the
-     * same id whenever a frame is held, because a detach drops the frame with it.
-     */
     const attachedId = () => discovery.attachedId(SENSOR_KIND.PUCK_ESTIMATOR);
 
     /** A frame arrived. The reader is the address layer's; this store learns no key name. */
@@ -181,11 +147,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
         });
     }
 
-    /**
-     * A signal arrived. A CLOSE or an error envelope means the id we hold is finished —
-     * drop the frame with it. Re-discovery is `rea-sensors.js`'s and it is already running;
-     * what this must not do is keep charting the last frame of a machine that has gone.
-     */
     function onSignal(signal) {
         if (!signal) return;
         if (signal.kind === WS_SIGNAL.OPEN) {
@@ -212,11 +173,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
         /** Observe. The current state replays to a late subscriber. */
         subscribe(listener) { return store.subscribe(listener); },
 
-        /**
-         * Start. EXPLICIT and idempotent — the old link started its interval in its
-         * constructor. Subscribing is what makes the estimator WANTED, which is what lets
-         * discovery poll for it at all.
-         */
         start() {
             if (offFrames) return this;
             offSignals = discovery.onSignal(SENSOR_KIND.PUCK_ESTIMATOR, onSignal);
@@ -243,17 +199,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
         /** Is a channel carrying a measurement right now? Key presence, through the reader. */
         has(channel) { return state().present.includes(channel); },
 
-        /**
-         * Fold the latest estimator frame onto a sample — RETURNING A NEW OBJECT.
-         *
-         * The estimator keeps its own namespace: `sample.estimator`. It is never merged
-         * into the machine's keys, under its own names or anyone else's. That is the
-         * difference between a store and the old shim, and it is why a consumer can always
-         * tell which instrument it is reading.
-         *
-         * With no frame held, `estimator.ok` is false and the channels are absent — the
-         * state a chart draws as a gap.
-         */
         apply(sample) {
             const base = sample && typeof sample === 'object' ? sample : {};
             const channels = state().channels;

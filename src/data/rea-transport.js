@@ -50,47 +50,18 @@ export const API_PREFIX = '/api/v1';
  *  DE1 settings reads and none at all on the heavier one (E2 bug 9). One default, here. */
 export const DEFAULT_TIMEOUT_MS = 10000;
 
-/**
- * Compose the REST base URL from values the CALLER read.
- *
- * Pure. Takes a hostname and protocol as arguments and reads no ambient state, which is
- * the whole point — the app shell reads `window.location` once, at startup, in a file
- * that is allowed to; tests pass a fake; nothing here changes behaviour by environment.
- *
- * @param {{hostname: string, protocol?: string, port?: number|string}} location
- */
 export function reaBaseUrl({ hostname, protocol = 'http:', port = REA_PORT } = {}) {
     if (!hostname) throw new Error('reaBaseUrl: hostname is required');
     const scheme = protocol === 'https:' ? 'https:' : 'http:';
     return `${scheme}//${hostname}${port ? `:${port}` : ''}${API_PREFIX}`;
 }
 
-/**
- * Compose the WebSocket origin. ReaPrime serves `/ws/v1/...` from the same host and port.
- *
- * `wss:` for an https page, per the old module's `WS_PROTOCOL` — the one line of :13
- * worth keeping, minus the `window.location` read.
- */
 export function reaSocketBase({ hostname, protocol = 'http:', port = REA_PORT } = {}) {
     if (!hostname) throw new Error('reaSocketBase: hostname is required');
     const scheme = protocol === 'https:' ? 'wss:' : 'ws:';
     return `${scheme}//${hostname}${port ? `:${port}` : ''}`;
 }
 
-/**
- * Template tag that percent-encodes every interpolated segment.
- *
- *     reaPath`/shots/${id}`          -> '/shots/2026-08-17T09%3A14%3A22Z'
- *     reaPath`/store/${ns}/${key}`   -> both encoded
- *
- * It exists because the old module had this bug twice over, in opposite directions:
- * `reconnectDevice` interpolated a device id into a query string raw (`api.js:123`) even
- * though `rest_v1.yml` warns in prose that device ids contain colons and slashes; and
- * there were TWO implementations of the same two KV routes, `getKVValue`/`setKVValue`
- * (encoded) and `getValueFromStore`/`setValueInStore` (NOT encoded), both live from
- * different callers, so a key containing '/', '#' or a space broke one and not the other.
- * A tag makes the safe spelling the short one.
- */
 export function reaPath(strings, ...values) {
     return strings.reduce(
         (acc, literal, i) => acc + literal + (i < values.length ? encodeURIComponent(String(values[i])) : ''),
@@ -116,17 +87,6 @@ export function reaQuery(query) {
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' });
 
-/**
- * Build the transport.
- *
- * @param {object} options
- * @param {Function} options.fetch          injected; never reaches for globalThis.fetch
- * @param {string} options.baseUrl          e.g. reaBaseUrl({hostname})
- * @param {string} [options.socketBaseUrl]  e.g. reaSocketBase({hostname})
- * @param {object} [options.logger]         optional; a diagnostic sink, never a UI
- * @param {number} [options.timeoutMs]
- * @param {object} [options.etagStore]      injected for tests; one per transport
- */
 export function createReaTransport({
     fetch: fetchImpl,
     baseUrl,
@@ -150,18 +110,6 @@ export function createReaTransport({
 
     const url = (path, query) => `${base}${path.startsWith('/') ? path : `/${path}`}${reaQuery(query)}`;
 
-    /**
-     * Tell every write listener a write landed.
-     *
-     * The SAME fact, offered to caches this module does not own. The etag store is not the
-     * only cache a write can invalidate — the two DE1 settings TTL caches are the others —
-     * and a write route that forgets to tell them is exactly how `reatsettingscache`
-     * served pre-change values for 40 s. One announcement, at the one place every write
-     * passes through, so no route can be forgotten.
-     *
-     * A FUNCTION SINCE THE STREAMED PATH ARRIVED: two returns now pass through here, and a
-     * loop written twice is one of them quietly losing a listener.
-     */
     function announceWrite({ method, path, status = 200, target }) {
         for (const listener of writeListeners) {
             try {
@@ -180,71 +128,8 @@ export function createReaTransport({
         conditional = 'auto',
         timeoutMs: perCall = timeoutMs,
         signal = null,
-        /**
-         * A BODY THAT IS NOT JSON, sent verbatim.
-         *
-         * ONE ROUTE NEEDS IT AND IT IS FIRMWARE. `POST /api/v1/machine/firmware` takes
-         * `application/octet-stream` — the image itself — and JSON.stringify of a
-         * Uint8Array is an object of numbered keys, which the machine would accept as a
-         * body and flash as nonsense. Passing `raw` sends the value untouched and sets no
-         * JSON content type; the caller states the type in `headers`.
-         */
         raw = undefined,
-        /**
-         * A STREAMED ANSWER, LINE BY LINE.
-         *
-         * WHY THE TRANSPORT AND NOT THE CALLER. `POST /machine/firmware` and its `apply`
-         * twin answer `application/x-ndjson` — one JSON object per line, from `erasing`
-         * through `uploading` to `done`, held open for the whole flash. `JSON.parse` of
-         * that whole body throws, so before this the only way to read it was a second
-         * fetch somewhere else, which is a second transport with none of this one's
-         * timeout, abort and write-invalidation behaviour.
-         *
-         * `onLine` IS CALLED PER OBJECT and the LAST object is what `data` carries, so a
-         * caller that only wants the outcome ignores the callback and reads the result the
-         * way it reads every other one. A line that is not JSON is skipped rather than
-         * failing the whole read: the stream's contract is per line, and one malformed
-         * progress tick must not lose the `done` behind it.
-         */
         onLine = null,
-        /**
-         * WHAT THE BODY IS. `'json'` (the default) parses it; `'text'` hands it back as
-         * the string it arrived as, and `data` is that string.
-         *
-         * ONE ROUTE FAMILY NEEDS IT AND IT IS THE ACCOUNT PROXY.
-         * `GET /api/v1/account/proxy/support/api/<endpoint>` "relays the upstream status
-         * code and body verbatim" (rest_v1.yml's own words) and documents its success
-         * content as `application/octet-stream`, `format: binary`. It is a PASS-THROUGH:
-         * whatever decentespresso.com answers is what arrives, and this skin cannot decide
-         * what that is. Two of those answers are known and neither is JSON this parser can
-         * take:
-         *
-         *   `support/api/email` answers a bare token, "0" for a refusal — which ReaPrime's
-         *       own `emailSerialMismatch` tests as a STRING (`decent_account_service.dart`,
-         *       `responseBody == '0'`). `JSON.parse('0')` happens to succeed and give the
-         *       number zero, which is worse than failing: it silently turns "the mail was
-         *       not sent" into a value a caller has to know to re-stringify.
-         *
-         *   `support/api/emails` answers JSON that is sometimes MALFORMED — an empty value
-         *       after a key, `"subject": ,`. Slate repairs it with a regex before parsing
-         *       (`settings.js` `talkDecentFetchEmails`), which is the only evidence anyone
-         *       has of that endpoint's shape. `JSON.parse` throws on it, and the DECODE
-         *       failure this module would return carries only `text.slice(0, 200)` — so
-         *       the body is gone and the thread cannot be recovered from the error.
-         *
-         * WHY IT IS A TRANSPORT OPTION AND NOT A SECOND CLIENT. The alternative was for the
-         * support store to `fetch` for itself, which would be a second transport with none
-         * of this one's base URL, deadline, abort, conditional handling or write
-         * announcement — the exact duplication this module's header refuses ("THIS MODULE
-         * IMPORTS NOTHING FROM src/components, src/screens OR src/stores"). Reading a body
-         * as text is transport work; deciding what the text MEANS is the caller's, and the
-         * caller does it.
-         *
-         * IT IS NOT A FALLBACK PATH (A7). Nothing here retries, swallows or substitutes: a
-         * `'text'` read of a failed response still returns the typed HTTP failure below,
-         * and a body that cannot be READ is still a transport failure. The only thing that
-         * changes is whether a successful body is handed over parsed or verbatim.
-         */
         expect = 'json',
     } = {}) {
         if (expect !== 'json' && expect !== 'text') {
@@ -327,10 +212,6 @@ export function createReaTransport({
             });
         }
 
-        /* THE STREAM IS READ BEFORE THE ORDINARY BODY PATH, because it IS the body: a
-         * caller asking for lines gets them as they arrive and gets the last one back as
-         * `data`. Everything after this point — the failure shapes, the etag store, the
-         * write announcement — is the same for both. */
         if (onLine && response.ok && response.body && typeof response.body.getReader === 'function') {
             const streamed = await readLines(response, onLine);
             disarm();
@@ -385,11 +266,6 @@ export function createReaTransport({
 
         let data = null;
         if (expect === 'text') {
-            /* VERBATIM, INCLUDING AN EMPTY ONE. `''` is what a bodyless 200 reads as and it
-             * is a real answer for a relay — the caller is the only thing that knows
-             * whether an empty upstream body means anything. It is deliberately NOT
-             * collapsed to `null` the way the JSON branch leaves an empty body: `null` and
-             * `''` are different facts and only the caller can tell them apart. */
             data = text;
         } else if (text !== '' && text !== null) {
             try {
@@ -428,15 +304,6 @@ export function createReaTransport({
         etagStore,
         url,
         request,
-        /**
-         * Observe every SUCCESSFUL non-GET, as `{method, path, status, url}`.
-         *
-         * Not an event bus in waiting: it has exactly one subscriber (the DE1 settings
-         * caches) and exists because cache invalidation must not be a thing a call site can
-         * forget. Failed writes are not announced — they changed nothing on the machine.
-         *
-         * @returns {() => void} unsubscribe
-         */
         onWrite(listener) {
             if (typeof listener !== 'function') throw new Error('transport.onWrite: a listener is required');
             writeListeners.add(listener);
@@ -454,31 +321,6 @@ export function createReaTransport({
     });
 }
 
-/**
- * `response.text()` if there is one; a bodyless response reads as ''.
- *
- * Returns an OUTCOME, never a value with the failure erased. A response object with no
- * `text` method genuinely carries no body (the injected fakes, and a 204/202); a `text()`
- * that REJECTS is a transport failure mid-body and is handed back as one.
- *
- * @returns {{ok: true, text: string}|{ok: false, cause: unknown}}
- */
-/**
- * Read an `application/x-ndjson` body line by line.
- *
- * ONE JSON OBJECT PER LINE, and the stream stays open for as long as the operation runs —
- * a firmware flash holds it for a minute or more, emitting `erasing`, then `uploading`
- * with a progress fraction, then `done` or `error`. There is no other route in ReaPrime
- * shaped like this, and that is why the reader is here rather than generalised.
- *
- * A MALFORMED LINE IS SKIPPED, NOT FATAL. The contract is per line; losing the `done`
- * behind one bad progress tick would turn a finished flash into a hung one. A body that
- * cannot be READ at all is a different thing and is reported.
- *
- * THE LAST OBJECT IS THE ANSWER, so a caller that wants only the outcome ignores `onLine`.
- *
- * @returns {{ok: true, last: object|null, count: number}|{ok: false, cause: unknown}}
- */
 async function readLines(response, onLine) {
     const reader = response.body.getReader();
     const decode = new TextDecoder();

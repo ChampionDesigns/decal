@@ -1,26 +1,5 @@
 /**
  * Collapsible families in the profile list — the grouping rules.
- *
- * Pure, and in their own module because profile_selector.js cannot be imported
- * outside a browser (i18n measures text at module scope), and rules this easy
- * to get subtly wrong should be checkable without standing up a DOM.
- *
- * ReaPrime seeds ~70 bundled profiles and a third of them are families: nine
- * "A-Flow / …", eleven "Tea portafilter/…", three "Pour over basket/V60 …".
- * Flat, they are 34 rows that all start with the same words, and finding the
- * one you want means reading past the prefix every time. Folded, they are
- * three rows.
- *
- * The grouping is the title's own structure, not a taxonomy we invented: the
- * text before the first slash. Nothing has to be tagged, and a profile that
- * does not use the convention is simply not in a folder.
- *
- * Deliberately SEPARATE from the beverage-type chips above the list. Those
- * answer "what kind of drink is this", which is a property of the profile; a
- * folder answers "which family did the author ship this in", which is a
- * property of its name. Making one do the other's job would mean either
- * inventing families for untagged profiles, or hiding a profile whose title
- * happens to contain a slash.
  */
 
 export const PROFILE_FOLDER_MIN = 2;
@@ -82,27 +61,6 @@ const namesAFamily = (prefix) => {
 
 const words = (title) => String(title ?? '').trim().split(/\s+/).filter(Boolean);
 
-/**
- * Families nobody named — found from the titles themselves.
- *
- * Most families on a real machine do not use a delimiter. Ben's has four
- * "Damian's …", two "Espresso Forge …", two "Filter 2.x" and two "Temp test …",
- * and every one of them was a loose row in a 79-row list. They are obviously
- * families to a person and invisible to a rule that only knows about slashes.
- *
- * The rule: the LONGEST leading run of whole words shared by two or more
- * titles, where every member still has something left over to be called.
- * Longest-first is what separates "Espresso Forge" (2 words, both members) from
- * "Espresso" (1 word, which would also swallow "Espresso Forge" into a folder
- * with nothing else in it).
- *
- * Whole WORDS, never characters: a character-prefix rule would file "I Can't
- * Believe It's Not Filter" under "Filter" — or rather under "Fil" — and finding
- * a profile would become a puzzle about spelling.
- *
- * Display only. Nothing is renamed, nothing is written back, and a profile that
- * leaves the list stops being in a folder.
- */
 export function deriveTitleFamilies(titles, minimum = PROFILE_FOLDER_MIN) {
     const candidates = new Map();   // prefix -> [title, ...]
     for (const title of titles) {
@@ -158,13 +116,6 @@ export function folderLeaf(title, folder) {
     return raw;
 }
 
-/**
- * Order-preserving grouping.
- *
- * Each folder appears where its FIRST member would have sorted, so turning
- * folders on never re-orders the list around them — the row you were reaching
- * for does not move somewhere else alphabetically.
- */
 export function groupProfilesByFolder(entries, titleOf, minimum = PROFILE_FOLDER_MIN) {
     const order = [];
     const byFolder = new Map();

@@ -65,13 +65,6 @@ export function createMachineStateStore({ transport, logger = null, now = () => 
         subscribe(listener) { return store.subscribe(listener); },
         get() { return store.get(); },
 
-        /**
-         * Ask the machine for a state.
-         *
-         * @param {string} state  a `MACHINE_STATE` member — the generated enum's spelling,
-         *   which is what `MachineState.values.byName` parses. A name it does not know is a
-         *   500, so the caller passes the enum and never a literal.
-         */
         async request(state) {
             if (typeof state !== 'string' || state === '') return store.get();
             store.set({ ...EMPTY_STATE, status: REQUEST_STATUS.SENDING, requested: state, at: now() });
@@ -97,11 +90,6 @@ export function createMachineStateStore({ transport, logger = null, now = () => 
             });
         },
 
-        /**
-         * Put the request back to idle — what a person pressing "Dismiss" on the refusal
-         * banner is asking for. It clears the RECORD of the request, never the machine:
-         * nothing here has ever reported the machine's state and this does not start.
-         */
         clear() { return store.set({ ...EMPTY_STATE, at: now() }); },
 
         stop() { store.destroy(); },

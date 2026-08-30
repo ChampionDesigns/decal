@@ -51,13 +51,6 @@ export const SENSOR_KIND = Object.freeze({
     MILK_PROBE: 'milkProbe',
 });
 
-/**
- * THE R3 SEAM. Name it in one place so a grep for "R3" finds the gate, the adapter and the
- * upstream ask together.
- *
- * `capabilityGate(kind)` -> boolean | Promise<boolean>. True means "this machine can have
- * a sensor of this kind, so polling for it is worth doing".
- */
 export const R3_CAPABILITY_GATE = Object.freeze({
     rNumber: 'R3',
     argument: 'capabilityGate',
@@ -67,12 +60,6 @@ export const R3_CAPABILITY_GATE = Object.freeze({
     interim: 'the one R3-tagged adapter module (Gate 4) supplies this argument',
 });
 
-/**
- * `GET /api/v1/sensors`, relative to the transport's `/api/v1` base — READ OUT OF THE
- * GENERATED TABLE rather than spelled here. A hand-written path beside a generated table of
- * every documented path is a second copy of a server truth, and this one was written while
- * the table already carried the row.
- */
 export const SENSORS_ROUTE_ID = 'getSensors';
 export const SENSORS_ROUTE = routeById(SENSORS_ROUTE_ID).route;
 
@@ -80,40 +67,12 @@ export const SENSORS_ROUTE = routeById(SENSORS_ROUTE_ID).route;
  *  that appears once per boot, not a telemetry rate. */
 export const DEFAULT_DISCOVERY_MS = 15000;
 
-/**
- * RE-DISCOVERY BACKOFF — the bound rule 2 did not have.
- *
- * Rule 2 says the close IS the signal and "it costs one GET", and for the case it was
- * written for — a machine swap, where the listing has moved on — that is exactly right:
- * the first retry is IMMEDIATE and stays immediate for every sensor that has ever
- * delivered a frame.
- *
- * What it did not survive is the listing and the socket DISAGREEING: an id
- * `GET /api/v1/sensors` still carries while `sensors_handler.dart` answers
- * `{"error":"not found"}` and closes. Both the error and the close handler re-armed at
- * 0 ms and discovery re-attached at once, so four rounds produced five sockets and five
- * GETs with no delay and no cap. The window is real — `sensors_handler.dart` shares
- * `_controller.sensors` between the listing and the upgrade, so a deregistration mid-flight
- * puts them out of step — and unbounded is the wrong answer to it.
- *
- * So: the first retry is free, and every retry after one that produced NO FRAME doubles to
- * the poll interval. A frame is what resets it, because a frame is the only evidence the
- * attachment worked.
- */
 export const REDISCOVERY_BACKOFF_MS = Object.freeze({
     first: 0,
     min: 1000,
     max: DEFAULT_DISCOVERY_MS,
 });
 
-/**
- * Read a `GET /api/v1/sensors` listing: `[{id, info}, …]` (`SensorsHandler.addRoutes`).
- *
- * `info` is `SensorInfo.toJson`: `{name, vendor, data: [{key, type, unit}], commands}`.
- * The channel list is DESCRIPTIVE and is not a validity signal — a channel the firmware
- * has not observed is omitted from the frame regardless of what `info` advertises. Read
- * frames through rea-address.js, not through this.
- */
 export function readSensorListing(listing) {
     if (!Array.isArray(listing)) return null;
     const entries = [];
@@ -131,15 +90,6 @@ export function readSensorListing(listing) {
     return Object.freeze(entries);
 }
 
-/**
- * @param {object} deps
- * @param {object} deps.transport                     createReaTransport(...)
- * @param {object} deps.sockets                       createReaSockets(...)
- * @param {(kind: string) => boolean|Promise<boolean>} deps.capabilityGate  R3 seam, required
- * @param {number} [deps.intervalMs]
- * @param {object} [deps.logger]
- * @param {{setTimeout: Function, clearTimeout: Function}} [deps.timers]  injected for tests
- */
 export function createSensorDiscovery({
     transport,
     sockets,
@@ -358,14 +308,6 @@ export function createSensorDiscovery({
             kinds.clear();
         },
 
-        /**
-         * Observe one sensor's frames. RAW frames — reading them is rea-address.js's job
-         * (`readEstimatorFrame`, `readMilkProbeFrame`), so there is one reader of ReaPrime's
-         * names and this module never learns a channel name.
-         *
-         * The first subscriber makes the kind wanted and triggers a discovery pass; the
-         * last one to leave detaches it, which closes the socket.
-         */
         subscribe(kind, listener) {
             const state = kindState(kind);
             const off = state.fanout.subscribe(listener);

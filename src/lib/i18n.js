@@ -1,29 +1,5 @@
 /**
  * Translation as a reactive value each component reads (D2).
- *
- * The old skin translated by walking the document — `document.querySelectorAll(
- * '[data-i18n-key]')` then overwriting `textContent` (slate app/src/modules/i18n.js:81-94).
- * A querySelectorAll cannot cross a shadow boundary, so in a tree of shadow-DOM
- * components that mechanism does not work at all. This is its replacement: one
- * module-level store that components SUBSCRIBE to. The ES module registry is
- * per-document, so every component — however deeply nested in shadow roots —
- * imports the same instance, and a language change re-renders each subscriber
- * through its own template. Nothing reaches into anyone else's DOM.
- *
- *   import { I18nController } from 'src/lib/i18n.js';
- *   class UiButton extends LitElement {
- *     #i18n = new I18nController(this);
- *     render() { return html`<button>${this.#i18n.t('Save')}</button>`; }
- *   }
- *
- * Carried from the old module (SCOPE Part 6, `i18n.js` row — keep ≈60 lines):
- * the case-insensitive key index, key-as-fallback, and the saved → browser-prefix →
- * English precedence. Dropped: the CSV parser (a build step now — scripts/build-i18n.js)
- * and the ≈100-line text-shrinking engine that appended a measuring span to
- * document.body at import time.
- *
- * No DOM and no network at import time: this module is testable under node:test,
- * and every I/O default is resolved at call time or injected.
  */
 
 export const DEFAULT_LANGUAGE = 'en';
@@ -88,11 +64,6 @@ export const translations = new Translations();
 /** Module-level convenience for non-component code (stores, lib helpers). */
 export const t = (key, params) => translations.t(key, params);
 
-/**
- * Lit ReactiveController: subscribes while the host is connected and requests an
- * update on every language change. Duck-typed against Lit's controller interface,
- * so this module never imports Lit and stays node-testable.
- */
 export class I18nController {
   constructor(host, source = translations) {
     this.host = host;
@@ -124,11 +95,6 @@ export async function loadLanguage(language, { fetch: fetchImpl, base = 'i18n/' 
   return payload?.strings ?? {};
 }
 
-/**
- * Resolve the language, load it, publish it. `saved` is injected (the storage
- * router owns persistence, not this module) and so is the language list, which
- * comes from the manifest of generated files — v1 ships English only (D2).
- */
 export async function initI18n({
   saved = null,
   browserLanguage = globalThis.navigator?.language,

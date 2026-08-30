@@ -1,32 +1,5 @@
 /**
- * weather-modal.js — THE DETAIL BEHIND THE CORNER.
- *
- * The corner answers one question at a glance and has room for nothing else. This is
- * where the rest goes: the condition in words, all THREE parts of the day rather than the
- * corner's two, and the readings that are worth a look but never worth a headline.
- *
- * ===========================================================================
- * THREE PERIODS, NOT TWO, AND THE SAME THREE
- * ===========================================================================
- * Ben's call, 30 August 2026. The plugin emits its periods forward-only with the running
- * one first, and both surfaces TAKE from that one array — the corner two, this three. So
- * the two can never disagree about what NIGHT covers, which they would the moment either
- * did clock arithmetic of its own.
- *
- * ===========================================================================
- * THE LOCATION CAN BE TYPED HERE, BUT IT CANNOT BE SEARCHED
- * ===========================================================================
- * Ben asked for a search-as-you-go picker. IT IS NOT POSSIBLE FROM A SKIN TODAY, and the
- * reason is one line in ReaPrime: `plugins_handler.dart _handlePluginSocketEndpoint`
- * listens to the client with `(msg) {}` — every message a client sends on a plugin socket
- * is DISCARDED. There is no way to ask the plugin to geocode a query, and the skin may
- * not call a third-party API itself.
- *
- * What IS possible is what the generated settings form already does: write the plugin's
- * `Location` setting and let the plugin resolve it. So this offers the same field in the
- * place a person is actually looking, and the plugin does the lookup on the next frame.
- * Live search needs an app change — a plugin socket that forwards inbound messages, or a
- * request endpoint — and that is a Decide lane, not a Decal one.
+ * The.
  */
 
 import { css, html, nothing } from 'lit';
@@ -48,13 +21,6 @@ export class WeatherModal extends UiElement {
         reading: { attribute: false },
         /** True while a written location is in flight. */
         saving: { type: Boolean },
-        /**
-         * WHETHER THE LOCATION FIELD IS SHOWING, and it starts CLOSED for a reason that
-         * only appears on a tablet: `ui-dialog` focuses `autofocus` first and otherwise
-         * the first tabbable thing in the body. With a text input always present that is
-         * the input, so opening the modal raised the on-screen keyboard and it covered
-         * half the reading. A field that is not there cannot be focused.
-         */
         editing: { type: Boolean },
     };
 
@@ -304,11 +270,6 @@ export class WeatherModal extends UiElement {
         </div>`;
     }
 
-    /**
-     * THE LOCATION, TYPED RATHER THAN SEARCHED — see the header for why a search is not
-     * available to a skin. The field writes the plugin's own setting, which is the same
-     * road the generated settings form takes, so there is one owner of the value.
-     */
     #renderPlace() {
         const t = this.#i18n.t;
         const place = this.reading && this.reading.place ? this.reading.place : '';

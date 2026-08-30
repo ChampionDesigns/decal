@@ -48,12 +48,6 @@ export const SHOT_RECORD_KEYS = Object.freeze([
     'stopReason',
 ]);
 
-/**
- * `ShotAnnotations`. Six modelled fields plus a free `extras` map, and NOT ONE computed shot
- * metric among them — no peak, no average, no duration, no time-to-first-drop. That absence
- * is the whole of B5: the per-shot scalars are computed in the skin for v1 because nothing
- * serves them, and R5 is the upstream ask that would let the derivation read them instead.
- */
 export const SHOT_ANNOTATION_KEYS = Object.freeze([
     'actualDoseWeight',
     'actualYield',
@@ -68,32 +62,11 @@ export const SHOT_ANNOTATION_NUMERIC_KEYS = Object.freeze(
     SHOT_ANNOTATION_KEYS.filter((key) => key !== 'espressoNotes'),
 );
 
-/**
- * `enjoyment` is ReaPrime's own per-shot rating: a nullable double on `ShotAnnotations`, its
- * own DB column, round-tripping through `GET /shots/<id>` and writable by a deep-merging
- * `PUT /api/v1/shots/<id>` with `{annotations:{enjoyment:n}}`.
- *
- * It REPLACES the old skin's private key-value rating, which was invisible to every other
- * client, to `/api/v1/data/export` and to shot filtering, and was orphaned for ever when the
- * shot was deleted. There is no migration: a rating that only this skin could see is not a
- * record of anything.
- *
- * ReaPrime does not bound the double. The old panel's 0..100 is a SKIN scale, so it belongs
- * to the rating control, not to the reader — this module reports the number the server holds.
- */
 export const ENJOYMENT_KEY = 'enjoyment';
 
 /** `WorkflowContext` — what the shot was asked to do. */
 export const WORKFLOW_CONTEXT_KEYS = Object.freeze(['targetDoseWeight', 'targetYield']);
 
-/**
- * Read `record.annotations`.
- *
- * An absent `annotations` object is NO_SOURCE for every field; a present object with a key
- * missing is ABSENT for that field. Both render as a dash, and neither becomes a zero.
- *
- * @param {object|null|undefined} record  a `GET /api/v1/shots/<id>` body
- */
 export function readShotAnnotations(record) {
     const annotations = record && typeof record === 'object' && record.annotations
         && typeof record.annotations === 'object'
@@ -105,16 +78,6 @@ export function readShotAnnotations(record) {
     });
 }
 
-/**
- * Read the shot's workflow: the target dose, and the profile's step names.
- *
- * Step names are what the phase marks are LABELLED with. A record whose workflow carries no
- * profile still produces marks — the boundary is a fact about the machine's `profileFrame`,
- * not about the profile listing — they simply have no name, which is `null` and renders as an
- * unlabelled tick rather than as an empty string that looks like a label that failed.
- *
- * @param {object|null|undefined} record
- */
 export function readShotWorkflow(record) {
     const workflow = record && typeof record === 'object' && record.workflow
         && typeof record.workflow === 'object'
@@ -140,15 +103,6 @@ export function readShotWorkflow(record) {
     });
 }
 
-/**
- * Read the record shell.
- *
- * `measurements` comes back BY REFERENCE and unparsed: parsing it is Gate 6's single walk and
- * this layer deliberately does not add a second pass over it. `ok` is false for a payload
- * that is not a shot record at all, which is a different thing from a shot with no samples.
- *
- * @param {object|null|undefined} record
- */
 export function readStoredShot(record) {
     const shell = record && typeof record === 'object' && !Array.isArray(record) ? record : null;
     const measurements = shell && Array.isArray(shell.measurements) ? shell.measurements : null;
@@ -157,11 +111,6 @@ export function readStoredShot(record) {
         id: readValue(shell, 'id'),
         timestamp: readValue(shell, 'timestamp'),
         stopReason: readValue(shell, 'stopReason'),
-        /**
-         * A meta-only payload (the list rows, `/shots/latest`) omits `measurements` entirely.
-         * That is not an empty shot — it is a record whose samples were never sent — so it is
-         * reported as an absence and the derivation refuses rather than drawing nothing.
-         */
         hasMeasurements: !!shell && hasKey(shell, 'measurements') && measurements !== null,
         measurements: measurements === null ? [] : measurements,
         annotations: readShotAnnotations(shell),
@@ -169,18 +118,6 @@ export function readStoredShot(record) {
     });
 }
 
-/**
- * The dose that went in, or the dose that was asked for, or an absence — and it always says
- * WHICH.
- *
- * Two named quantities with a stated preference is not a fallback path: a ratio computed from
- * the target is a ratio for a shot nobody pulled, so the record wins where it exists, and the
- * caller can see that it did. The old third rung — `workflow.profile.dose_weight`, a field
- * that does not exist — is gone.
- *
- * @param {{annotations: object, workflow: object}} stored  a `readStoredShot` result
- * @returns {{value: number|object, source: 'actual'|'target'|null}}
- */
 export function shotDose(stored) {
     const actual = stored && stored.annotations ? stored.annotations.actualDoseWeight : undefined;
     if (typeof actual === 'number' && Number.isFinite(actual) && actual > 0) {

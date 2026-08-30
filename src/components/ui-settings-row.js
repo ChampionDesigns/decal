@@ -1,9 +1,5 @@
 /**
- * <ui-settings-row> — one setting: a heading, optional hint and caption, an optional
- * live reading, and a control slotted beside them.
- *
- * The row names the control it is given. It owns no range table and no formatting
- * beyond the absence glyph: a caller passes strings.
+ * <ui-settings-row> — one setting: a heading, optional hint and caption, an optional live reading, and a control slotted beside them.
  */
 
 import { css, html, nothing } from 'lit';

@@ -75,39 +75,6 @@ const NOOP_LOGGER = Object.freeze({
 });
 const scoped = (logger) => (logger && logger.scope ? logger.scope('profiles') : (logger || NOOP_LOGGER));
 
-/* ======================================================================= rule 1
- * SOFT-DELETED AND HIDDEN PROFILES ARE FILTERED OUT OF LISTINGS.
- *
- * `profileManager.js:135-142`, verbatim:
- *     // DELETE is a soft delete (visibility='deleted'); includeHidden=true
- *     // still returns those records, so drop them or they reappear on reload.
- *     // 'hidden' is a superseded version kept for the editor's revert history
- *     // (see saveProfile) — it must stay out of the visible list too.
- *     if (profileRecord.visibility === 'deleted' || profileRecord.visibility === 'hidden') continue;
- *
- * CHECKED AGAINST THE HANDLER AT THE PIN, which is why the filter is CLIENT-side and the
- * query still asks for everything:
- *
- *   * `ProfileController.delete` (`profile_controller.dart:246-262`) sets
- *     `Visibility.deleted` on a user profile and `Visibility.hidden` on an `isDefault`
- *     one. Nothing is erased; `purge` is the only route that erases, and D6 ships
- *     restore-to-factory WITHOUT the purge half.
- *   * So the records this rule hides are exactly the records restore-to-factory (D6) and
- *     the editor's revert history need. `partitionProfiles` returns them in their own
- *     bucket instead of dropping them on the floor — one read serves both.
- *   * `includeHidden=true` is also the ONLY listing form the recorded fixture set answers
- *     (`tools/mock_rea.py` `_resolve` matches the exact path including query string and
- *     the endpoint fallback is deleted — A7; any other query form is a 503 naming the
- *     path). Asking for one query form and filtering here keeps the mock honest.
- *   * `parentId` is deliberately NOT sent with it: the row's `query-precedence` gate says
- *     `parentId` WINS — the handler then reads all profiles with `includeHidden:true` and
- *     filters, ignoring `visibility` and `includeHidden` entirely.
- *
- * MEASURED on `tools/rea-fixtures/api__v1__profiles~includeHidden=true.json`: 147 records,
- * 78 visible / 69 hidden / 0 deleted. Without this rule the list is 88% longer and every
- * superseded editor draft is in it.
- */
-
 /** The one listing query. See the note above before adding a second. */
 export const PROFILE_LISTING_QUERY = Object.freeze({ includeHidden: true });
 
@@ -117,15 +84,6 @@ export function isListable(record) {
     return visibility !== PROFILE_VISIBILITY.HIDDEN && visibility !== PROFILE_VISIBILITY.DELETED;
 }
 
-/**
- * Split a raw listing into the four buckets a screen actually needs.
- *
- * `unknown` exists so a fourth visibility state cannot arrive unnoticed: it is counted
- * and named rather than quietly listed. Its members are still `listable` — the
- * transcription filters two named states, not "everything except visible" — but a caller
- * that finds `unknown.length > 0` is looking at a server this build has not been read
- * against.
- */
 export function partitionProfiles(records) {
     const all = Array.isArray(records) ? records.filter(Boolean) : [];
     const listable = [];
@@ -149,16 +107,6 @@ export function restorableProfiles(records) {
     return partitionProfiles(records).hidden.filter(isDefaultProfile);
 }
 
-/**
- * Read the profile listing and partition it.
- *
- * Returns a plain result, never throws on a server fault and never manufactures one: a
- * transport failure comes back as `{ok:false, reason:'transport', failure}` with the
- * envelope intact, and a 200 whose body is not an array as `{ok:false, reason:'shape'}` —
- * an empty list is a real answer and must not be spelled the same way as a broken one.
- *
- * @param {object} transport  `createReaTransport(...)`
- */
 export async function readProfileListing(transport, { logger = null } = {}) {
     const log = scoped(logger);
     const result = await callRoute(transport, 'getProfiles', { query: { ...PROFILE_LISTING_QUERY } });
@@ -181,68 +129,12 @@ export async function readProfileListing(transport, { logger = null } = {}) {
     return { ok: true, reason: null, failure: null, notModified: result.notModified === true, ...parts };
 }
 
-/* ======================================================================= rule 2
- * THE THREE-STEP TITLE-PREFIX STRIPPING LADDER.
- *
- * `profileManager.js:415-431`. The transcription (`CARRY_FORWARD.md:582-584`): "the
- * title-prefix stripping ladder (`" / "` category delimiter → tail; a 2+ uppercase/digit
- * tag prefix like `GHC/` or `DE1/` but never `A/B testing` or `Light/Medium`; then any
- * remaining `/` → tail — three rules with three worked counterexamples)".
- *
- * WHAT THIS IS FOR. It is the SHORT label — the five favourite slots, where a fixed-width
- * button has to say which profile it holds. It is not the list row: inside a folder the
- * list uses `folderLeaf()`, and outside one it uses the whole title. A profile is never
- * renamed by either.
- *
- * THE LADDER COMPOSES `profile-folders.js` AND DOES NOT RESTATE IT. That module is
- * PORT-AS-IS and already owns the hard half of this question — where a title's family
- * ends and its leaf begins, which characters are delimiters, that both halves have to be
- * real ("Trailing/" and "/Leading" are not a family), and that only the FIRST delimiter
- * splits ("Baseline • Medium Contact • 6 Bar" is one family and one leaf, not a
- * three-level tree). Steps 1 and 3 ask `splitProfileTitle` and read the answer; only step
- * 2's tag-prefix pattern is new, because it is the one rule about a delimiter that is NOT
- * a family marker.
- *
- * TRANSCRIPTION 1 — first delimiter, not last. The source does `.split(' / ').pop()` and
- * `.split('/').pop()`, i.e. the tail after the LAST delimiter. `splitProfileTitle` splits
- * at the first, and says why. MEASURED on the 77 unique fixture titles: 0 carry two
- * slashes, so for `/` the two readings are indistinguishable on the real library — but
- * one title carries two BULLETS, where last-delimiter turns "Baseline • Medium Contact •
- * 6 Bar" into "6 Bar" and first-delimiter into "Medium Contact • 6 Bar". The ported
- * module's rule wins the tie.
- *
- * TRANSCRIPTION 2 — a SPACED delimiter, not the literal " / ". Step 1's job is "the
- * author wrote a category here"; the bullet form arrived with the Baseline set after the
- * old skin stopped being edited, and `profile-folders.js` already treats `•` and `·` as
- * the same convention. Step 1 accepts any single delimiter with whitespace on both sides;
- * on the fixture set this is " / " on 6 titles and " • " on 4.
- *
- * TRANSCRIPTION 3 — step 2 is kept although it changes no outcome, and this is the one
- * place the source contradicts its own comment. Step 2 declines `A/B testing` and
- * `Light/Medium`, and then step 3 takes the tail of both anyway ("B testing", "Medium").
- * Anything step 2 strips, step 3 would also strip. MEASURED: the pattern matches exactly 2
- * of 77 fixture titles (`GHC/manual pressure control`, `GHC/manual flow control`) and both
- * reach the same label either way, so on the real library step 2 has NO unique effect.
- * It is transcribed because the transcription names it, it is exported so its two
- * counterexamples are asserted where they are actually true, and the question of whether
- * step 3 should decline a head that does not name a family is recorded, not decided here.
- */
-
 /** Step 2's pattern: two or more uppercase/digit characters, then a slash. */
 export const TAG_PREFIX_PATTERN = /^[A-Z][A-Z0-9]+\s*\/\s*/;
 
 /** i18n key for a profile whose title strips to nothing. The wording is a screen's. */
 export const UNTITLED_PROFILE_KEY = 'Untitled';
 
-/**
- * Where `profile-folders.js` puts the boundary, plus which character it used.
- *
- * `splitProfileTitle` answers "is there a family here, and where does it end" — the
- * delimiter set, the first-delimiter rule and the both-halves-must-be-real guard. It does
- * not report WHICH delimiter, and steps 1 and 3 admit different ones, so this recovers it
- * without restating any of the above: both halves are trimmed and `raw` is trimmed, so
- * what lies between them in the original is exactly the delimiter and its whitespace.
- */
 function boundaryOf(raw) {
     const { folder, leaf } = splitProfileTitle(raw);
     if (!folder) return null;
@@ -250,11 +142,6 @@ function boundaryOf(raw) {
     return { folder, leaf, gap, char: gap.trim() };
 }
 
-/**
- * Step 1 — a SPACED delimiter is the author naming a category; keep the tail.
- * Any of the three delimiters counts here: " / " is what the old skin knew, and " • "
- * is the same convention, arriving with the Baseline set after it stopped being edited.
- */
 export function stripCategoryPrefix(title) {
     const raw = String(title ?? '').trim();
     const at = boundaryOf(raw);
@@ -270,67 +157,15 @@ export function stripTagPrefix(title) {
     return String(title ?? '').trim().replace(TAG_PREFIX_PATTERN, '');
 }
 
-/**
- * Step 3 — "any remaining `/` → tail". A SLASH only, which is the source's own reading
- * and the one that keeps `profile-folders.js` intact: the ladder runs step 1 and then
- * step 3, so a step 3 that admitted bullets would peel "Baseline • Medium Contact • 6 Bar"
- * twice and leave "6 Bar", against that module's stated rule that the second bullet is
- * part of the leaf's own name.
- */
 export function stripRemainingDelimiter(title) {
     const raw = String(title ?? '').trim();
     const at = boundaryOf(raw);
     return at && at.char === '/' ? at.leaf : raw;
 }
 
-/**
- * The ladder, in order. Returns `''` for a title that strips to nothing — the caller
- * words that with `t(UNTITLED_PROFILE_KEY)`, because a domain module does not hold UI
- * strings (D2: English only in v1, and the mechanism designed in from day one).
- */
 export function shortProfileTitle(title) {
     return stripRemainingDelimiter(stripTagPrefix(stripCategoryPrefix(title))).trim();
 }
-
-/* ======================================================================= rule 3
- * METADATA WRITES SERIALIZE THROUGH ONE CHAIN.
- *
- * `profileManager.js:306-332`, verbatim: "Serialize metadata read-modify-write so
- * concurrent edits and resets can't clobber each other. Without this, two writers read the
- * same base metadata and the last PUT to resolve wins — silently dropping the other's
- * user-entered values. Each task re-reads metadata inside the chain, after the prior
- * write."
- *
- * THE PREMISE, RE-CHECKED AT THE PIN 2b047d02 RATHER THAN BELIEVED:
- * `ProfileHandler._handleUpdate` reads `json['metadata']` and hands it to
- * `ProfileController.update`, which calls `existing.copyWith(metadata: metadata)`, and
- * `ProfileRecord.copyWith` ends `metadata: metadata ?? this.metadata`. So a supplied map
- * REPLACES the stored one WHOLESALE — there is no server-side merge, and the last writer
- * to resolve wins with whatever base it happened to read. The rule is load-bearing.
- *
- * TWO CONSEQUENCES THE SAME READING GIVES, both enforced below:
- *   * `metadata: null` DOES NOT CLEAR. The Dart `??` falls through to the existing map, so
- *     a null transform result is a silent no-op. The spelling for "clear" is `{}`, and a
- *     transform returning null or undefined is refused here by name.
- *   * A METADATA-ONLY PUT KEEPS THE ID. `copyWith` recomputes the hashes from
- *     `profile ?? this.profile`, so an untouched profile hashes to the same id and no
- *     favourite needs remapping. `profileUpdateBody({metadata})` sends no `profile` key at
- *     all, which `_handleUpdate` only parses `if (json.containsKey('profile'))`.
- *
- * WHAT IS TRANSCRIBED AND WHAT IS NOT: one chain, tasks run in order, each reads the
- * freshest record (the previous task's own 200 response), and the queue survives a
- * failure — the source's `.catch(() => {})` is "keep the queue alive past failures", and a
- * chain that dies on the first rejected write is a worse bug than the one it fixes. What
- * is not transcribed is the FILE-GLOBAL. The source's `let metadataWriteChain` is one queue
- * for the whole app, created at import time and unreachable from a test; this is one queue
- * per instance, created and owned by its caller (Gate 4: nothing above it keeps
- * module-scope mutable state). It is still ONE queue, deliberately — the source's
- * `ponytail:` note reads "single global chain; fine because all writes target the one
- * active profile. Per-id queues only if multiple profiles ever mutate concurrently", and
- * that is a change to make when a screen needs it, not while transcribing. What IS keyed
- * by id is the freshest-record map, so interleaved writes to two different profiles each
- * read their own base rather than the other's response.
- */
 
 /**
  * One serialized metadata writer.
@@ -374,16 +209,6 @@ export function createMetadataWriteChain({ transport, logger = null } = {}) {
         /** The freshest record this chain holds for `id`, or null. */
         latest(id) { return latest.get(id) || null; },
 
-        /**
-         * Replace one record's metadata, computed from the freshest metadata there is.
-         *
-         * @param {object} record     a ProfileRecord — the caller's copy, used only as
-         *                            the base if this chain has nothing newer.
-         * @param {(metadata: object) => object} transform  receives the current metadata
-         *                            (`{}` when the record carries none) and returns the
-         *                            WHOLE new map. Spread to add, rebuild to remove.
-         * @returns {Promise<object>} the transport result, verbatim.
-         */
         mutate(record, transform) {
             const id = profileRecordIdOf(record);
             if (!id) {
@@ -426,29 +251,6 @@ export function createMetadataWriteChain({ transport, logger = null } = {}) {
     };
 }
 
-/* ======================================================================= rule 4
- * FALLBACK TITLES, SO FIRST LAUNCH IS NEVER AN EMPTY RAIL.
- *
- * `profileManager.js:864-870` and the two-stage fallback at `:891-932`: named titles by
- * position, and if NONE of them resolved, the first N profiles alphabetically.
- *
- * The five titles are ReaPrime's own bundled profile titles — DATA, matched against the
- * listing, not wording shown to anyone — so they are not translated and not localised.
- *
- * SEEDING RUNS ON THE RULE-1 LISTING, and the fixture says why. Over all 147 records two
- * of the five titles are ambiguous ("Default" ×2, "Gentle and sweet" ×2, both a visible
- * record and a superseded hidden one). Over the 78 LISTABLE records all five resolve to
- * exactly one record each. Seeding the rail from the unfiltered set would have put a
- * superseded editor draft in a favourite slot two times in five.
- *
- * THE FIRST MATCH IS TAKEN, and this is NOT the R1 fallback. R1's title match makes an
- * identity claim about the loaded profile and therefore refuses on ambiguity — duplicate
- * titles yield no id and the reason 'ambiguous', never the first match (`adapters-r.js`).
- * A seed makes no claim: it proposes five starting points a person can change, and
- * refusing one would produce exactly the empty rail this rule exists to prevent. The
- * seeded ids are reported so a caller can say where they came from.
- */
-
 /** The bundled titles the old skin seeds by position (`profileManager.js:864-870`). */
 export const FALLBACK_PROFILE_TITLES = Object.freeze([
     'Default',
@@ -482,18 +284,6 @@ function findByTitle(records, title) {
     return records.find((record) => (profileTitleOf(record) || '').toLowerCase() === wanted) || null;
 }
 
-/**
- * The two-stage fallback.
- *
- * @param {object[]} records  ALREADY filtered by rule 1.
- * @param {object} [options]
- * @param {number} [options.count]
- * @param {(records: object[]) => string[]} [options.rank]  optional first stage — the
- *        history-frequency ranker the old skin ran before the fallbacks. Absent by
- *        default; see the deferred question. Ids it returns that are not in `records` are
- *        ignored, so a stale ranking cannot put a dead id in a slot.
- * @returns {{assignments: object, stage: string, filled: number}}
- */
 export function seedFavouriteSlots(records, { count = FAVOURITE_SLOT_COUNT, rank = null } = {}) {
     const listing = Array.isArray(records) ? records.filter(Boolean) : [];
     const assignments = emptyAssignments(count);
@@ -530,33 +320,6 @@ export function seedFavouriteSlots(records, { count = FAVOURITE_SLOT_COUNT, rank
     };
 }
 
-/* ======================================================================= rule 5
- * AUTO-POPULATE MARKS ITSELF RETRYABLE.
- *
- * `profileManager.js:261-274`, verbatim: "markUserInitialized: when true, persist a flag
- * indicating user has intentionally set assignments (even an all-empty state via clearing
- * slots). init() reads this to decide whether to auto-populate defaults. autoPopulate
- * passes false so a failed first-run populate can retry on the next launch."
- * `autoPopulateFavoritesFromHistory` ends `await saveAssignments({ markUserInitialized: false })`
- * (`:934`); every user-driven save takes the default, `true`.
- *
- * THE FLAG IS THE DIFFERENCE BETWEEN "NOBODY HAS CHOSEN YET" AND "SOMEBODY CHOSE
- * NOTHING", and both look like an empty rail. Without it, a user who clears all five slots
- * gets them re-seeded on the next launch, for ever.
- *
- * TRANSCRIBED WITH ONE ADDITION THE ROUTER MAKES POSSIBLE: the source fires both writes
- * through `Promise.allSettled` and logs each outcome, so the flag lands even when the
- * assignments themselves did not — which marks a launch "user-initialized" on the strength
- * of a write that failed, and is exactly the masquerade the rule is about. `storage.set`
- * resolves `true`/`false` (B7: "on failure writes NOWHERE ELSE"), so the flag is written
- * only after the slots actually persisted. That makes "retryable" mechanical instead of
- * aspirational, and it is why rule 5's test is a failing-then-recovering backend.
- *
- * Both keys are `kv` rows in `storage-routes.js` — `favouriteProfiles` (machine-scoped;
- * the old KV+IDB dual write is gone by construction) and `favouriteProfilesSeeded`. This
- * module never names a physical key or a namespace; the router owns both.
- */
-
 /** Logical storage keys. The router resolves them; nothing here knows where they land. */
 export const FAVOURITES_KEY = 'favouriteProfiles';
 export const FAVOURITES_SEEDED_KEY = 'favouriteProfilesSeeded';
@@ -564,17 +327,6 @@ export const FAVOURITES_SEEDED_KEY = 'favouriteProfilesSeeded';
 /** Which record this skin last armed. See `storage-routes.js` for why it is stored. */
 export const LOADED_PROFILE_KEY = 'loadedProfileId';
 
-/**
- * REMEMBER WHICH RECORD WAS ARMED.
- *
- * The workflow document carries the profile and not the record id, so after a reload the
- * only route from "what the machine is running" back to "which row in the library that
- * is" is the title — and titles are not unique. This is the fact recorded at the one
- * moment it is known for certain: the moment this skin sent it.
- *
- * @returns {Promise<boolean>} whether it persisted. A failure is not fatal: the title
- *   match is still there behind it, and it is still right whenever the title is unique.
- */
 export async function saveLoadedProfileId(storage, id) {
     if (typeof id !== 'string' || id === '') return false;
     return storage.set(LOADED_PROFILE_KEY, id);
@@ -586,21 +338,6 @@ export async function loadLoadedProfileId(storage) {
     return typeof held === 'string' && held !== '' ? held : null;
 }
 
-/**
- * Is the remembered id still the profile the machine is running?
- *
- * THE TITLE IS THE CHECK, and that is deliberate: something else may have loaded a
- * different profile since (another skin, the tablet's own app, a REST call), and then the
- * remembered id names a record the machine is NOT running. Comparing the remembered
- * record's title against the workflow's own title costs nothing and closes that whole
- * class — a stale id can only survive when it names a profile with the same title as the
- * one loaded, which is the case where it does not matter which of them is marked.
- *
- * @param {Array<object>} records  the listing
- * @param {string|null} id         the remembered record id
- * @param {string|null} title      the workflow's own profile title
- * @returns {object|null} the record, or null
- */
 export function rememberedRecord(records, id, title) {
     if (!Array.isArray(records) || typeof id !== 'string' || !id) return null;
     if (typeof title !== 'string' || title === '') return null;
@@ -609,16 +346,6 @@ export function rememberedRecord(records, id, title) {
     return record;
 }
 
-/**
- * Persist the rail, and mark it user-initialised only if that actually worked.
- *
- * @param {object} storage  `createStorageRouter(...)`
- * @param {object} assignments
- * @param {object} [options]
- * @param {boolean} [options.markUserInitialized]  `false` from auto-populate — the whole
- *        of rule 5. A run that does not set the flag is a run that will happen again.
- * @returns {Promise<{ok:boolean, saved:boolean, marked:boolean, retryable:boolean}>}
- */
 export async function saveFavouriteAssignments(storage, assignments, {
     markUserInitialized = true, logger = null,
 } = {}) {
@@ -650,11 +377,6 @@ export async function loadFavouriteAssignments(storage, { count = FAVOURITE_SLOT
     };
 }
 
-/**
- * Should first launch seed the rail? Empty AND never chosen.
- * `profileManager.js:1006-1015` — "If user has previously saved assignments (even
- * all-empty via clearing slots), respect that choice and skip auto-populate."
- */
 export function shouldAutoPopulate({ assignments, seeded } = {}) {
     return isEmptyAssignments(assignments) && seeded !== true;
 }
@@ -684,105 +406,6 @@ export async function autoPopulateFavourites({
     return { ran: true, stage, assignments, save, retryable: true };
 }
 
-/* ======================================================================= rule 6
- * A FAVOURITE SLOT MUST NEVER POINT AT A RECORD THE LIBRARY IS HIDING.
- *
- * Ben, 28 August 2026, having found his rail wrong on the bench: "You can test adding a
- * new profile there and replacing it with another to ensure it's working and using the
- * latest profile after a change."
- *
- * WHAT WAS MEASURED, on his tablet, 28 August 2026, before any of this was written.
- * `GET /api/v1/store/decal/favouriteProfiles` answered
- * `{0:"profile:fa35f1ee…", 1:"profile:39e38bfa…", 2:"profile:c656d7fe…", 3:null,
- *   4:"profile:0546347d…"}`, and against `GET /api/v1/profiles?includeHidden=true`
- * (221 records, 118 of them hidden) two of the four filled slots named a HIDDEN record:
- *
- *   slot 0  profile:fa35f1ee…  "Extractamundo Dos! (2)"  hidden, and it has NO children
- *   slot 4  profile:0546347d…  "Pressure Tuning"         hidden, and it has 20 descendants
- *
- * Both drew a perfectly ordinary name on the rail. That is the defect this fork exists to
- * remove, in its purest form: a value that makes its own feature invisible. The rail said
- * "Pressure Tuning" and would have armed the version from 10:59 while the library, the
- * editor and the machine were all four hours further on.
- *
- * -----------------------------------------------------------------------
- * WHY A SLOT GOES STALE AT ALL, AND WHY "FOLLOW THE SAVE" WAS NOT ENOUGH
- * -----------------------------------------------------------------------
- * A slot stores a RECORD id and a record id is a content hash, so every content save mints
- * a new one. `settleToOneRow` (`profile-editor-store.js`) then hides the record that was
- * superseded, which is what gives Ben one row per profile. So the ordinary save leaves the
- * slot on a record that has just been taken off the list.
- *
- * `adoptSavedProfile` (`app-boot.js`) already answered the ordinary case on 27 August:
- * find the slot holding `saved.parentId` and move it to the saved id. That rule walks
- * FORWARD — parent to child — and slot 0 is the proof that forward is not the only
- * direction a save moves in.
- *
- * SLOT 0 IS THE BACKWARD CASE, and its timestamps say so exactly. `profile:fa35f1ee…` was
- * created at 20:28:17 and updated at 20:28:48; its PARENT `profile:f239e4b0…` was created
- * five days earlier and updated at 20:28:48 too — the same second. Two visibility flips in
- * one transaction, and they went in the direction nothing expected: the CHILD was hidden
- * and the PARENT was made visible.
- *
- * That is `settleToOneRow`'s restore path, working correctly. `ProfileController.create`
- * is content-addressed and idempotent, so saving content the server already holds returns
- * the EXISTING record rather than storing a new one. Ben edited `fa35f1ee…`, undid the
- * edit, and saved; the content hashed back to `f239e4b0…`, the settle un-hid it and hid
- * `fa35f1ee…`. Everything about that is right.
- *
- * The follow-through could not see it. It asked for the slot holding `saved.parentId` —
- * and `saved` was `f239e4b0…`, whose parent is `79661405…`, the GRANDPARENT. No slot held
- * that. So the slot holding `fa35f1ee…`, the record the very same save had just hidden,
- * was not touched. A rule that only walks down cannot follow a save that goes up.
- *
- * -----------------------------------------------------------------------
- * SO THE RULE IS STATED OVER THE LIBRARY, NOT OVER THE SAVE
- * -----------------------------------------------------------------------
- * "This slot names a hidden record; which living record is that profile now?" needs no
- * knowledge of which save did it, in which direction, or whether a save did it at all —
- * slot 4 predates the follow-through entirely and is stale for no reason but age. One
- * rule, stated over the listing that is already in hand, answers all three and cannot
- * develop a hole of this shape, because it never asks how the record got hidden.
- *
- *   1. The record is VISIBLE — leave it. It is a row its owner can see and point at, and
- *      moving a favourite nobody asked to move is the side effect this file exists to
- *      refuse. This is also what keeps a bundled template safe: `settleToOneRow` refuses
- *      to hide an `isDefault` parent on purpose ("a new profile derived from it, not a
- *      version that replaces it"), so a favourite on the factory "Rao Allongé" stays on
- *      the factory "Rao Allongé" however many profiles are derived from it.
- *
- *   2. The record is HIDDEN and its subtree contains a visible record — take the NEWEST,
- *      by `createdAt`. This is Ben's ruling of 27 August in the general case: "favourite
- *      should show the most recent version". `createdAt` and not `updatedAt` is the
- *      measure, and slot 0 is why: these records are immutable and content-addressed, so
- *      `createdAt` is when a version was BORN, while `updatedAt` moves on a bare
- *      visibility flip. Ranking by `updatedAt` would let a record that was merely re-shown
- *      outrank a genuinely newer version. On Ben's own slot-4 chain the two measures agree
- *      (`profile:e20f7695…` is both the newest born and the most recently touched), so the
- *      repair does not turn on the tie-break — but the rule has to hold on data where they
- *      disagree, and it is written for that.
- *
- *   3. The record is HIDDEN and NOTHING in its subtree is visible — walk UP to the nearest
- *      visible ancestor. This is slot 0: a dead-end hidden leaf whose living row is its
- *      own parent. Without this branch the backward case has no answer at all.
- *
- *   4. Neither exists, or the id is not in the corpus — ANSWER NOTHING, and mean it. A7:
- *      absence is a real answer. A slot naming an id this build cannot resolve is left
- *      exactly as it is and reported, because the alternatives are both worse than a
- *      stale slot: clearing it destroys a choice on the strength of a listing that may
- *      simply have failed, and guessing by title puts an unrelated profile under a name
- *      the owner trusts. `basis` says which of the four branches answered, so a caller
- *      can log the difference between "healed" and "could not".
- *
- * THE WALK IS BREADTH-FIRST OVER A CHILD INDEX BUILT ONCE PER CALL, and it is cycle-safe
- * in both directions. Nothing ReaPrime writes contains a parent cycle, but the corpus is
- * server data and a self-link or a loop in it must not hang the rail on a launch; the
- * `seen` set costs one Set and removes the possibility.
- */
-
-/* A plain object, and not an array. `profile-lineage.js` spells the same guard the same
- * way; this module had never needed one until rule 6 started reading raw record fields
- * (`parentId`, `createdAt`) instead of going through an accessor for every one. */
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 /** Read a record's birth stamp as a comparable string. Absent sorts before anything. */
@@ -799,7 +422,6 @@ function updatedAtOf(record) {
 export const FAVOURITE_HEAL_BASIS = Object.freeze({
     /** The slot's record is visible. Nothing to do, and nothing was done. */
     VISIBLE: 'visible',
-    /** Hidden, superseded — the newest visible record in its subtree. */
     DESCENDANT: 'descendant',
     /** Hidden dead end — the nearest visible ancestor. The restore/undo shape. */
     ANCESTOR: 'ancestor',
@@ -809,16 +431,6 @@ export const FAVOURITE_HEAL_BASIS = Object.freeze({
     NOT_IN_CORPUS: 'not-in-corpus',
 });
 
-/**
- * The living record for a favourite slot's id. Rule 6, performed.
- *
- * @param {Array<object>} records  the listing INCLUDING hidden records. A visible-only
- *        listing cannot answer this: the record being asked about is the hidden one.
- * @param {string|null} id  the id a slot is holding
- * @returns {{id: string|null, basis: string, moved: boolean}} frozen. `id` is null only
- *          when nothing living was found, and then `moved` is false and the caller must
- *          leave the slot exactly as it is.
- */
 export function livingFavouriteTarget(records, id) {
     const answer = (nextId, basis) => Object.freeze({
         id: nextId,
@@ -837,9 +449,6 @@ export function livingFavouriteTarget(records, id) {
         if (!recordId) continue;
         byId.set(recordId, record);
         const parentId = typeof record.parentId === 'string' ? record.parentId : null;
-        /* A SELF-LINK IS DROPPED HERE for the same reason `supersededIds` drops it: a row
-         * that names itself as its own parent would otherwise make a one-record cycle and
-         * put a live tip in its own subtree. */
         if (!parentId || parentId === recordId) continue;
         const siblings = childrenOf.get(parentId);
         if (siblings) siblings.push(recordId);
@@ -848,23 +457,8 @@ export function livingFavouriteTarget(records, id) {
 
     const held = byId.get(id) ?? null;
     if (!held) return answer(null, FAVOURITE_HEAL_BASIS.NOT_IN_CORPUS);
-    /* RULE 1 DECIDES WHAT "LIVING" MEANS, and it is asked rather than re-stated. This was
-     * once `profileVisibilityOf(...) !== HIDDEN`, which is rule 1 with one of its two
-     * clauses missing: a SOFT-DELETED record (`visibility: 'deleted'`) is not hidden, so
-     * that test called it living and would both leave a slot sitting on a deleted record
-     * and heal other slots ONTO one. `isListable` is the same predicate the listing
-     * filters by, so a slot can only ever name a record the library would actually show,
-     * and a fourth visibility state moves both together instead of only one. */
     if (isListable(held)) return answer(id, FAVOURITE_HEAL_BASIS.VISIBLE);
 
-    /* Branch 2 — the newest listable record anywhere below it.
-     *
-     * THE ORDER IS TOTAL AND DETERMINISTIC, three keys deep, because the answer is
-     * PERSISTED: two launches reading the same corpus must heal a slot to the same record
-     * or the rail rewrites itself for ever. `createdAt` is the version's birth and decides
-     * (see rule 6 branch 2); `updatedAt` breaks a tie; the id breaks a tie in that, which
-     * can only happen for two records stamped in the same instant and is there so the
-     * comparison never depends on listing order. */
     const newer = (a, b) => {
         if (b === null) return true;
         const ra = byId.get(a);
@@ -903,36 +497,6 @@ export function livingFavouriteTarget(records, id) {
     return answer(null, FAVOURITE_HEAL_BASIS.NO_LIVING_RECORD);
 }
 
-/**
- * Rule 6 over a whole rail.
- *
- * ALWAYS RETURNS A COMPLETE FIVE-SLOT MAP, whatever shape went in. That is not tidiness:
- * a partial map is how the rail loses a slot. `setFavourite` writes
- * `{...current.assignments, [index]: id}`, so if `current.assignments` is ever short of a
- * key — the store's own initial state is `{}` until the first `load()` resolves — the
- * write that follows persists a map with THAT MANY KEYS and every absent slot is gone
- * from storage. Normalising here and in `setFavourite` closes it at both ends.
- *
- * TWO SLOTS CAN HEAL TO THE SAME RECORD, AND THAT IS ALLOWED. If somebody put version 1
- * of a profile on slot 0 and version 3 of it on slot 2 — legal at the time, because
- * `setFavourite`'s duplicate guard compares IDS and those were two different ids — then
- * once both are superseded they both resolve to the same living record and the rail shows
- * one profile twice.
- *
- * Nothing here breaks the tie, and refusing to would cost a slot. The only ways to avoid
- * the duplicate are to clear one of the two, or to leave one pointing at a hidden record;
- * the first destroys a choice its owner made and the second is the fault this rule exists
- * to remove. A duplicate is also the honest reading of Ben's own ruling — "a favourite
- * means THIS PROFILE, not this version of it" — because under that rule the two slots
- * really do now mean the same thing. It is visible, it is harmless, and one press fixes
- * it. `setFavourite`'s guard still stops anyone creating the state by hand.
- *
- * @param {object} assignments  `{0..4: id|null}`, or anything at all
- * @param {Array<object>} records  the listing INCLUDING hidden records
- * @param {object} [options]
- * @param {number} [options.count]
- * @returns {{assignments: object, changes: Array<object>, healed: boolean}}
- */
 export function healFavouriteAssignments(assignments, records, { count = FAVOURITE_SLOT_COUNT } = {}) {
     const next = emptyAssignments(count);
     const changes = [];
@@ -944,9 +508,6 @@ export function healFavouriteAssignments(assignments, records, { count = FAVOURI
             continue;
         }
         const target = livingFavouriteTarget(records, id);
-        /* NOTHING LIVING FOUND MEANS THE SLOT IS LEFT AS IT WAS — branch 4. The id rides
-         * through unchanged so a listing that failed, or a record this build has not seen,
-         * costs the user nothing. */
         next[slot] = target.moved ? target.id : id;
         if (target.moved) changes.push(Object.freeze({ slot, from: id, to: target.id, basis: target.basis }));
     }

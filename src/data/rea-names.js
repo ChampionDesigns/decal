@@ -20,15 +20,6 @@
 // 17 Aug 2026, from the sources named on each row. Line numbers are deliberately absent:
 // re-anchor by symbol.
 
-/**
- * `MachineSnapshot.toJson` (machine.dart, `class MachineSnapshot`) — the twelve keys that
- * are ALWAYS emitted, in the order the server writes them.
- *
- * `state` is an object: `{state, substate}`, both enum NAMES (see machine-state.js).
- * `timestamp` is an ISO-8601 string. `profileFrame` and `steamTemperature` are ints.
- *
- * Carried by `/ws/v1/machine/snapshot` and by `measurements[].machine` in a stored shot.
- */
 export const SNAPSHOT_KEYS = Object.freeze([
     'timestamp',
     'state',
@@ -44,54 +35,12 @@ export const SNAPSHOT_KEYS = Object.freeze([
     'steamTemperature',
 ]);
 
-/**
- * The three DERIVED hydraulic channels — `MachineSnapshot`'s `*Derived` getters.
- *
- * These are the key-presence channels. `toJson` writes each only when its getter is
- * non-null, and the getter is null below the server's own gate; the server's comment says
- * in as many words that "consumers can rely on key presence as the validity signal".
- * So `Object.hasOwn(frame, 'puckResistanceDerived')` IS the whole validity test.
- *
- * NEVER re-implement the gate and never copy its constants — see `reading.js`.
- *
- * Each has a MEASURED counterpart on the puck-estimator sensor computed from a different
- * flow (Q_puck rather than reported group flow Q_in), so the two agree in steady state and
- * diverge during compliance transients, and they go absent at DIFFERENT times. ReaPrime's
- * own comment: prefer the measured value when the machine offers it, and expect a switch
- * mid-shot to look like a glitch. That CHOICE is B6's, made at shot start and held
- * (`duplicated-channels-b6`), not made per sample here.
- */
 export const SNAPSHOT_DERIVED_KEYS = Object.freeze([
     'puckResistanceDerived',
     'loadImpedanceDerived',
     'hydraulicPowerDerived',
 ]);
 
-/**
- * `WeightSnapshot.toJson` (scale_controller.dart) — `/ws/v1/scale/snapshot`, and
- * `measurements[].scale` in a stored shot.
- *
- * THIS IS WHERE GRAVIMETRIC FLOW ARRIVES, for every machine. The Bengle's integrated
- * scale is exposed as a virtual scale, so Bengle and DE1 read identically and there is
- * exactly one gravimetric channel, already server-smoothed. There is no machine-type
- * branch anywhere in this layer.
- *
- * NOTE the shape difference from the machine snapshot: `toJson` writes `battery` and
- * `timerValue` UNCONDITIONALLY, so on the scale key presence is NOT the validity signal —
- * a null value is. `timerValue` is milliseconds (an int) or null.
- *
- * `controlWeightFlow` and `connectionGeneration` exist on the Dart object but are NOT
- * serialised; they are unreachable from the skin and are not named here.
- */
-/**
- * The water-level frame's two channels, in MILLIMETRES.
- *
- * `/ws/v1/machine/waterLevels` carries `{currentLevel, refillLevel}` and the contract
- * table records what that means: mm -> mL is skin-side, because the 68-entry tank table
- * has no ReaPrime counterpart. Slate ports that table from the TCL skin and offers mL as
- * a SETTING, defaulting to mm; Decal reads and shows the millimetres the machine sends
- * and leaves the conversion to whoever adds the setting.
- */
 export const WATER_LEVEL_KEYS = Object.freeze([
     'currentLevel',
     'refillLevel',
@@ -105,11 +54,6 @@ export const SCALE_KEYS = Object.freeze([
     'timerValue',
 ]);
 
-/**
- * The puck-estimator sensor's channel list, in `SensorInfo.dataChannels` order
- * (bengle_puck_estimator.dart). Stream: `/ws/v1/sensors/<id>/snapshot`; stored shots carry
- * the latest frame per sample under `measurements[].sensors[<id>]`.
- */
 export const ESTIMATOR_CHANNELS = Object.freeze([
     'timestamp',
     'rev',
@@ -130,13 +74,6 @@ export const ESTIMATOR_CHANNELS = Object.freeze([
     'hydraulicPowerMeasured',
 ]);
 
-/**
- * The six estimator channels `encodeSample` always writes. Every OTHER channel is omitted
- * when the firmware reports its wire sentinel — "an absent key means not observed, which a
- * zero would misrepresent as a real measurement of zero" (the class doc, verbatim intent).
- *
- * So on this sensor, as on the derived channels, key presence is the validity signal.
- */
 export const ESTIMATOR_ALWAYS_PRESENT_CHANNELS = Object.freeze([
     'timestamp',
     'rev',
@@ -162,20 +99,6 @@ export const SENSOR_ID_SUFFIX = Object.freeze({
     milkProbe: '-milkprobe',
 });
 
-/**
- * The rename table. LEFT is what the old skin reads; RIGHT is the address today.
- *
- * `scope` says WHERE the left-hand name is dead:
- *   'global'  — the name is dead everywhere; seeing it anywhere is a defect.
- *   'machine' — dead on the MACHINE snapshot only. `weightFlow` is alive on the scale and
- *               `milkTemperature` is alive on a stored `SteamSnapshot`, so a text search
- *               for these two proves nothing on its own.
- *
- * The first seven rows are Part 6's seven-rename table. The rest are the same commit's
- * other casualties, found in recorded legacy shot rows; they are listed because a reader
- * that names only seven leaves the others to be rediscovered one silent misreading at a
- * time.
- */
 export const RENAMES = Object.freeze([
     { dead: 'puckResistance', live: 'puckResistanceDerived', on: 'machine', scope: 'global', source: 'machine.dart (MachineSnapshot.puckResistanceDerived)', sevenRow: 1 },
     { dead: 'loadImpedance', live: 'loadImpedanceDerived', on: 'machine', scope: 'global', source: 'machine.dart (MachineSnapshot.loadImpedanceDerived)', sevenRow: 2 },
@@ -203,10 +126,6 @@ export const SEVEN_RENAMES = Object.freeze(RENAMES.filter((r) => r.sevenRow !== 
  *  `fusedC`/`estFlags` share one, and all four `detEvent*` share one. */
 export const SEVEN_RENAME_ROWS = 7;
 
-/**
- * Names that are dead EVERYWHERE. A source file outside this one containing any of these
- * is a defect, and `test/rea-dead-names.test.mjs` is the executing check.
- */
 export const DEAD_NAMES_GLOBAL = Object.freeze(
     RENAMES.filter((r) => r.scope === 'global').map((r) => r.dead),
 );
@@ -220,18 +139,6 @@ export const DEAD_MACHINE_SNAPSHOT_KEYS = Object.freeze([
     ...RENAMES.filter((r) => r.scope === 'machine').map((r) => r.dead),
 ]);
 
-/**
- * The dead names present on a frame — a DIAGNOSTIC, never a value source.
- *
- * A non-empty result means the server is older than the pinned commit (or something
- * upstream regressed). At 2b047d02 `MachineSnapshot.fromJson` reads a fixed key list with
- * no unknown-key bag and `toJson` re-emits only that list, so these names cannot reach the
- * skin from a current server even out of a legacy database row: they are dropped the first
- * time ReaPrime reads it.
- *
- * @param {object|null|undefined} frame  a machine-snapshot-shaped object
- * @returns {string[]} dead names found, in `RENAMES` order
- */
 export function deadKeysPresent(frame) {
     if (!frame || typeof frame !== 'object') return [];
     return DEAD_MACHINE_SNAPSHOT_KEYS.filter((key) => Object.hasOwn(frame, key));
@@ -246,14 +153,6 @@ export function sensorKindOf(id) {
     return null;
 }
 
-/**
- * Find one sensor id in a `GET /api/v1/sensors` listing — `[{id, info}, …]`
- * (sensors_handler.dart). Also accepts a bare array of ids.
- *
- * @param {Array|null} listing
- * @param {'puckEstimator'|'milkProbe'} kind
- * @returns {string|null}
- */
 export function findSensorId(listing, kind) {
     if (!Array.isArray(listing)) return null;
     const suffix = SENSOR_ID_SUFFIX[kind];

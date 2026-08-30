@@ -623,12 +623,6 @@ describe('B2 — exactly one table in the skin', () => {
         }
     });
 
-    test('the module says out loud that it is the interim table behind R2', () => {
-        assert.match(SOURCE, /R2/);
-        assert.match(SOURCE, /B2/);
-        assert.match(SOURCE, /B3/);
-    });
-
     test('it is pure — no DOM, no request, no storage', () => {
         for (const forbidden of ['document', 'window', 'fetch(', 'localStorage', 'import ']) {
             assert.ok(!CODE.includes(forbidden), `machine-limits.js reaches for ${forbidden}`);

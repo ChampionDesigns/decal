@@ -159,39 +159,11 @@ import { supersededIds } from '../lib/profile-lineage.js';
 import { createStore } from './store.js';
 import { ARM_STATUS } from './profile-arm-store.js';
 
-/**
- * D6's deferred half, written down so the boundary is a fact in the build rather than an
- * omission someone later reads as an oversight.
- *
- * Part 1's deferred table: "Purging deleted profiles | D6 (second half)". The route exists
- * (`deleteProfilesByIdPurge`), the handler is read, and this build does not call it. When
- * the deferred half lands, this constant is what a grep for "purge" finds.
- */
 export const D6_PURGE_IS_LANDED = Object.freeze({
     decision: 'D6',
     half: 'purge deleted profiles',
     landed: '25 August 2026',
     why: 'Ben: "yes build it behind a confirm that says plainly it cannot be undone."',
-    /**
-     * WHAT WAS DEFERRED, AND WHAT MADE IT SAFE TO LAND.
-     *
-     * Part 1's deferred table read "Purging deleted profiles | D6 (second half)", and this
-     * constant used to say `deferredRouteId` with a note explaining that gate D reads
-     * `routeId` as an ADDRESS, so a route nothing called had to be spelled a different way
-     * or the table would claim a caller that did not exist.
-     *
-     * It exists now. `purge` below is the caller, the contract row moves from `recorded` to
-     * `consumed`, and the field is spelled `routeId` because that is what it is.
-     *
-     * IT IS THE ONLY ROUTE THAT REMOVES ANYTHING. The contract's own words: "this is the
-     * ONLY route that actually removes a profile record — DELETE /profiles/<id> is a soft
-     * delete (Visibility.deleted / .hidden), which is why the listing has to filter
-     * client-side". Everything else this screen does is reversible: a hidden bundled
-     * profile comes back through Restore, and a hidden user profile is still on the server.
-     * This one is not, which is why the confirm says so in those words rather than in the
-     * word "permanently" — and why it is reachable only from the Hidden list, where a user
-     * has already decided once.
-     */
     routeId: 'deleteProfilesByIdPurge',
 });
 
@@ -212,16 +184,6 @@ export const RESTORE_STATUS = Object.freeze({
 });
 
 /** Where a versions read got to. `NONE` is a lineage of ONE — the profile, and no siblings. */
-/**
- * Where an ADD got to. One state for three doors (a file, a share code, the generator),
- * because a person adding a profile is doing one thing and the surface reporting it is
- * one dialog.
- *
- * REFUSED CARRIES A REASON AND FAILED DOES NOT. A refusal is the server or this store
- * saying no to something specific — a file that is not a profile, a code that is wrong,
- * an account that is not signed in — and the screen has a sentence for each. A failure
- * is everything else, and its sentence is the same one every failure gets.
- */
 export const ADD_STATUS = Object.freeze({
     IDLE: 'idle',
     ADDING: 'adding',
@@ -284,34 +246,6 @@ const EMPTY_STATE = Object.freeze({
     refusal: null,
     /** A non-400 arm fault. Never a refusal. */
     armError: null,
-    /**
-     * THE RECORD THIS STORE IS LOADING RIGHT NOW, or null. Not optimism — a fact.
-     *
-     * Ben, 27 August 2026, machine disconnected: "now I cannot seem to select a favorite,
-     * do I need a machine connected to pick one" / "it highlights but if you then click
-     * edit profile it will show the previous one". Reproduced on his tablet: the slot
-     * highlights, about six seconds later it snaps back, Edit profile opens the profile
-     * from before, and nothing is said anywhere.
-     *
-     * Half of that was the gate in `arm()` below. The other half was WHO OWNS THE
-     * HIGHLIGHT. `<live-screen>`'s `#onFavourite` used to set `this.favourite` itself and
-     * `live-wiring.js` overwrote it from `loaded.id` on the next update, so two owners
-     * wrote one property and the loser was whichever ran last. That is L11's shape, and
-     * the visible symptom is a highlight that moves and then un-moves for no reason a
-     * person can see.
-     *
-     * ONE OWNER, AND IT IS THIS STORE, because this store owns the whole two-write
-     * sequence — POST the profile, PUT the document, re-read the listing. `loaded.id` is
-     * only true at the END of it; for the second or two it is running, "the profile this
-     * app is loading" is the honest answer and there is nowhere else that knows it. It is
-     * set before the first request goes out and cleared in a `finally`, by which time
-     * `loaded` has been re-read and carries the same id — so the highlight crosses from
-     * the intent to the fact with no gap and no flicker.
-     *
-     * A REFUSED PROFILE CLEARS IT AND THE HIGHLIGHT GOES BACK, which is correct and is
-     * the one case where it should: the machine will not run it, the document was not
-     * written, and `<live-refusal>` is on screen saying so.
-     */
     armingId: null,
     restore: Object.freeze({ status: RESTORE_STATUS.IDLE, filename: null, error: null }),
     versions: Object.freeze({ status: VERSIONS_STATUS.IDLE, id: null, records: Object.freeze([]) }),
@@ -323,16 +257,6 @@ const EMPTY_STATE = Object.freeze({
     error: null,
 });
 
-/**
- * Which records a query matches. A PURE function, exported so the screen's filter and the
- * store's own state cannot drift apart, and so the rule is testable without a browser.
- *
- * The match is on the WHOLE title, not the short one: a person who types "Tea" expects the
- * Tea portafilter family, and `shortProfileTitle` deliberately throws the family away
- * (that is rule 2, and it is for the five favourite slots where the width is fixed).
- * Author is matched too — 82 of the fixture's records carry one and "Decent" is a real
- * thing to search for.
- */
 export function matchProfiles(records, query) {
     const wanted = String(query ?? '').trim().toLowerCase();
     if (wanted === '') return [...records];
@@ -352,36 +276,12 @@ export function restoreFilenameOf(record) {
     return filename === '' ? null : filename;
 }
 
-/**
- * @param {object} deps
- * @param {object} deps.transport  `createReaTransport(...)`
- * @param {object} deps.storage    `createStorageRouter(...)` — the favourites rail's home
- * @param {object} deps.arm        `createProfileArmStore(...)`; the arm route has ONE owner
- * @param {object} [deps.logger]
- * @param {() => number} [deps.now]
- */
-
-/**
- * The loaded profile's id, but only when the LIST can show it.
- *
- * A profile can be loaded on the machine and hidden in the library — hiding the profile
- * you are pulling is an ordinary thing to do — and seeding the selection with it would
- * leave the detail pane naming a profile that is not on the list beside it. That is the
- * exact sentence `profile-library-store.test.mjs` uses for the same failure reached from
- * the other side, when a hide left `selectedId` on the record it had just removed.
- */
 function listableLoadedId(listable, loaded) {
     const id = loaded?.id ?? null;
     if (!id) return null;
     return listable.some((record) => record?.id === id) ? id : null;
 }
 
-/**
- * WHERE THE LOADED-PROFILE ID CAME FROM. Two of the three are R1's own vocabulary,
- * re-exported so a consumer reads one table; the third is this store's and could not be
- * R1's, because R1 answers about the WORKFLOW REPORT and this is a fact about what this
- * skin did.
- */
 export const LOADED_SOURCE = Object.freeze({
     /** `report.profile.id` — R1 has landed and the machine names the record itself. */
     WORKFLOW_ID: R1_SOURCE.WORKFLOW_ID,
@@ -403,22 +303,11 @@ export function createProfileLibraryStore({
     if (!arm || typeof arm.arm !== 'function') {
         throw new Error('createProfileLibraryStore: a profile arm store must be injected');
     }
-    /* OPTIONAL, AND ITS ABSENCE IS A REAL STATE: the selector's own layout demo builds
-     * this store with no shell behind it. A load then arms the machine and leaves the
-     * document alone, which is what this store did before the workflow half existed. */
-
     const log = scoped(logger);
     const store = createStore({ ...EMPTY_STATE }, { label: 'profileLibrary', logger: log });
-    /* THE ID THIS SESSION ARMED, held here as well as stored. The store is the faster and
-     * the more certain of the two: `saveLoadedProfileId` is a KV write over the network
-     * and it can fail, and a highlight that waits for a round trip to come back is a
-     * highlight that flickers. The stored copy is what survives a reload. */
     let armedId = null;
     const patch = (fields) => store.set({ ...store.get(), ...fields });
 
-    /* THE ARM STORE IS MIRRORED, NOT RE-IMPLEMENTED. One subscription, dropped by stop().
-     * B9's surface reads `refusal` off THIS store so the screen has one thing to render,
-     * and the arm store stays the only owner of the route and of the refusal's wording. */
     const unwatchArm = arm.subscribe((armState) => {
         patch({ refusal: armState.refusal ?? null, armError: armState.error ?? null });
     });
@@ -446,13 +335,6 @@ export function createProfileLibraryStore({
         };
     }
 
-    /**
-     * R1. The workflow report is fetched here and handed to the adapter WHOLE.
-     *
-     * A failed workflow read is not a failed load: the listing is the screen, and a
-     * missing highlight is a smaller loss than a blank list. The adapter answers
-     * `noWorkflow` for a null report, which is exactly the state to publish.
-     */
     async function readLoaded(records) {
         const result = await callRoute(transport, 'getWorkflow');
         const report = result.ok ? result.data : null;
@@ -460,19 +342,6 @@ export function createProfileLibraryStore({
         const answer = r1LoadedProfileId(report, records);
         const value = answer.value || {};
 
-        /* WHEN THE TITLE CANNOT DECIDE, THE MEMORY CAN. R1 matches the workflow's profile
-         * title against the listing because the workflow carries no record id, and on the
-         * bench machine ELEVEN records share the title "Extractamundo Dos!" — so the honest
-         * answer is `ambiguous`, the highlight goes blank, and "Edit profile" has no record
-         * to open. It reported the state correctly and left the app unable to act on it.
-         *
-         * `loadedProfileId` is the id this skin armed, remembered at the one moment it was
-         * known for certain. `rememberedRecord` only returns it while its TITLE still
-         * matches the workflow's, so a profile loaded by something else since cannot be
-         * mistaken for this one.
-         *
-         * IT DOES NOT OVERRIDE A RESOLVED ANSWER. A unique title is a fact about the
-         * machine; the memory is a fact about this skin, and the machine wins. */
         if (!value.id) {
             const remembered = rememberedRecord(
                 records, armedId ?? await loadLoadedProfileId(storage), value.title ?? title(report));
@@ -496,12 +365,6 @@ export function createProfileLibraryStore({
             id: value.id ?? null,
             title: value.title ?? null,
             known: answer.known === true,
-            /* THE MARKING, AND IT IS A VALUE RATHER THAN A STRING MATCH. Every R-adapter
-             * answer carries `answer.provisional: true` — that flag is about the LAYER,
-             * not about this answer — so the screen's marking reads `value.source`:
-             * `title-match` is the interim and `workflow-id` is R1 having landed. `basis`
-             * rides along verbatim ("title match against the profile listing —
-             * PROVISIONAL (R1)") because it is the sentence a reviewer wants to see. */
             provisional: value.source === R1_SOURCE.TITLE_MATCH,
             source: value.source ?? null,
             /** The adapter's own flag for the whole R layer, kept so nothing is lost. */
@@ -520,61 +383,6 @@ export function createProfileLibraryStore({
             ? profile.title : null;
     }
 
-    /**
-     * Rules 4, 5 and 6: read the rail, seed it on a first launch, never mark a failed
-     * seed — and heal any slot left pointing at a record the library is hiding.
-     *
-     * ===========================================================================
-     * HEALING HAPPENS ON READ, AND THE ARGUMENT FOR THAT IS BEN'S OWN RAIL
-     * ===========================================================================
-     *
-     * The alternative was healing on WRITE — repair a slot at the moment the save that
-     * stranded it lands, in `adoptSavedProfile`. That is where the 27 August
-     * follow-through already lives, and it is genuinely the more responsive of the two:
-     * it fixes the rail inside the session, without waiting for a reload, which matters
-     * because Ben saves an edit and then looks straight at the Live rail.
-     *
-     * IT CANNOT BE THE ONLY PLACE, AND SLOT 4 IS THE PROOF. `profile:0546347d…` has been
-     * hidden on his bench since 27 August — stranded by a save that happened BEFORE the
-     * follow-through was written. No future save of that profile is coming to rescue it;
-     * a write-time repair only ever fixes writes it is present for. Decal is at 0.1.41
-     * and has been on his tablet for days, so damaged state already exists in the field,
-     * and a fix that cannot reach state written by an older build is a fix that leaves
-     * the reported fault on the reporter's machine.
-     *
-     * AND IT IS THE ONLY FORM THAT SURVIVES THE NEXT HOLE. Slot 0 was stranded by a save
-     * path the follow-through did not know existed — the backward, idempotent-create
-     * shape that rule 6's header sets out. There is no reason to believe that was the
-     * last one. A read-time rule asks "does this slot name a hidden record?" and never
-     * asks how it came to, so a save path nobody has thought of yet cannot strand a slot
-     * for longer than one launch. That is the difference between a fix and a patch.
-     *
-     * SO IT IS BOTH, AND THEY COMPOSE IN ONE DIRECTION ONLY. The follow-through advances
-     * the slot to the record that was just saved, which is visible by construction —
-     * `settleToOneRow` makes the saved record visible before it hides anything. Healing
-     * then looks at a visible id and leaves it alone (rule 6 branch 1). The reverse order
-     * would be just as safe; there is simply nothing for the second one to do.
-     *
-     * -----------------------------------------------------------------------
-     * THE WRITE-BACK IS CONDITIONAL, AND IT DOES NOT CLAIM THE USER CHOSE
-     * -----------------------------------------------------------------------
-     * Persisting the repair matters: a rail healed only in memory is healed again on
-     * every launch, and every OTHER reader of `favouriteProfiles` — another skin, a REST
-     * client, ReaPrime itself — goes on seeing the stale ids. But it is written ONLY when
-     * `healed` is true, so an ordinary launch performs no write at all.
-     *
-     * `markUserInitialized: false` is rule 5, and it is load-bearing rather than
-     * defensive. The flag means "somebody chose this", and a repair is not a choice; a
-     * heal that set it would mark an auto-populated rail user-initialised on the strength
-     * of housekeeping the user never did, which is precisely the masquerade rule 5's own
-     * comment is about. The held flag rides through untouched, so a rail Ben HAS chosen
-     * stays chosen and a rail he has not stays retryable. Nothing is re-seeded either
-     * way: `shouldAutoPopulate` needs an EMPTY rail, and a healed rail is not empty.
-     *
-     * @param {object[]} listable  rule 1's answer — what a seed may draw from.
-     * @param {object[]} all       the SAME listing including hidden records. Rule 6 cannot
-     *        run on `listable`: the record it is asked about is the hidden one.
-     */
     async function readFavourites(listable, all) {
         const held = await loadFavouriteAssignments(storage, { count: FAVOURITE_SLOT_COUNT });
         if (!shouldAutoPopulate(held)) {
@@ -587,10 +395,6 @@ export function createProfileLibraryStore({
                 const save = await saveFavouriteAssignments(storage, heal.assignments, {
                     markUserInitialized: false, logger,
                 });
-                /* A7 — A FAILED REPAIR IS REPORTED, NOT SWALLOWED, and the rail still
-                 * shows the healed ids for this session. Publishing the stale ones
-                 * because a write failed would put the wrong profile back under the
-                 * right name, which is the fault being fixed. The next launch retries. */
                 if (!save.saved) {
                     log.warn('the healed favourite rail did not persist — it is correct in '
                         + 'this session and the next launch will heal it again');
@@ -604,117 +408,17 @@ export function createProfileLibraryStore({
         const populated = await autoPopulateFavourites({ storage, records: listable, logger });
         return Object.freeze({
             assignments: Object.freeze({ ...populated.assignments }),
-            /* `autoPopulateFavourites` passes markUserInitialized:false — rule 5 — so the
-             * rail is populated and the launch STAYS retryable. `seeded` is the user's
-             * flag and an auto-populate never sets it. */
             seeded: false,
         });
     }
 
-    /**
-     * ===========================================================================
-     * LOADING A PROFILE IS TWO WRITES, AND THE MACHINE GATES NEITHER OF THEM
-     * ===========================================================================
-     *
-     * Ben, 27 August 2026, with the machine disconnected: "now I cannot seem to select a
-     * favorite, do I need a machine connected to pick one" — and, in the same breath,
-     * "it highlights but if you then click edit profile it will show the previous one".
-     *
-     * He does not. THE ANSWER HE GAVE IS THE DESIGN: "allow it to work with the machine
-     * connected, when the machine does connect we should send it the profile we are on,
-     * is that right?" Yes, and ReaPrime already implements the delivery half of it —
-     * `lib/src/controllers/workflow_device_sync.dart`, read at the pin on 27 Aug 2026:
-     *
-     *   - `_onChange` listens to the WorkflowController. Every change to the document
-     *     sets `_desiredProfile` and drains it to the DE1.
-     *   - `_drain` catches `DeviceNotConnectedException` and logs "DE1 not connected;
-     *     skipping profile push". It SKIPS. It does not discard the document and it does
-     *     not report a fault.
-     *   - `_onInitSettled` is the push-on-connect: when a freshly connected DE1 finishes
-     *     initialising it clears `_lastPushedProfile`, RE-READS
-     *     `_workflow.currentWorkflow.profile` and drains again — so whatever the document
-     *     says at that moment is what the machine is given, whoever wrote it and whenever.
-     *   - Any other upload failure retries on a 3 s / 10 s / 30 s ladder and surfaces
-     *     `profileUploadFailed` on ReaPrime's own connection-error channel.
-     *
-     * And the document survives the wait: `main.dart:364` subscribes to the controller and
-     * calls `persistenceController.saveWorkflow(...)` on every change, so a profile picked
-     * with no machine in the room is still the profile after a restart.
-     *
-     * MEASURED, NOT ASSUMED: `PUT /api/v1/workflow` answers 200 on a machine with no DE1
-     * connected. `_applyUpdate` only touches the device through
-     * `De1Controller.updateWorkflowSettings`, and that returns immediately unless the
-     * RINSE, STEAM or HOT-WATER blocks changed (`de1_controller.dart:588-595`) — a
-     * profile-and-context write changes none of them.
-     *
-     * WHAT WAS WRONG. This method used to write the document ONLY after a 200 from
-     * `POST /machine/profile`, and that route is the one thing that cannot work while
-     * disconnected: `withDe1` calls `connectedDe1()`, which throws
-     * `DeviceNotConnectedException`, and `de1handler.dart:608` maps it to a 500. So the
-     * skin gated the write that works on the write that cannot, the document never moved,
-     * `loaded` never moved, the highlight snapped back, and Edit profile — which resolves
-     * through the loaded profile — opened the one from before. Exactly what Ben saw.
-     *
-     * WHAT IS RIGHT. The POST stays, FIRST, and it is still B9's trigger and still the
-     * fast path to the machine: it is the only thing that can produce the arm-time
-     * refusal, and asking is the only way to find out (see `profile-arm-store.js`,
-     * UNCONDITIONAL). What changed is that its ANSWER no longer gates the document.
-     *
-     * ONE DISTINCTION SURVIVES, AND IT IS THE WHOLE OF THE CARE HERE:
-     *
-     *   A REFUSAL (a typed 400 with a problem body — a profile the machine understood and
-     *   rejected) STILL BLOCKS THE WRITE. The old comment's argument stands word for word:
-     *   "the machine cannot run it, and a document naming a profile the machine refused is
-     *   the same lie in the other direction." It is also the document every stored shot is
-     *   stamped from, so the lie would outlive the session.
-     *
-     *   ANYTHING ELSE — a 500 because nothing is connected, a timeout, a network failure —
-     *   IS NOT AN ANSWER ABOUT THE PROFILE. It is an answer about the transport, and the
-     *   user's choice is untouched by it. The document is written, ReaPrime delivers it on
-     *   connect, and the highlight is then asserting something true.
-     *
-     * WHY "NOT REFUSED" AND NOT "500 MEANS TRANSPORT": because the disconnected case IS a
-     * 500. `withDe1`'s catch-all turns `DeviceNotConnectedException` into
-     * `jsonError` (`de1handler.dart:595-611`), so status alone cannot tell a dead machine
-     * from a dead write. The typed 400 is the only shape that carries a statement about
-     * the profile, and `profileRefusal()` is the one reader of it.
-     *
-     * AN ABSENT ANSWER DOES NOT WRITE. `arm.arm()` always publishes a state, so `!armed`
-     * is unreachable through the real store — but a caller that injected a stub and got
-     * nothing back has told us nothing, and "we do not know" is not a licence to write the
-     * document (A7).
-     *
-     * THE COST IS STILL ONE EXTRA PROFILE UPLOAD ON THE HAPPY PATH, said out loud as it
-     * was before: the POST uploads, then `WorkflowDeviceSync` sees the document change and
-     * uploads again. The old app avoids it by making the PUT alone — and pays by never
-     * seeing the refusal, because the sync catches `ProfileModeUnsupportedException` and
-     * parks silently. A second BLE upload on an idle machine costs about a second; a shot
-     * that silently is not running the profile you picked is the register's own "worst
-     * failure shape".
-     */
     async function armRecord(record, recordId) {
         const armed = await arm.arm(record.profile, { profileId: recordId });
         if (!armed || armed.status === ARM_STATUS.REFUSED) return armed;
 
-        /* THE ID, REMEMBERED AT THE MOMENT THE CHOICE BECOMES REAL. It used to be
-         * remembered only on a 200, which was the same gate in miniature: with no machine
-         * the document names the profile and nothing remembered which RECORD it was, so
-         * `readLoaded`'s tie-break had nothing to break a duplicated title with. The
-         * memory is only ever consulted while the workflow's title still matches
-         * (`rememberedRecord`), so it cannot outlive the document it belongs to. */
         armedId = recordId;
         await saveLoadedProfileId(storage, armedId);
 
-        /* AND THE DOCUMENT, which is what records "this is the profile we are on".
-         *
-         * `POST /machine/profile` sends the steps to the DE1 and touches nothing else, so
-         * on its own it leaves `GET /workflow` serving the PREVIOUS profile — the old
-         * title on the Live header, the old dose and drink weight on the rail, and the old
-         * name stamped into every shot ReaPrime records from then on. `workflow-store.js`
-         * `apply` carries the two-route reading.
-         *
-         * THE LISTING IS RE-READ because R1's loaded-profile highlight is derived from the
-         * workflow, and the five favourite marks are derived from the listing. */
         if (!workflow) return armed;
         const body = workflowApplyBody(record);
         if (body) await workflow.apply(body, { label: `profile '${profileTitleOf(record)}'` });
@@ -738,14 +442,6 @@ export function createProfileLibraryStore({
         /** Rule 2's short label for a record — the five fixed-width favourite slots. */
         shortTitle(record) { return shortProfileTitle(profileTitleOf(record) || ''); },
 
-        /**
-         * Read everything the screen opens with: the listing, the loaded id, the rail.
-         *
-         * ONE listing read feeds all three — `r1LoadedProfileId` matches against the SAME
-         * rows the list shows, and the rail is seeded from the filtered ones. Reading
-         * `/profiles` twice for two consumers is how the two get different answers.
-         */
-
         async load() {
             patch({ status: LIBRARY_STATUS.LOADING, error: null });
             const first = await readListing();
@@ -758,10 +454,6 @@ export function createProfileLibraryStore({
             ]);
 
             const restorable = restorableProfiles(listing.all).filter((r) => restoreFilenameOf(r) !== null);
-            /* WHICH RECORDS SOMETHING ELSE HAS SUPERSEDED — one pass over the listing that
-             * is already in hand, no request, no hashing. It is read by `hidden` below and
-             * nothing else; see the long note there for what it is for and why
-             * `restorable` deliberately does not use it. */
             const superseded = supersededIds(listing.all);
             log.info(`profile library: ${listing.listable.length} listable, ${restorable.length} restorable, `
                 + `${superseded.size} superseded, `
@@ -771,73 +463,11 @@ export function createProfileLibraryStore({
                 status: LIBRARY_STATUS.READY,
                 records: Object.freeze([...listing.all]),
                 listable: Object.freeze([...listing.listable]),
-                /**
-                 * THE HIDDEN SET, PUBLISHED — Ben, 25 August 2026, on the selector audit's
-                 * finding 8: "Add the hidden toggle."
-                 *
-                 * IT WAS ALREADY BEING COMPUTED and thrown away. `partitionProfiles` splits
-                 * the listing three ways and this store kept two of them: `listable` for
-                 * the list, and `restorable` (hidden AND bundled) for the restore offer.
-                 * The hidden set itself — which includes the user profiles a hide has
-                 * soft-deleted, the ones `restorable` deliberately excludes — reached
-                 * nobody, so there was no way to browse what the library is holding back.
-                 *
-                 * BOTH BUCKETS, BECAUSE ONE HIDE PRODUCES EITHER. The contract is explicit:
-                 * DELETE /profiles/<id> "sets Visibility.hidden on an isDefault record and
-                 * Visibility.deleted on a user one". Two words for one gesture, so a toggle
-                 * that showed only `hidden` would show the bundled profiles a user hid and
-                 * not the ones they wrote — the half they are most likely to be looking for.
-                 *
-                 * MINUS THE SUPERSEDED VERSIONS — Ben, 27 August 2026. Since a content save
-                 * hides the record it superseded, `hidden` is no longer only "profiles you
-                 * put away": it is also every older version of every profile that has ever
-                 * been edited. Left in, this toggle would fill with near-duplicates exactly
-                 * as the main list used to, and Ben's complaint would have been MOVED
-                 * rather than fixed. A superseded version belongs in Previous versions,
-                 * where it is one row of one profile's history, and nowhere else.
-                 *
-                 * THE DISCRIMINATOR COSTS NOTHING AND NEEDS NO NEW FIELD: this listing is
-                 * read with `?includeHidden=true`, so every record and every `parentId` is
-                 * already in `listing.all`, and a record another record names as its parent
-                 * has been superseded. `supersededIds` is that one pass. See
-                 * `src/lib/profile-lineage.js` for why the ambiguity between "superseded"
-                 * and "removed" is avoided at the source as well as resolved here.
-                 *
-                 * `restorable` IS DELIBERATELY NOT FILTERED. It is `hidden AND isDefault`,
-                 * and the save path never hides an `isDefault` record — so no superseded
-                 * version can reach it and its meaning is exactly what it always was.
-                 * Filtering it too would be a guard against something that cannot happen,
-                 * and would break D6 the day a user hides a bundled profile they had once
-                 * derived from: that record has a child, so a superseded-filter would drop
-                 * it from the restore offer and the user could never get it back.
-                 */
                 hidden: Object.freeze(
                     [...listing.hidden, ...listing.deleted]
                         .filter((record) => !superseded.has(profileRecordIdOf(record)))),
                 restorable: Object.freeze(restorable),
                 loaded,
-                /**
-                 * THE SELECTOR OPENS ON THE PROFILE THE MACHINE IS HOLDING.
-                 *
-                 * Ben, 25 August 2026, on the selector audit's finding 1: "Match Slate,
-                 * have it load the currently used profile." The audit's own words for the
-                 * defect: "Half the screen says nothing on entry, and the profile the
-                 * machine is holding is the one answer that is always available."
-                 *
-                 * SEEDED HERE AND NOT IN THE SCREEN, because the screen would have to wait
-                 * for the listing and then guess whether an empty selection is "nothing
-                 * chosen yet" or "the user cleared it". The load is the one moment those
-                 * two are distinguishable: there has been no chance to choose.
-                 *
-                 * AND ONLY WHEN NOTHING IS CHOSEN. A reload that happens while the screen
-                 * is open — a hide, a restore, an assignment — runs `load()` again, and
-                 * putting the loaded profile back under the user's own pick would undo a
-                 * choice they made. `?? current` keeps it.
-                 *
-                 * AN UNRESOLVED LOADED PROFILE LEAVES IT NULL, which is the empty pane the
-                 * audit photographed and is the honest answer when the machine's workflow
-                 * names nothing this library can find.
-                 */
                 selectedId: store.get().selectedId ?? listableLoadedId(listing.listable, loaded) ?? null,
                 favourites,
                 reads: Object.freeze(reads),
@@ -854,21 +484,6 @@ export function createProfileLibraryStore({
             return patch({ selectedId: id ?? null });
         },
 
-        /**
-         * REMOVE A PROFILE FOR GOOD — D6's second half, and the one irreversible thing on
-         * this screen.
-         *
-         * Ben, 25 August 2026: "yes build it behind a confirm that says plainly it cannot
-         * be undone." The confirm is the SCREEN's; what this owes is the honesty underneath
-         * it — one route, no retry, and a re-read that is the answer.
-         *
-         * A 404 IS SUCCESS, which is `hide`'s rule one method up and for the same reason:
-         * a record another client purged while this one held a stale list is the ordinary
-         * way to reach this call, and reporting it as a fault would ask the user to do
-         * something about a job that is already done.
-         *
-         * THE SELECTION GOES WITH IT. There is nothing left to name.
-         */
         async purge(id = store.get().selectedId) {
             const record = api.recordFor(id);
             if (!record) {
@@ -886,13 +501,6 @@ export function createProfileLibraryStore({
             return store.get();
         },
 
-        /**
-         * ARM THE SELECTED PROFILE — the confirm half of the core loop, and B9's trigger.
-         *
-         * The BARE profile goes to the machine (`profileArmBody`, row gate
-         * `shape-asymmetry`), and the arm store owns the route, the body and the reading
-         * of the refusal. This is the one line `profile-arm-store.js` named.
-         */
         async arm(id = store.get().selectedId) {
             const record = api.recordFor(id);
             if (!record) {
@@ -906,34 +514,10 @@ export function createProfileLibraryStore({
             try {
                 return await armRecord(record, recordId);
             } finally {
-                /* CLEARED LAST, AFTER THE DOCUMENT AND THE RE-READ. `loaded` now carries
-                 * the same id on every path that wrote, so the highlight hands over
-                 * without a frame in between; on the refused path it goes back to the
-                 * profile the machine is actually holding, which is the truth. */
                 patch({ armingId: null });
             }
         },
 
-        /**
-         * REMEMBER THE THREE NUMBERS THAT BELONG TO THE LOADED PROFILE.
-         *
-         * Dose, drink weight and grind are per-profile settings, and the rail writes them
-         * to the WORKFLOW, which holds exactly one of each. Without this, changing the
-         * dose and then loading a different profile silently discards it, and coming back
-         * to the first profile brings back 18 g.
-         *
-         * A METADATA-ONLY PUT. `_handleUpdate` parses `profile` only
-         * `if (json.containsKey('profile'))`, so this write touches no step, does not move
-         * the execution hash and therefore does not change the record's id — which is what
-         * makes it safe to run on every rail press. The old app's note for the same call:
-         * "Metadata-only PUT — the profile (execution) hash is untouched, so the id stays
-         * stable; no favorite remap needed" (`profileManager.js:338-339`).
-         *
-         * MERGED, NOT REPLACED: `metadata` is one map on the record, so the fields this
-         * write does not name have to be carried or they are dropped.
-         *
-         * @param {object} fields  any of `targetDoseWeight`, `targetYield`, `grinderSetting`
-         */
         async rememberContext(fields) {
             if (!fields || typeof fields !== 'object') return store.get();
             const id = store.get().loaded ? store.get().loaded.id : null;
@@ -948,16 +532,6 @@ export function createProfileLibraryStore({
                 log.warn(`remembering the profile's numbers failed: ${result.message}`);
                 return store.get();
             }
-            /* THE RECORD IS PATCHED IN PLACE, NOT RE-READ. Every other write here ends in
-             * `api.load()`, and this one must not: it runs on every press of three rail
-             * steppers, and the listing is the whole profile collection — 186 records on
-             * the bench machine. A press that costs a full listing read is a rail that
-             * stutters under a finger held on +.
-             *
-             * WHAT IS PATCHED IS EXACTLY WHAT WAS SENT, and the server's own answer is not
-             * needed to know it: `_handleUpdate` stores the metadata map as given, and the
-             * one field that could come back different — the record id — cannot move,
-             * because a metadata-only body leaves the execution hash alone. */
             const recordId = profileRecordIdOf(record);
             const patched = Object.freeze({ ...record, metadata: Object.freeze(metadata) });
             const swap = (list) => Object.freeze(
@@ -973,15 +547,6 @@ export function createProfileLibraryStore({
         /** The user acknowledged the refusal, or picked something else. */
         clearRefusal() { arm.clear(); return store.get(); },
 
-        /**
-         * D6, first half. Restore a bundled profile to factory.
-         *
-         * The offer list is `state.restorable`; a record with no bundle filename is not on
-         * it and cannot reach this call. After a 200 the listing is re-read, because the
-         * record's visibility changed on the server and the transport has already cleared
-         * the ETag for `/profiles` (a write invalidates the conditional store), so the
-         * re-read is a real 200 rather than a 304 of the pre-restore body.
-         */
         async restoreToFactory(id) {
             const record = api.recordFor(id);
             const filename = restoreFilenameOf(record);
@@ -1004,33 +569,6 @@ export function createProfileLibraryStore({
             return store.get();
         },
 
-        /**
-         * HIDE A PROFILE — the action the whole restore loop was built around and nobody
-         * could reach.
-         *
-         * IT IS CALLED HIDE AND NOT DELETE, and the route's own contract row says why:
-         * `DELETE /profiles/<id>` is a SOFT delete. `ProfileController.delete` sets
-         * `Visibility.hidden` on a bundled record and `Visibility.deleted` on a user one,
-         * and neither removes anything — the only route that removes a record is
-         * `deleteProfilesByIdPurge`, which v1 does not call (D6's second half). The old
-         * skin's own word for this control is "Hide" (`profile_selector.js:624`).
-         *
-         * WHAT MADE IT REACHABLE IS THAT EVERYTHING ELSE WAS ALREADY HERE. The listing
-         * asks for `?includeHidden=true` and `profile-rules.js` filters visibility on this
-         * side; `restorable` is exactly the bundled records that are hidden; and
-         * `restoreToFactory` brings one back. So the library could show you what had been
-         * hidden and put it back, and could not hide anything — which meant the restore
-         * list was empty on any machine where no OTHER client had ever hidden a profile.
-         *
-         * A 404 IS "ALREADY GONE", NOT A FAULT. `_handleDelete` has an `on ArgumentError`
-         * clause, so an id this store no longer knows about answers 404 — which is what a
-         * stale listing produces, and the right response to it is the re-read that follows
-         * either way.
-         *
-         * THE ANSWER IS THE RE-READ, NEVER THE 200. The record's visibility changed on the
-         * server, and a write clears the conditional store's ETag for `/profiles`, so the
-         * reload is a real 200 rather than a 304 of the pre-hide body.
-         */
         async hide(id = store.get().selectedId) {
             const record = api.recordFor(id);
             if (!record) {
@@ -1042,31 +580,11 @@ export function createProfileLibraryStore({
                 log.warn(`hide ${id} failed: ${result.message}`);
                 return store.get();
             }
-            /* THE SELECTION GOES WITH IT. Leaving `selectedId` on a record the listing no
-             * longer carries leaves the detail pane naming a profile that is not on the
-             * list beside it, and the actions menu offering to edit it. */
             patch({ selectedId: null });
             await api.load();
             return store.get();
         },
 
-        /**
-         * ADD A PROFILE FROM A FILE — Ben, 24 August 2026.
-         *
-         * THE FILE IS READ AND CHECKED BEFORE ANYTHING IS SENT. `readProfileFile` is
-         * Slate's own ten-key shape check; what it refuses never reaches the wire, so the
-         * person who picked the wrong file is told that rather than shown a 500.
-         *
-         * IT IS A CREATE AND NOT AN IMPORT. `POST /api/v1/profiles/import` exists and
-         * takes an ARRAY OF ProfileRecords — server-shaped rows with ids, hashes and
-         * timestamps, which a profile FILE is not. The route for "here is a profile, make
-         * a record of it" is `postProfiles`, which is what the editor's own Save-as-new
-         * already uses; this is its second caller and it goes through the same body
-         * builder, so one sanitiser still owns what leaves.
-         *
-         * NO parentId. A file is not a version of anything this library holds — giving it
-         * one would put an unrelated profile into somebody's lineage.
-         */
         async createFromFile(text) {
             let parsed;
             try {
@@ -1094,23 +612,6 @@ export function createProfileLibraryStore({
             return store.get();
         },
 
-        /**
-         * ADD A PROFILE FROM A VISUALIZER SHARE CODE.
-         *
-         * THROUGH THE PLUGIN, WHICH IS WHERE THE FEATURE LIVES. ReaPrime's own profile
-         * routes know nothing about share codes; the Visualizer plugin does, and
-         * `POST /api/v1/plugins/<id>/<endpoint>` is the passthrough ReaPrime registers
-         * for exactly this (`plugins_handler.dart` `app.all`). Slate calls the same
-         * endpoint with the same body (`profile_selector.js handleShareCodeImport`).
-         *
-         * A 401 IS "NOT SIGNED IN", NOT A FAULT. The plugin answers 401 when the
-         * Visualizer credentials are missing and 400 when the code is wrong, and the two
-         * need different words in front of a person — Slate shows a whole "login
-         * required" modal for the first. Both are REFUSED with a reason here, and the
-         * screen picks the sentence.
-         *
-         * THE PLUGIN UPLOADS THE PROFILE ITSELF, so the answer is the re-read.
-         */
         async importShareCode(code) {
             const shareCode = String(code ?? '').trim();
             if (!shareCode) {
@@ -1123,13 +624,6 @@ export function createProfileLibraryStore({
                 body: { shareCode },
             });
             if (!result.ok) {
-                /* TWO STATUSES ARE ANSWERS AND THE REST ARE FAULTS. The plugin answers
-                 * 401 with no credentials and 400 for a code it could not use
-                 * (`plugin.js`: `error.message.includes('credentials') ? 401 : 400`);
-                 * everything else — a plugin that is not loaded (404), a permission it
-                 * lacks (403), a server that fell over — is a failure, and telling a
-                 * person their share code is wrong when the plugin is not even running
-                 * sends them to fix the one thing that was fine. */
                 const reason = result.status === 401 ? 'not-signed-in'
                     : (result.status === 400 ? 'bad-code' : null);
                 log.info(`share code not imported (${result.status}): ${result.message}`);
@@ -1153,47 +647,17 @@ export function createProfileLibraryStore({
             return patch({ add: { status: ADD_STATUS.IDLE, reason: null, error: null } });
         },
 
-        /**
-         * IS THE PROFILE GENERATOR INSTALLED, and where does it live?
-         *
-         * THE ANSWER IS A URL OR NULL, and null is the whole gate: Slate hides its own
-         * link when the plugin is absent or unloaded (`profile_selector.js:1770-1775`),
-         * because a link to a plugin that is not there is a dead affordance.
-         *
-         * THE URL IS ReaPrime'S OWN. Slate learned this the hard way and wrote it down:
-         * pointing the link at localhost sends the plugin's "upload to Decent" POST to a
-         * DIFFERENT server than the skin lists from, so the profile is created somewhere
-         * nobody is looking. The transport knows the base this app is talking to.
-         */
         async generatorUrl() {
             const result = await callRoute(transport, 'getPlugins', {});
             if (!result.ok || !Array.isArray(result.data)) return null;
             const plugin = result.data.find((entry) => entry && entry.id === GENERATOR_PLUGIN);
             if (!plugin || plugin.loaded !== true) return null;
-            /* THROUGH THE ROUTE TABLE, and the id is the passthrough's. The generator's
-             * page is `/plugins/<id>/ui` — the same shape `postPluginsByIdByEndpoint`
-             * addresses, with `ui` as the endpoint — so the PATH is the table's to spell.
-             * Assembling it from fragments here is what Gate D refuses, and rightly: a
-             * hand-built path is a route nobody can find the row for.
-             *
-             * THE BASE IS THE TRANSPORT'S. Slate learned this one the hard way and wrote
-             * it down: a link pointed at localhost sends the plugin's own "upload to
-             * Decent" POST to a DIFFERENT server than the skin lists from, so the profile
-             * is created somewhere nobody is looking. */
             const path = buildPath(routeById('getPluginsByIdByEndpoint'),
                 { id: GENERATOR_PLUGIN, endpoint: 'ui' });
             const base = String(transport.baseUrl ?? '').replace(/\/+$/, '');
             return `${base}${path}?layout=baseline`;
         },
 
-        /**
-         * B11 / Q7. The other versions of a profile.
-         *
-         * `NONE` IS DERIVED FROM THE LIST. The lineage always contains the profile itself,
-         * so a one-entry answer means "no other versions" and the menu shows that sentence.
-         * Anything that is not a 200 array is a fault, including the 500 a missing id
-         * produces — see VERSIONS in the header for why there is no 404 branch.
-         */
         async versionsOf(id) {
             const wanted = id ?? store.get().selectedId;
             if (!wanted) return store.get();
@@ -1214,80 +678,26 @@ export function createProfileLibraryStore({
             });
         },
 
-        /** Close the versions surface without forgetting which profile it was about. */
         clearVersions() {
             return patch({ versions: { status: VERSIONS_STATUS.IDLE, id: null, records: Object.freeze([]) } });
         },
 
-        /**
-         * Put a profile in a favourite slot — or clear one with `id = null`.
-         *
-         * Rule 5's default applies: a user-driven save DOES mark the rail
-         * user-initialised, so clearing all five is remembered as a choice and the next
-         * launch does not re-seed. That is the whole difference between "nobody has chosen
-         * yet" and "somebody chose nothing", and it is why this takes the default rather
-         * than passing a flag.
-         */
         async setFavourite(slot, id) {
             const index = Number(slot);
             if (!Number.isInteger(index) || index < 0 || index >= FAVOURITE_SLOT_COUNT) {
                 log.warn(`setFavourite: slot ${slot} is outside 0..${FAVOURITE_SLOT_COUNT - 1}`);
                 return store.get();
             }
-            /* THE DUPLICATE GUARD. Ben's call, 25 August 2026, on the behaviour audit's
-             * "Assigning a profile already on a slot": "Copy Slate."
-             *
-             * SLATE'S RULE EXACTLY - profileManager.js:619-629. Refuse if the profile is
-             * already on ANY slot, THE PRESSED ONE INCLUDED, and its own comment says why
-             * the pressed one counts: "Re-assigning to the same button is a no-op, but
-             * staying silent there reads as 'nothing happened'." A press that changes
-             * nothing and says nothing is indistinguishable from a press that missed.
-             *
-             * CLEARING IS NOT ASSIGNING, so a null id passes straight through. Slate
-             * spells this `if (profileKey)`; the Live rail's slot menu is the caller that
-             * depends on it (live-wiring.js:929 and :950 both clear).
-             *
-             * THE GUARD IS HERE AND NOT ON THE SCREEN because there are three callers -
-             * the assign row, the row menu, and the detail pane's mark - and a rule that
-             * lives on one of them is a rule the other two do not have. The screen still
-             * reads `favouriteSlotHolding` for itself, but only to write the message; the
-             * refusal itself cannot be routed around. */
             const held = api.favouriteSlotHolding(id);
             if (held !== null) {
                 log.info(`setFavourite: refused — ${id} is already on slot ${held}`);
                 return store.get();
             }
-            /* THE WRITE IS A WHOLE RAIL, NEVER A SPREAD OF WHATEVER IS IN HAND.
-             *
-             * This used to be `{...current.assignments, [index]: id ?? null}`, and that
-             * spread is a way to lose four slots at once. `current.assignments` is this
-             * store's state, and its INITIAL value is `{}` — an empty object, held from
-             * construction until the first `load()` resolves. Every caller today happens
-             * to be a user gesture on a screen that has already loaded, so the empty map
-             * is not reachable in this build; but "not reachable today" is the whole of
-             * the guarantee, and what it guarantees is that a `setFavourite` racing or
-             * preceding the first load persists a ONE-KEY map and silently deletes the
-             * other four slots from storage.
-             *
-             * `healFavouriteAssignments` normalises to a complete five-slot map as its
-             * first act, so routing the write through it makes a short map impossible by
-             * construction rather than by call-site discipline. It costs one pass over
-             * five slots and it removes a whole class of "a slot was silently cleared".
-             *
-             * THE RECORDS ARE PASSED TOO, so the same call heals any OTHER slot that has
-             * gone stale since the listing was read. The slot being written is immune to
-             * that: it is overwritten below with exactly what the caller asked for, after
-             * the heal, so a deliberate assignment is never second-guessed by rule 6. */
             const current = store.get().favourites;
             const heal = healFavouriteAssignments(
                 current.assignments, store.get().records, { count: FAVOURITE_SLOT_COUNT },
             );
             const { assignments } = heal;
-            /* SAY SO WHEN THIS WRITE ALSO REPAIRED SOMETHING. The repair is a side effect
-             * of normalising, and a side effect nobody can see is how a rail comes to
-             * differ from what the person thinks they set. The slot being assigned is
-             * excluded because it is overwritten on the next line — reporting a heal that
-             * is about to be discarded would be a claim about a value nothing ever used. */
             for (const change of heal.changes) {
                 if (change.slot === index) continue;
                 log.info(`favourite slot ${change.slot} pointed at hidden ${change.from} — `
@@ -1304,30 +714,6 @@ export function createProfileLibraryStore({
             });
         },
 
-        /**
-         * RULE 6 OVER THE RAIL THIS STORE IS HOLDING, ON DEMAND.
-         *
-         * `readFavourites` already runs this on every `load()`; this is the same rule
-         * called at a moment that is NOT a load, and it exists because a save changes
-         * visibility without changing the rail. `adoptSavedProfile` re-reads the listing
-         * and then calls this, so a slot stranded by the save it just watched is repaired
-         * inside the session rather than at the next launch.
-         *
-         * IT RUNS AGAINST `records`, WHICH INCLUDES HIDDEN ROWS. Rule 6 cannot be asked
-         * on `listable`: the record it is asked about is the hidden one, and a visible-only
-         * corpus would answer `not-in-corpus` for every slot that actually needs healing —
-         * a rule that reports "I cannot see it" for precisely its own subject matter.
-         *
-         * SILENT WHEN THERE IS NOTHING TO DO. An empty array is the ordinary answer and
-         * costs no write and no request; the caller logs per change, so a quiet rail
-         * produces no noise.
-         *
-         * @returns {Promise<Array<object>>} the changes made — `{slot, from, to, basis}`
-         *   each, frozen. Empty when the rail was already correct, and empty when the
-         *   repair could not be persisted is NOT what happens: the state is published
-         *   either way and the failure is logged, because a rail that is right in memory
-         *   and stale on disk is still better than one that is stale in both.
-         */
         async healFavourites() {
             const current = store.get().favourites;
             const heal = healFavouriteAssignments(
@@ -1356,17 +742,6 @@ export function createProfileLibraryStore({
             return heal.changes;
         },
 
-        /**
-         * The 0-based slot already holding `id`, or null.
-         *
-         * ONE RULE, TWO READERS: `setFavourite` refuses on it, and the selector screen
-         * reads it to name the slot in the words it shows. Slate names the slot too -
-         * "'<title>' already assigned to favourite <n>" - and a refusal that would not say
-         * which slot is the silence its own comment warns about.
-         *
-         * A NULL OR EMPTY id IS HELD BY NOTHING, which is what makes clearing a slot pass
-         * the guard rather than trip over the four other empty ones.
-         */
         favouriteSlotHolding(id) {
             if (!id) return null;
             const { assignments } = store.get().favourites;
@@ -1385,15 +760,6 @@ export function createProfileLibraryStore({
             return null;
         },
 
-        /**
-         * The rail as `<ui-favourites-bank>` takes it: five entries, `null` for empty.
-         *
-         * THE EMPTY SLOT IS THE ORDINARY CASE HERE, not a branch — which is the shape that
-         * makes `profileManager.js:450`'s `ReferenceError` (a loop that reads `index` where
-         * it declared `i`, aborting the repaint on the FIRST empty slot) unwriteable. The
-         * fixture's own rail is 3 filled and 2 null, so the bug's exact input is the
-         * ordinary input.
-         */
         favouriteEntries() {
             const { assignments } = store.get().favourites;
             const out = [];

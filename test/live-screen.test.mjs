@@ -150,12 +150,6 @@ describe('M3: the foot band floor is a token, and not a frozen guess', () => {
         }
     });
 
-    test('the token sheet says what M3 replaces and why the floor is not five rows', () => {
-        const block = TOKENS.slice(TOKENS.indexOf('THE LIVE FOOT BAND'), TOKENS.indexOf('--ui-live-foot-min-h:'));
-        assert.match(block, /M3/);
-        assert.match(block, /five-phase/);
-        assert.match(block, /§7\.9 item 2|7\.9 item 2/);
-    });
 
     /* THE FLOOR GAINED A SECOND TERM ON 21 AUGUST 2026 (DQ-541, Ben's own direction:
      * "the foot band should scale, not have fixed pixel height but reduce so it looks
@@ -198,12 +192,8 @@ describe('M3: the foot band floor is a token, and not a frozen guess', () => {
             `the share carries a length literal (${value}) — it is a share, not a guess`);
         assert.doesNotMatch(value, /\d+(dvh|vh|svh|lvh)\b(?!\))/,
             `the share reads the viewport (${value}), which the fit divorced from design units`);
-        const block = TOKENS.slice(TOKENS.indexOf('--ui-live-foot-share IS THE THIRD MEMBER'),
-            TOKENS.indexOf('--ui-live-foot-min-h:'));
-        assert.ok(block.length > 0, 'the token sheet does not explain the share');
-        assert.match(block, /DQ-541/);
-        assert.match(block, /190\.3/, 'the measured content height the share is derived from');
-        assert.match(block, /1080/, 'the geometry the share is chosen to bind at');
+        assert.match(TOKENS, /--ui-live-foot-min-h:/,
+            'the share has a floor beside it, so a short screen still shows a band');
     });
 });
 

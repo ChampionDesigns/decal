@@ -64,14 +64,6 @@ const EMPTY_STATE = Object.freeze({
     loadedAt: null,
 });
 
-/**
- * Read a `GET /api/v1/machine/info` body.
- *
- * Deliberately only a shape check. Every FIELD of this body is read by an R3 adapter, by
- * key presence, and a reader here that picked out `GHC` would be a second place that knows
- * the key name — and the place that would quietly coerce it. The adapters own that; this
- * says only "an object, or nothing".
- */
 export function readMachineInfo(body) {
     return body && typeof body === 'object' && !Array.isArray(body) ? body : null;
 }

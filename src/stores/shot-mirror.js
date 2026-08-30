@@ -101,27 +101,11 @@ export const MIRROR_ERROR = Object.freeze({
 
 const NOOP_LOGGER = Object.freeze({ debug() {}, info() {}, warn() {}, error() {} });
 
-/* ------------------------------------------------------------------ pure helpers */
-
-/**
- * Is this the FULL record?
- *
- * Key presence, the address layer's rule, applied to the one distinction that matters here:
- * `toJson()` writes `measurements`, `toJsonWithoutMeasurements()` omits the key entirely.
- * An empty array is still a full record — a shot with no samples is a fact, not an absence.
- */
 export function isFullShot(record) {
     return !!record && typeof record === 'object'
         && Object.hasOwn(record, 'measurements') && Array.isArray(record.measurements);
 }
 
-/**
- * The server's ISO stamp -> epoch milliseconds, or null when it does not parse.
- *
- * `ShotRecord.toJson` writes `timestamp.toIso8601String()`. Null is returned rather than a
- * substituted "now": a row indexed at the wrong time would sort ahead of real ones and the
- * mirror would confidently paint the wrong shot.
- */
 export function shotTimeMs(record) {
     if (!record || typeof record !== 'object' || typeof record.timestamp !== 'string') return null;
     const ms = Date.parse(record.timestamp);
@@ -136,30 +120,6 @@ export function toRow(record, savedAt) {
     return { id: record.id, ts: shotTimeMs(record), savedAt, record };
 }
 
-/* ------------------------------------------------------------------ the mirror */
-
-/**
- * Build the mirror.
- *
- * @param {object} options
- * @param {IDBFactory} options.indexedDB   injected; the module never reaches for a global
- * @param {string} [options.databaseName=IDB_DATABASE_NAME]  A10: derived from the skin id
- * @param {number} [options.version=MIRROR_VERSION]
- * @param {object} [options.logger]
- * @param {number} [options.openTimeoutMs=5000]   the deadline that replaces the silent hang
- * @param {number} [options.blockedGraceMs=2000]  how long a blocking connection gets to close
- * @param {number} [options.fullCap=DEFAULT_FULL_CAP]
- * @param {number} [options.metaCap=DEFAULT_META_CAP]
- * @param {Function} [options.now]
- * @param {Function} [options.setTimer]    injected one-shot timer; see below
- * @param {Function} [options.clearTimer]
- *
- * THE ONE TIME-SHAPED THING IN THIS LAYER, and it is injected for the same reason the rest
- * of the store layer injects its clock. It is not a ticker: two one-shot DEADLINES, both
- * cleared the moment the open settles, and they exist because the module they replace could
- * wait forever on `onblocked` with nothing in the console. A cache that hangs boot is worse
- * than a cache that says it is unavailable.
- */
 export function createShotMirror({
     indexedDB,
     databaseName = IDB_DATABASE_NAME,
@@ -384,12 +344,6 @@ export function createShotMirror({
         /** Open (idempotent). Callers do not have to — every method opens on demand. */
         open,
 
-        /**
-         * The newest FULL record — the one read the mirror exists for. `hit` carries the
-         * server's record verbatim; `miss` means nothing is cached; `unavailable` means the
-         * mirror could not answer and the caller must go to the network as if empty (but
-         * knowing the difference, and able to log it).
-         */
         async latestFull() {
             return asResult(await newest(FULL_STORE));
         },
@@ -409,12 +363,6 @@ export function createShotMirror({
             return asResult(await readOne(META_STORE, id));
         },
 
-        /**
-         * The newest `limit` meta records, newest first.
-         *
-         * `limit` is REQUIRED and bounded — there is deliberately no "read everything" call
-         * on this object, because that call is defect 3.
-         */
         async recentMeta(limit) {
             if (!Number.isInteger(limit) || limit <= 0 || limit > DEFAULT_META_CAP) {
                 throw new RangeError(`recentMeta: limit must be an integer in 1..${DEFAULT_META_CAP} — the mirror has no unbounded read`);

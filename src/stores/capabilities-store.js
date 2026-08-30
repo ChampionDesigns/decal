@@ -64,11 +64,6 @@ import {
 
 export { PROFILE_MODE_BIT, PROFILE_MODE_MASK };
 
-/**
- * The seven entries `de1handler.dart` adds, in handler order. A frozen list, used to tell
- * "an entry this build knows about" from "an entry a newer server grew" — never to decide
- * an answer. The server's array is always the answer.
- */
 export const SERVED_CAPABILITIES = Object.freeze([
     'cupWarmer',
     'integratedScale',
@@ -94,12 +89,6 @@ export const CAPABILITY_REASON = Object.freeze({
     UNREADABLE: 'unreadable',
 });
 
-/**
- * THE HONEST CAVEAT, ENUMERATED. The served seven do not cover everything the old skin
- * gated on a model string. Each gap names the R-item that closes it and the adapter that
- * carries it in the meantime — so a builder who needs one finds the seam instead of
- * inventing a sniff.
- */
 export const CAPABILITY_GAPS = Object.freeze([
     Object.freeze({
         gap: 'profile modes (Power / Lever / HOLD / power exit)',
@@ -139,12 +128,6 @@ export const CAPABILITY_GAPS = Object.freeze([
     }),
 ]);
 
-/**
- * "Route registered" is weaker than "feature available", written down once.
- *
- * @param {object} result  a transport result for POST /api/v1/feedback
- * @returns {{available: string, reason: string|null}} tri-state on CAPABILITY
- */
 export function readFeedbackAvailability(result) {
     if (!result || typeof result !== 'object') {
         return Object.freeze({ available: CAPABILITY.UNKNOWN, reason: CAPABILITY_REASON.NOT_LOADED });
@@ -156,11 +139,6 @@ export function readFeedbackAvailability(result) {
     return Object.freeze({ available: CAPABILITY.UNKNOWN, reason: CAPABILITY_REASON.FAILED });
 }
 
-/**
- * Even with the token present, REST feedback CANNOT attach a screenshot today:
- * `FeedbackRequest.fromJson` silently drops the `screenshots` field. A form built against
- * this store is designed knowing images do not attach until the ReaPrime-side fix lands.
- */
 export const FEEDBACK_SCREENSHOTS_ATTACH = false;
 
 /** Read `{capabilities: string[]}`. `null` for a body this build cannot read. */
@@ -195,16 +173,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
     // free in every component that reads a capability.
     const store = createStore({ ...EMPTY_STATE }, { label: 'capabilities', logger: log });
     let inFlight = null;
-    /**
-     * THE GENERATION GUARD.
-     *
-     * `forget()` is called when the machine goes away, and a capability read is in flight
-     * across exactly that moment more often than not — it is the same event that triggers
-     * one. Without an epoch the late answer published `{status: 'ready', entries}` straight
-     * over the forget, so the DEPARTED machine's capability set came back as the current
-     * one, and every gate answered from it until the next read. Bumped by `forget`; compared
-     * before every publish the async body makes.
-     */
     let epoch = 0;
 
     const publish = (next) => store.set(next);
@@ -264,12 +232,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
         /** Observe. The current state is replayed to a late subscriber immediately. */
         subscribe(listener) { return store.subscribe(listener); },
 
-        /**
-         * Ask the server. EXPLICIT — nothing fetches at construction, so a store can be
-         * built before there is a machine and the first read is the app's decision.
-         *
-         * Concurrent calls share one request. Returns the new state.
-         */
         async load() {
             if (inFlight) return inFlight;
             const asOf = epoch;
@@ -316,20 +278,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
         /** Re-read — after a machine connect or swap. Same request, no cache. */
         refresh() { return this.load(); },
 
-        /**
-         * Forget the answer. Called when the machine goes away: a capability set from the
-         * PREVIOUS machine is exactly the stale-answer defect, and `unknown` is correct
-         * until the next read.
-         *
-         * MACHINE INFO GOES WITH IT. It used to be kept — and `machineInfo` is what the two
-         * R3 gates answer from, so `groupHeadController()` and `profileModes()` went on
-         * reporting the departed machine's hardware. The GHC strip is the spec's own named
-         * example of a control that must not render on a machine whose flag is unknown, and
-         * keeping the previous machine's flag is the stale answer this method exists to
-         * prevent, written in the one field it was not applied to.
-         *
-         * The epoch bump is the other half: a read already in flight cannot land after this.
-         */
         forget() {
             epoch += 1;
             // And the in-flight read is released as well as invalidated: without this, a
@@ -368,14 +316,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
 
         /* ── the R3 seams. Every gap the served seven do not cover leaves through here ── */
 
-        /**
-         * The R3 gate `createSensorDiscovery` requires. Returns a plain boolean because
-         * that is the seam's contract; the reasoned answer is `sensorCapability(kind)`.
-         *
-         * Fail-closed: an unknown answer does not start a 15 s poll that would run for
-         * ever on a machine with no such sensor. It is re-asked on every discovery pass,
-         * so the poll starts as soon as the capability read lands.
-         */
         sensorGate: (kind) => {
             const adapter = R3_SENSOR_CAPABILITY[kind];
             if (!adapter) throw new Error(`capabilities: no R3 sensor adapter for kind "${kind}"`);
@@ -394,45 +334,18 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
             return fromAdapter(r3GroupHeadControllerCapability(state().machineInfo));
         },
 
-        /**
-         * R3: which advanced pump modes may the UI OFFER? A HINT. The authority is
-         * ReaPrime's arm-time refusal (B9) — surface that message intact rather than
-         * pre-filtering the profile list on this answer.
-         */
         profileModes() {
             return fromAdapter(r3ProfileModeCapabilities(state().machineInfo));
         },
 
-        /**
-         * R2/B2: THE ONE interim limits table, and the only route to it. Every numeric
-         * control takes min/max/step from this answer — a hand-written range anywhere
-         * else is the defect the single table exists to prevent.
-         *
-         * The R2 answer travels as itself — `{known, provisional, basis, swapWhen, value}` —
-         * NOT through `fromAdapter`. PRESENT/ABSENT is the vocabulary of a boolean
-         * capability and a table is not one: `known` here means "the machine class is
-         * resolved, so the steam row is in the table". Until it is, the table simply
-         * carries no steam row and a steam control renders unavailable (A7 — no stand-in
-         * ceiling). Every machine-independent row is present regardless.
-         */
         machineLimits() {
             return r2MachineLimits(state().entries);
         },
 
-        /**
-         * The machine class, or null while the answer has not arrived.
-         *
-         * SAME SERVED SET, SAME RULE, ONE IMPLEMENTATION — `machineClassFromServedSet` in
-         * `adapters-r.js`, which `machineLimits()` above uses too. It is exposed because
-         * one settings LEAF is machine-dependent (the flow multiplier, which a Bengle does
-         * not need), and a screen inferring the class from a model string is the sniff the
-         * served array replaced.
-         */
         machineClass() {
             return machineClassFromServedSet(state().entries);
         },
 
-        /** The gaps, as data, so a call site can cite one instead of inventing a gate. */
         gaps: CAPABILITY_GAPS,
 
         /** Drop every subscriber. This store holds no timer and no socket. */

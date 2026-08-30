@@ -1,9 +1,5 @@
 /**
- * <ui-data-grid> — one tabular component: a header row, optional row headers, and
- * cells laid out on a single grid.
- *
- * Rows and rowgroups are display: contents, so every cell is an item of the one grid
- * and the columns line up without a fixed table layout.
+ * <ui-data-grid> — one tabular component: a header row, optional row headers, and cells laid out on a single grid.
  */
 
 import { css, html, nothing } from 'lit';

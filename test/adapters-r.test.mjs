@@ -230,7 +230,6 @@ describe('R3 — profile modes are a UI-offer HINT, and fail closed', () => {
 
     test('the legacy second spelling is NOT read (A7 — a fallback key is a fallback path)', () => {
         assert.ok(!/novelControlCaps/.test(IDENTIFIERS), 'the legacy caps key is read in the adapter module');
-        assert.ok(/novelControlCaps/.test(SOURCE), 'the reason it is NOT read should stay written down');
         const legacyOnly = machineInfo({ extra: { novelControlCaps: 0x7 } });
         assert.equal(r3ProfileModeCapabilities(legacyOnly).known, false);
     });

@@ -34,27 +34,13 @@ import { createStore } from './store.js';
 
 export * from '../lib/temperature.js';
 
-/* THE NAMES THE STORE'S OWN BODY USES. `export *` above re-exports every one of them for
- * callers; a module cannot read what it only re-exports, so the ones this file's own code
- * touches are imported by name as well. */
 import {
     TEMP_UNITS, DEFAULT_TEMP_UNIT, TEMP_UNIT_KEY, unitSymbol, normaliseUnit,
     toDisplayTemp, fromDisplayTemp, displayStepToCelsius, boundToDisplay, formatTemperature,
 } from '../lib/temperature.js';
 
-/* ------------------------------------------------------------------ the store */
-
 const NOOP_LOGGER = Object.freeze({ debug() {}, info() {}, warn() {}, error() {} });
 
-/**
- * The units store — the ONE owner of the temperature-unit preference.
- *
- * @param {object} options
- * @param {object} options.storage  a `createStorageRouter(...)`: `{get, set}` by logical key
- * @param {object} [options.logger]
- * @param {string} [options.key=TEMP_UNIT_KEY]
- * @param {string} [options.initial=DEFAULT_TEMP_UNIT]  the value before `load()` resolves
- */
 export function createUnitsStore({ storage, logger = NOOP_LOGGER, key = TEMP_UNIT_KEY, initial = DEFAULT_TEMP_UNIT } = {}) {
     if (!storage || typeof storage.get !== 'function' || typeof storage.set !== 'function') {
         // Fatal, not defaulted. A store that quietly persists nowhere is the failure this
@@ -83,13 +69,6 @@ export function createUnitsStore({ storage, logger = NOOP_LOGGER, key = TEMP_UNI
             return unit.subscribe(listener);
         },
 
-        /**
-         * Read the stored preference. ONE read, from ONE layer. Never writes — the old
-         * boot path wrote its answer back, which is how a failed write's loss became
-         * permanent.
-         *
-         * @returns {Promise<{unit: string, source: 'stored'|'default'|'invalid'}>}
-         */
         async load() {
             const stored = await storage.get(key);
             loaded = true;
@@ -108,14 +87,6 @@ export function createUnitsStore({ storage, logger = NOOP_LOGGER, key = TEMP_UNI
             return { unit: valid, source: 'stored' };
         },
 
-        /**
-         * Change the preference. Writes to the ONE layer the table names, and publishes
-         * ONLY if that write succeeded.
-         *
-         * @returns {Promise<boolean>} false when the unit was invalid or the write failed —
-         *          in which case the visible unit is unchanged, because a unit shown but
-         *          not stored is the silent revert with extra steps.
-         */
         async set(next) {
             const valid = normaliseUnit(next);
             if (!valid) {

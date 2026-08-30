@@ -61,17 +61,6 @@ export const WS_MESSAGE = Object.freeze({
     MALFORMED: 'malformed',
 });
 
-/**
- * The ten channels.
- *
- * `key` is the lifecycle identity (see rea-sockets.js): one live socket per key, so a
- * second subscriber joins the first socket instead of opening a second. Templated
- * channels — sensors, plugins — take their key from the caller, because two sensors are
- * two sockets while two subscribers to one sensor are one.
- *
- * `commands` lists the command names the handler's own switch statement accepts. A command
- * this table does not name is a command ReaPrime answers `{"error":"Unknown command"}`.
- */
 export const WS_CHANNELS = Object.freeze({
     machineSnapshot: Object.freeze({
         key: 'machineSnapshot',
@@ -151,13 +140,6 @@ export const WS_CHANNELS = Object.freeze({
         handlerSymbol: 'DisplayHandler._handleWebSocket',
         carries: 'DisplayState frames (brightness / dim state)',
         commands: Object.freeze(['setBrightness', 'requestWakeLock', 'releaseWakeLock']),
-        /**
-         * The one place a command's SHAPE is checked, because this handler's failure mode
-         * is silence: `if (brightness is int && 0..100) … else log.warning` — no reply, no
-         * error envelope, nothing on the wire. A caller that sends 100.0, "80" or 120 gets
-         * exactly what it gets for a value that worked. Named here rather than at the call
-         * site so the rule lives beside the handler reference it came from.
-         */
         validateCommand(payload) {
             if (payload.command !== 'setBrightness') return null;
             const value = payload.brightness;
@@ -233,16 +215,6 @@ export function pluginEndpointPath(pluginId, endpoint) {
     return `${WS_PREFIX}/plugins/${encodeURIComponent(pluginId)}/${encodeURIComponent(endpoint)}`;
 }
 
-/* ─────────────────────────── the three predicates, once ─────────────────────────────
- *
- * `classifyMessage` is the one implementation of the frame/envelope split, and these are
- * the three tests it is built from. They are EXPORTED because the address layer needs the
- * same three answers about a frame it is handed by some other route — a stored measurement,
- * a `last()` replay, a test fixture — and a second hand-written copy of the rule is how the
- * two layers came to disagree about a JSON array: the classifier called it MALFORMED and
- * the address layer read it as a machine reporting nothing.
- */
-
 /** A JSON object, and not an array. `[]` is not a frame — it has every key absent. */
 export function isFrameObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -253,31 +225,10 @@ export function isErrorEnvelope(value) {
     return isFrameObject(value) && typeof value.error === 'string';
 }
 
-/**
- * The scale channel's connection envelope: `{"status":"connected"|"disconnected"}`.
- *
- * The `timestamp` test is what separates it from a `WeightSnapshot`, which carries one on
- * every frame — `scale_handler.dart` `sendStatus` writes the envelope with no stamp.
- */
 export function isStatusEnvelope(value) {
     return isFrameObject(value) && typeof value.status === 'string' && !Object.hasOwn(value, 'timestamp');
 }
 
-/**
- * What did this message turn out to be?
- *
- * The ONE implementation of the frame/envelope split described at the top of this file.
- * `channel` is a row of WS_CHANNELS (or undefined for an ad-hoc socket, which gets the
- * conservative default: error envelopes are signals, everything else is a frame).
- *
- * Note the order. `error` is checked FIRST and on every channel, because every handler in
- * the pinned tree spells a refusal the same way (`json_response.dart`) — including the
- * devices socket, whose failed command result carries BOTH `operation` and `error`.
- *
- * @param {unknown} data     the parsed message
- * @param {object} [channel] a WS_CHANNELS row
- * @returns {{kind: string, data: unknown, error?: string, status?: string}}
- */
 export function classifyMessage(data, channel = undefined) {
     if (!isFrameObject(data)) {
         return { kind: WS_MESSAGE.MALFORMED, data };

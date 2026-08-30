@@ -50,14 +50,6 @@
 import { createStore } from './store.js';
 import { ABSENCE, isNoReading, readNumber, readValue } from '../data/reading.js';
 
-/**
- * The trichotomy, plus the one state the contract adds.
- *
- * `unsupported` is NOT a fourth kind of fetch outcome — it is the CAPABILITY answer, and it
- * is a different thing from an error: the contract table's gate on all four routes reads
- * "404 here means the feature is absent — hide the control. It is not 'route missing' and
- * not an error to show."
- */
 export const CUP_WARMER_STATUS = Object.freeze({
     LOADING: 'loading',
     READY: 'ready',
@@ -65,34 +57,10 @@ export const CUP_WARMER_STATUS = Object.freeze({
     UNSUPPORTED: 'unsupported',
 });
 
-/**
- * The two named states where an ENABLED pre-heat silently does nothing.
- *
- * The mat only runs when the pre-heat schedule is enabled AND the warmer itself is on AND a
- * wake window is open or within its lead. So a pre-heat switched on with the warmer off, or
- * with no wake window configured, is a dead setting the user gets no feedback about. Both
- * are reachable states of the UI, so they are named rather than left silent.
- *
- * BENCH ITEM: the precise firmware gate is quoted from the old module's comment and has not
- * been re-verified against firmware at this pin. The two states are worth naming either way
- * — each is a user-visible dead setting — but the exact conjunction is a bench claim.
- */
 export const PREHEAT_WARNING = Object.freeze({
     NO_SETPOINT: 'noSetpoint',
     NO_SCHEDULE: 'noSchedule',
 });
-
-/* THE PRE-HEAT LEAD'S RANGE IS NOT HERE, AND IT USED TO BE. `PREHEAT_LEAD_RANGE` was
- * exported from this file with a paragraph arguing it had to exist so "the leaf's stepper
- * and the leaf's keypad must read the same one (B2: one ranges table)" — and NOTHING read
- * it, in src/ or test/, while the live band sat in `machine-limits.js` disagreeing with it
- * on two of its three numbers. A dead constant contradicting the real one, under a comment
- * claiming the opposite, is the defect this fork exists to remove.
- *
- * The number it carried was true and was about the TRANSPORT, not about a control:
- * `bengle_interface.dart:49` clamps `leadMinutes` to 0..120. What a stepper OFFERS is
- * `preWarmLead` in `src/lib/machine-limits.js` — Ben's band and Ben's step, 5 to 60 in
- * fives — which is inside the transport's clamp and is the only ranges table (B2). */
 
 /** The two capability names this store gates on. ReaPrime's spelling, not ours. */
 export const CUP_WARMER_CAPABILITY = 'cupWarmer';
@@ -100,22 +68,6 @@ export const PREHEAT_CAPABILITY = 'preheat';
 
 const NOOP_LOGGER = Object.freeze({ debug() {}, info() {}, warn() {}, error() {} });
 
-/* ------------------------------------------------------------------ pure reads */
-
-/**
- * `GET /machine/cupWarmer` body -> the warmer state, by KEY PRESENCE.
- *
- * Every field goes through the address layer's presence rules, so a server that stops
- * sending one produces a visible absence rather than a plausible value. In particular
- * `currentTemperature` is `Future<double?>` on the interface
- * (`bengle_interface.dart:25`) — the mock returns null whenever the warmer is off
- * (`mock_bengle.dart:95-96`) — so null is a NORMAL answer meaning "no reading", and it must
- * never become a 0.
- *
- * @param {object|null|undefined} data
- * @returns {null|{temperature: *, enabled: *, currentTemperature: *}} null when there is no
- *          body at all — "not loaded", which is not the same as "loaded and off".
- */
 export function readWarmer(data) {
     if (!data || typeof data !== 'object') return null;
     return Object.freeze({
@@ -125,11 +77,6 @@ export function readWarmer(data) {
     });
 }
 
-/**
- * `GET /machine/cupWarmer/preheat` body -> the pre-heat state, by key presence.
- * `CupWarmerPreheatState` has three non-nullable fields, so at this pin all three arrive;
- * presence reads mean a future omission shows up as an absence instead of a false.
- */
 export function readPreheat(data) {
     if (!data || typeof data !== 'object') return null;
     return Object.freeze({
@@ -139,12 +86,6 @@ export function readPreheat(data) {
     });
 }
 
-/**
- * Is the warmer on? The SERVED boolean, and nothing else.
- *
- * @returns {boolean|null} null when the state is unknown or the field is absent — which is
- *          not "off". A control renders neither pressed nor unpressed on a null.
- */
 export function isWarmerOn(warmer) {
     if (!warmer) return null;
     if (warmer.enabled === true || warmer.enabled === false) return warmer.enabled;
@@ -162,36 +103,11 @@ export function hasSetpoint(warmer) {
     return warmer.temperature > 0;
 }
 
-/**
- * `GET /presence/schedules` -> is there at least one ENABLED wake window?
- *
- * The route answers a BARE ARRAY of `WakeSchedule.toJson`
- * (`presence_handler.dart` `_getSchedulesHandler`, `jsonOk(schedules.map(...).toList())`)
- * — the `{schedules: [...]}` shape belongs to the presence SETTINGS route, not this one.
- * `toJson` always writes `enabled`, so the "absent means enabled" reading is the spec's
- * default rather than a live case; it is honoured for spec conformance and costs nothing.
- *
- * @returns {boolean|null} null for a non-array: not fetched, or the fetch failed. An
- *          UNKNOWN list is not an empty one, and no warning is raised on data we do not
- *          have.
- */
 export function hasEnabledWakeSchedule(schedules) {
     if (!Array.isArray(schedules)) return null;
     return schedules.some((entry) => entry && entry.enabled !== false);
 }
 
-/**
- * Why an enabled pre-heat will silently do nothing.
- *
- * Returns warning CODES; this module is DOM-free and i18n-free, so the copy is the screen's.
- * Unknowns produce nothing — never cry wolf.
- *
- * @param {object} input
- * @param {object|null} input.preheat   from readPreheat
- * @param {object|null} input.warmer    from readWarmer
- * @param {Array|null}  input.schedules the wake-schedule list, or null when unknown
- * @returns {string[]}
- */
 export function preheatWarnings({ preheat, warmer, schedules } = {}) {
     if (!preheat || preheat.enabled !== true) return [];
     const warnings = [];
@@ -220,24 +136,6 @@ export function emptyCupWarmerState() {
     });
 }
 
-/* ------------------------------------------------------------------ the store */
-
-/**
- * The cup-warmer store.
- *
- * @param {object} options
- * @param {object} options.routes   the bound ReaPrime helpers: `cupWarmer`, `setCupWarmer`,
- *        `cupWarmerPreheat`, `setCupWarmerPreheat`. Each resolves to the transport result
- *        `{ok, status, data}` — a failure is DATA here, never a throw and never a null.
- * @param {Function} [options.readCapabilities]  `() => string[]|null` (may be async). The
- *        capabilities store's list, or null when it is not known yet. Null is NOT "absent".
- * @param {Function} [options.readSchedules]     `() => Array|null` (may be async). Supplied
- *        by whoever owns the presence data; omitted here so this store addresses exactly
- *        the four routes its contract rows cover. Absent -> the schedule warning is never
- *        raised, which is the "never cry wolf" rule, not a fallback.
- * @param {object} [options.logger]
- * @param {Function} [options.now]  injected clock, for `fetchedAt`
- */
 export function createCupWarmerStore({
     routes,
     readCapabilities = null,
@@ -283,25 +181,6 @@ export function createCupWarmerStore({
         return Array.isArray(list) ? list : null;
     }
 
-    /* THE SCHEDULE READER CAN ARRIVE AFTER CONSTRUCTION, and that is what lets there be
-     * ONE of this store rather than two.
-     *
-     * IT WAS BUILT TWICE UNTIL 26 AUGUST 2026. `app-boot.js` built one for the Live
-     * header's Warmer button and `settings-model.js` built a second for the settings page's
-     * door — and the boot instance was refreshed only at boot and on `machineChanged`, so
-     * changing the mat target on the Settings page and pressing Save left the Live header
-     * showing the old setpoint until the machine reconnected. B7's "one store per setting",
-     * lost to two constructions of one store.
-     *
-     * WHY IT COULD NOT SIMPLY BE DELETED: the settings instance had something the boot one
-     * lacked — the WAKE-SCHEDULE list, which is what turns "an enabled pre-heat with no wake
-     * schedule" from a silent dead setting into a sentence. The presence store lives in the
-     * settings shell, and hoisting IT into the boot to fix a duplication would have moved
-     * the problem rather than solved it. So the reader is settable: the boot builds the one
-     * store, and whoever ends up owning a presence store hands it in.
-     *
-     * A SETTER, NOT A SECOND CONSTRUCTOR ARGUMENT PATH: the constructor form still works and
-     * is what a test uses. This only lets a later assembler fill a reader that was absent. */
     let scheduleReader = typeof readSchedules === 'function' ? readSchedules : null;
 
     async function schedules() {
@@ -316,13 +195,6 @@ export function createCupWarmerStore({
             return state.get();
         },
 
-        /**
-         * Tell this store where the wake schedules are — see `scheduleReader` above.
-         *
-         * IT DOES NOT REFRESH. Handing over a reader says where to look next time, not that
-         * the answer has changed; a refresh here would fire a pair of machine reads on every
-         * shell assembly, and the settings screen reads on open anyway.
-         */
         useSchedules(reader) {
             scheduleReader = typeof reader === 'function' ? reader : null;
         },
@@ -332,16 +204,6 @@ export function createCupWarmerStore({
             return state.subscribe(listener);
         },
 
-        /**
-         * Read the machine. The sequence is capability list first (A3), the handler's own
-         * 404 gate second and authoritative.
-         *
-         * On failure the previous frame is KEPT and flagged: the store's job is
-         * last-known-value plus staleness (`fetchedAt` is the age a screen ages out on).
-         * What it must never do is INVENT a frame — an error with no previous frame leaves
-         * `warmer` null, which is exactly the case the old synthetic `{temperature: 0}`
-         * snapshot destroyed.
-         */
         async refresh() {
             publish({ refreshing: true });
 
@@ -399,40 +261,16 @@ export function createCupWarmerStore({
             });
         },
 
-        /**
-         * Turn the warmer on or off. `{enabled: false}` is the ONLY way to turn it off:
-         * `{temperature: 0}` would ENABLE the warmer at a 0 C setpoint, because the handler
-         * calls `setCupWarmerEnabled(true)` whenever a temperature arrives without an
-         * explicit enable (`de1handler.dart` PUT `/machine/cupWarmer`, the
-         * `else if (temperature != null)` arm).
-         */
         setEnabled(enabled) {
             return write(() => routes.setCupWarmer({ enabled: Boolean(enabled) }));
         },
 
-        /**
-         * Set the mat target in whole degrees Celsius.
-         *
-         * NOTE THE SERVER-SIDE SIDE EFFECT: sending `temperature` alone also ENABLES the
-         * warmer. That is the handler's behaviour, not a guess, and the refresh that
-         * follows shows the caller what actually happened rather than predicting it (B10).
-         * Pass `enabled` explicitly to state the intent instead.
-         *
-         * The 0-80 whole-degree range is NOT re-validated here: the handler answers a typed
-         * 400 and the refusal is the server's to make (B9). A second copy of a range is a
-         * second thing to drift.
-         */
         setTarget(celsius, { enabled } = {}) {
             const body = { temperature: celsius };
             if (enabled === true || enabled === false) body.enabled = enabled;
             return write(() => routes.setCupWarmer(body));
         },
 
-        /**
-         * Change the scheduled pre-heat. Send only what changed: the handler reads the
-         * current state and fills whichever key is omitted, so a partial body is a genuine
-         * partial update rather than a reset.
-         */
         setPreheat({ enabled, leadMinutes } = {}) {
             const body = {};
             if (enabled === true || enabled === false) body.enabled = enabled;
@@ -447,11 +285,6 @@ export function createCupWarmerStore({
             return write(() => routes.setCupWarmerPreheat(body));
         },
 
-        /**
-         * Drop everything on a machine (re)connect so nothing is painted from a machine
-         * that is no longer there. The frame goes back to `loading`, not to a synthetic
-         * "off".
-         */
         invalidate() {
             state.set(emptyCupWarmerState());
             return state.get();
@@ -460,11 +293,6 @@ export function createCupWarmerStore({
 
     return store;
 
-    /**
-     * One write, then a re-read. The PUT answers `{status: 'accepted'}` and NOTHING about
-     * the resulting state, so the state comes from asking again — never from assuming the
-     * write took the value we sent.
-     */
     async function write(send) {
         publish({ pending: state.get().pending + 1 });
         const result = await send();

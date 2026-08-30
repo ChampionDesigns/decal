@@ -72,23 +72,6 @@ export const DE1_ADVANCED_WRITE_KEYS = Object.freeze([
     'heaterPh2Timeout', 'heaterVoltage', 'refillKitSetting',
 ]);
 
-/**
- * EVERY ROUTE IN THE PINNED TREE WHOSE WRITE CHANGES A VALUE THESE CACHES HOLD.
- *
- * There are THREE, not two, and the third is the one the module header above did not
- * mention. `PUT /api/v1/workflow` (`workflow_handler.dart` `_applyUpdate`) calls
- * `De1Controller.updateWorkflowSettings`, which dispatches `_writeFlushSettings`
- * (`setFlushTimeout` / `setFlushFlow` / `setFlushTemperature`), `_writeSteamSettings`
- * (`setSteamFlow`) and `_writeHotWaterSettings` (`setHotWaterFlow`) — the backing values of
- * `flushTimeout`, `flushFlow`, `flushTemp`, `steamFlow` and `hotWaterFlow`, five of the
- * nine reads `GET /machine/settings` performs (`de1handler.dart`). So a workflow write with
- * no invalidation here reproduces `reatsettingscache` exactly: the settings screen reads
- * back PRE-CHANGE values for up to 60 s, under a UI that says the write worked.
- *
- * A grep of `lib/src/services/webserver` for those five setters at the pin returns exactly
- * these three writers. The list is data so the next reader re-checks it in one open, and it
- * is consulted from `transport.onWrite`, so no call site can forget to invalidate.
- */
 export const DE1_SETTINGS_INVALIDATING_WRITES = Object.freeze([
     Object.freeze({
         method: 'POST',
@@ -109,9 +92,6 @@ export const DE1_SETTINGS_INVALIDATING_WRITES = Object.freeze([
         route: DE1_SETTINGS_RESET_PATH,
         handlerFile: 'lib/src/services/webserver/de1handler.dart',
         handlerSymbol: 'De1Handler.addRoutes (DELETE /api/v1/machine/settings/reset) -> De1Controller.applySettingsDefaults',
-        /* SEVEN VALUES, SPREAD OVER BOTH DOCUMENTS AND THE CALIBRATION ROUTE. That is
-         * why the reset invalidates BOTH caches rather than one, and why it is in this
-         * table at all: it is the third route whose success changes what they hold. */
         changes: [
             'fan', 'steamPurgeMode',
             'heaterIdleTemp', 'heaterPh1Flow', 'heaterPh2Flow', 'heaterPh2Timeout',
@@ -228,15 +208,6 @@ export function createDe1SettingsClient(transport, { now = Date.now } = {}) {
         writeAdvancedSettings(settings) {
             return write(DE1_ADVANCED_SETTINGS_PATH, settings, DE1_ADVANCED_WRITE_KEYS);
         },
-        /**
-         * `DELETE /api/v1/machine/settings/reset` — restore the seven the handler names.
-         *
-         * IT INVALIDATES ON SUCCESS, and that is the whole reason this belongs here
-         * rather than at a call site: the old skin's reset "repainted the PRE-reset
-         * values under a toast that said it had worked", because nothing dropped the
-         * caches the reset had just made wrong. The write path above does the same for
-         * every other write; this is the third route that changes what they hold.
-         */
         async resetSettings() {
             const result = await transport.request(DE1_SETTINGS_RESET_PATH, { method: 'DELETE' });
             if (result.ok) invalidate();
@@ -251,12 +222,6 @@ export function createDe1SettingsClient(transport, { now = Date.now } = {}) {
     });
 }
 
-/**
- * Send only the keys the handler reads. Not defensive scaffolding — the handler ignores
- * unknown keys, so this changes nothing on the wire; it keeps the request legible in a
- * capture and makes a typo in a caller visible as a missing effect rather than an
- * accepted no-op.
- */
 function pick(source, keys) {
     const out = {};
     for (const key of keys) if (source && source[key] !== undefined) out[key] = source[key];

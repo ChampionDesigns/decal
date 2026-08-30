@@ -74,27 +74,6 @@ export const CELL_SOURCE = Object.freeze({
     DERIVATION: 'derivation',
 });
 
-/**
- * WHAT THE SUMMARY ALONE CAN ANSWER, per scalar — the R5 gap, as data.
- *
- * The key is a `shot-derivation.js` scalar name and the value is the `annotations` key that
- * carries it on a list row, or `null` for "the summary does not serve this".
- *
- * THE SIX NULLS ARE R5 — six, counted off the table below and off `R5_ABSENT_SCALARS`, which
- * is that same list computed rather than typed. When R5 lands, each becomes the name of the
- * field ReaPrime then serves and the dash fills in — one string per scalar, no code path
- * added, none removed.
- * The three names already spelled are NOT R5 and never were: they are annotations, written
- * by whoever pulled the shot, and they have always ridden on the list payload.
- *
- * `actualYield` deserves its own sentence, because "the list carries no yield" is the
- * claim this table exists to correct. `ShotAnnotations.toJson` (shot_annotations.dart:45-54)
- * emits `actualYield` when it is non-null, and `toJsonWithoutMeasurements` carries the whole
- * annotations object — so a shot whose yield was recorded shows it in the list with ZERO
- * fetches. Every fixture on the capture mock lacks it, which is why the mock exercises the
- * dash on every row and never the number; that is the fixture set's property, not the
- * schema's, and reading the handler is what tells the two apart.
- */
 export const SUMMARY_SCALAR_KEYS = Object.freeze({
     /** R5. `shot_record.dart` emits no duration in either toJson. */
     durationSeconds: null,
@@ -128,13 +107,6 @@ const round = (value, decimals) => {
     return (Math.round(value * factor) / factor).toFixed(decimals);
 };
 
-/**
- * A scalar as text, or the dash.
- *
- * PRESENCE, NOT TRUTHINESS: `hasReading` is "a finite number", so 0 formats as `0.0 g` and
- * only an absence reaches the dash. The unit rides here rather than in the number so a
- * caller can take `value` and format it itself; nothing downstream parses this string back.
- */
 export function scalarText(value, { decimals = 1, unit = null, dash = DEFAULT_DASH } = {}) {
     if (!hasReading(value)) return dash;
     return unit ? `${round(value, decimals)} ${unit}` : round(value, decimals);
@@ -144,30 +116,9 @@ export function scalarText(value, { decimals = 1, unit = null, dash = DEFAULT_DA
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
-/**
- * A date, joined rather than interpolated.
- *
- * `[dd, mm].join(DATE_SEPARATOR)` and not a template literal, deliberately: Gate D's
- * constructed-path scan reads every interpolated template containing a slash as a route
- * assembled from fragments, and it is right to — that scan is what catches a hand-spelled
- * endpoint. A date is the one honest slash in the tree, so it is written the one way that
- * is not shaped like an address.
- */
 const DATE_SEPARATOR = '/';
 const joinDate = (parts) => parts.join(DATE_SEPARATOR);
 
-/**
- * The shot's wall-clock, split so a caller can spend it however its column needs.
- *
- * READ AS LOCAL TIME, DELIBERATELY. ReaPrime writes `timestamp.toIso8601String()` over a
- * local `DateTime`, so the string carries no `Z` and no offset — `2026-08-13T10:15:57.783240`
- * — and a date-time with no offset is local time by the language spec. That is the right
- * reading: "the 10:15 shot" means the one pulled at ten past ten in the kitchen the machine
- * is standing in, and normalising it to UTC would rename every shot on the list.
- *
- * `ok: false` for an unparseable stamp. A shot with no readable time is not a shot at
- * midnight (A7).
- */
 export function shotClock(timestamp) {
     const at = new Date(timestamp);
     if (Number.isNaN(at.getTime())) {
@@ -182,14 +133,6 @@ export function shotClock(timestamp) {
         date: joinDate([pad2(at.getDate()), pad2(at.getMonth() + 1)]),
         /** DD/MM/YY, for a list that spans more than a morning. */
         dateFull: joinDate([pad2(at.getDate()), pad2(at.getMonth() + 1), String(at.getFullYear()).slice(2)]),
-        /**
-         * YYYY/MM/DD — the SUMMARY line's spelling, and it is Slate's own, not a
-         * third invention: Slate writes a shot's identity line year-first
-         * (#history-date [i=121] "2026/08/15 07:10" on live-ready, history-shotdata
-         * and history-viewer alike) while its LIST rows read DD/MM/YY ("15/08/26",
-         * the same corpus). Two contexts, two spellings, both Slate's — `dateFull`
-         * keeps the list's, this keeps the identity line's.
-         */
         dateSummary: joinDate([String(at.getFullYear()), pad2(at.getMonth() + 1), pad2(at.getDate())]),
     });
 }
@@ -200,18 +143,6 @@ export function shotShortLabel(shot, { dash = DEFAULT_DASH } = {}) {
     return clock.ok ? clock.time : dash;
 }
 
-/**
- * How a shot names itself in a picker.
- *
- * TIME OF DAY FIRST, and the reason is carried over verbatim from the module this replaces:
- * two shots of the same profile on the same morning is the ORDINARY case, and a title labels
- * both identically — which is the one thing a comparison label must not do. The capture
- * mock makes the point sharply: all twenty rows of its list page are
- * "Extractamundo Dos! (2)", so a title-first label names every option the same.
- *
- * The yield is included when the shot carries one, because it is the other thing that tells
- * two shots apart, and it costs nothing — it is on the list payload already.
- */
 export function shotOptionLabel(shot, { dash = DEFAULT_DASH, separator = '  ·  ' } = {}) {
     const clock = shotClock(shot && shot.timestamp);
     const stamp = clock.ok ? `${clock.date} ${clock.time}` : dash;
@@ -230,19 +161,6 @@ export function shotTitle(shot) {
     return typeof title === 'string' && title !== '' ? title : null;
 }
 
-/**
- * The grinder setting the shot was pulled at, or null.
- *
- * IT IS ON THE RECORD AFTER ALL. The band's own note used to say "nothing on the shot
- * record carries a grinder setting", which is true of `ShotRecord`'s own fields and false
- * of the record: ReaPrime stamps every shot with the WORKFLOW as it stood, and the grind
- * lives on that document's `context` (`workflow_context.dart:9`, a `String?`). The old app
- * reads it from exactly there (`history.js:191`), which is how its history line shows a
- * grind at all.
- *
- * A STRING ON THE WIRE, a number here — the same codec `workflow-targets.js` applies to
- * the live rail's own copy of this field, for the same reason.
- */
 export function shotGrind(shot) {
     const context = shot && shot.workflow && shot.workflow.context ? shot.workflow.context : null;
     const raw = context ? context.grinderSetting : null;
@@ -279,28 +197,6 @@ export function emptyScalars() {
     });
 }
 
-/**
- * What a LIST ROW can say about itself, with no measurements and no fetch.
- *
- * Returns the same twelve-key shape `shot-derivation.js` emits, so the cell that reads
- * `scalars.durationSeconds` reads one field whether the shot is on the chart or is row
- * nineteen of the list. Everything the summary cannot answer is `null`, which is the dash.
- *
- * THE SOURCES ARE NAMED, not merged. `yieldSource: 'annotation'` here is the same value the
- * derivation reports when it takes the same rung, so a caller can always see whether the
- * number was recorded or observed. `dose` keeps `shotDose`'s two named rungs — the dose that
- * went in, or the dose that was asked for — because that is a stated policy and not a
- * fallback, and it says which it used.
- *
- * `keys` IS THE R5 TABLE, AND IT IS AN ARGUMENT SO THE CLAIM ABOUT IT CAN BE RUN. The header
- * says landing R5 is writing one string into `SUMMARY_SCALAR_KEYS` and adding no code path.
- * That is a claim about THIS function and the row model above it, so it is proved by handing
- * them the table R5 would leave behind and watching the dash become a number
- * (`test/shot-summary.test.mjs`, "R5 lands as one field"). Reading the frozen module table
- * instead would leave the only statement of it in prose. `shotScalars`, `shotRow` and
- * `shotRows` pass it through for the same reason; the default is the shipping table, so no
- * caller in the app names it and R5 still lands as one string in one place.
- */
 export function summaryScalars(shot, { keys = SUMMARY_SCALAR_KEYS } = {}) {
     if (!shot || typeof shot !== 'object') return emptyScalars();
     const stored = readStoredShot(shot);
@@ -325,21 +221,6 @@ export function summaryScalars(shot, { keys = SUMMARY_SCALAR_KEYS } = {}) {
     return Object.freeze(scalars);
 }
 
-/**
- * The scalars for one shot: the walk's where a walk exists, the annotations' where they do.
- *
- * NO WALK IS PERFORMED HERE. `derivation` is whatever the caller already has —
- * `deriveFromRecord` for a stored shot, `deriveFromBuffer` for the live one — and a refused
- * derivation (`ok: false`) is treated as no derivation, because its scalars are twelve nulls
- * and the summary can beat that on three of them.
- *
- * ONE RULE WHERE BOTH CAN ANSWER, and it is the derivation's own: a value ReaPrime RECORDED
- * beats one the skin OBSERVED, and `yieldSource` / `doseSource` say which it was. That is
- * not a fallback chain — both are real quantities and the preference is stated (A7). It also
- * keeps a rating honest: an `enjoyment` written a moment ago rides on the record shell and
- * is not in a walk taken before it, so the annotation is the current one by construction and
- * there is nothing to invalidate and no second walk to take.
- */
 export function shotScalars({ summary = null, derivation = null, keys = SUMMARY_SCALAR_KEYS } = {}) {
     const walked = derivation && derivation.ok === true && derivation.scalars
         ? derivation.scalars : null;
@@ -361,46 +242,6 @@ export function shotScalars({ summary = null, derivation = null, keys = SUMMARY_
 
 /* ─────────────────────────────────────────────────────────────────────── the columns */
 
-/**
- * EVERY COLUMN THE HISTORY LIST CAN PAINT, and the ONE place each one's value comes from.
- *
- * This table is the walk-totality claim made checkable: `source` is one of three, `from` is
- * one field, and a column with two sources or a source of its own does not exist. The test
- * asserts every DERIVATION column names a key that is actually on a derivation's scalars, so
- * a renamed scalar fails here rather than silently painting a dash for ever.
- *
- * `grow`, `align`, `unit` and `ink` are `<ui-data-grid>`'s column vocabulary, filled in so
- * the page composes the shipped compound rather than declaring tracks of its own (#34 / H5).
- * No pixel appears in this file.
- *
- * ── `ink`: THE READING ORDER OF THE LIST, RESTORED (parity surface 6) ──────────
- *
- * Slate paints this list in THREE inks and it is a hierarchy, not noise: the timestamp is
- * context, the profile name is the subject, and the outcome numbers sit between them.
- * Measured over all 21 of its rows, every cell of a column agreeing with every other:
- *
- *   CITE history-shotdata .hv-col-date  color = rgb(148, 161, 169) x21  -> --ui-muted
- *   CITE history-shotdata .hv-col-time  color = rgb(148, 161, 169) x21  -> --ui-muted
- *   CITE history-shotdata .hv-col-name  color = rgb(244, 247, 248) x21  -> --ui-text
- *   CITE history-shotdata .hv-col-dur   color = rgb(186, 196, 202) x21  -> --ui-text-2
- *   CITE history-shotdata .hv-col-yield color = rgb(186, 196, 202) x21  -> --ui-text-2
- *
- * Before this row the whole list rendered --ui-text, so eight columns of timestamps and
- * dashes read as loudly as the profile name. The mechanism is the one PHASE_COLUMNS
- * already spends on the weight column's channel ink (`--_ui-data-grid-ink`), so nothing
- * is invented: this table names the token and #34 paints it.
- *
- * THE THREE COLUMNS SLATE HAS NO TWIN FOR — Peak, Flow and Rating — take the OUTCOME
- * ink, because that is what they are: the same family as Shot and Out, which Slate paints
- * --slate-text-2. A guess would have been --ui-text; this is the one reading that keeps
- * Slate's own three-step hierarchy intact rather than adding a fourth step to it.
- *
- * THE COLUMN HEADS ARE NOT INKED HERE, and that is deliberate rather than an omission.
- * Slate's five heads carry their column's ink too, but Decal's head is `.ui-microcap` —
- * one role, one ink, on every grid in the tree including Live's — and spending three inks
- * on one row of heads would break that role everywhere to match five records. The cells
- * are where the hierarchy is read.
- */
 export const HISTORY_COLUMNS = Object.freeze([
     Object.freeze({
         key: 'date', source: CELL_SOURCE.RECORD, from: 'timestamp',
@@ -441,17 +282,6 @@ export function columnScalarKey(column) {
     return column.from.startsWith('scalars.') ? column.from.slice('scalars.'.length) : null;
 }
 
-/**
- * One shot, as the list's row.
- *
- * @param {object} options
- * @param {object|null} options.summary     a `/shots` list item, or a full record's shell
- * @param {object|null} options.derivation  a gate-6 derivation, when one already exists
- * @param {string} [options.dash]
- * @param {object} [options.keys]           the R5 table (see `summaryScalars`); the shipping
- *                                          one by default, so only the R5 test names it
- * @returns {{id, label, shortLabel, title, clock, scalars, cells, hasDerivation}}
- */
 export function shotRow({
     summary = null, derivation = null, dash = DEFAULT_DASH, keys = SUMMARY_SCALAR_KEYS,
 } = {}) {
@@ -494,14 +324,6 @@ export function shotRow({
     });
 }
 
-/**
- * A whole page of list rows.
- *
- * `derivations` is a map of shot id to an already-computed derivation — normally the one or
- * two shots on the chart, and normally empty on first paint. THERE IS NO BRANCH HERE THAT
- * FETCHES ANYTHING: a row with no derivation dashes its three derived columns and that is
- * the finished answer, not a pending one.
- */
 export function shotRows(items, { derivations = null, dash = DEFAULT_DASH, keys = SUMMARY_SCALAR_KEYS } = {}) {
     const list = Array.isArray(items) ? items : [];
     return Object.freeze(list.map((summary) => shotRow({

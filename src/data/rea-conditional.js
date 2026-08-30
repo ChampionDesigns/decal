@@ -44,12 +44,6 @@
 
 import { freezeDeep } from './rea-cache.js';
 
-/**
- * Every `jsonOkConditional` call site in ReaPrime at 2b047d02, as a route.
- *
- * Seven call sites, six routes: `_getShots` calls it twice (the empty-bean-batch early
- * return and the main return) on the one path.
- */
 export const CONDITIONAL_ROUTES = Object.freeze([
     Object.freeze({
         path: '/shots',
@@ -95,10 +89,6 @@ export const CONDITIONAL_ROUTES = Object.freeze([
     }),
 ]);
 
-/**
- * Shots reads that are deliberately NOT conditional, recorded because their absence is
- * load-bearing: it is the whole argument for keeping one IDB mirror (SCOPE Part 3 §4).
- */
 export const NON_CONDITIONAL_SHOT_READS = Object.freeze([
     Object.freeze({ path: '/shots/<id>', handlerSymbol: 'ShotsHandler._getShot', why: 'plain jsonOk; ~221 KB per record' }),
     Object.freeze({ path: '/shots/latest', handlerSymbol: 'ShotsHandler._getLatestShot', why: 'plain jsonOk' }),
@@ -114,13 +104,6 @@ function pathMatches(template, path) {
     return t.every((seg, i) => (seg.startsWith('<') && seg.endsWith('>') ? p[i].length > 0 : seg === p[i]));
 }
 
-/**
- * The `ids=` batch form of GET /shots takes the plain-jsonOk branch, but ONLY when no
- * filter is also present — with a filter the handler falls through to the paginated
- * branch, which IS conditional (`shots_handler.dart`, `hasFilters`). Transcribed rather
- * than guessed, because guessing it the other way costs nothing visible and quietly
- * disables revalidation for the one list that matters.
- */
 const SHOT_FILTER_PARAMS = Object.freeze([
     'grinderId', 'grinderModel', 'beanId', 'beanBatchId',
     'coffeeName', 'coffeeRoaster', 'profileTitle', 'search',
@@ -149,14 +132,6 @@ export function isConditionalRoute(path, query = {}) {
         && pathMatches(route.path, clean));
 }
 
-/**
- * The last body per conditional URL, so a 304 has something to mean.
- *
- * Bounded and LRU by insertion order. The cap exists because a History screen paging
- * through a long list mints a distinct URL per page: unbounded, this becomes the mirror
- * bug it is meant to avoid. 32 entries covers every list the skin reads several times
- * over; eviction costs one extra full body, never a wrong one.
- */
 export function createEtagStore({ max = 32 } = {}) {
     const entries = new Map();
     // The stored body IS what a 304 means. Frozen deeply on the way in, for the reason

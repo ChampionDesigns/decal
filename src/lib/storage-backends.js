@@ -25,27 +25,6 @@ export function createMemoryBackend(initial = {}) {
     };
 }
 
-/**
- * A Web Storage backend (localStorage / sessionStorage), with the two failure modes the
- * old module got wrong:
- *
- *   1. ABSENT STORE. `storage-keys.js:20-22` threw `${name} is unavailable` — in a
- *      private-mode WebView that is an uncaught throw at first read. Here an absent or
- *      unusable store degrades to memory, once, with one warning. SCOPE Part 3 §5: "the
- *      replacement degrades to an in-memory store instead."
- *   2. FAILING WRITE. A quota or security failure is logged and reported to the router as
- *      a rejection, so `set()` resolves false. It is never swallowed, and it never
- *      re-routes the value to another layer.
- *
- * Values are JSON — Web Storage only holds strings, so this is where the serialisation
- * lives. A value that will not parse is a corrupt entry: warn and report absent, rather
- * than hand a caller a string where it expects an object.
- *
- * @param {object} options
- * @param {Storage} [options.storage]  the store object; falsy or throwing -> memory
- * @param {object}  [options.logger]
- * @param {string}  [options.label]    'localStorage' | 'sessionStorage', for messages
- */
 export function createWebStorageBackend({ storage, logger, label = 'webStorage' } = {}) {
     const log = logger && logger.scope ? logger.scope('storage') : (logger || null);
     const fallback = createMemoryBackend();

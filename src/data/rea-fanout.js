@@ -63,14 +63,6 @@ export function createFanout({ logger = null, label = 'fanout' } = {}) {
     };
 
     return {
-        /**
-         * Observe frames. The latest frame, if there is one, is replayed IMMEDIATELY and
-         * synchronously — a late subscriber is not left blank until the next frame, which
-         * at the shot-settings socket's rate could be minutes.
-         *
-         * @param {(frame: unknown) => void} listener
-         * @returns {() => void} unsubscribe
-         */
         subscribe(listener) {
             if (typeof listener !== 'function') throw new Error(`${label}: subscribe needs a function`);
             listeners.add(listener);
@@ -84,13 +76,6 @@ export function createFanout({ logger = null, label = 'fanout' } = {}) {
             return () => listeners.delete(listener);
         },
 
-        /**
-         * Observe signals: error envelopes and transport-level events the socket layer
-         * raises (open, close, unavailable). Not replayed, not stored.
-         *
-         * @param {(signal: {kind: string, [k: string]: unknown}) => void} listener
-         * @returns {() => void} unsubscribe
-         */
         onSignal(listener) {
             if (typeof listener !== 'function') throw new Error(`${label}: onSignal needs a function`);
             signalListeners.add(listener);
@@ -120,8 +105,6 @@ export function createFanout({ logger = null, label = 'fanout' } = {}) {
             return hasLast;
         },
 
-        /** Frames emitted since construction. Diagnostic — a doubled rate is the tell
-         *  that a superseded socket was never closed (`socket-slot.js`'s founding bug). */
         frameCount() {
             return frameCount;
         },

@@ -1092,8 +1092,8 @@ describe('screen laws, over the cluster the skeleton suite does not cover', () =
 
     test('the R3 tag is greppable from the gate module, and the swap is a deletion', () => {
         const gates = CODE['src/screens/live-gates.js'];
-        assert.match(read('src/screens/live-gates.js'), /r3GroupHeadControllerCapability/,
-            'the adapter is named, so the R3 walk finds this call site');
+        assert.match(read('src/data/adapters-r.js'), /export function r3GroupHeadControllerCapability/,
+            'the adapter exists and is exported under the name the gate asks for');
         assert.doesNotMatch(gates, /machineInfo/, 'the gate reads the store, never the info body');
     });
 });

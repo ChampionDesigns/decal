@@ -62,25 +62,12 @@
 import { hasReading, noReading, ABSENCE } from '../data/reading.js';
 import { ESTIMATOR_CHANNELS, SNAPSHOT_DERIVED_KEYS } from '../data/rea-names.js';
 
-/** Which source a quantity is being read from. `none` is a real outcome, not an error. */
 export const SOURCE = Object.freeze({
     ESTIMATOR: 'estimator',
     DERIVED: 'derived',
     NONE: 'none',
 });
 
-/**
- * THE THREE DUPLICATED QUANTITIES. All three, not two — the old skin's selector knew about
- * two and left hydraulic power to be discovered later.
- *
- * `estimatorChannel` is the sensor's own channel name; `derivedKey` is the machine
- * snapshot's. The pairing is ReaPrime's, from the doc comment on each getter:
- * `puckResistanceDerived` (R = P/F²) <- `r2`, `loadImpedanceDerived` (Z = P/F) <- `r1`,
- * `hydraulicPowerDerived` (W) <- `hydraulicPowerMeasured`.
- *
- * The quantity keys are physical roles, not either side's key name, so no consumer can
- * read a quantity id as an address.
- */
 export const DUPLICATED_QUANTITIES = Object.freeze([
     Object.freeze({
         quantity: 'resistance',
@@ -105,18 +92,6 @@ export const DUPLICATED_QUANTITIES = Object.freeze([
     }),
 ]);
 
-/**
- * THE PAIRING TABLE IS CHECKED AGAINST THE NAME TABLES, AT IMPORT.
- *
- * Six wire keys are spelled above, and they were the only copy of a server truth in this
- * tree with nothing derived behind them — `rea-names.js` is the one place ReaPrime's names
- * live and is itself checked against the pinned Dart, so a pairing table beside it that
- * nothing compares is a seventh name list waiting to drift. It cannot be GENERATED (the
- * pairing is a physical claim, from `machine.dart`'s doc comments, not a mechanical join),
- * but it can be required to name keys that exist: a channel or a derived key that stops
- * existing upstream now fails at import with the name in the message, instead of quietly
- * reading as an absence for ever and rendering a permanent gap.
- */
 for (const row of DUPLICATED_QUANTITIES) {
     if (!ESTIMATOR_CHANNELS.includes(row.estimatorChannel)) {
         throw new Error(
@@ -141,13 +116,6 @@ export function quantityRow(quantity) {
     return row;
 }
 
-/**
- * Read one side's reading for a quantity out of an already-addressed sample.
- *
- * @param {{estimator?: object, machine?: object}} sample
- *        `estimator` is a `readEstimatorFrame` result (`{ok, error, channels}`);
- *        `machine` is a `readMachineSnapshot` result.
- */
 function estimatorReading(sample, row) {
     const channels = sample && sample.estimator && sample.estimator.channels;
     if (!channels) return noReading(ABSENCE.NO_SOURCE);
@@ -162,14 +130,6 @@ function derivedReading(sample, row) {
     return value === undefined ? noReading(ABSENCE.NO_SOURCE) : value;
 }
 
-/**
- * THE DECISION, for one quantity, from one sample. Estimator first, derived second, and
- * `none` when neither is there.
- *
- * Presence is `hasReading` — a finite number that the server WROTE. A gated-away derived
- * key and a not-yet-observed estimator channel both come back as absences from the address
- * layer, and neither is a source.
- */
 export function chooseSource(sample, quantity) {
     const row = quantityRow(quantity);
     if (hasReading(estimatorReading(sample, row))) return SOURCE.ESTIMATOR;
@@ -184,12 +144,6 @@ export function chooseSources(sample) {
     ));
 }
 
-/**
- * Read a quantity THROUGH A HELD DECISION. This is where the rule bites: the source is an
- * argument, not something re-derived from the sample.
- *
- * Returns the reading from the chosen source, or an absence. Never the other source.
- */
 export function readThroughSource(sample, quantity, source) {
     const row = quantityRow(quantity);
     if (source === SOURCE.ESTIMATOR) return estimatorReading(sample, row);
@@ -198,14 +152,6 @@ export function readThroughSource(sample, quantity, source) {
     throw new Error(`shot-source: unknown source "${source}"`);
 }
 
-/**
- * THE SELECTOR. One per shot lifetime; `beginShot` freezes the decision and `endShot`
- * discards it, so a decision cannot outlive the shot it was made for.
- *
- * Deliberately NOT a store with subscribers: the choice changes exactly twice per shot
- * (made, discarded), and everything that reads it is already re-rendering per sample.
- * Nothing here mutates a sample — every read returns a value.
- */
 export function createShotSourceSelector({ now = () => Date.now() } = {}) {
     let selection = null;
 
@@ -216,28 +162,6 @@ export function createShotSourceSelector({ now = () => Date.now() } = {}) {
         /** True while a shot's decision is held. */
         get active() { return selection !== null; },
 
-        /**
-         * Decide from evidence, per quantity — and HOLD each decision once it is made.
-         *
-         * ── WHY THIS IS NOT "DECIDE ONCE, FROM THE FIRST SAMPLE" ─────────────────────────
-         * It was, and at a real shot start that froze all three quantities on `none` for the
-         * whole shot. Both sides are absent at t=0 BY CONSTRUCTION, not by accident:
-         * `machine.dart`'s `_derivedOrNull` returns null — and `toJson` omits the key —
-         * whenever `flow < 0.3 || pressure < 0.3`, which is every espresso at time zero, and
-         * the estimator's channels are "not yet observed" until the firmware has observed
-         * something. So the first sample of every shot carries neither twin, `none` was
-         * held, and all three B6 quantities rendered a permanent gap even after both
-         * instruments came on the wire. Nothing recovered it: `endShot` was the only exit.
-         *
-         * `none` is therefore UNDECIDED, not decided. Call this on each sample until
-         * `settled` is true; a quantity that has real evidence keeps its answer for the rest
-         * of the shot and this method will not re-open it. That is B6 intact — the rule is
-         * that a CHOICE cannot change mid-trace, and "we have seen nothing yet" is not a
-         * choice.
-         *
-         * Idempotent in the way it needs to be: a second "shot started" signal (a state
-         * re-entry, a late first frame) never disturbs a quantity that has decided.
-         */
         beginShot(sample, { shotId = null } = {}) {
             const held = selection;
             // Settled means every quantity has decided, and a decision never re-opens: the
@@ -259,7 +183,6 @@ export function createShotSourceSelector({ now = () => Date.now() } = {}) {
                 shotId: held ? held.shotId : shotId,
                 /** When the shot's selection was opened. */
                 decidedAt: held ? held.decidedAt : at,
-                /** When the LAST quantity found its source, or null while any is undecided. */
                 settledAt: undecided.length === 0 ? (held && held.settledAt !== null ? held.settledAt : at) : null,
                 sources: Object.freeze(sources),
                 /** Quantities with no evidence either way YET. Visible, never a guess. */
@@ -276,28 +199,16 @@ export function createShotSourceSelector({ now = () => Date.now() } = {}) {
             return ended;
         },
 
-        /**
-         * The source in use for a quantity — the MARK the rule requires. `none` before a
-         * shot starts, because nothing has been decided.
-         */
         sourceOf(quantity) {
             quantityRow(quantity);
             return selection ? selection.sources[quantity] : SOURCE.NONE;
         },
 
-        /**
-         * Read one quantity from a sample, through the held decision.
-         *
-         * Before `beginShot` this is an absence, NOT a per-sample pick. A live view that
-         * wants a number before the shot starts must start the shot first — which is the
-         * rule, not an inconvenience.
-         */
         read(sample, quantity) {
             if (!selection) return noReading(ABSENCE.NO_SOURCE);
             return readThroughSource(sample, quantity, selection.sources[quantity]);
         },
 
-        /** All three, as `{quantity: {source, value}}`. The source travels with the value. */
         readAll(sample) {
             return Object.freeze(Object.fromEntries(DUPLICATED_QUANTITIES.map((row) => [
                 row.quantity,

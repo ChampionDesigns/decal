@@ -1,9 +1,5 @@
 /**
- * <ui-list-row> — a selectable row: a title, an optional provenance chip, and
- * whatever the list slots beside them.
- *
- * The row paints and reports. It owns no affordance of its own: a control belongs to
- * the list that slots it.
+ * <ui-list-row> — a selectable row: a title, an optional provenance chip, and whatever the list slots beside them.
  */
 
 import { css, html, nothing } from 'lit';

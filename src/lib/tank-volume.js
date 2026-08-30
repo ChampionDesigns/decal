@@ -40,21 +40,8 @@ export const TANK_UNITS = Object.freeze([TANK_UNIT.MM, TANK_UNIT.ML]);
 /** What an unset preference means. Millimetres, because the wire is millimetres. */
 export const DEFAULT_TANK_UNIT = TANK_UNIT.MM;
 
-/**
- * Millilitres per millimetre of tank depth.
- *
- * Ben, 26 August 2026: "1mm = 40ml for the water tank." Named rather than inlined so the
- * figure has one home and one owner, and so a change is one line rather than a search.
- */
 export const ML_PER_MM = 40;
 
-/**
- * The stored preference, normalised, or null when it is not one of the two.
- *
- * The bank's own values are the strings below, and an unrecognised value is NOT coerced to
- * a default here — the caller decides whether "no opinion" means millimetres, and it
- * always does, but that decision belongs at the call site rather than hidden in a parser.
- */
 export function normaliseTankUnit(value) {
     return TANK_UNITS.includes(value) ? value : null;
 }
@@ -69,41 +56,16 @@ export function millilitresToMm(ml) {
     return ml / ML_PER_MM;
 }
 
-/**
- * A canonical millimetre reading -> the number to draw in `unit`.
- *
- * NON-FINITE IN, NON-FINITE OUT. An absent reading stays absent: this returns the value it
- * was given rather than a zero, so the dash the caller already draws for an unread tank
- * survives the conversion. A tank that has not reported and a tank that is empty are
- * different states, and 0 mL is a claim about the second.
- */
 export function toDisplayLevel(mm, unit) {
     if (!Number.isFinite(mm)) return mm;
     return unit === TANK_UNIT.ML ? mmToMillilitres(mm) : mm;
 }
 
-/**
- * The reverse, for a value a person entered in the unit on screen.
- *
- * Nothing in this build writes a tank LEVEL — the machine measures it — but the low-water
- * ALERT is a millimetre threshold a person sets, and the day that row is offered in mL
- * this is the function that keeps the wire in millimetres. Written now, beside its pair,
- * because a conversion with only one direction is how the other direction gets invented at
- * a call site.
- */
 export function fromDisplayLevel(shown, unit) {
     if (!Number.isFinite(shown)) return shown;
     return unit === TANK_UNIT.ML ? millilitresToMm(shown) : shown;
 }
 
-/**
- * How many decimals the drawn number carries.
- *
- * MILLILITRES ARE WHOLE AND MILLIMETRES ARE WHOLE. The machine reports depth as an
- * integer count of millimetres, and forty times an integer is an integer — so neither unit
- * has a fractional part to print, and a "40.0 mL" would be inventing a precision the
- * measurement does not have.
- */
 export function tankDecimals() {
     return 0;
 }

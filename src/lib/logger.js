@@ -54,14 +54,6 @@ export function createConsoleSink(target) {
     };
 }
 
-/**
- * @param {object} [options]
- * @param {string} [options.level]     initial threshold; default 'info'
- * @param {string} [options.tag]       provenance tag, default 'Decal'
- * @param {object} [options.console]   console-shaped target for the default sink
- * @param {Function[]} [options.sinks] explicit sinks; replaces the console sink entirely
- * @param {Function} [options.now]     clock, injected for tests
- */
 export function createLogger({
     level = 'info',
     tag = DEFAULT_TAG,
@@ -107,7 +99,6 @@ function makeLogger(state, tag) {
             return Object.keys(LEVELS).find((name) => LEVELS[name] === state.threshold) || 'info';
         },
 
-        /** Set the threshold. Affects this logger and every scope sharing its state. */
         setLevel(next) {
             state.threshold = normaliseLevel(next);
             return logger;
@@ -123,15 +114,10 @@ function makeLogger(state, tag) {
             return normaliseLevel(levelName) >= state.threshold;
         },
 
-        /**
-         * A child logger tagged `parent:name`. This is how a module gets provenance
-         * without inventing its own prefix convention: `logger.scope('storage')`.
-         */
         scope(name) {
             return makeLogger(state, `${tag}:${name}`);
         },
 
-        /** Add a sink; returns an unsubscribe. Sinks are shared by every scope. */
         addSink(sink) {
             state.sinks.add(sink);
             return () => state.sinks.delete(sink);
@@ -150,12 +136,4 @@ function normaliseLevel(level) {
     return value;
 }
 
-/**
- * The app-wide instance. Components import THIS and never touch `console`.
- *
- * It starts at 'info' with no sink: the composition root attaches the console sink (and
- * applies the stored `debug` preference through the storage router) at boot. Wiring it
- * that way keeps the dependency one-directional — the router logs, the logger does not
- * read storage — and keeps this module import-safe under node:test.
- */
 export const logger = createLogger();

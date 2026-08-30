@@ -123,14 +123,6 @@ export function createProfileArmStore({ transport, logger = null, now = () => Da
         /** The refusal to surface, or null. The one thing `<live-refusal>` reads. */
         refusal() { return store.get().refusal; },
 
-        /**
-         * Send the profile to the machine and publish whatever comes back.
-         *
-         * @param {object} profile   a ReaPrime profile object
-         * @param {object} [options]
-         * @param {string|null} [options.profileId]  for the state only; not sent
-         * @returns {Promise<object>} the published state
-         */
         async arm(profile, { profileId = null } = {}) {
             publish({ ...EMPTY_STATE, status: ARM_STATUS.ARMING, profileId, at: now() });
 
@@ -158,14 +150,6 @@ export function createProfileArmStore({ transport, logger = null, now = () => Da
             });
         },
 
-        /**
-         * Clear the surface — the user acknowledged it, or picked something else.
-         *
-         * A refusal is not cleared by a later frame arriving, on purpose: the machine goes
-         * on publishing snapshots while running the profile it kept, so a state that
-         * dismissed itself on the next frame would flash the worst failure shape for 66ms
-         * and then hide it.
-         */
         clear() { return publish({ ...EMPTY_STATE }); },
 
         stop() { store.destroy(); },

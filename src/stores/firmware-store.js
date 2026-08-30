@@ -116,14 +116,6 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
         subscribe(listener) { return store.subscribe(listener); },
         get() { return store.get(); },
 
-        /**
-         * Read the catalog.
-         *
-         * IT IS ALSO THE ONLY WAY TO KNOW WHETHER AN UPDATE IS THERE. `updateAvailable` is
-         * a TRI-STATE: true, false, or `null` when the machine is not connected or the
-         * server could not judge one artifact's eligibility. Null is not false — a leaf
-         * that painted it as "up to date" would be claiming something nobody checked.
-         */
         async load() {
             patch({ status: FIRMWARE_STATUS.LOADING, error: null });
             const result = await callRoute(transport, 'getMachineFirmware', {});
@@ -134,17 +126,6 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
             return patch({ status: FIRMWARE_STATUS.READY, catalog: result.data ?? null, error: null });
         },
 
-        /**
-         * Install the artifact the SERVER recommends.
-         *
-         * NO ARGUMENT, ON PURPOSE. "Latest" is `recommendedArtifactId` and nothing else;
-         * a caller that could pass an id would be a caller that could pass the wrong one.
-         * With no recommendation there is nothing to install and the call refuses rather
-         * than sending a request that can only 404.
-         *
-         * `force` IS NEVER SENT. It exists to flash an artifact the validator called
-         * inapplicable, which is the one thing a "Latest" button must not do quietly.
-         */
         async installLatest() {
             const artifactId = store.get().catalog?.recommendedArtifactId ?? null;
             if (!artifactId) {
@@ -163,44 +144,6 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
             return store.get();
         },
 
-        /**
-         * Install an image somebody picked off the tablet.
-         *
-         * THE BYTES GO UP UNTOUCHED. The route takes `application/octet-stream` and the
-         * transport's `raw` option is what sends a Uint8Array as itself — JSON.stringify
-         * of one is an object of numbered keys, which the machine would accept as a body
-         * and flash as nonsense.
-         *
-         * NOTHING HERE VALIDATES THE IMAGE, AND THAT IS A GAP THE CALLER HAS TO CLOSE.
-         *
-         * THIS COMMENT USED TO SAY THE OPPOSITE, and it was wrong on the facts. It read:
-         * "that is the server's job rather than a gap: `_uploadRaw` refuses an empty body
-         * and the machine's own protocol rejects an image it cannot run. A header check
-         * written here would be a second, weaker copy of `FirmwareValidator`." Re-read at
-         * the pin on 27 August 2026, every clause of that fails:
-         *
-         *   - `FirmwareValidator` HAS NO COPY ON THIS PATH TO BE WEAKER THAN. Its
-         *     `validate` method has exactly two callers in the whole of ReaPrime —
-         *     `_applyManaged` (the MANAGED route) and `BundledFirmwareCatalog
-         *     .verifyAllArtifacts` (a startup self-check over the bundled assets). Neither
-         *     is reachable from a raw upload.
-         *   - `_uploadRaw` REALLY DOES REFUSE ONLY AN EMPTY BODY. It reads the bytes,
-         *     400s on empty, resolves the machine, 503s if there is none, and hands
-         *     everything else straight to `_streamFirmwareUpload`, which erases and
-         *     writes. Upstream's own test proves the scope: a ONE-BYTE image comes back
-         *     200 with the progress stream open.
-         *   - "The machine's own protocol rejects an image it cannot run" is true and is
-         *     not a defence. The Bengle bootloader does check the board marker — but the
-         *     ERASE runs first, so a wrong image costs the running firmware before
-         *     anything refuses it.
-         *
-         * SO THE VALIDATION IS THE CALLER'S, and it exists: `src/lib/firmware-image.js`
-         * reads the image's board marker and refuses one meant for the other machine.
-         * It is NOT duplicated into this store on purpose — the store's job is the wire,
-         * and a check here would fire after the leaf had already opened a confirmation
-         * saying an hour-long write was about to start. The refusal has to happen before
-         * the person is asked to confirm, which is where the leaf puts it.
-         */
         async installFile(bytes) {
             const image = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes ?? []);
             if (image.byteLength === 0) {

@@ -1,27 +1,5 @@
 /**
- * app-settings-store.js — ReaPrime's own preferences, held once.
- *
- * WHY A STORE OVER `rea-app-settings.js` AND NOT THE CLIENT DIRECTLY. Two surfaces need
- * this one document and they need different halves of it:
- *
- *   the SETTINGS ROWS reach it through `machine-fields-port.js` as a `{read, write}`
- *   door, because charging mode, scale power and the two flow multipliers are plain
- *   registry rows and the leaf model owns their staging;
- *
- *   the USB CHARGER's BESPOKE HALF reads `chargingState` and the two night-mode times,
- *   which are not rows at all — a battery report is a reading and a minute-of-day is a
- *   clock face.
- *
- * With the client alone, those are two reads of one document and two in-memory copies of
- * one answer, which is the B7 defect exactly. This store is the one copy: it satisfies the
- * door's `{read, write}` shape AND publishes the document a surface can subscribe to, so
- * a row's Save repaints the status block beside it.
- *
- * THE DOOR CONTRACT IS SATISFIED WITHOUT A CACHE. `read()` performs the request and
- * publishes what came back — the leaf model reads once per leaf load and re-reads after
- * every commit, which is exactly when a fresh answer is wanted. A TTL here would make the
- * re-read after a Save return the pre-Save values, which is the `reatsettingscache` bug
- * `rea-de1-settings.js` carries a paragraph about.
+ * ReaPrime's own preferences, held once.
  */
 
 import { createAppSettingsClient } from '../data/rea-app-settings.js';
@@ -73,10 +51,6 @@ export function createAppSettingsStore({ transport, logger = null } = {}) {
                 if (log && log.warn) log.warn('the app settings write was refused');
                 return false;
             }
-            /* THE RE-READ IS THE PUBLISH. The leaf model re-reads after its own commit,
-             * but a write that came from the bespoke half (a night-mode time) has no
-             * model behind it — so the store refreshes itself and every subscriber sees
-             * the settled document, whichever half asked. */
             await read();
             return true;
         },

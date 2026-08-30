@@ -33,14 +33,6 @@ export const ABSENCE = Object.freeze({
     NON_FINITE: 'nonFinite',
     /** The container itself is missing: `scale: null`, or no sensor frame yet. */
     NO_SOURCE: 'noSource',
-    /**
-     * Stored shots only: the channel is unavailable FOR THIS SHOT, FOREVER. A recorded
-     * measurement with no `sensors` key was written before ReaPrime 2b047d02, and
-     * `MachineSnapshot.fromJson` reads a fixed key list with no unknown-key bag, so any
-     * estimator data in that row was dropped the first time ReaPrime read it. Nothing will
-     * ever supply it. Render a gap; never fall through to the derived channel and present
-     * it as the same measurement.
-     */
     PERMANENT: 'permanent',
     /** The transport answered with an error envelope. A signal, not a frame. */
     ERROR: 'error',
@@ -48,13 +40,6 @@ export const ABSENCE = Object.freeze({
 
 const ABSENCE_REASONS = Object.freeze(Object.values(ABSENCE));
 
-/**
- * One frozen instance per reason — readings are compared by identity in hot paths.
- *
- * `valueOf` returning NaN is deliberate: it makes arithmetic on an absence produce NaN
- * rather than a coerced string or a zero, so a consumer that forgets to check gets a loud
- * NaN instead of a plausible number. It is not serialised (JSON.stringify skips functions).
- */
 const NO_READINGS = Object.freeze(Object.fromEntries(
     ABSENCE_REASONS.map((reason) => [
         reason,
@@ -101,28 +86,10 @@ export function toText(value, format, dash = '—') {
     return hasReading(value) ? format(value) : dash;
 }
 
-/**
- * Key-presence validity, stated once.
- *
- * @param {object|null|undefined} source
- * @param {string} key
- * @returns {boolean} whether the server WROTE this key on this frame
- */
 export function hasKey(source, key) {
     return !!source && typeof source === 'object' && Object.hasOwn(source, key);
 }
 
-/**
- * Read one numeric channel by key presence.
- *
- * This is the whole gated-channel rule: written -> valid, omitted -> absent. No threshold
- * appears in this file, or anywhere else in the skin.
- *
- * @param {object|null|undefined} source
- * @param {string} key
- * @param {string} [missingReason]  the absence to report when `source` itself is missing
- * @returns {number|{noReading: true, reason: string}}
- */
 export function readNumber(source, key, missingReason = ABSENCE.NO_SOURCE) {
     if (!source || typeof source !== 'object') return noReading(missingReason);
     if (!Object.hasOwn(source, key)) return noReading(ABSENCE.ABSENT);
@@ -156,15 +123,6 @@ export function allAbsent(keys, reason = ABSENCE.PERMANENT) {
     return Object.freeze(Object.fromEntries(keys.map((key) => [key, absent])));
 }
 
-/**
- * Read a whole channel set from one frame, by key presence.
- *
- * @param {object|null|undefined} frame
- * @param {readonly string[]} keys
- * @param {object} [options]
- * @param {string} [options.missingReason]        absence when the frame is missing
- * @param {readonly string[]} [options.textKeys]  keys read verbatim rather than as numbers
- */
 export function readChannels(frame, keys, { missingReason = ABSENCE.NO_SOURCE, textKeys = [] } = {}) {
     const text = new Set(textKeys);
     return Object.freeze(Object.fromEntries(keys.map((key) => [

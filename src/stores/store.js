@@ -41,29 +41,12 @@
 /** Returned by an `update` function that decided there is nothing to change. */
 export const UNCHANGED = Symbol('store: unchanged');
 
-/**
- * Freeze a state object so pattern F fails loudly.
- *
- * SHALLOW on purpose. A deep freeze would walk every raw frame on every sample at 10 Hz,
- * and would freeze arrays that are legitimately appended to (the shot-so-far buffer's
- * samples). The rule this enforces is "the state object you were handed is not yours to
- * edit"; a container that documents its own append-only array documents it there.
- */
 function freezeState(value) {
     return (value !== null && typeof value === 'object' && !Object.isFrozen(value))
         ? Object.freeze(value)
         : value;
 }
 
-/**
- * One reactive value.
- *
- * @param {unknown} initial            the state before anything has happened
- * @param {object} [options]
- * @param {string} [options.label]     appears in errors and logs only
- * @param {{warn?: Function}} [options.logger]
- * @param {boolean} [options.freeze]   freeze state objects (default true)
- */
 export function createStore(initial = null, { label = 'store', logger = null, freeze = true } = {}) {
     const listeners = new Set();
     let state = freeze ? freezeState(initial) : initial;
@@ -101,14 +84,6 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
             return revision;
         },
 
-        /**
-         * Observe. The current state is delivered SYNCHRONOUSLY before this returns, so a
-         * late subscriber paints now rather than at the next frame — which on the shot-
-         * settings channel could be minutes.
-         *
-         * @param {(state: unknown) => void} listener
-         * @returns {() => void} unsubscribe (idempotent)
-         */
         subscribe(listener) {
             if (typeof listener !== 'function') throw new Error(`${label}: subscribe needs a function`);
             listeners.add(listener);
@@ -125,13 +100,6 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
             };
         },
 
-        /**
-         * Replace the state.
-         *
-         * Handing back the SAME object is pattern F wearing a disguise — the mutation
-         * already happened and nothing downstream can see it — so it throws. A primitive
-         * that is already equal is a genuine no-op and publishes nothing.
-         */
         set(next) {
             if (Object.is(next, state)) {
                 if (next !== null && typeof next === 'object') {
@@ -161,7 +129,6 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
             return store.set(next);
         },
 
-        /** Subscriber count — for a source layer's refcount, and for tests. */
         size() {
             return listeners.size;
         },
@@ -183,21 +150,6 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
     return store;
 }
 
-/**
- * Lit ReactiveController that re-renders its host on every change.
- *
- *     class LiveHeader extends LitElement {
- *       #machine = new StoreController(this, machineStore);
- *       render() { return html`${this.#machine.state.value.pressure}`; }
- *     }
- *
- * Duck-typed against Lit's controller interface — this module never imports Lit, so the
- * whole store layer stays testable under `node:test` (the same shape as `I18nController`
- * in `src/lib/i18n.js`, deliberately: one mechanism family for every reactive value).
- *
- * It subscribes on connect and unsubscribes on disconnect, so a store outlives its
- * components and a disconnected component costs the source nothing.
- */
 export class StoreController {
     constructor(host, store) {
         if (!store || typeof store.subscribe !== 'function') {
@@ -226,17 +178,6 @@ export class StoreController {
     }
 }
 
-/**
- * Watch several stores as one — for a component that needs two feeds to paint one thing.
- *
- * Deliberately NOT a derived store: a derived store is a second place a value lives, and
- * "never a second source of truth" is the rule this gate exists to enforce. This is a
- * subscription helper and holds nothing.
- *
- * @param {Array<{subscribe: Function, get: Function}>} stores
- * @param {(...states: unknown[]) => void} listener  called once immediately, then on change
- * @returns {() => void} unsubscribe
- */
 export function watchAll(stores, listener) {
     if (!Array.isArray(stores) || stores.length === 0) {
         throw new Error('watchAll: at least one store is required');

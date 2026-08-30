@@ -174,69 +174,12 @@ const EMPTY_STATE = Object.freeze({
 const NOOP = { debug() {}, info() {}, warn() {}, error() {} };
 const scoped = (logger) => (logger && logger.scope ? logger.scope('shots') : (logger || NOOP));
 
-/**
- * The instant a shot record claims, as a number, or `NaN` when it claims none.
- *
- * ONE FIELD, AND IT IS THE MACHINE'S OWN CLOCK. `timestamp` is what ReaPrime sorts by
- * (`shot_dao.dart getShotsPaginated`, `OrderingTerm.desc(s.timestamp)`), what the list row
- * prints (`shot-summary.js shotClock`) and the only field on a list item that carries a
- * time at all — the payload is `id`, `timestamp`, `workflow`, `annotations`, `stopReason`.
- * The ID IS NOT A SECOND OPINION: it is a content hash, so ordering by it is ordering by
- * noise, which is the trap this function exists to not fall into.
- *
- * READ THE WAY `shotClock` READS IT. ReaPrime writes `timestamp.toIso8601String()` over a
- * local `DateTime`, so the string carries no `Z` and no offset and is local time. Whether
- * the engine resolves that to one instant or another does not matter to an ORDER — the
- * map from string to number is monotonic and every row in a window goes through it — but
- * agreeing with the module that PRINTS the stamp is what keeps the list's order and the
- * list's captions telling one story.
- *
- * MICROSECONDS ARE TRUNCATED, and that is a real limit rather than a rounding note.
- * ReaPrime emits six decimal places (`2026-08-29T13:30:51.851461`) and `Date.parse` keeps
- * three, so two shots inside one millisecond compare EQUAL here. That is honest: at that
- * resolution the field does not tell them apart, and `orderShots` below resolves the tie
- * by arrival rather than by inventing a rule.
- */
 function shotInstant(item) {
     const raw = item && typeof item === 'object' ? item.timestamp : null;
     if (typeof raw !== 'string' || raw === '') return NaN;
     return Date.parse(raw);
 }
 
-/**
- * A PAGE OF SHOTS IN TIME ORDER — the client's own answer, not the array the wire sent.
- *
- * WHY THE CLIENT ORDERS AT ALL, when the handler has an `ORDER BY` in it. Every surface
- * that walks this list walks it BY POSITION: the Live band's arrows step an integer index
- * (`live-wiring.js #onShotStep`), the History list paints rows top to bottom, and the
- * comparison pickers offer them in the order they are handed. So "the row after this one"
- * is answered by array position and by nothing else, and until this function existed the
- * meaning of that position was entirely the server's to decide. Measured 30 August 2026:
- * with a page emitted in any order but time order, "Older" walked the emission verbatim —
- * from 08:40 to 13:30 to 08:06 to 11:38 — which is Ben's report exactly ("it doesn't show
- * the previous but some other shot, like the order is all messed up").
- *
- * The tablet's own server is not doing that today: all 921 shots on 192.168.1.73 read
- * strictly timestamp-descending across ten pages (read-only, 30 Aug 2026). This is the
- * client refusing to hold a claim it never checked — the same rule `readPage` already
- * applies to the `order` spelling it sends, and for the same stated reason: a sort that
- * silently does nothing looks like a working sort.
- *
- * THE TIE-BREAK IS ARRIVAL ORDER, EXPLICITLY. `Array.prototype.sort` is stable by spec,
- * but a comparator that returns 0 leaves "stable across duplicates" resting on that fact
- * rather than saying it, so the decorated index is compared outright. Two shots at one
- * instant therefore keep the order the server gave them, for ever and on every engine —
- * and the arrows visit both rather than skipping one.
- *
- * A RECORD WITH NO READABLE STAMP SORTS LAST, in BOTH directions, and keeps its arrival
- * order among its own kind. It cannot be placed in time, and the two ends of the list are
- * the two places it would do damage: the head is the shot the Live band opens on and the
- * shot `askShots()` spends 221 KB fetching, and the tail is where the arrows stop. "Not
- * placeable" is not "newest", and it is not "oldest" either — it is out of the running.
- *
- * @param {Array} items    the page as the wire sent it
- * @param {string} order   `SHOT_ORDER.NEWEST_FIRST` or `SHOT_ORDER.OLDEST_FIRST`
- */
 export function orderShots(items, order = SHOT_ORDER.NEWEST_FIRST) {
     const list = Array.isArray(items) ? items : [];
     /* Descending unless asked for ascending — the same reading of an unrecognised
@@ -257,13 +200,6 @@ export function orderShots(items, order = SHOT_ORDER.NEWEST_FIRST) {
     return decorated.map((entry) => entry.item);
 }
 
-/**
- * @param {object} deps
- * @param {object} deps.transport                 a `createReaTransport(...)` client
- * @param {object} [deps.logger]
- * @param {(record: object) => object} [deps.derive]  gate 6's walk; injected so it is countable
- * @param {string} [deps.dash]                    the one absent mark, passed to the row model
- */
 export function createShotsStore({
     transport, logger = null, derive = deriveFromRecord, dash = undefined,
 } = {}) {
@@ -290,13 +226,6 @@ export function createShotsStore({
         return store.get();
     }
 
-    /**
-     * Read one page of the list.
-     *
-     * `limit` is clamped HERE because the handler clamps silently and echoes what it was
-     * asked, so a caller that asked for 200 and read the echo would page for ever over the
-     * same hundred rows.
-     */
     async function readPage({
         limit = store.get().limit,
         offset = store.get().offset,
@@ -329,11 +258,6 @@ export function createShotsStore({
         const items = page && Array.isArray(page.items) ? page.items : [];
         return publish({
             status: SHOTS_STATUS.READY,
-            /* IN THE ORDER THIS STORE ASKED FOR, decided here from each shot's own
-             * `timestamp` rather than taken from the array's arrival order — see
-             * `orderShots`. One ordering owner, so the band's arrows, the History list
-             * and the comparison pickers cannot disagree about which shot comes next.
-             * A page the server already ordered passes through unchanged. */
             items: Object.freeze(orderShots(items, order)),
             /* `total` is the count the pager runs on. `limit`/`offset` are echoed back
              * unclamped, so what is published is what was ASKED after our own clamp. */
@@ -350,13 +274,6 @@ export function createShotsStore({
         });
     }
 
-    /**
-     * The full record for one shot, and its derivation — ONE fetch and ONE walk per id.
-     *
-     * This is the only route in the client that costs ~221 KB, and it is called for a shot
-     * a person picked, never for a row a list happened to paint. `reads.perRow` is not
-     * incremented anywhere in this file, which is the point.
-     */
     async function loadShot(id) {
         if (typeof id !== 'string' || id === '') {
             throw new Error('createShotsStore: loadShot needs a shot id');
@@ -364,13 +281,6 @@ export function createShotsStore({
         if (records.has(id)) {
             return Object.freeze({ ok: true, id, record: records.get(id), derivation: derivations.get(id), cached: true });
         }
-        /* CONCURRENT CALLERS JOIN ONE REQUEST. The memo above only fills when a fetch has
-         * RESOLVED, so two asks for one id inside the same tick each issued their own —
-         * 221 KB and a full gate-6 walk, twice, for the shot this store promises to fetch
-         * and walk exactly once. Reachable the moment two surfaces want the same shot: the
-         * History screen opens on the newest one and a person picks that same one, and the
-         * suite caught it as a third record at one geometry and not the other, which is
-         * what a race looks like from the outside. */
         const held = inFlight.get(id);
         if (held) return held;
         const request = (async () => fetchShot(id))().finally(() => inFlight.delete(id));
@@ -399,21 +309,6 @@ export function createShotsStore({
         return Object.freeze({ ok: true, id, record, derivation, cached: false });
     }
 
-    /**
-     * Write ReaPrime's own per-shot rating.
-     *
-     * `{annotations:{enjoyment:n}}` and nothing else. The handler deep-merges over the whole
-     * stored record, so the patch is the smallest thing that says what changed; sending the
-     * record back would put every field at risk of a round trip it did not need.
-     *
-     * `null` CLEARS the rating and is a legitimate value, not an absence:
-     * `parseOptionalDouble(null)` is null and `ShotAnnotations.toJson` then omits the key.
-     * `undefined` is refused, because a body with no enjoyment key is a request that says
-     * nothing.
-     *
-     * The id is NOT put in the body. The handler 400s only when a body id DISAGREES with the
-     * path (`_updateShot` :196); omitting it cannot disagree.
-     */
     async function setEnjoyment(id, value) {
         if (typeof id !== 'string' || id === '') {
             throw new Error('createShotsStore: setEnjoyment needs a shot id');
@@ -435,10 +330,6 @@ export function createShotsStore({
             publish({ reads: { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 }, error: result });
             return Object.freeze({ ok: false, id, failure: result });
         }
-        /* THE LIST ROW IS UPDATED FROM WHAT WE SENT, NOT FROM THE ECHO — and not by
-         * re-reading the page. The value is ours, the merge is additive, and the alternative
-         * is a second ~221 KB body or a second list request to learn a number we chose. If
-         * the server refuses, the branch above runs and nothing moves. */
         const items = store.get().items.map((item) => (item && item.id === id
             ? { ...item, annotations: { ...(item.annotations || {}), enjoyment: value } }
             : item));
@@ -454,30 +345,6 @@ export function createShotsStore({
         return Object.freeze({ ok: true, id, enjoyment: value });
     }
 
-    /**
-     * Write the note a person keeps about a shot (Ben's decision D14, 30 August 2026).
-     *
-     * `{annotations:{espressoNotes:text}}` and nothing else — the same smallest-honest-patch
-     * rule `setEnjoyment` above follows, for the same reason read off the same handler: the
-     * merge base is `existingShot.toJson()` with measurements included, so a partial patch
-     * cannot lose a sample, and sending the record back would put every field at the mercy
-     * of a round trip it did not need.
-     *
-     * IT WRITES THE ANNOTATION AND NEVER THE TOP-LEVEL `shotNotes`, which is this file's own
-     * header rule (`putShotsById`, fourth bullet) and the contract row's:
-     * `_normalizeLegacyAnnotationPatch` folds a top-level `shotNotes` into
-     * `annotations.espressoNotes` and DELETES it from the patch, and
-     * `_synchronizeLegacyAnnotationAliases` then rewrites the top-level field from the
-     * merged annotations on every PUT. The annotations object is authoritative; the
-     * top-level field is its shadow. A client that writes the shadow is writing to a place
-     * the server is about to overwrite from somewhere else.
-     *
-     * `''` IS A LEGITIMATE VALUE AND MEANS "there is no note", not "say nothing". A person
-     * who selects their note and deletes it has made a statement, and an empty string is
-     * how that statement reaches the wire; `null` is refused rather than silently treated
-     * as the same thing, because `ShotAnnotations` distinguishes them and this store is not
-     * the place to decide they are the same. Anything that is not a string is a caller bug.
-     */
     async function setNotes(id, text) {
         if (typeof id !== 'string' || id === '') {
             throw new Error('createShotsStore: setNotes needs a shot id');
@@ -499,11 +366,6 @@ export function createShotsStore({
             publish({ reads: { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 }, error: result });
             return Object.freeze({ ok: false, id, failure: result });
         }
-        /* UPDATED FROM WHAT WE SENT, NOT FROM THE ECHO — `setEnjoyment`'s rule, and the
-         * reason is the same 221 KB. The TOP-LEVEL SHADOW IS MOVED TOO, because the server
-         * has just rewritten it from the annotation and a held record that disagrees would
-         * make a reader's precedence rule (annotation first, shadow second) answer with a
-         * value that no longer exists anywhere. */
         const patch = (record) => ({
             ...record,
             annotations: { ...(record.annotations || {}), espressoNotes: text },

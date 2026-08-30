@@ -138,13 +138,6 @@ export const SAVE_STATUS = Object.freeze({
     FAILED: 'failed',
 });
 
-/**
- * Where a LIBRARY-VISIBILITY write got to — D20, the editor's "Hidden from the library"
- * switch. Its own status, deliberately not `SAVE_STATUS`: a visibility write is not a
- * save, it puts no profile on the wire, and folding it into the save vocabulary would
- * make `<editor-screen>`'s save announcement fire for it (and, at `saved`, close the
- * editor).
- */
 export const VISIBILITY_WRITE = Object.freeze({
     /** Nothing has been written this session — the RECORD is what the switch reads. */
     IDLE: 'idle',
@@ -194,16 +187,6 @@ const EMPTY_STATE = Object.freeze({
     at: null,
 });
 
-/**
- * @param {object} deps
- * @param {object} deps.transport  `createReaTransport(...)`
- * @param {object} [deps.logger]
- * @param {() => number} [deps.now]
- * @param {(record:object)=>(object|null)} [deps.readOutcome]  R8's seam. When ReaPrime
- *   grows a field saying what the save did, this reads it and NOTHING else changes — no
- *   second code path, no second report shape. Until then the report says `outcomeSource:
- *   'absent'`, which is the honest answer and not a placeholder.
- */
 export function createProfileEditorStore({
     transport, logger = null, now = () => Date.now(), readOutcome = undefined,
 } = {}) {
@@ -216,13 +199,6 @@ export function createProfileEditorStore({
 
     const outcomeReader = typeof readOutcome === 'function' ? { readOutcome } : {};
 
-    /**
-     * Seat a record as the thing being edited, and derive nothing else from it.
-     *
-     * THE VISIBILITY SLICE IS RESET HERE, and it has to be: it is an answer ABOUT a
-     * record, so carrying one record's answer onto the next would have the switch read
-     * the wrong profile's library state.
-     */
     function seat(record) {
         return patch({
             load: EDITOR_LOAD_STATUS.READY,
@@ -258,79 +234,10 @@ export function createProfileEditorStore({
         });
     }
 
-    /* =======================================================================
-     * ONE ROW PER PROFILE — Ben, 27 August 2026
-     * =======================================================================
-     *
-     * "After each save there should still only be one profie, but we should be able to go
-     * back to a previous version, how we do that I dont know what is best".
-     *
-     * A content save was ALREADY a real version chain: `POST /profiles` with `parentId`
-     * stores a new record and leaves the previous one alone, `GET /profiles/{id}/lineage`
-     * serves the whole family, and the editor's Previous versions dialog lists it. The one
-     * move nobody made was taking the SUPERSEDED record off the list, so both stayed
-     * `visible` and Ben's library grew by one on every save. This function is that move.
-     *
-     * WHY IT LIVES IN THE STORE AND NOT IN THE SCREEN. The screen presses a button; the
-     * store owns what a save IS. A second write issued from a screen would be a save path
-     * the store did not know about, and the next screen that saves would have to remember
-     * to do it too. There is one save path and it ends in one row.
-     *
-     * WHY HIDING COSTS NO HISTORY: `getLineage` walks children through
-     * `_storage.getByParentId`, which filters on `parentId` alone with no visibility clause
-     * (`profile_dao.dart:48-52` at the pin). A hidden version is still in its own lineage.
-     * The contract row for `putProfilesByIdVisibility` carries this as a gate, because if
-     * ReaPrime ever adds a visibility filter there, this function starts destroying history
-     * and must stop.
-     *
-     * -----------------------------------------------------------------------
-     * THE ORDER OF THE TWO WRITES IS A SAFETY ARGUMENT, NOT A STYLE CHOICE
-     * -----------------------------------------------------------------------
-     * The saved record is made VISIBLE FIRST, and only then is the parent hidden. Either
-     * write can fail — the machine can be unplugged between them — and the two orders fail
-     * very differently:
-     *
-     *   visible-then-hide  worst case, the hide fails: TWO rows. That is exactly what
-     *                      shipped before this change, so the failure mode is the old
-     *                      behaviour and nothing is lost.
-     *   hide-then-visible  worst case, the un-hide fails: ZERO rows. The profile vanishes
-     *                      from the library, and the person who just pressed Save watches
-     *                      their profile disappear.
-     *
-     * A failure here is therefore advisory and is logged, never published as a save
-     * failure: the SAVE has already succeeded, the server holds the record, and telling
-     * somebody their save failed because a follow-up tidy-up did not land would be a lie
-     * about the thing they care about.
-     *
-     * -----------------------------------------------------------------------
-     * WHY THE SAVED RECORD MIGHT ARRIVE HIDDEN — THE RESTORE PATH, AND ITS TRAP
-     * -----------------------------------------------------------------------
-     * `ProfileController.create` is CONTENT-ADDRESSED AND IDEMPOTENT: it computes the id
-     * from the profile, and if that id is already stored it RETURNS THE EXISTING RECORD
-     * without storing anything and without applying the `parentId` that was sent
-     * (`profile_controller.dart:200-206` at the pin; this file's own header has said so
-     * since it was written). The handler answers 201 either way.
-     *
-     * That is not a corner case here — IT IS THE WHOLE RESTORE PATH. Restoring an older
-     * version loads its steps into the draft and Save writes them back, so the content
-     * being POSTed is content the server already has: the record that comes back is the
-     * OLD one, and this change is what made it hidden. Without the un-hide, restoring a
-     * version and pressing Save would hide the tip, resolve to a hidden record, and leave
-     * the profile with NO visible row at all — the same disappearance as the bad ordering
-     * above, reached by the ordinary use of the feature Ben asked for.
-     *
-     * A NEWLY CREATED RECORD IS ALWAYS `visible` (`ProfileRecord.create` sets it,
-     * `profile_record.dart:85`), so a create response that is NOT visible is proof the
-     * idempotent branch was taken. Nothing is guessed and no hash is computed: the record
-     * says what it is.
-     */
     async function settleToOneRow(result, before) {
         const saved = result && typeof result.data === 'object' ? result.data : null;
         const savedId = profileRecordIdOf(saved);
         const beforeId = profileRecordIdOf(before);
-        /* NOTHING WAS SUPERSEDED. An id-stable answer is one record — there is no second
-         * row to take away, and hiding `beforeId` would hide the record that was just
-         * saved. */
         if (!saved || !savedId || !beforeId || savedId === beforeId) return result;
 
         let latest = saved;
@@ -348,13 +255,6 @@ export function createProfileEditorStore({
             }
         }
 
-        /* A BUNDLED PARENT IS NEVER HIDDEN. `isDefault` records are factory templates:
-         * editing one DERIVES from it rather than superseding it, and D6's
-         * restore-to-factory offer list is `hidden AND isDefault` — "the bundled profiles
-         * you removed". Hiding a template because somebody derived from it would put a
-         * profile in that list which the user never removed. The full argument, and the
-         * cost (a derived bundled profile leaves two rows, once, and never three), is in
-         * `src/lib/profile-lineage.js`. */
         if (isDefaultProfile(before)) {
             log.info(`${beforeId} is a bundled profile — kept on the list; `
                 + `${savedId} is a new profile derived from it, not a version that replaces it`);
@@ -369,15 +269,6 @@ export function createProfileEditorStore({
         return { ...result, data: latest };
     }
 
-    /**
-     * One visibility write. Returns the server's updated ProfileRecord, or null.
-     *
-     * NULL IS THE ONLY FAILURE SHAPE, and every caller above treats it as advisory. A 400
-     * here is not a refusal the user needs worded: `_handleSetVisibility` has no
-     * `jsonNotFound` at all, so an unknown id and a rejected value arrive as the SAME 400
-     * and the status cannot separate them (see the contract row's `no-404-here` gate).
-     * There is nothing honest to put in front of a person, and the save itself succeeded.
-     */
     async function setVisibility(id, visibility) {
         const result = await writeVisibility(id, visibility);
         if (result.ok && result.data && typeof result.data === 'object') return result.data;
@@ -385,19 +276,6 @@ export function createProfileEditorStore({
         return null;
     }
 
-    /**
-     * THE ONE CALL SITE FOR `putProfilesByIdVisibility`, raw.
-     *
-     * Two callers want two different things from it — the supersede path above wants the
-     * record or nothing, and D20's public `setVisibility` wants to tell a REFUSAL from a
-     * FAULT so a person can be told which happened. A second `callRoute` for the same
-     * route would be a second place for the body shape to drift; this is one door with
-     * two readings of its answer.
-     *
-     * THE BODY IS THE BARE FIELD. `{visibility}` and not `{profile: {...}}` — unlike
-     * `postProfiles` and `putProfilesById`, this route takes it unwrapped
-     * (`profile_handler.dart:184-192` at the pin, and the contract row says so).
-     */
     function writeVisibility(id, visibility) {
         return callRoute(transport, 'putProfilesByIdVisibility', {
             params: { id },
@@ -433,18 +311,8 @@ export function createProfileEditorStore({
         subscribe(listener) { return store.subscribe(listener); },
         get() { return store.get(); },
 
-        /**
-         * Open on a record the caller already holds — the ordinary path, since the selector
-         * has the whole listing. NO ROUTE IS TOUCHED: re-reading a record somebody just
-         * handed over is a request nobody needed.
-         */
         open(record) { return seat(record ?? null); },
 
-        /**
-         * Open on an id alone — the deep-link path. `GET /api/v1/profiles/{id}`.
-         * A 404 publishes `missing`, which is what the handler means: `_handleGetById`
-         * returns it when the controller has no record for the id.
-         */
         async loadById(id) {
             const wanted = typeof id === 'string' && id ? id : null;
             if (!wanted) return store.get();
@@ -458,19 +326,6 @@ export function createProfileEditorStore({
             return patch({ load: EDITOR_LOAD_STATUS.FAILED, error: result, at: now() });
         },
 
-        /**
-         * SAVE AS A NEW VERSION — B11's path, and the editor's default for a content edit.
-         *
-         * `POST /profiles` with `parentId` set to the record the editor opened from, so
-         * ReaPrime stores a new record and leaves the previous one alone. The link comes
-         * back on the saved record's own `parentId`, which is what lets the editor say the
-         * old version is kept without computing anything.
-         *
-         * @param {object} profile  the draft, DE1 v2 shape. Sanitized by profileCreateBody.
-         * @param {object} [opts]
-         * @param {object|null} [opts.metadata]
-         * @param {string|null} [opts.parentId]  defaults to the seated record's id
-         */
         async saveAsNewVersion(profile, { metadata = null, parentId = undefined } = {}) {
             const before = store.get().record;
             const parent = parentId === undefined
@@ -490,19 +345,6 @@ export function createProfileEditorStore({
             });
         },
 
-        /**
-         * SAVE THE LABEL — `PUT /profiles/{id}` with metadata only.
-         *
-         * Id-stable: `copyWith` recomputes the hashes from `profile ?? this.profile`, so a
-         * body with no `profile` key hashes to the same id and the record is updated in
-         * place. Legal on a BUNDLED profile too, which is how a bundled profile carries a
-         * user's own dose/yield.
-         *
-         * The metadata map is REPLACED WHOLESALE — there is no server-side merge — so a
-         * caller reads-modifies-writes, and `profile-rules.js createMetadataWriteChain()`
-         * exists to serialize that per record (rule 3). This store does not open a second
-         * chain; pass the already-merged map.
-         */
         async saveMetadata(metadata, { id = undefined } = {}) {
             const before = store.get().record;
             const wanted = id === undefined
@@ -520,15 +362,6 @@ export function createProfileEditorStore({
             });
         },
 
-        /**
-         * SAVE OVER THE RECORD — `PUT /profiles/{id}` carrying `profile`.
-         *
-         * READ THIS BEFORE CALLING IT. When the recomputed hash differs from the stored id,
-         * `ProfileController.update` runs `_storage.delete(existing.id)` and then stores the
-         * new record; the previous version is GONE, and the controller's own log line says
-         * "Consider using parentId for versioning". Offered because a caller may genuinely
-         * want a replace, and named so nobody reaches it thinking it is the B11 path.
-         */
         async saveInPlace(profile, { metadata = null, id = undefined } = {}) {
             const before = store.get().record;
             const wanted = id === undefined
@@ -546,48 +379,9 @@ export function createProfileEditorStore({
             });
         },
 
-        /**
-         * SET THE RECORD'S LIBRARY VISIBILITY — D20's public writer.
-         *
-         * `PUT /api/v1/profiles/{id}/visibility` with the bare `{visibility}` field. Its
-         * handler is `ProfileHandler._handleSetVisibility` and the row is in
-         * `CONTRACTS.json`, both verified at the pin `2b047d02`; nothing new was added to
-         * the contract table for this.
-         *
-         * WHY THIS IS A DELIBERATE PUBLIC METHOD rather than a reuse of the internal one.
-         * `setVisibility(id, visibility)` inside this file exists for the SUPERSEDE path
-         * and answers it the way that path needs: the record or null, with the failure
-         * logged and swallowed, because there the write is advisory and the save it
-         * follows has already succeeded. A person pressing a switch is the opposite case —
-         * the write IS the gesture, so its ending has to become state a screen can paint.
-         *
-         * IT DOES NOT TOUCH `record`, AND THAT IS THE DESIGN. `<editor-screen>` re-seats
-         * its DRAFT whenever the record object's identity changes — deliberately, and with
-         * the measurement behind it in its own `#onStoreState` — so publishing the
-         * server's answer as a new `record` here would discard every unsaved step edit the
-         * moment somebody flipped the switch. The answer therefore lands in its own slice,
-         * and a reader takes `visibility.value` when there is one and `record.visibility`
-         * when there is not. `record` stays exactly what it says it is: the record as
-         * served for EDITING.
-         *
-         * IT DOES NOT TOUCH `save` EITHER — see `VISIBILITY_WRITE`.
-         *
-         * A REFUSAL AND A FAULT ARE SEPARATED, because the screen prints a refusal
-         * verbatim and words a fault itself. Note the contract's `no-404-here` gate: this
-         * handler has no `jsonNotFound` at all, so an unknown id and a rejected value
-         * arrive as the SAME 400 and the status cannot tell them apart.
-         *
-         * @param {string} visibility  one of `PROFILE_VISIBILITY`.
-         * @param {object} [opts]
-         * @param {string} [opts.id]  defaults to the seated record's id.
-         */
         async setVisibility(visibility, { id = undefined } = {}) {
             const before = store.get();
             const wanted = id === undefined ? profileRecordIdOf(before.record) : id;
-            /* NO RECORD, NO WRITE, AND NO PRETENDING. A draft that has never been saved
-             * has no id to address, so there is nothing to hide and nothing to report. The
-             * caller renders the control unavailable and says why (A7); this returns the
-             * state unchanged rather than inventing a failure. */
             if (!wanted) {
                 log.warn('a visibility write was asked for with no record seated — ignored');
                 return before;
@@ -622,10 +416,6 @@ export function createProfileEditorStore({
                     },
                 });
             }
-            /* THE ANSWER STATES THE NEW STATE. `_handleSetVisibility` returns the whole
-             * updated ProfileRecord, so what the switch reads back is what the server
-             * stored — never the value that was asked for. A server that stored something
-             * else is a thing the person gets to see. */
             const served = profileVisibilityOf(result.data);
             return patch({
                 visibility: {

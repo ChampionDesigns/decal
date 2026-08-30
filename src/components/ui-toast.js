@@ -1,9 +1,5 @@
 /**
  * <ui-toast> — the transient notice surface.
- *
- * It paces the notices slotted into it: adopting them, timing them, playing them in
- * and out, and capping how many show at once. It creates nothing except through
- * show(); a consumer may slot its own element and take it back at any time.
  */
 
 import { css, html } from 'lit';

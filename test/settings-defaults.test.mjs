@@ -115,7 +115,10 @@ describe('the decisions table answers for the keys it claims to answer for', () 
             }
         })(root);
         const corpus = files.map((f) => readFileSync(f, 'utf8')).join('\n');
-        for (const name of ['STORED_DEFAULTS', 'MACHINE_FALLBACKS', 'HOT_WATER_STOP',
+        /* The two data tables are not in this list: their consumers are defaultFor,
+           hasDefault and machineFallbackFor in the same module, and they are exported for
+           tests. The rule hunts a feature built and never wired, which is different. */
+        for (const name of ['HOT_WATER_STOP',
             'defaultFor', 'machineFallbackFor', 'hasDefault']) {
             assert.ok(new RegExp(`\\b${name}\\b`).test(corpus),
                 `${name} is exported and nothing in src/ reads it — a finished half with no other half`);

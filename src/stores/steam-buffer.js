@@ -27,13 +27,6 @@
 import { createStore } from './store.js';
 import { CHART_MODE, STEAM_CHANNELS } from '../lib/steam-chart.js';
 
-/**
- * How many samples one session may hold — Ben's number, 25 August 2026: "Sample cap Steam:
- * good to have but can reduce to 2000." A 15 Hz feed fills it in a little over two minutes,
- * which is longer than any steaming and shorter than the espresso cap by the ratio the two
- * jobs actually differ by. It was 9,000, which was the espresso cap's arithmetic applied to
- * a session that never runs that long.
- */
 export const STEAM_SAMPLE_CAP = 2000;
 
 const emptySeries = () => Object.fromEntries(
@@ -62,15 +55,6 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
     let columns = Object.fromEntries(STEAM_CHANNELS.map((key) => [key, []]));
     let dropped = 0;
 
-    /**
-     * The published series, built ONCE per session over the LIVE arrays.
-     *
-     * NOTHING IS COPIED, and that is a measured decision rather than a style. Slicing six
-     * arrays on every sample is O(n^2) over a session — 9000 samples took 2.6 s in the
-     * suite before this — and the layer underneath is written for exactly this: uPlot's
-     * host says "Append-safe: nothing is copied" of the records it is handed. What makes
-     * a publish a CHANGE is the new state object, which is what a consumer compares.
-     */
     let series = null;
 
     const publish = () => store.set(Object.freeze({
@@ -86,10 +70,6 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
         t = [];
         columns = Object.fromEntries(STEAM_CHANNELS.map((key) => [key, []]));
         dropped = 0;
-        /* THE X ARRAY IS THE SHARED AXIS FOR EVERY CHANNEL, which is the shape the card's
-         * cursor indexes into. A channel with no reading yet still gets the axis and a
-         * null at that index, so the arrays stay the same length and a gap draws as a gap
-         * rather than shifting the line left. */
         series = Object.freeze(Object.fromEntries(
             STEAM_CHANNELS.map((key) => [key, Object.freeze({ x: t, y: columns[key] })]),
         ));
@@ -101,31 +81,9 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
         subscribe(listener) { return store.subscribe(listener); },
         get() { return store.get(); },
 
-        /**
-         * Take one frame.
-         *
-         * THE MODE DECIDES, NOT THIS STORE. `chartModeFor` already answers "is this a
-         * steam session, and is it pouring"; asking the same question a second way here
-         * is how two answers appear. What this owns is the accumulation.
-         *
-         * A NEW SESSION CLEARS THE OLD ONE, and the trigger is the mode leaving steam
-         * rather than a session id — the machine issues none. So a hold that expires and
-         * a steam that follows an espresso both arrive as `mode: espresso` first, and the
-         * next pouring sample starts from zero.
-         *
-         * @param {object} frame
-         * @param {string} frame.mode      the resolved chart mode
-         * @param {boolean} frame.pouring  is the valve open on this frame
-         * @param {object|null} frame.machine  a machine snapshot reading, or null
-         * @param {number|null} frame.milk     the milk probe's temperature, or null
-         * @param {number} frame.at        the frame's own timestamp, in ms
-         */
         take({ mode, pouring, machine, milk = null, at = now() } = {}) {
             if (mode !== CHART_MODE.STEAM) {
                 if (t.length === 0 && originMs === null) return store.get();
-                /* LEAVING STEAM ENDS THE SESSION. The samples stay published until the
-                 * next one starts, because the hold's whole purpose is to keep the
-                 * finished graph on screen for the settle window. */
                 return store.get();
             }
             if (!pouring) {
@@ -139,9 +97,6 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
             if (originMs === null) originMs = at;
             if (t.length >= STEAM_SAMPLE_CAP) {
                 dropped += 1;
-                /* PUBLISHED ONCE, AT THE CAP. A session that runs past it is being
-                 * dropped from now on and the count only grows; republishing per dropped
-                 * sample would be churn for a number nobody is watching change. */
                 return dropped === 1 ? publish() : store.get();
             }
             const seconds = (at - originMs) / 1000;

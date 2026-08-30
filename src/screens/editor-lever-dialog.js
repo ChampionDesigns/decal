@@ -1,83 +1,5 @@
 /**
- * editor-lever-dialog.js — <editor-lever-dialog>, the profile editor's LEVER dialog:
- * an INSTANCE of #18 `<ui-dialog>` holding the two feel legs, the three presets, and P0
- * shown but not editable.
- *
- * Its sibling is `editor-exit-dialog.js`; what they share is `editor-dialog-parts.js`.
- * SCOPE Part 5 §5 "Components" ("`<x-dialog>` (exit condition, lever)");
- * `LAYOUT_SPEC_DRAFT.md` §4.3 and §4.6; wave 5.5, row `editor-dialogs` (O6, O8).
- *
- * ===========================================================================
- * WHAT THIS FILE IS, AND WHAT IT IS DELIBERATELY NOT
- * ===========================================================================
- * These two bodies did not exist. A unique `customElements.define()` sweep over `src/**`
- * returns no tag matching `lever` or `exit-condition`, and neither was ever numbered by
- * the 57-item inventory — they are named only in `LAYOUT_SPEC_DRAFT.md:685` and :795-796.
- * `test/render/dialog-body-integration.render.test.mjs:35` records the absence as
- * EXPECTED and wave 5.2's brief ("this phase integrates and proves, it does not
- * construct") deferred them to the phase that owns the screen. This is that phase.
- *
- * SO NEITHER OF THESE IS A COMPONENT. They are SCREEN-LEVEL COMPOSITIONS, in
- * `src/screens/` beside `editor-body.js` and `step-matrix.js`, and every part they are
- * made of is a library component used as shipped:
- *
- *   #18 ui-dialog      the modality — inert, focus trap, focus restore, Escape, scrim
- *   #3  ui-bank        the exit type, the direction, the lever presets
- *   #4  ui-stepper     every number, armed from the ONE ranges door
- *   #43 ui-locked-value  P0 in the lever dialog: shown, never edited (see below)
- *   #1  ui-button      the two actions
- *
- * O6 IS THE WHOLE POINT: "seven hand-rolled dialogs". There is no `<dialog>`, no scrim,
- * no z-index, no focus handling and no Escape handler in this file. Each element HOSTS a
- * `<ui-dialog>` in its own shadow root and forwards `show`/`hide`/`requestClose` to it —
- * the same composition #19 `ui-confirm-dialog` and #53 `ui-numeric-keypad` use, and both
- * of these are added as rows to that suite's BODIES table rather than getting a second
- * suite of their own. A second modal mechanism would be the block.
- *
- * O8 dies by the same composition: #18 marks the page `inert`, traps focus, restores the
- * caret to the invoker synchronously on close and owns Escape through its stack. Slate's
- * notes modal was `aria-modal="true"` with none of the four.
- *
- * ===========================================================================
- * THE LEVER PRESET INVARIANT, WHICH AN EARLIER VERSION BROKE
- * ===========================================================================
- * `profile-modes.js:329-333`, verbatim: "a feel preset sets the SPRING CHARACTER ONLY —
- * Spring (`leverSpring`) plus Give (`leverGive`). It NEVER touches P0 (`step.pressure`):
- * P0 is the barista's recipe choice and changing the feel must not silently move the peak
- * pressure." `LEVER_PRESETS` sets exactly those two keys and `inferLeverPreset` matches on
- * the pair alone, so a CLASSIC-feel step authored at P0 = 8 bar still reads CLASSIC.
- *
- * This dialog therefore CANNOT express a P0 change: P0 is rendered in a #43 locked value
- * box, the draft it edits has exactly two keys, and the event it emits carries exactly
- * those two. The invariant is asserted across every preset in the suite — the emitted
- * detail has no pressure key and the locked box's reading is byte-identical before and
- * after each pick.
- *
- * NO "CUSTOM" CHIP. `LEVER_PRESETS` has three entries and `inferLeverPreset` returns
- * CUSTOM for a feel that matches none of them. A fourth chip would be a control that sets
- * nothing — P10's dead affordance — so a custom feel simply selects no chip, which is
- * #3's own stated behaviour for a value matching no item.
- *
- * ===========================================================================
- * B2 — NOT ONE BOUND IS WRITTEN HERE
- * ===========================================================================
- * Every min/max/step/unit arrives through `src/lib/editor-ranges.js`, injected as the
- * `ranges` property, and is handed straight to #4. A refused field renders the control
- * DISABLED carrying the door's own reason (A7) — never a plausible band. The four fields
- * these two dialogs edit are `exitCondition` (by exit type), `stepLeverSpring` and
- * `stepLeverGive`; the door resolves each to exactly one table entry.
- *
- * ===========================================================================
- * THE DRAFT IS THE SCREEN'S  (B10's neighbour, and #41's contract)
- * ===========================================================================
- * Both dialogs hold a LOCAL draft while open and emit ONE event on the confirm action.
- * Cancel emits nothing and writes nothing. `step` is read and never mutated; the screen
- * owns the profile draft, exactly as `ui-exit-sentence` and `step-matrix` already state.
- *
- * D2: every readable string is a value read through I18nController. The exit type faces
- * come from `exitTypeLabel` (the same table the sentence's subject reads) and the two
- * verbs from `EXIT_VERB`, so a word is never spelled twice — "two spellings of one word
- * is how the Review path drifted from the editor in the first place".
+ * <editor-lever-dialog>, the profile editor's LEVER dialog: an INSTANCE of #18 <ui-dialog> holding the two feel legs, the three presets, and P0 shown but not editable.
  */
 
 import { html, nothing } from 'lit';
@@ -101,30 +23,13 @@ export const LEVER_CHANGE = 'lever-change';
 /** The preset names, in `LEVER_PRESETS` declaration order. */
 export const LEVER_PRESET_NAMES = Object.freeze(Object.keys(LEVER_PRESETS));
 
-/**
- * THE ACCESSIBLE READING for the P0 box — a caption and the already-formatted value,
- * joined by the TABLE and not by `+` here, because a word-order change is exactly what
- * concatenation at a call site cannot survive (i18n/source/strings.json `placeholderRule`).
- * The same shape `{label}, step {n}` takes for the matrix's per-cell names.
- */
 export const P0_READING_KEY = '{label}, {value}';
 
-/**
- * The chip faces. The port's `LEVER_FEEL_WORD` is the REVIEW SENTENCE's word — lower
- * case, mid-sentence ("a classic feel") — and `profile-modes.js:140-143` states the rule
- * this follows: wording is verbatim PER SURFACE, ranges are not. A chip is its own
- * surface, so it asks the catalogue for the casing it wants; both go through `t()` and
- * neither invents a second range, a second order or a second preset.
- */
 export const LEVER_PRESET_LABEL = Object.freeze({
     CLASSIC: 'Classic',
     GENTLE: 'Gentle',
     FIRM: 'Firm',
 });
-
-/* ===========================================================================
- * THE LEVER DIALOG
- * =========================================================================== */
 
 export class EditorLeverDialog extends UiElement {
     static properties = {
@@ -168,9 +73,6 @@ export class EditorLeverDialog extends UiElement {
 
     show({ invoker = null, reason = 'api' } = {}) {
         this.#seed();
-        /* The draft is a private field, not a reactive property: seeding it outside an
-         * update cycle needs the request said out loud. Inside `willUpdate` the render
-         * that follows already sees it, so the seed there asks for nothing. */
         this.requestUpdate();
         const dialog = this.dialog;
         if (dialog) dialog.show({ invoker, reason });
@@ -211,10 +113,6 @@ export class EditorLeverDialog extends UiElement {
         const p0 = Number(this.step?.pressure);
         const p0Range = resolveRange(this.ranges, 'stepTarget', { pump: 'lever' });
 
-        /* THE READING, COMPOSED ONCE. The number is the step's and the unit is the
-         * DOOR'S (B2) — neither is typed here. `p0Text` is what the box shows and
-         * `p0Reading` is what a screen reader is told; they are built from the same
-         * pieces so no edit can move one without the other. See the P0 row below. */
         const p0Unit = p0Range.range?.unit ? ` ${p0Range.range.unit}` : '';
         const p0Text = Number.isFinite(p0) ? `${p0}${p0Unit}` : '—';
         const p0Reading = Number.isFinite(p0)

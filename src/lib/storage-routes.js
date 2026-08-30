@@ -37,11 +37,6 @@ export const KV_NUMPAD_NAMESPACE = 'decal.numpad';
 // measurably pays… so measure it, do not assume it").
 export const IDB_DATABASE_NAME = 'decal.shot_history';
 
-/**
- * Layers. `kv` and `kvNumpad` are two ReaPrime KV namespaces, kept as distinct layers so
- * a row names its destination completely and the backend map stays flat.
- * `none` means: Decal does not persist this — something else owns it.
- */
 export const LAYERS = Object.freeze({
     local: 'local',
     session: 'session',
@@ -50,7 +45,6 @@ export const LAYERS = Object.freeze({
     none: 'none',
 });
 
-/** Scope is the REASON for the layer, and is what a reviewer checks a row against. */
 export const SCOPES = Object.freeze({
     device: 'device', // describes this tablet — survives nothing else, and should not
     machine: 'machine', // describes the machine or the workflow on it — survives a tablet swap
@@ -166,13 +160,6 @@ export const STORAGE_ROUTES = deepFreeze({
         was: null,
         leaf: 'units-language-units',
     },
-    /* WHAT THE SAVER SHOWS — 'black' | 'image' | 'clock'. IT REPLACES `screensaverClock`
-     * (26 Aug 2026), which was a switch over the blank; three states cannot be two
-     * switches without an unreachable combination and no name for what is showing.
-     *
-     * Device-scoped for the reason its two neighbours are: it is a property of THIS
-     * display, and a second tablet watching the same machine may want a bare black
-     * screen. */
     screensaverType: {
         layer: LAYERS.local, scope: SCOPES.device, status: STATUSES.v1,
         why: 'What the screen shows while the machine sleeps. A property of this display.',
@@ -181,10 +168,6 @@ export const STORAGE_ROUTES = deepFreeze({
         was: 'slate.blackScreenSaver (a two-state version of the same question)',
         leaf: 'display-screen-saver',
     },
-    /* MINUTES, NOT SECONDS, AND THE OLD KEY IS RETIRED BELOW. Slate counted seconds
-     * (2-600); Ben asked for 1-10 minutes, which is a different question with a different
-     * band, so it is a different key rather than the same key holding a number that means
-     * something else on the next read. */
     screensaverCycleMinutes: {
         layer: LAYERS.local, scope: SCOPES.device, status: STATUSES.v1,
         why: 'Same reason as screensaverEnabled.',
@@ -192,14 +175,6 @@ export const STORAGE_ROUTES = deepFreeze({
         was: 'slate.screensaverCycleSeconds (a seconds band; NOT read as minutes)',
         leaf: 'display-screen-saver',
     },
-    /* THE IMAGES THEMSELVES, UN-RETIRED (26 Aug 2026). The row below used to sit in the
-     * retired half on D10's "a black saver has no image list"; Ben restored the Image
-     * type, so there is a list again.
-     *
-     * LOCAL, AND EMPHATICALLY NOT KV. These are data URLs of pictures somebody picked on
-     * THIS tablet: they are large, they are device-scoped by nature, and pushing them
-     * through the machine's key-value store would put megabytes of image on the machine
-     * for every client to fetch. */
     screensaverImages: {
         layer: LAYERS.local, scope: SCOPES.device, status: STATUSES.v1,
         why: 'The pictures the saver cycles, as data URLs. Chosen on this tablet, held on this tablet.',
@@ -227,16 +202,6 @@ export const STORAGE_ROUTES = deepFreeze({
         trace: 'SCOPE Part 6 follow-up: "PROFILE_FOLDER_PREF = \'slate.profileFoldersOpen\' follows the new storage-prefix scheme (A10 — keys are renamed, nothing migrates)"',
         was: 'slate.profileFoldersOpen',
     },
-    /* RETIRED 26 AUGUST 2026, and the question it was provisional about is settled:
-     * ReaPrime DOES own device pairing. `GET /devices` returns every remembered device with
-     * its state, and `preferredScaleId` on `GET/POST /settings` says which one this machine
-     * prefers — so the pairing is the machine's, not this tablet's, and there is nothing
-     * for a device-scoped key to remember.
-     *
-     * NOTHING EVER WROTE IT. The 'Last scale used' row read it and printed the absence dash
-     * on every machine for ever, which is what the sweep for halves-with-no-other-half
-     * found. The row is deleted; this stays as a retired row so the name cannot be
-     * re-adopted without meeting this note. */
     scaleDeviceId: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
         why: 'ReaPrime owns device pairing: GET /devices lists what is remembered and preferredScaleId names the choice. Nothing in this skin ever wrote this key.',
@@ -244,56 +209,12 @@ export const STORAGE_ROUTES = deepFreeze({
         was: 'slate.scaleDeviceId',
         owner: 'ReaPrime — GET /api/v1/devices and preferredScaleId on /api/v1/settings',
     },
-    /* THE TWO DYE2 KEYS HAVE NO LEAF ANY MORE (26 August 2026). Ben deleted the page —
-     * "delete the DYE2 leaf and move what it does into Plugins" — because its one switch
-     * was a finished half with no other half: a control, a routing row and a store, and no
-     * reader anywhere in `src/`.
-     *
-     * NO `leaf`, deliberately: a key naming a leaf that does not exist is how a routing
-     * table starts describing a tree it no longer matches. */
     dyeStripMode: {
         layer: LAYERS.local, scope: SCOPES.device, status: STATUSES.provisional,
         why: 'P/F/R strip display mode. Gated on Q6 — whether the DYE2 strip ships in v1 Live at all. Still open: the strip is a rendered surface and nothing has been built for it.',
         trace: 'SCOPE Part 9 Q6; old skin dyeStrip.js:25,:349,:429; Ben, 26 Aug 2026 (the leaf is deleted)',
         was: 'slate.dyeStripMode',
     },
-    /* `dye2Enabled` IS RETIRED (27 August 2026), AND THE QUESTION IT WAS PROVISIONAL ABOUT
-     * IS ANSWERED — by the button it was being held open for.
-     *
-     * WHAT THIS ROW WAS WAITING ON. It stood provisional with the note "Ben's current
-     * thinking is that the toggle should enable the Live page's button beside 'All notes',
-     * which loads DYE2 — and that is a decision, not a build. This row is where the answer
-     * lands the day it is made." Ben made the decision on 27 August: "Have the button open
-     * the bean picker page for now, I need to do more work on this though." The button is
-     * built. This row is not what gates it, and here is why.
-     *
-     * ITS ONLY WRITER WAS DELETED ON BEN'S OWN CALL. The DYE2 leaf and its one switch went
-     * on 26 August — "delete the DYE2 leaf and move what it does into Plugins". So a gate on
-     * this key would have been a gate on a value nothing in the skin can set: the button
-     * would have been unreachable on every machine, for ever, which is a worse defect than
-     * the unread key it was meant to cure. A reader for a key with no writer is not "making
-     * it mean something".
-     *
-     * AND THE PLACE BEN MOVED IT TO ALREADY OWNS THE ANSWER. "Move what it does into
-     * Plugins" was not a filing instruction — it named the right owner. The Plugins page
-     * lists DYE2 with the enable switch every plugin gets, and that switch writes ReaPrime's
-     * own plugin state through `PUT /api/v1/plugins/{id}/enable`, which sets both `loaded`
-     * and `autoLoad`. "Does this machine offer DYE2" therefore has a store, a control and a
-     * wire representation already, and it is not this one. A device preference beside it
-     * would be TWO STORES FOR ONE SETTING, which is the exact defect B7 exists to refuse —
-     * and they could disagree in the direction that hurts: DYE2 disabled on the Plugins page
-     * and the Live button still offered by a tablet key that had not heard.
-     *
-     * WHAT READS THE REAL ANSWER: `live-wiring.js`'s `#dye2Loaded`, off the plugin listing,
-     * on `loaded` rather than `autoLoad` (its own paragraph says why a link and a switch
-     * want different halves of that pair).
-     *
-     * THE ROW STAYS AS A RETIRED ROW rather than being deleted, on the same terms as
-     * `scaleDeviceId` above: the name cannot be re-adopted without meeting this note. If
-     * Ben's "more work on this" turns out to want a per-tablet opt-out ON TOP of the
-     * plugin's own state — a machine that has DYE2 but one tablet that does not want the
-     * button — this row comes back with a control beside it, and the gate becomes an AND.
-     * That is a real possibility and it is not what was asked for today. */
     dye2Enabled: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
         why: 'ReaPrime owns whether DYE2 runs: GET /api/v1/plugins reports loaded/autoLoad and the Plugins page\'s switch is the one control. A tablet copy would be two stores for one setting.',
@@ -301,10 +222,6 @@ export const STORAGE_ROUTES = deepFreeze({
         was: 'slate.dye2Enabled',
         owner: 'ReaPrime\'s plugin loader — GET /api/v1/plugins and PUT /api/v1/plugins/{id}/enable, surfaced on Settings › Extensions › Plugins',
     },
-
-    /* THE TWO HELP-BUTTON KEYS ARE RETIRED (26 August 2026), and they are in the retired
-     * half below. The toggle that read and wrote them controlled a floating "?" button
-     * this skin does not have. */
 
     // --- sessionStorage — ephemeral, one visit.
 
@@ -325,28 +242,6 @@ export const STORAGE_ROUTES = deepFreeze({
     // "It survives a skin reinstall and a tablet swap and is shared across clients — which
     // is the definition of machine-scoped." (SCOPE Part 3 §5.)
 
-    /* RETIRED 27 AUGUST 2026, ON THE DAY THIS ROW'S OWN TEXT NAMED.
-     *
-     * It said "retire it the day the rail derives the mode too", and described what was left
-     * of it after the settings pass: "THE ROW SURVIVES BECAUSE `live-wiring.js` STILL WRITES
-     * IT for the rail's own two-option control. Moving that surface onto the same derivation
-     * is the other half of the fix and belongs with the rail." That half is built. The Live
-     * rail derives the steam stop from `steamSettings.stopAtTemperature` and
-     * `steamSettings.duration` (`live-targets.js steamStopFrom`), which is the same
-     * derivation the `machine-steam-stop` bank runs, and writes the same two fields back
-     * through the workflow door. Nothing reads this key and nothing writes it.
-     *
-     * WHAT THE COPY COST WHILE IT LIVED, recorded because it is the argument for the table:
-     * the rail's vocabulary had two members and the machine has three, so an "Off" chosen on
-     * the Settings page came back through this key as "time" and the rail printed "Timed
-     * stop" over a machine that stops the steam on nothing.
-     *
-     * THE STORED DEFAULT WENT WITH IT and did not need keeping. Ben's answer to the defaults
-     * picker was "Steam stop: time", and a machine holding a positive `steamSettings.duration`
-     * IS Time — so his decision now lives where the value does, as
-     * `MACHINE_FALLBACKS.steamDuration = 60` ("Steam duration: 60"). One decision, one table;
-     * leaving a second copy in `STORED_DEFAULTS` would have been this row's own defect in
-     * miniature. */
     steamStopMode: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
         owner: 'ReaPrime — steamSettings.duration and steamSettings.stopAtTemperature on the workflow document (GET/PUT /api/v1/workflow). The mode is which of the two is positive; both zero is Off.',
@@ -356,18 +251,6 @@ export const STORAGE_ROUTES = deepFreeze({
             + 'ReaPrime steam_sequencer.dart:134-140.',
         was: 'slate.steamStopMode, then KV decal.steamStopMode',
     },
-    /* RETIRED 26 AUGUST 2026, AND THE ROW ABOVE PREDICTED IT. Its own text said the
-     * reversal was "one row in storage-routes.js the day the machine route carries the
-     * field"; the field was there all along, on the door this skin built for steam
-     * TEMPERATURE. `steamSettings.duration` is a field of the workflow document
-     * (ReaPrime workflow.dart:233-240) and `PUT /api/v1/workflow` deep-merges, so the
-     * settings page now stages it through `machine-fields-port.js` exactly as it stages
-     * the temperature beside it.
-     *
-     * THE SPLIT THIS CLOSES WAS REAL AND WAS SHIPPING. `workflow-targets.js` already read
-     * `steamDuration` off the workflow for the Live rail, so the rail and the settings
-     * page held two different numbers for one setting — the defect this whole table
-     * exists to prevent, sitting inside the table. */
     steamDuration: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
         owner: 'ReaPrime — steamSettings.duration on the workflow document (PUT /api/v1/workflow, read on GET /api/v1/workflow).',
@@ -376,22 +259,6 @@ export const STORAGE_ROUTES = deepFreeze({
             + 'workflow-targets.js SCALAR_FIELDS steamDuration; machine-fields-port.js WORKFLOW_FIELD_PATHS.',
         was: 'slate workflow.steamSettings.duration (PUT /api/v1/workflow), then KV decal.steamDuration',
     },
-    /* THE TWO "WHAT TO COME BACK TO" VALUES, AND THEY ARE cupWarmerTarget's CLASS.
-     *
-     * The steam page and the water-tank page each grew a master switch on 26 August 2026
-     * (Ben: "add a new toggle to the top to turn the steam on and off"; "add a toggle to
-     * the top, preheat water tank"). Neither switch is a new setting: the machine already
-     * expresses both as a target temperature of ZERO, which is what
-     * `machine-limits.js` said in `zeroMeans` long before there was a control for it.
-     *
-     * What the machine CANNOT hold is the temperature to return to, because the field it
-     * would be held in is the one set to zero. That is exactly the sentence
-     * `cupWarmerTarget` below already carries — "the machine holds only the live value
-     * (0 when off)" — so these two rows are the same row three times, and they are
-     * machine-scoped for the same reason: they describe how this machine is set up.
-     *
-     * ONE STORE STILL. The live value is the machine's and is never mirrored here; only
-     * the restore point is. A skin that stored both would be the dual-write bug. */
     steamTempWhenOn: {
         layer: LAYERS.kv, scope: SCOPES.machine, status: STATUSES.v1,
         why: 'The steam target to restore when the steam switch is turned back on. The machine holds 0 while steam is off, so the value to come back to cannot live there.',
@@ -406,24 +273,6 @@ export const STORAGE_ROUTES = deepFreeze({
         was: 'nothing',
         leaf: 'machine-water-tank',
     },
-    /* RETIRED 27 AUGUST 2026, on the day this row named too — "retire it the day the rail
-     * reads the machine field too".
-     *
-     * THE DOOR WAS ADOPTED FOR SETTINGS ON 26 AUGUST and for the Live rail the day after.
-     * The reason this key had been kept alive was that the rail held its own copy of the
-     * choice; it no longer does. `live-wiring.js` reads `stopHotWaterAtWeight` off
-     * ReaPrime's preferences document through the shell's app-settings store and writes the
-     * same field back on a press, which is the field `hot_water_sequencer.dart:106` actually
-     * reads. Nothing reads this key and nothing writes it.
-     *
-     * WHAT THE COPY COST WHILE IT LIVED, measured rather than argued: on the recorded mock,
-     * whose machine holds `stopHotWaterAtWeight: true`, the rail printed "Volume stop" and
-     * "240 mL" while the machine would have cut the pour at 240 grams — and pressing the
-     * rail's own toggle moved this key and left the machine exactly as it was.
-     *
-     * THE STORED DEFAULT WENT WITH IT, and Ben's decision did not: "Hot water stop: weight"
-     * is `MACHINE_FALLBACKS.stopHotWaterAtWeight`, which reads it off `HOT_WATER_STOP` — the
-     * one place that choice is written down. */
     hotWaterStopMode: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
         owner: 'ReaPrime — stopHotWaterAtWeight on GET/POST /api/v1/settings, read by hot_water_sequencer.dart:106.',
@@ -820,21 +669,6 @@ export function allKeys(routes = STORAGE_ROUTES) {
     return Object.keys(routes).sort();
 }
 
-/**
- * The settings-screen key enumeration — a DERIVED VIEW of the table above, never a second
- * list. Every key whose row names a `leaf`.
- *
- * This is what the wave 5.4 totality test quantifies over ("each key -> exactly one layer;
- * two layers is a failure, zero is a failure"). Deriving it means the enumeration cannot
- * drift from the routes: a key is in it because it HAS a row, so "enumerated but unrouted"
- * is not a state this codebase can represent. The failure it is guarding against is the
- * other direction — a leaf reading a key nobody gave a row — and that one the router
- * already turns into a throw at the first call (UNKNOWN_KEY), which is how the two
- * quickstart-guide keys were found.
- *
- * Rows with `layer: 'none'` are excluded: they are settings a leaf may DISPLAY, but Decal
- * does not store them, and including them would make the layer counts lie.
- */
 export function settingsKeys(routes = STORAGE_ROUTES) {
     return allKeys(routes).filter((key) => Boolean(routes[key].leaf) && routes[key].layer !== LAYERS.none);
 }
@@ -849,12 +683,6 @@ export function keysForLeaf(leaf, routes = STORAGE_ROUTES) {
     return settingsKeys(routes).filter((key) => routes[key].leaf === leaf);
 }
 
-/**
- * Capability -> the settings keys it gates (A3). Fail-closed handling lives in the settings
- * store; this is the data half. Every name here must be one ReaPrime actually serves —
- * `test/settings-contract.test.mjs` reads the seven out of the handler at the pin and fails
- * on a name that is not among them, so a typo cannot become a permanently-hidden surface.
- */
 export function gatedSettingsKeys(routes = STORAGE_ROUTES) {
     const byCapability = new Map();
     for (const key of settingsKeys(routes)) {

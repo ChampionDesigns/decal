@@ -56,14 +56,6 @@ const NOOP_LOGGER = Object.freeze({
     debug() {}, info() {}, warn() {}, error() {},
 });
 
-/**
- * @param {object} options
- * @param {object} options.backends   layer id -> backend. A backend is
- *        `{ get(key), set(key, value), remove(key) }`, sync or async, keyed by PHYSICAL
- *        key, dealing in JSON-able values. `undefined` means absent.
- * @param {object} [options.routes]   the routing table (injectable for tests).
- * @param {object} [options.logger]   anything with debug/info/warn/error.
- */
 export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, logger = NOOP_LOGGER } = {}) {
     const log = logger.scope ? logger.scope('storage') : logger;
     const listeners = new Set();
@@ -124,11 +116,6 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
     }
 
     return {
-        /**
-         * Read one key. Never throws on a backend failure — a broken read must not take a
-         * screen down — but always logs, because a swallowed failure is the bug this
-         * module exists to remove. Returns `fallback` (default undefined) when absent.
-         */
         async get(key, { params, fallback } = {}) {
             const { row, physical, backend } = resolve(key, params);
             try {
@@ -141,21 +128,6 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
             }
         },
 
-        /**
-         * Write one key to its ONE layer. Resolves true on success, false on a backend
-         * failure — and on failure writes NOWHERE ELSE. There is deliberately no
-         * "fall back to localStorage": that is precisely the dual-write bug.
-         *
-         * NULL AND UNDEFINED DELETE, they do not store. `get()` above already collapses
-         * both to "absent" (a stored null is unreadable through this router by
-         * construction), so storing one could only ever produce a value nothing can
-         * read — and on the KV layer it produces something WORSE than unreadable.
-         * ReaPrime's handler does `jsonDecode(body) ?? body` (kv_store_handler.dart:41-48),
-         * and `jsonDecode('null')` is null, so the `??` falls through to the RAW BODY
-         * STRING: `set(key, null)` lands the four-character string 'null' in the store,
-         * which reads back as a present, truthy setting. Routing null to remove() closes
-         * that for every backend at once rather than per-backend.
-         */
         async set(key, value, { params } = {}) {
             if (value === undefined || value === null) {
                 log.debug(`'${key}' was set to ${value}; the router cannot store an absent value, so it is removed instead`);
@@ -177,10 +149,6 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
             return removeKey(key, params);
         },
 
-        /**
-         * Notify on every successful write or delete. This is the seam the settings store
-         * (Gate 4 / wave 5.4) fans out from — the router itself stays non-reactive.
-         */
         onChange(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
@@ -236,9 +204,6 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
         }
     }
 
-    /* Shared by remove() and by set()'s null path. A free function, not `this.remove`:
-     * the returned object is routinely destructured (`const { set } = storage`), and a
-     * `this` reference would turn that into a TypeError at the first null write. */
     async function removeKey(key, params) {
         const { row, physical, backend } = resolve(key, params);
         try {
