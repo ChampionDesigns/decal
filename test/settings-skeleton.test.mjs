@@ -1,14 +1,4 @@
-// THE SETTINGS SKELETON, AT SOURCE LEVEL — wave 5.4, rows `settings-shell-skeleton`,
-// `nav-columns-shared-pitch`, `c4-derived-nav-row-pitch`, `c5-single-gap-divider`,
-// `leaf-pane-one-measure`, `scroll-regions-floors`.
-//
-// WHAT BELONGS HERE AND WHAT BELONGS IN THE RENDER SUITE. Anything about a rendered box
-// is measured in `test/render/settings-skeleton.render.test.mjs` off the engine — pitch,
-// the collapse, the floors, the measure. What is here instead is the class of claim a
-// measurement CANNOT make: that a number exists in exactly one place, that a floor is a
-// token rather than a literal that happens to equal one today, and that a defect has no
-// spelling in this tree. A screen can measure right and still carry the mechanism that
-// made the old one wrong.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -28,13 +18,6 @@ const SCREEN_FILES = [
 
 const SOURCE = Object.fromEntries(SCREEN_FILES.map((f) => [f, read(f)]));
 
-/**
- * `stripComments` is JavaScript-aware, so it leaves the CSS comments inside a `css`
- * tagged template alone — they are template CONTENT, not JS comments. Every assertion
- * below is about what the file DOES, and a comment that quotes a defect ("measured
- * pitch 89 vs 93", "rgb(14, 19, 23)") must not read as committing it. So both passes
- * run, in that order.
- */
 const stripCssComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, ' ');
 const CODE = Object.fromEntries(
     SCREEN_FILES.map((f) => [f, stripCssComments(stripComments(SOURCE[f]))]),
@@ -46,10 +29,6 @@ const declaration = (name) => {
     assert.ok(m, `${name} is not declared in styles/tokens.css`);
     return m[1].trim();
 };
-
-/* ===========================================================================
- * 1. THE FLOORS ARE TOKENS WITH M18 NOTES  (Part 10 §9's review check)
- * =========================================================================== */
 
 describe('M18: every floor marked "proposal — confirm" is a token, not a frozen number', () => {
     test('--ui-settings-nav-min-h is three nav rows, as arithmetic', () => {
@@ -76,8 +55,6 @@ describe('M18: every floor marked "proposal — confirm" is a token, not a froze
     });
 
     test('one floor token serves BOTH nav columns, and only the column declares it', () => {
-        // T2 read one box out: two instances of one component cannot be given two
-        // floors any more than two pitches.
         assert.match(CODE['src/screens/settings-nav-column.js'],
             /min-block-size: var\(--ui-settings-nav-min-h\)/);
         for (const file of SCREEN_FILES.filter((f) => !f.endsWith('nav-column.js'))) {
@@ -88,10 +65,6 @@ describe('M18: every floor marked "proposal — confirm" is a token, not a froze
             /min-block-size: var\(--ui-settings-leaf-min-h\)/);
     });
 });
-
-/* ===========================================================================
- * 2. C4 — THE PITCH IS CONSUMED, NEVER RE-PINNED
- * =========================================================================== */
 
 describe('C4: --ui-nav-row is derived, and this screen only consumes it', () => {
     test('the token in the sheet is a derivation over --ui-control-h', () => {
@@ -110,17 +83,11 @@ describe('C4: --ui-nav-row is derived, and this screen only consumes it', () => 
     });
 
     test('the columns hold rows and no row height', () => {
-        // The pitch belongs to #24 and #25. A column that declared a row height would
-        // be the second owner §2.3 forbids, and the two columns would be free to drift.
         const column = CODE['src/screens/settings-nav-column.js'];
         assert.doesNotMatch(column, /block-size:\s*var\(--ui-nav-row\)/,
             'the column does not size the rows; the rows do');
     });
 });
-
-/* ===========================================================================
- * 3. C5 / T19 / T4 — THE DIVIDER IS A GAP, SO THERE IS NO SEPARATOR TO GET WRONG
- * =========================================================================== */
 
 describe('C5: one gap, one ink, no separator element', () => {
     test('the body composes the seam utility and writes no divider of its own', () => {
@@ -146,10 +113,6 @@ describe('C5: one gap, one ink, no separator element', () => {
     });
 });
 
-/* ===========================================================================
- * 4. T16 — THE SCROLLBAR IS VISIBLE BECAUSE NOTHING HIDES IT
- * =========================================================================== */
-
 describe('T16: no scrollable region in this cluster hides its scrollbar', () => {
     test('no scrollbar-width, no scrollbar-color, no ::-webkit-scrollbar', () => {
         for (const file of SCREEN_FILES) {
@@ -167,37 +130,7 @@ describe('T16: no scrollable region in this cluster hides its scrollbar', () => 
     });
 });
 
-/* ===========================================================================
- * 5. EVERY LENGTH IS A TOKEN, EXCEPT THE FOUR §4.4 WRITES AS NUMBERS
- * =========================================================================== */
-
 describe('the numbers, and there are only four of them', () => {
-    // §4.4's own track list, the 1100px container threshold, and the collapsed branch's
-    // 30% share. A container condition takes no var(), so 1100 HAS to be a literal.
-    //
-    // THE TWO WIDE-BRANCH MINIMUMS BECAME ONE MEASURED WIDTH (Ben, 26 August 2026: "Can we
-    // make the two menu columns the same width and reduce the overall width the two take
-    // up … Make it around 580? Or does one leaf column have a wide text?").
-    //
-    // ONE DID, AND THEN IT WAS RENAMED. Measured at both Gate A geometries with a Range
-    // over each name at the rendered type, the widest leaf was "Sleep & Wake Schedules" at
-    // 255 — 41px past anything else in the tree, so one name was deciding how much of the
-    // screen the navigation took. Ben: "'Sleep & Wake Schedules' what can we call this to
-    // reduce the text length?" It is "Sleep & Wake" now (141), and the shorter title is
-    // also the truer one — only half that page is schedules.
-    //
-    // So the floors are the widest category, "Units & Language" at 181, and the widest
-    // leaf, "Default load settings" at 214, each plus the row's own 24px of padding on
-    // both sides: 229 and 262. 262 is the smallest EQUAL column where nothing ellipsises,
-    // and two of them is 524 — under the 580 Ben asked for, and 206px back from the 730
-    // the percentage pair took at 1920.
-    //
-    // IT IS A LENGTH AND NOT A TOKEN because it is not on any scale: it is the width of one
-    // string at one type size, measured. `--_ui-settings-nav-col` gives it one home, and
-    // this list is what stops a second one appearing.
-    //
-    // In source order: the column width, the threshold, and the collapsed branch's pane
-    // minimum. Three, and every one of them is stated where it is used.
     const ALLOWED = new Map([
         ['src/screens/settings-master-detail.js', ['262px', '1100px', '220px']],
     ]);
@@ -231,47 +164,9 @@ describe('the numbers, and there are only four of them', () => {
     });
 });
 
-/* ===========================================================================
- * 6. THE LAYER BOUNDARY — a skeleton reaches no data layer
- * =========================================================================== */
-
 describe('what the skeleton does not import', () => {
     test('no store, no endpoint, no limit, no capability, no storage key', () => {
-        /* A NAME IS NOT A DATA LAYER, and the guard could not tell the two apart.
-         *
-         * The boundary this protects is that a skeleton does not READ data: it takes what
-         * it draws through `boot`, and it never opens a store, calls a route or resolves a
-         * limit itself. `import { FEED } from 'src/stores/live-stores.js'` does none of
-         * that — `FEED` is a frozen table of channel NAMES, and the screen uses one of them
-         * to ask `boot.live.feed(...)` for the feed it was given. The store never enters
-         * the file. Blocking it forced the alternative of writing the string 'machineSnapshot'
-         * inline, which is the same import with the single owner removed.
-         *
-         * SO A STORE IMPORT IS ALLOWED ONLY FOR SCREAMING_CASE BINDINGS, which is the
-         * convention every frozen name table in this tree already follows and which no
-         * factory can satisfy — `createLiveStores` fails, `FEED` passes. Everything else on
-         * the list is unchanged and still absolute. */
-        /* WHAT THE BOUNDARY ACTUALLY IS, restated 26 August 2026 after it blocked two
-         * legitimate reads and had to be looked at properly.
-         *
-         * A skeleton takes everything it draws through `boot` — the one injected surface —
-         * and OWNS no data itself: it opens no store, calls no route, resolves no limit and
-         * reads no storage key. `boot.capabilities.machineClass()` and `boot.live.feed(...)`
-         * are that surface being asked a question, which is the pattern, not a breach of it.
-         * Importing `capabilities-store.js` would be the breach.
-         *
-         * So the list is IMPORT-SHAPED now. That is a narrower claim than the old
-         * substring sweep and a truer one: the old version would have passed a file that
-         * imported the capability store under an alias, and failed one whose only sin was
-         * the word `capabilities` on a property read.
-         *
-         * ONE EXEMPTION, and it is bounded by naming: a store module may be imported for
-         * SCREAMING_CASE bindings only. `FEED` is a frozen table of channel names and the
-         * screen uses one to ask `boot` for a feed; no factory can satisfy the pattern
-         * (`createLiveStores` fails, `FEED` passes), so the store itself still cannot enter.
-         *
-         * `callRoute` STAYS ABSOLUTE. It is the one name that is a data read wherever it
-         * appears, property or import. */
+
         const CONSTANT_FROM_STORES = /import\s*\{([^}]*)\}\s*from\s*'src\/stores\/[^']*';/g;
         const forbidden = [
             /from 'src\/data\//,
@@ -305,14 +200,6 @@ describe('what the skeleton does not import', () => {
 
     test('D11: the screen supplies a count and never a word', () => {
         const screen = CODE['src/screens/settings-screen.js'];
-        /* THE COUNT GAINED A SECOND TERM ON 26 AUGUST 2026 and is still a count. The
-         * Lighting leaf carries no registry rows, so `changeCount` was always zero there and
-         * the header's primary Save took its not-dirty branch — it CLOSED the page while
-         * every colour the person had picked sat in the strip's volatile state, pushed live
-         * by a PUT that does not persist. An uncommitted preview is a pending change and is
-         * counted like any other; `#ledPending` is one or nothing, because a strip either
-         * matches NVM or it does not. What has not changed is the boundary: a NUMBER crosses
-         * it, and the wording is still #31's alone. */
         assert.match(screen, /change-count=\$\{this\.changeCount \+ \(this\.#ledPending \? 1 : 0\)\}/,
             '"A count, and nothing else, crosses the boundary"');
         assert.doesNotMatch(screen, /'Save|"Save|Save \(/,
@@ -321,14 +208,4 @@ describe('what the skeleton does not import', () => {
             'both were deleted by D11');
     });
 
-    // There is deliberately no F3/Q1 test in this block, and the one that stood here has
-    // been removed. Part 10 §12's MUST NOT for this workflow reads "no code, no branch, no
-    // plan doc, no placeholder control, no disabled button, no TODO that implies a shape,
-    // no test naming one" — and a test asserting the absence of a particular spelling
-    // still names it and still implies a shape, in its title and three times over in its
-    // regex. The routing cluster wrote the same test, removed it, and recorded why at
-    // test/settings-contract.test.mjs:226-231; this is that reading, applied here. The
-    // guard also protected nothing: there is no such code in these four files for it to
-    // catch. The hole is recorded in deferred_questions, which is the single sanctioned
-    // deliverable, and nowhere else.
 });

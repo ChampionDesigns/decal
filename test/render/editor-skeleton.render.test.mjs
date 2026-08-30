@@ -1,35 +1,5 @@
 /**
- * editor-skeleton.render.test.mjs — wave 5.5, the shell-and-panels cluster:
- * `editor-skeleton`, `settings-panel`, `review-panel`, `tablist-and-selection`.
- *
- * ONE SUITE, FOUR ROWS, because they are claims about the same six boxes and splitting
- * them would mean mounting the screen four times to ask four questions about one layout.
- * The sections below are the rows.
- *
- * A8, AND IT IS THE POINT OF THIS FILE. "The old editor is pinned by tests that
- * regex-match the stylesheet's source text for the 1920x1200 lock and the 64px literals
- * — tests that made the defects UNREMOVABLE." Nothing here opens a file. Every assertion
- * is a computed style or a rendered box: the container queries are SWEPT across their
- * thresholds rather than asserted at two convenient widths, the track lists are the USED
- * ones off getComputedStyle, the collapse branches are read off live CSSOM, and the two
- * floor tokens are proved by MOVING them and watching a box move.
- *
- * IT ASSERTS THROUGH `test/harness/editor.js`, which is this wave's shared helper and
- * `a8-rendering-tests`' actual deliverable — the stage, the selectors, and the four
- * assertions the matrix and editing rows also use. One module that opens no file is a
- * stronger claim than five suites each promising not to. The guard that keeps it true
- * tree-wide is `scripts/a8-source-text.js`; its canary is `test/a8-source-text.test.mjs`.
- *
- * BOTH GATE A GEOMETRIES, AND THE PANELS COLLAPSE DIFFERENTLY AT EACH. The screen fills
- * its window, so a panel's inline size is ~1281 at BENCH and ~1000 at FLOOR:
- *
- *     settings   1164 / 610   BENCH -> 3-up      FLOOR -> 2-up
- *     review     1146         BENCH -> 2 columns FLOOR -> 1 column
- *
- * Gate A therefore exercises four of the five branches without a sweep, and the sections
- * that need a particular branch DRIVE THE PANEL'S OWN BOX rather than photographing
- * whatever the window happened to give it — which is also the only way to prove the
- * queries ask the component's container and not the viewport.
+ *.5, the shell-and-panels cluster: editor-skeleton, settings-panel, review-panel, tablist-and-selection.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -46,13 +16,6 @@ import {
 } from '../harness/editor.js';
 import { assertHitFloor } from '../harness/assertions.js';
 
-/**
- * The panels' authored constants, read OUT OF THE PAGE rather than retyped here. A
- * component module cannot be imported under `node:test` (its `lit` specifier resolves
- * through `index.html`'s importmap and nowhere else), but the modules are already loaded
- * in the page by the time anything is measured, so a dynamic import in the browser hands
- * back the numbers the CSS was written beside. One spelling, in the files that own them.
- */
 const authored = async (page) => JSON.parse(await page.eval(
     'Promise.all(['
     + "import('/src/screens/editor-settings-panel.js'),"
@@ -68,11 +31,6 @@ const authored = async (page) => JSON.parse(await page.eval(
     + '}); })',
 ));
 
-/**
- * Walk one shadow root's adopted sheets and report every top-level rule's selector, the
- * container conditions, and any WIDTH MEDIA rule. Parsed CSSOM of the live document —
- * not a file, and not the authored string.
- */
 const CSSOM_WALK = `(function (hostSel) {
     var parts = hostSel.split('>>>').map(function (s) { return s.trim(); });
     var root = document, el = null;
@@ -100,20 +58,6 @@ const CSSOM_WALK = `(function (hostSel) {
 const sheetOf = (page, host) => page.eval(`${CSSOM_WALK}(${JSON.stringify(host)})`)
     .then((raw) => JSON.parse(raw));
 
-/**
- * Give the review panel enough prose to overflow a column, in the shape the port emits:
- * `columns` -> `blocks` -> `lines` -> segments. THE BOUNDS TRAVEL WITH THE VALUES, which
- * is the shape B2 requires — this fixture states no range of its own, it carries the one
- * it was handed.
- *
- * AND IT IS HANDED IT BY THE DOOR, in the page, the way `seedMatrix` builds the matrix's:
- * `createEditorRanges` over `r2MachineLimits()`, then `rangeFor(field)` for the step, the
- * unit and the two bounds. Typing them here was the second ranges table B2 forbids —
- * `['num','temperature',93,1,'°C',80,105]` was a fourth answer for brewTemp, which
- * `machine-limits.js` declares as {70, 110, step 0.5}. Nothing rendered changes: `revFmt`
- * paints an integer as an integer at any step, so this moves `data-min`/`data-max`/
- * `data-step` and nothing else.
- */
 async function fillReview(page) {
     await page.evalFn(async (sel) => {
         const [rangesMod, adapters] = await Promise.all([
@@ -137,10 +81,6 @@ async function fillReview(page) {
                     num('temperature', 'stepTemperature', 93)],
                 [['t', 'Hold pressure at '],
                     num('pressure', 'stepTarget', 9, { pump: 'pressure' })],
-                /* THE FOURTH SEGMENT KIND, and the fixture feeds all four on purpose:
-                 * `.seg-lev` is styled beside `.seg-num` and a fixture that never emits
-                 * a lever segment leaves that rule looking dead to the §7.4 E4 scan
-                 * below — which is the defect, arriving through the test. */
                 [['t', 'Lever profile '], ['lev', 'spring 4.0 bar']],
                 [['t', 'Move on after '], num('seconds', 'stepSeconds', 25)],
             ],
@@ -153,26 +93,6 @@ async function fillReview(page) {
     await page.settle(4);
 }
 
-/**
- * THE DISCRIMINATING CASE FOR "THE COMPONENT READS ITS OWN CONTAINER, NEVER AN ANCESTOR"
- * (Part 2 §5 rule 1; ITEMS.json settings-panel/review-panel spec[3]).
- *
- * Every other collapse assertion in this file drives `#stage`, which moves the screen,
- * the body, the stack and the panel TOGETHER — and `near(grid.width, host.width)` is
- * satisfied by all four. Nothing in that shape would fail if `:host` lost its
- * `container-type` and the query re-bound to `<editor-screen>`, which is also a container
- * and, at rest, exactly the same width. So the sweep proves the THRESHOLD and this proves
- * the CONTAINER.
- *
- * It narrows (or widens) THE PANEL'S OWN BOX and leaves the stage alone. The claim is not
- * that the ancestor's box never moves — a panel wider than the stage puts a scrollbar on
- * the document and takes ~10px off it — but that at least one case lands the panel in a
- * BRANCH THE ANCESTOR'S OWN WIDTH DOES NOT BELONG TO. An ancestor-bound query cannot
- * produce that reading, whatever the ancestor happens to measure.
- *
- * `numpad-container-query.render.test.mjs` is the worked precedent: a 700px WINDOW does
- * not stack #53's card, because the card's own box is the container.
- */
 async function assertReadsOwnBox(page, { panel, grid, branchFor, widths, label }) {
     const branchAt = (w) => branchFor(Math.round(w));
     let discriminated = null;
@@ -219,10 +139,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return fn(page);
         });
 
-        /* =================================================================
-         * 1. THE SKELETON — §4.3's two rows, and the body beneath them
-         * ================================================================= */
-
         test('two rows: the band from its token, and everything else', () => mounted(async (page) => {
             const rows = tracks(await page.prop(EDITOR.screen, 'grid-template-rows'));
             assert.equal(rows.length, 2, '§4.3 names two rows and the screen has two');
@@ -258,19 +174,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(body.height, screen.y + screen.height - body.y, 'and takes the rest');
         }));
 
-        /* §7.4 E9: "The editor root does not grow with a taller canvas because the rule
-         * that passes height down selects `#subpage-host > div` and the editor's root is
-         * a `<main>`. The comment claiming the editor 'carries h-full itself' is false."
-         *
-         * TWO HALVES, because the first alone would pass on a screen that happened to be
-         * tall enough: the root TRACKS the canvas at four heights, and it tracks its own
-         * PARENT rather than a rule keyed on one particular ancestor's shape. Slate's
-         * defect was a selector that stopped matching when the tag changed; the rewrite
-         * has no descendant rule to miss — the chain is `minmax(0, 1fr)` on the host and
-         * `100dvh` on whatever holds it, so an ancestor of any tag hands the height down.
-         *
-         * NOT A LITERAL ANYWHERE: the heights below are the CANVAS, and every expected
-         * value is derived from a box or a token measured in the same frame. */
         test('E9: the root grows with the canvas, and takes its height from its parent',
             () => mounted(async (page) => {
                 const seam = px(await page.resolveToken('--ui-seam', 'block-size'));
@@ -290,11 +193,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     seen.push({ height, band: band.height, body: body.height });
                 }
 
-                /* THE GROWTH IS 1:1 WHEREVER THE BAND HELD STILL. It does not hold still
-                 * at 600: `tokens.css:670` declares a short-canvas band ("at 1000x600 the
-                 * band gets 600 - --ui-band-h (103.25)"), so the body absorbs that change
-                 * too. Comparing only the pairs whose band matched keeps this an
-                 * assertion about the HEIGHT CHAIN and not about the token band. */
                 const moved = seen.slice(1).filter((row, i) => row.band === seen[i].band);
                 assert.ok(moved.length >= 2,
                     'E9: fewer than two comparable canvases — widen the sweep');
@@ -324,11 +222,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(3);
             }));
 
-        /* =================================================================
-         * 2. THE HEADER — centre track = the tablist's own width, flanks
-         *    overflow rather than shove  (§4.3)
-         * ================================================================= */
-
         test('the centre track IS the tablist, and it is auto rather than a literal',
             () => mounted(async (page) => {
                 const columns = tracks(await page.prop(EDITOR.bandGrid, 'grid-template-columns'));
@@ -340,21 +233,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.notEqual(Math.round(centre.width), 430,
                     'and never Slate\'s 430px literal (profile-editor-v3.css:98)');
 
-                /* The bar takes its own width because `stretch` is off — the flanks take
-                 * the rest, which is the half of §4.3 that makes the centre track auto.
-                 * The used value is compared as a NUMBER: getComputedStyle rounds a
-                 * sub-pixel length to three decimals and a rect does not, so the two
-                 * spellings of one width differ as strings and agree as measurements. */
                 near(px(await page.prop(EDITOR.tabs, 'inline-size')), centre.width,
                     'fit-content: the bar is exactly its tabs', 0.01);
             }));
 
         test('a long flank overflows and does NOT shove the centre track',
             () => mounted(async (page) => {
-                /* Both flanks loaded at once: a very long heading in the lead region and
-                 * D11's two-control commit cluster in the trail. The heading is written
-                 * onto #31's own `heading` property — the input the screen normally
-                 * supplies — because the claim is about the band's tracks under load. */
                 const before = await page.box(EDITOR.bandCentre);
                 const beforeBar = await page.box(EDITOR.tabs);
 
@@ -388,11 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const clean = await page.evalFn(
                     (s) => window.__h.need(s).textContent.trim(), EDITOR.save,
                 );
-                /* CLEAN IS "SAVE" WITHOUT A COUNT, not "Close" (Ben, 25 August 2026). He
-                 * chose Slate's header for both committing screens: Slate shows Cancel and
-                 * a filled Save whether or not anything has changed, and D11's "Close alone
-                 * at zero" was the departure. The half of D11 that was never in question is
-                 * asserted below — the screen supplies a COUNT and #31 writes the words. */
                 assert.equal(clean, 'Save', 'zero changes: Save, with no count beside it');
                 assert.equal(await page.count(EDITOR.cancel), 1,
                     'and Cancel beside it — Slate\'s pair, on Ben\'s ruling');
@@ -405,11 +284,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(dirty, 'Save (3)', 'the count crosses and #31 writes the sentence');
                 assert.equal(await page.count(EDITOR.cancel), 1, 'and Cancel appears');
             }));
-
-        /* =================================================================
-         * 3. THE STEPS MOUNT REGION — a box, a floor of zero, and no
-         *    overflow of its own  (the matrix rows' contract)
-         * ================================================================= */
 
         test('the steps region is the body\'s whole cell and owns no overflow',
             () => mounted(async (page) => {
@@ -437,10 +311,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and it is genuinely taller than the cell, so nothing is vacuous');
             }));
 
-        /* =================================================================
-         * 4. TABLIST AND SELECTION  (E10)
-         * ================================================================= */
-
         test('E10: one selected treatment, and it is the four dials',
             () => mounted(async (page) => {
                 await assertOneSelectionTreatment(page, {
@@ -451,14 +321,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('E10: the tablist and a plain segmented bank paint selection identically',
             () => mounted(async (page) => {
-                /* "One segmented component, one selected treatment." E10 IS two
-                 * implementations disagreeing — a light steel block on Live, a dark
-                 * seated slice in the editor — so the assertion has to compare the two
-                 * SURFACES, not just check one of them against the dials.
-                 *
-                 * A bare <ui-bank mode="radio"> is added beside the screen. #32 renders
-                 * <ui-bank mode="tablist"> and declares no selected rule of its own, so
-                 * if the paint ever forked, these two computed values would differ. */
                 await page.evalFn(() => {
                     const bank = document.createElement('ui-bank');
                     bank.id = 'bare-bank';
@@ -504,10 +366,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the roving tabindex carries over: one tab stop, and the arrows move it',
             () => mounted(async (page) => {
-                /* Part 4's #32 row: "the editor's implementation is CORRECT and its
-                 * BEHAVIOUR carries over ... the paint comes from #3". This is the
-                 * behaviour half, measured off the live buttons rather than asserted
-                 * about a source file. */
                 const stops = () => page.evalFn(
                     (s) => window.__h.qAll(s).map((el) => el.getAttribute('tabindex')),
                     `${EDITOR.tablist} >>> button`,
@@ -565,10 +423,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        /* =================================================================
-         * 5. THE SETTINGS PANEL  (settings-panel)
-         * ================================================================= */
-
         test('the settings collapse is this panel\'s own container, swept, flipping once each',
             () => mounted(async (page) => {
                 const { settings2up, settings1up } = await authored(page);
@@ -611,9 +465,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     panel: EDITOR.settings,
                     grid: EDITOR.settingsGrid,
                     branchFor: (w) => (w < settings1up ? 1 : w < settings2up ? 2 : 3),
-                    /* Both below the floor geometry's own width, so the stage does not
-                     * move at all: 1-up is the reading no ancestor in this tree can
-                     * produce, because every one of them is at least 1000px wide. */
                     widths: [settings2up - 1, settings1up - 1],
                 });
             }));
@@ -622,12 +473,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             () => mounted(async (page) => {
                 const { settings2up, trackMin } = await authored(page);
                 await selectPanel(page, 'settings');
-                /* THE ROWS ARE TAKEN AWAY FIRST. The threshold is derived on the panel's
-                 * CONTENT BOX, and a vertical scrollbar takes ~15px of it on a classic
-                 * platform — which is M6 (does the Android WebView use overlay
-                 * scrollbars) and is deliberately NOT baked into the number. So the
-                 * arithmetic is checked where no scrollbar is present, and the M6
-                 * allowance stays an open measurement rather than a frozen constant. */
                 await page.evalFn((s) => window.__h.qAll(s).forEach((el) => el.remove()), '.row');
                 await setEditorWidth(page, `${settings2up}px`);
 
@@ -665,10 +510,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }));
 
-        /* =================================================================
-         * 6. THE REVIEW PANEL  (review-panel, E6)
-         * ================================================================= */
-
         test('the review collapse is swept and flips exactly once', () => mounted(async (page) => {
             const { review } = await authored(page);
             await selectPanel(page, 'review');
@@ -700,10 +541,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     panel: EDITOR.review,
                     grid: EDITOR.reviewGrid,
                     branchFor: (w) => (w < review ? 1 : 2),
-                    /* One case each side of the one threshold, so whichever geometry is
-                     * running, one of them is a branch the ancestor is not in: at BENCH
-                     * the stage is above the threshold and the narrow case is below it; at
-                     * FLOOR the stage is below it and the wide case is above. */
                     widths: [review - 1, review + 40],
                 });
             }));
@@ -791,10 +628,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'E6: the offset came back — and it came back on the scrolling element');
             }));
 
-        /* =================================================================
-         * 7. NO VIEWPORT BREAKPOINTS, ANYWHERE IN THE SCREEN  (Part 2 §5 r1)
-         * ================================================================= */
-
         test('the editor holds no width media query — every branch is a container query',
             () => mounted(async (page) => {
                 for (const host of [EDITOR.screen, EDITOR.body, EDITOR.settings, EDITOR.review]) {
@@ -810,22 +643,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(review.containers.length, 1, 'the review panel: one');
             }));
 
-        /* =================================================================
-         * 7b. THE PROFILE'S IDENTITY IN THE BAND  (cmp-seh-3, fix run 4)
-         *
-         * Ben: RESTORE THE FULL SETUP. Slate names the profile on every tab —
-         * kicker, title button, rename pencil, totals — and this screen read
-         * the static heading "Profile editor" on all three. The four boxes are
-         * measured HERE rather than asserted as markup, because the claim that
-         * matters is that they fit a band whose height is a token and that the
-         * flank still gives before the tablist does (Appendix 7).
-         * ================================================================= */
-
         test('cmp-seh-3: the band carries the profile\'s identity, on every tab',
             () => mounted(async (page) => {
-                /* BEFORE: the heading, exactly as it was — a screen with no profile is
-                 * unchanged by this run, which is what keeps every other test in this
-                 * file measuring what it always measured. */
                 assert.equal(await page.exists(EDITOR.bandTitle), true,
                     'with nothing open the band still carries #31\'s own heading');
                 assert.equal(await page.exists(EDITOR.identity), false);
@@ -848,9 +667,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${tab}: the totals line`);
                 }
 
-                /* The pencil is named for a screen reader — it has no visible text, so
-                 * this is the only thing that can announce it (the oracle's own
-                 * aria-label, verbatim: "Edit profile name"). */
                 assert.equal(await page.prop(EDITOR.pencil, 'display') !== 'none', true);
                 const label = await page.evalFn((s) => window.__h.need(s).label, EDITOR.pencil);
                 assert.equal(label, 'Edit profile name');
@@ -869,9 +685,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(band.height, token,
                     'the band is still exactly --ui-band-h — the identity did not grow it');
 
-                /* L22, on the two controls a finger presses. The title is a button in the
-                 * oracle too (button#editor-title-display) and a 28px line is not a
-                 * target, so it carries the floor on the axis it can. */
                 await assertHitFloor(page, EDITOR.pencil, { mode: 'box' });
                 const title = await page.box(EDITOR.profileTitle);
                 const floor = px(await page.resolveToken('--ui-hit-min', 'block-size'));
@@ -914,13 +727,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the totals are the profile\'s own ceilings, and the peak is not a limiter',
             () => mounted(async (page) => {
-                /* THE ORACLE'S OWN SENTENCE, reproduced: prov-baseline editor-steps [i=6]
-                 * "3 steps · max 2:00 · cap 100 mL · peak 6.0 bar".
-                 *
-                 * AND THE TRAP IT CONTAINS. Two of these three steps are FLOW steps whose
-                 * limiter sits at the default 9 bar. Slate's own module read the limiter
-                 * for any non-pressure step (`profile-totals.js:33-35`) and would print
-                 * "peak 9.0 bar" for a profile that never commands more than 6. */
                 await seatProfile(page, {
                     profile: editingProfile([
                         matrixStep({ seconds: 40, volume: 100 }),
@@ -932,24 +738,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     '3 steps \u00b7 max 2:00 \u00b7 cap 100 mL \u00b7 peak 6.0 bar');
             }));
 
-        /* =================================================================
-         * 7c. THE SAVE PATH, WIRED  (dec-A-B-1, fix run 4)
-         *
-         * The finding: "B10/B11's decided save path is unreachable from the
-         * shipped app — createProfileEditorStore has zero callers outside test/,
-         * and no src/ listener exists for the 'editor-commit' event the editor
-         * screen dispatches". These tests press the real control and read the
-         * real request, so the claim cannot come back quietly: a wire that is
-         * only asserted as markup is what let the gap ship in the first place.
-         * ================================================================= */
-
         test('dec-A-B-1: an edit counts, and Save takes B11\'s path with the parent link',
             () => mounted(async (page) => {
                 await seatProfile(page, { profile: editingProfile() });
 
-                /* THE EDIT ARRIVES AS THE MATRIX SENDS IT — a composed `step-change` with
-                 * its coordinates. The screen's listener is on the HOST, so it catches one
-                 * from a light-DOM matrix and from its own alike. */
                 await page.evalFn((sel) => {
                     window.__h.need(sel).dispatchEvent(new CustomEvent('step-change', {
                         detail: { index: 0, row: 'temperature', field: 'temperature', value: 88 },
@@ -966,23 +758,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(6);
 
                 const calls = await editorCalls(page);
-                /* ONE SAVE, TWO REQUESTS SINCE 27 AUGUST 2026 — and this pin was changed
-                 * deliberately, not relaxed to make it pass.
-                 *
-                 * It read `calls.length === 1` from fix run 4 until Ben said what he
-                 * actually wanted from versioning: "After each save there should still
-                 * only be one profie, but we should be able to go back to a previous
-                 * version". A content save is still ONE write of the profile — the POST
-                 * below is unchanged in every particular — and it is now followed by a
-                 * visibility write that takes the SUPERSEDED record off the list. Without
-                 * it both records stay `visible` and the library grows by one on every
-                 * save, which is the defect Ben reported.
-                 *
-                 * THE COUNT IS STILL EXACT, so this is not a weaker assertion: it names
-                 * both requests and their order, and a THIRD request — a retry loop, a
-                 * stray re-read — fails here exactly as a second one used to.
-                 * `settleToOneRow` in `profile-editor-store.js` carries the reasoning,
-                 * including why the two writes are in this order and not the other. */
                 assert.equal(calls.length, 2, 'one save: the profile write, then the row it replaces');
                 assert.equal(calls[1].method, 'PUT');
                 assert.equal(calls[1].path, '/profiles/profile%3Aseated/visibility',
@@ -991,9 +766,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'hidden, not deleted: the version stays in the lineage and in the '
                     + 'Previous versions dialog, it just leaves the list');
                 assert.equal(calls[0].method, 'POST');
-                /* The path the ROUTE TABLE built — `callRoute` hands the transport the
-                 * route path and the transport owns the /api/v1 base (Gate D: one table,
-                 * one owner), so this is the whole of what the client spelled. */
                 assert.equal(calls[0].path, '/profiles');
                 assert.deepEqual(Object.keys(calls[0].body).sort(), ['parentId', 'profile'],
                     'the body is WRAPPED and carries the parent — B11\'s path, DQ-629\'s default');
@@ -1082,15 +854,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a FAILED save keeps the draft — the edit stays counted, so the person can retry',
             () => mounted(async (page) => {
-                /* THE RESEED FOLLOWS THE RECORD, NEVER THE ATTEMPT. The store re-seats
-                 * the server's answer as a new record object only on SAVED; the saving/
-                 * failed/refused patches leave `record` alone — so a save that did not
-                 * land must leave the draft exactly where it was. Keyed on the pending
-                 * OPERATION instead, the reseed fired on the SAVING publish and wiped
-                 * the edit at save START: measured live against the mock's 501, the
-                 * draft fell back to the baseline and the band read Close while the
-                 * notice said the save had failed — the person told to retry with
-                 * nothing left to retry with. */
                 await seatProfile(page, {
                     profile: editingProfile(),
                     answers: { 'POST /profiles': { ok: false, status: 501, message: 'no stateable response' } },
@@ -1118,33 +881,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(notices, ['danger'], 'and the person was told');
             }));
 
-        /* =================================================================
-         * 8. NO DEAD RULE IN THE SHELL'S OWN SHEETS  (E4, and P9)
-         *
-         * §7.4 E4: "Eight CSS rules whose selectors cannot match, eight
-         * emitted-but-unstyled classes, and a dead `data-pe-mode` attribute
-         * hook whose comment documents compaction behaviour that was never
-         * written."
-         *
-         * This is the shell's four roots. The editing stage's five —
-         * step-matrix, preview, overlays and the two dialogs — are scanned in
-         * `editor-editing.render.test.mjs`, which is the suite that mounts
-         * them; between the two, all nine of the editor's components are
-         * walked and E4 has a verdict that a rebuild cannot quietly lose.
-         *
-         * EVERY STATE THE RULES ARE ABOUT IS ENTERED FIRST. `#steps[hidden]`
-         * only matches once another tab is selected, and `.seg-lev` only once
-         * a lever segment is fed; judging at rest would report both dead and
-         * invite someone to delete two live rules.
-         * ================================================================= */
-
         test('E4: no rule in the shell\'s four sheets is unmatchable, in any panel state',
             () => mounted(async (page) => {
                 const HOSTS = [EDITOR.screen, EDITOR.body, EDITOR.settings, EDITOR.review];
 
-                /* FIRST, PROVE THE SCAN CAN FAIL. E8 is the cautionary tale this
-                 * borrows: "the tests pass against a layout engine the app does not
-                 * use". A census that walks nothing reports nothing dead. */
                 await assertScanIsLive(page, HOSTS);
 
                 const census = ruleCensus();
@@ -1155,21 +895,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 census.add(await scanRules(page, HOSTS), 'review');
                 await fillReview(page);
                 census.add(await scanRules(page, HOSTS), 'review+segments');
-                /* AND THE STATE THE IDENTITY BLOCK IS ABOUT (cmp-seh-3). Its four rules
-                 * match only once a profile is open, exactly as `#steps[hidden]` matches
-                 * only once another tab is selected — judging at rest would report all
-                 * four dead and invite someone to delete a live cluster. */
                 await seatProfile(page);
                 census.add(await scanRules(page, HOSTS), 'profile-open');
 
-                /* AND THE SETTINGS PANEL AS THE SHIPPED APP COMPOSES IT (audit F-031).
-                 * This stage mounts nine `slot="settings"` rows of its own, so
-                 * `#owns('settings')` answers false and the screen's OWN field rows — the
-                 * ones `app-root` gets, because it mounts no light-DOM children at all —
-                 * never render here. Their four rules match in no other state, and they
-                 * style the only settings surface a person ever actually sees. Judging
-                 * without entering the state is the failure this test's own header warns
-                 * about; the remedy is the same as the identity block's above. */
                 await page.evalFn(() => {
                     for (const el of [...document.querySelectorAll('[slot="settings"]')]) el.remove();
                     return true;

@@ -1,33 +1,7 @@
 /**
- * ui-favourites-bank.entry.js - the gallery entry for component #36 (wave 4).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js: wave 4 runs its
- * builders in parallel under a whole-file-write rule, so N appends to one array
- * clobber each other. Each builder owns one file here and the wave's single
- * cross-cutting writer wires them into `entries.js` once, serially:
- *
- *     import { entry as uiFavouritesBank } from './entries/ui-favourites-bank.entry.js';
- *     export const entries = [ ...existing, uiFavouritesBank ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored. It points at the DEMO SIDECAR, not at the component:
- * gallery.js imports one module per entry, lazily, and then awaits
- * `customElements.whenDefined` on every tag it finds on the stage (gallery.js:46-51,
- * 86-88). `beside-the-tabs` mounts a real `<ui-tab-bar>`, and a tag whose module was
- * never imported never settles - so "ui-tab-bar is already registered by its own entry"
- * is not something this entry may assume: that entry's module is imported only when
- * that entry is shown, and Gate B's battery navigates straight to `?state=`. The
- * sidecar imports both, which is #47's and #34's own answer to the same hang.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-favourites-bank--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * NO RAW COLOUR LITERAL in any `html` below - tools/ is inside Gate C's scan roots,
- * so the stage scaffolding is built from --ui-* tokens like everything else.
+ * The gallery entry for.
  */
 
-/** Slate's own live-ready strip as data: three occupied favourites, two empty. */
 const LIVE_ROW = JSON.stringify([
     { value: 'p1', name: 'Extractamundo Dos!' },
     { value: 'p2', name: 'Temp test' },

@@ -81,6 +81,8 @@ describe('the weather corner', () => {
                 'the mark is 44px, beside the temperature rather than above it');
             assert.ok(seen.ink > 0,
                 'the mark has no geometry — its paths are in the wrong namespace');
+            assert.equal(seen.title, 'Chance of rain');
+            assert.deepEqual(seen.labels, ['AM', 'PM'], 'the corner takes TWO of the three');
             assert.deepEqual(seen.chances, ['20%', '70%']);
         }));
 

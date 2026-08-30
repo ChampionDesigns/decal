@@ -1,19 +1,4 @@
-/**
- * The pure half of the base-element conventions (Wave 0a item #2).
- *
- * `src/components/base.js` imports `lit`, and the vendored Lit bundle throws
- * `HTMLElement is not defined` under node - so the base CLASS and its `css`
- * fragments are the rig's subject (item #4, Gate A, headless Chrome over CDP,
- * against test/fixtures/base-fixture.js), not this file's. What is testable here is
- * the logic in `src/lib/base-conventions.js`, plus two cross-checks that hold the
- * base rules and item #1's token file in step.
- *
- * Executing tests only (A8). Nothing below describes code it does not import, and
- * the two file-reading tests read PRODUCED ARTIFACTS - base.js's CSS and
- * tokens.css's declarations - against an imported registry, which is the whole
- * point of them: a token renamed on one side and not the other is a red test rather
- * than a control that silently loses its focus ring.
- */
+
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,10 +26,6 @@ const read = (relative) => readFileSync(fileURLToPath(new URL(relative, import.m
 /** Block comments carry citations that name tokens the RULES do not use. */
 const stripBlockComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, ' ');
 
-/* ---------------------------------------------------------------------- *
- * The focus-ring variant
- * ---------------------------------------------------------------------- */
-
 test('focus variants are exactly the two offsets the spec names', () => {
     assert.deepEqual([...FOCUS_VARIANTS], ['outset', 'inset']);
     assert.equal(DEFAULT_FOCUS_VARIANT, 'outset');
@@ -58,30 +39,12 @@ test('resolveFocusVariant normalises case and whitespace', () => {
 });
 
 test('an unrecognised focus variant falls back rather than blanking the ring', () => {
-    // An invisible focus ring is an accessibility defect; a wrong offset is a
-    // cosmetic one. A typo must cost the cosmetic failure, never the a11y one.
     for (const bad of ['insett', '', '   ', 'none', 'true', 3, {}, [], null, undefined, NaN]) {
         assert.equal(resolveFocusVariant(bad), 'outset');
     }
 });
 
-/* ---------------------------------------------------------------------- *
- * The registries
- * ---------------------------------------------------------------------- */
-
 test('there are exactly five selection dials — Slate\'s four values, plus the weight its RULES carry', () => {
-    // Four from slate-tokens.css:188-191, carried unchanged (LAYOUT_SPEC_DRAFT.md §3.9).
-    // The fifth is parity surface 2's, and it is what finally makes the fork claim
-    // TRUE. Slate writes its selected weight in three rules and no token —
-    // slate-components.css:392 (.slate-bank-item, var(--slate-weight-medium)),
-    // slate-components.css:265 (.slate-nav-selected, the same with !important) and
-    // slate-shell.css:310 (the selected profile-list row, a hardcoded 500) — so a fork
-    // that retargets all four dials STILL gets Slate's bolder selected label. That is
-    // the rule change in disguise; making the weight a value is the removal of it.
-    // ORACLE, all 49 baseline states: Slate paints 100 elements with
-    // --slate-selected-face and 95 render 500, the sole exception being .hv-pick-btn /
-    // .slate-hv-pick-tag at 600 — which are 600 RESTING too, so their weight is the
-    // component's own paint and rides --_ui-rest-weight (base.js), not this dial.
     assert.deepEqual([...SELECTION_DIALS], [
         '--ui-selected-face',
         '--ui-selected-ink',
@@ -109,18 +72,12 @@ test('public and private custom properties are told apart mechanically', () => {
     assert.ok(!isPublicToken('--_ui-focus-offset'));
     assert.ok(isPrivateProperty('--_ui-focus-offset'));
     assert.ok(!isPrivateProperty('--ui-steel'));
-    // The token-integrity check scans for `var(--ui-`; a private property must
-    // never match it, or every component's internals become missing tokens.
     assert.ok(!'--_ui-hit-ink'.includes(PUBLIC_TOKEN_PREFIX));
     for (const name of ['--slate-steel', 'ui-steel', '', null, undefined, 42]) {
         assert.ok(!isPublicToken(name));
         assert.ok(!isPrivateProperty(name));
     }
 });
-
-/* ---------------------------------------------------------------------- *
- * The two cross-checks: base.js <-> registry <-> tokens.css
- * ---------------------------------------------------------------------- */
 
 test('base.js names exactly the tokens the registry declares it may', () => {
     const rules = stripBlockComments(read('../src/components/base.js'));
@@ -140,18 +97,9 @@ test('every token the base names is declared in styles/tokens.css', () => {
     }
 });
 
-/* Four of the five dials carry a colour or a length that a theme repaints; the fifth,
- * --ui-selected-weight, is a font-weight and is theme-invariant. Derived from the
- * registry rather than listed, so adding a dial cannot silently escape either check. */
 const COLOUR_BEARING_DIALS = SELECTION_DIALS.filter((dial) => dial !== '--ui-selected-weight');
 
 test('the COLOUR-BEARING dials and the ring ink are declared in BOTH theme blocks', () => {
-    // The base rules paint selection and focus in every theme, so a colour-bearing
-    // token missing from the dark block would leave one theme unpainted. This is
-    // the base's slice of guard 4 (SCOPE Part 2 §7) until item #4 generalises it.
-    // Comments stripped first: tokens.css quotes `[data-theme="dark"] ...` inside an
-    // ORACLE citation in the LIGHT palette, and splitting on the raw text would put
-    // half the light block on the dark side of the seam.
     const tokens = stripBlockComments(read('../styles/tokens.css'));
     const darkIndex = tokens.indexOf('[data-theme="dark"]');
     assert.ok(darkIndex > 0, 'tokens.css has no dark block');
@@ -165,12 +113,6 @@ test('the COLOUR-BEARING dials and the ring ink are declared in BOTH theme block
 });
 
 test('the WEIGHT dial is declared exactly once, because a weight is theme-invariant', () => {
-    // tokens.css's own rule, stated at the head of the dark block: "Only
-    // colour-bearing tokens are redeclared. Geometry, type, motion, z-index and
-    // density are theme-invariant and appear exactly once, above." A font-weight does
-    // not change with the ground it sits on, so redeclaring --ui-selected-weight in
-    // both palettes to satisfy the symmetry check above would be two copies of one
-    // number — the thing §2.3 bans — dressed up as theme support.
     const tokens = stripBlockComments(read('../styles/tokens.css'));
     const declarations = [...tokens.matchAll(/^\s*--ui-selected-weight\s*:/gm)];
     assert.equal(declarations.length, 1, '--ui-selected-weight is declared more than once');
@@ -178,10 +120,6 @@ test('the WEIGHT dial is declared exactly once, because a weight is theme-invari
         '--ui-selected-weight must be declared above the dark block, with the other '
         + 'theme-invariant tokens');
 });
-
-/* ---------------------------------------------------------------------- *
- * Adopted stylesheets
- * ---------------------------------------------------------------------- */
 
 const sheetA = { id: 'lit-own' };
 const sheetB = { id: 'uplot' };
@@ -193,8 +131,6 @@ test('a vendor sheet lands before the component\'s own so the component wins tie
 });
 
 test('adopting the same sheet twice is a no-op, in both positions', () => {
-    // adoptStyleSheet may be called on every update. An array that grows by one
-    // sheet per render is a leak nothing on the page reports.
     const once = mergeAdoptedSheets([sheetA], [sheetB]);
     const twice = mergeAdoptedSheets(once, [sheetB]);
     assert.deepEqual(twice, once);
@@ -227,15 +163,6 @@ test('an unknown position is refused rather than silently guessed', () => {
     assert.throws(() => mergeAdoptedSheets([], [sheetB], { position: 'first' }), RangeError);
 });
 
-/* ---------------------------------------------------------------------- *
- * Style order — the second leg of zero-!important
- *
- * Five base declarations cannot be wrapped in :where() because they are :host
- * rules, and :host carries a real (0,1,0). A component's own :host rule TIES with
- * them, so source order is the entire difference between the documented opt-out
- * (`:host { container-type: normal }`) working and doing nothing.
- * ---------------------------------------------------------------------- */
-
 const BASE = { id: 'base' };
 const ownA = { id: 'ownA' };
 const ownB = { id: 'ownB' };
@@ -251,10 +178,6 @@ test('the base styles come first, and stay first however the subclass spelled it
 });
 
 test('composeStyles is the fix for Lit\'s reverse-order dedupe, and this is that dedupe', () => {
-    // vendor/lit.js, `finalizeStyles`, transcribed: it dedupes on the REVERSED array,
-    // so a repeated sheet keeps its LAST original position. The second line is the
-    // defect: base LAST, and every :host opt-out in the library silently stops
-    // working for the author who spread the base styles at the end of their list.
     const litFinalize = (styles) => {
         const out = [];
         if (Array.isArray(styles)) {
@@ -287,9 +210,6 @@ test('composeStyles never mutates what the subclass declared', () => {
 });
 
 test('base.js routes finalizeStyles through composeStyles, not through Lit\'s dedupe', () => {
-    // A source read, deliberately: the class itself cannot be imported under node
-    // (it imports lit). The RENDERED consequence is pinned in
-    // test/render/base-fixture.render.test.mjs against <base-fixture-spread>.
     const source = read('../src/components/base.js');
     assert.match(source, /finalizeStyles\(styles\)\s*\{\s*\n\s*return super\.finalizeStyles\(composeStyles\(baseStyles, styles\)\);/);
 });
