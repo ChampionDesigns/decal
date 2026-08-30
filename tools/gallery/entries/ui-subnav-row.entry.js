@@ -1,86 +1,16 @@
 /**
- * ui-subnav-row.entry.js — the gallery entry for component #25 (wave 2, item #25).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and that
- * procedure is correct for ONE author. Wave 2 runs twelve builders in parallel under a
- * whole-file-write rule, so twelve appends to one array clobber each other — which is
- * exactly what wave 1 hit and recorded at entries.js:30-45. Each builder therefore owns one
- * file here and the wave's single cross-cutting writer wires them into entries.js, serially,
- * once:
- *
- *     import { entry as uiSubnavRow } from './entries/ui-subnav-row.entry.js';
- *     export const entries = [ ...existing, uiSubnavRow ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies — gallery.js does the
- * `import(entry.module)`, so the specifier resolves against gallery.js wherever the entry
- * object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-subnav-row--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * `hostStyle` sizes the CONTAINER, never the viewport — the row reads its own container
- * (spec §2.1 Rule 1) and the viewport is the capture battery's business.
- *
- * ORACLE PROVENANCE for every number quoted below, obtained mechanically with the
- * disqualification check run first (no DECISIONS.md decision touches the sub-nav row;
- * responsive behaviour has NO Slate answer; the element is on the 140-bug list at T2, T3
- * and T5, so its pitch, separators, radius and selected box-shadow are DISQUALIFIED and only
- * its paint is reproduced):
- *   CITE  prov_query.py find --cls settings-subnav-btn → "found 173 element(s) in 38
- *         state(s)"; settings-accessories-cup-warmer rects [261,219,338,89] [261,312,338,89]
- *         [261,405,338,89] — width 338, height 89, pitch 93. THIS IS T2.
- *   CITE  settings-accessories-cup-warmer .settings-subnav-btn [i=32] color =
- *         rgb(148, 161, 169) / [prov-light] rgb(90, 101, 108) ← slate-shell.css
- *         `#subpage-host .settings-subnav-btn` authored `var(--slate-muted)`
- *         !important=yes (token-driven)
- *   CITE  settings-accessories-cup-warmer .settings-subnav-btn [i=32] background-color =
- *         rgba(0, 0, 0, 0) ← same rule, authored `transparent` !important=no
- *         (FROZEN/hardcoded)
- *   CITE  settings-accessories-cup-warmer .settings-subnav-btn [i=32] font-size = 22px
- *         authored `var(--slate-text-nav)`; font-weight = 400 authored
- *         `var(--slate-weight-regular)`; [i=34] padding-left = 24px (shorthand
- *         `padding: 0 var(--slate-space-5)`)
- *   CITE  settings-accessories-cup-warmer .settings-subnav-btn [i=30] background-color =
- *         rgb(176, 196, 206) / [prov-light] rgb(49, 92, 112) ← slate-shell.css
- *         `… .slate-nav-selected, … [aria-current="true"], … [aria-selected` authored
- *         (NOT CAPTURED — set via a CSS shorthand) !important=yes (token-driven)
- *         = --ui-selected-face
- *   CITE  settings-accessories-cup-warmer .settings-subnav-btn [i=30] color = rgb(18, 24, 28)
- *         / [prov-light] rgb(248, 252, 253) ← same rule, authored `var(--slate-selected-ink)`
- *         !important=yes (token-driven) = --ui-selected-ink
+ * The gallery entry for.
  */
 
-/* THE COLUMN IS THE SEAM DRAWER, not the row (CONVENTIONS §13): a 1px grid gap over
- * --ui-line. This is the whole of T2's second half. Slate tried to draw the separator from
- * the row itself —
- *     #subpage-host #sub-categories-panel > * + * .settings-subnav-btn,
- *     #subpage-host #sub-categories-panel > * + *.settings-subnav-btn
- *         { box-shadow: inset 0 var(--slate-hairline) 0 var(--slate-line); }
- * (slate-shell.css:430-434) — and `> * + *` never matches, because settings.js:6426 returns
- * a single <ul> and there is no second child. Measured result:
- *   CITE settings-accessories-cup-warmer .settings-subnav-btn [i=34] box-shadow = none
- *        ← (no declaration — inherited or initial value) (FROZEN/hardcoded)
- * A gap needs no sibling selector, so N cells give N-1 seams and the rule cannot half-match.
- * Written out here rather than imported because a gallery state is light-DOM markup; the real
- * consumer uses the `seams` fragment from src/components/seams.js.
- *
- * 338px is Slate's own measured sub-nav width (the rects above). */
 const column = (rows, { width = '338px' } = {}) =>
     '<div style="display:grid; gap:var(--ui-seam); background-color:var(--ui-line);'
     + ` align-content:start; inline-size:${width}">` + rows.join('') + '</div>';
 
 const row = (label, attrs = '') => `<ui-subnav-row ${attrs}>${label}</ui-subnav-row>`;
 
-/* A plain cell of the SAME token, standing in for the category column (#24). It is a bare
- * div rather than a <ui-nav-row> so this entry never depends on another builder's file
- * loading — and because that IS T2's fix stated as markup: neither column holds a number, so
- * neither can drift. */
 const catRow = () =>
     '<div style="block-size:var(--ui-nav-row); background-color:var(--ui-fascia)"></div>';
 
-/* Slate's own sub-categories, read read-only from the corpus state ids: the Calibration
- * category is the six-row column (settings-calibration-*), Accessories the three-row one. */
 const CALIBRATION = [
     'Voltage', 'Load cells', 'Flow multiplier', 'Fan', 'Refill kit', 'Default load settings',
 ];

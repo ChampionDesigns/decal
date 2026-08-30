@@ -1,28 +1,5 @@
 /**
- * ui-action-key-rail.entry.js — the gallery entry for Wave 4 item #42.
- *
- * ONE FILE PER BUILDER. `tools/gallery/entries.js` is a single hand-written array and
- * parallel builders doing whole-file writes on it would clobber each other silently —
- * a missing entry is just a shorter list. The wave's cross-cutting writer adds one
- * import line and one array slot; nobody else touches that file.
- *
- * FOR THE GATE:  import { entry as uiActionKeyRail } from './entries/ui-action-key-rail.entry.js';
- *                export const entries = [ …, uiActionKeyRail ];
- *
- * WHY THE STATES ARE SHAPED LIKE THIS. The rail's whole state model is two numbers —
- * which step this is and how many there are — and the only thing they change is which
- * of the two reorder arrows is inert. C7 makes that load-bearing: with no drag, "you
- * cannot move this any further" has to be readable in a button. So the first four
- * states walk a four-step profile from its first step to its last, which is exactly
- * the sequence a user sees while editing, and the fifth is the single-step profile
- * where both arrows are out. Slate's own sheet records what went wrong there once
- * (profile-editor-v3.css:1076-1081): the two arrows you cannot press were the two that
- * looked FILLED, "which is the skin's selected treatment". Look along the rank in
- * `first-step` and `last-step` and check that the inert key reads as inert.
- *
- * `module` is relative to tools/gallery/; `hostStyle` sizes the STAGE, not the
- * component (spec §2.1 Rule 1); the capture filename is `ui-action-key-rail--<id>`, so
- * these ids are identifiers and renaming one is a re-baseline.
+ * The gallery entry for.
  */
 
 export const entry = {

@@ -1,20 +1,5 @@
 /**
- * ui-status-chip.entry.js — the gallery entry for Wave 1 item #48.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single exported array and its README says "Edit entries.js. That is the whole
- * procedure" — true for one builder, false for sixteen working in parallel with
- * whole-file writes: the last write wins and fifteen entries vanish silently, and
- * the gallery cannot detect that because a missing entry is just a shorter list.
- * So each builder owns one file here and the GATE agent wires them in.
- *
- * SHAPE is exactly the one entries.js documents: `module` is relative to
- * `tools/gallery/`, `hostStyle` sizes the STAGE not the component, and the full
- * state id is `ui-status-chip--<state.id>` — a capture-battery filename, so these
- * ids are identifiers and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiStatusChip } from './entries/ui-status-chip.entry.js';
- *                export const entries = [ …, uiStatusChip ];
+ * The gallery entry for.
  */
 
 export const entry = {

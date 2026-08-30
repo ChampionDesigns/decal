@@ -1,27 +1,5 @@
 /**
- * ui-time-picker.entry.js — the gallery entry for Wave 4 item #54, the time picker
- * face (a dialog body).
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array and the run's rule is whole-file writes; N builders
- * appending to it in parallel is N−1 entries lost, which the gallery cannot detect
- * because a missing entry is just a shorter list. Wave 1 hit exactly this and adopted
- * the per-entry split (entries.js:30-45). This builder owns this file; the wave's one
- * cross-cutting writer adds the single import line and the single array slot, serially.
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component (spec §2.1 Rule 1), and the full
- * state id is `ui-time-picker--<state.id>` — a capture-battery filename, so these ids
- * are identifiers and renaming one is a re-baseline.
- *
- * ONE STATE OPENS A MODAL. `in-dialog` mounts the body inside #18, which is where it
- * actually lives; a modal dialog is in the top layer, so it centres on the VIEWPORT
- * and its scrim covers the stage frame, and the gallery's own nav goes inert while it
- * is up. That is the component working — move between states with the URL's `?state=`
- * parameter, which is what `tools/capture_battery.py` does anyway (capture_battery.py:107).
- *
- * FOR THE GATE:  import { entry as uiTimePicker } from './entries/ui-time-picker.entry.js';
- *                export const entries = [ …, uiTimePicker ];
+ * The gallery entry for.
  */
 
 export const entry = {

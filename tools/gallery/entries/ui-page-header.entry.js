@@ -1,46 +1,7 @@
 /**
- * ui-page-header.entry.js - the gallery entry for component #31 (wave 2, item #31).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 1 ran sixteen builders in parallel
- * under a whole-file-write rule and sixteen appends to one array clobbered each other,
- * so the wave adopted the per-entry split (entries.js:30-45). Wave 2 runs twelve
- * builders, so the same rule binds: each builder owns one file here and the wave's
- * cross-cutting writer wires it into entries.js once, serially:
- *
- *     import { entry as uiPageHeader } from './entries/ui-page-header.entry.js';
- *     export const entries = [ ...existing, uiPageHeader ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the import(entry.module), so the specifier resolves against gallery.js wherever the
- * entry object was authored. ui-button (#1) arrives with it: ui-page-header.js imports
- * the primitive it composes, so no state here has to name a second module.
- *
- * STATE IDS ARE CAPTURE FILENAMES (ui-page-header--<state>): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * WHAT THE STATES ARE FOR, in one line each, because two of them exist to photograph
- * an ABSENCE and an absence is easy to mistake for an omission:
- *   - three-screens  P17. Three configurations, one inset, photographed together: the
- *                    2px disagreement has nowhere to live because there is one band.
- *   - screen-grid    Departure 2. The band draws no bottom edge; the screen grid's gap
- *                    IS the underline. The state next to it shows the same band with no
- *                    grid under it, where there is deliberately no line at all.
- *
- * THE SELECTED TAB IN THE `editor` STATE IS NOT THIS COMPONENT'S PAINT. It is a plain
- * light-DOM button carrying aria-selected="true" with a hand-written look, sitting in
- * the `centre` slot - in the shipping app that slot holds #3, and #3 is the one place
- * selection is painted (CONVENTIONS section 4). This entry paints it by hand precisely
- * so the photograph shows a band that does NOT respond to it: nothing in
- * ui-page-header's shadow tree reads aria-selected, and the render suite proves it
- * ("wave law: a slotted [aria-selected] takes nothing from this component").
+ * The gallery entry for.
  */
 
-/* The screen skeleton every consumer of this band uses: the header is row 1 of a grid
- * whose gap is the divider (LAYOUT_SPEC_DRAFT.md:519-525, "the seam IS the divider").
- * Written as inline style rather than through seams.js so this entry depends on the one
- * component it is the entry for. */
 const SCREEN = 'display:grid; grid-template-rows:var(--ui-band-h) minmax(0,1fr);'
     + ' gap:var(--ui-seam); background:var(--ui-line-strong); block-size:300px';
 

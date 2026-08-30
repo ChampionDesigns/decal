@@ -1,40 +1,10 @@
 /**
- * ui-settings-row.entry.js - the gallery entry for component #29 (wave 4, item #29).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. This run builds in parallel under a
- * whole-file-write rule, so N appends to one array clobber each other. Each builder owns
- * one file here and the wave's single cross-cutting writer wires them in, serially, once:
- *
- *     import { entry as uiSettingsRow } from './entries/ui-settings-row.entry.js';
- *     export const entries = [ ...existing, uiSettingsRow ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does the
- * `import(entry.module)`, so the specifier resolves against gallery.js wherever the entry
- * object was authored. It points at the .demo.js sidecar because these states mount five
- * other components and gallery.js imports exactly one module per entry.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-settings-row--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * `hostStyle` sizes the CONTAINER, never the viewport - the row reads its own container
- * (spec §2.1 Rule 1) and the viewport is the capture battery's business.
+ * The gallery entry for.
  */
 
-/* A settings LEAF is a column of rows over a 1px grid gap - CONVENTIONS §13, replacing
- * Slate's 43 identical `<hr class="border-t slate-hairline w-full" />` plus the 5 rows
- * that draw a border-top themselves. It is written out here rather than imported because
- * a gallery state is light-DOM markup; the real consumer uses the `seams` fragment. The
- * ink is --ui-line, which is the measured separator colour:
- * rgb(58, 72, 82) dark / rgb(203, 208, 211) light. */
 const LEAF_OPEN = '<div style="display:grid; gap:var(--ui-seam); background:var(--ui-line)">';
 const LEAF_CLOSE = '</div>';
 
-/* slate-shell.css:1290-1297 VERBATIM, with its two id ancestors re-pointed at this stage
- * and its --slate-* tokens spelled as the --ui-* ones carrying the identical numbers.
- * This is the rule that produces T13, live inside one gallery state so a reviewer can
- * SEE the 12px displacement happen to a div and not happen to a row. */
 const T13_RULE = `
 <style>
     .t13-leaf .content-stretch.flex.items-center.justify-between,

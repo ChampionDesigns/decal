@@ -1,30 +1,5 @@
 /**
- * ui-confirm-dialog.entry.js — gallery entry for component #19, the confirm dialog.
- *
- * Its own file because `tools/gallery/entries.js` is one shared array under a
- * whole-file-write rule: N builders appending to it in parallel is N−1 entries lost.
- * The wave's single cross-cutting writer adds the import line and the array slot,
- * serially, once. `test/ui-confirm-dialog-gallery-entry.test.mjs` asserts the shape
- * before that hand-off, and `test/render/ui-confirm-dialog.render.test.mjs` mounts
- * every state below in a real browser at both Gate A geometries.
- *
- * THE SAME TWO THINGS ui-dialog's ENTRY SAYS, because this is one of its bodies.
- *
- * 1. A MODAL DIALOG DOES NOT SIT IN THE STAGE. It is in the browser's top layer, so
- *    it is centred on the VIEWPORT and its scrim covers the whole gallery. That is
- *    the one component family in the inventory whose geometry is the window's by
- *    design (spec §4.6). `hostStyle` still does its usual job — it sets the custom
- *    property the card's width reads, which is how `wide-card` shows a screen
- *    widening the confirm without touching the viewport (§2.1 Rule 1).
- * 2. THE GALLERY'S OWN NAV IS INERT while one of these is on the stage, and that is
- *    the component working. Move between states with the URL's `?state=`, which is
- *    what `tools/capture_battery.py` does anyway (capture_battery.py:107).
- *
- * The first state is Slate's own confirm, rebuilt: ORACLE profile-selector
- * `.modal-box [i=191]` text "Reset profile? KEEP Reset", whose destructive action is
- * `bg-red-400` — a raw Tailwind literal — and whose whole card lays itself out at
- * 450x205 WHILE CLOSED (that is P13). Here the words are the same and neither of
- * those two things can happen.
+ * Gallery entry for.
  */
 
 export const entry = {

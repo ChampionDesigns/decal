@@ -1,63 +1,4 @@
 #!/usr/bin/env node
-/**
- * gate-d.js — the contract table as a build gate (SCOPE Part 8 §2, Gate D).
- *
- * Part 3 §7 makes contract checking a BUILD activity: every endpoint the skin adopts has
- * its path, verb, request body and response shape checked against the ReaPrime handler as
- * the call is written, and the answer is recorded in `src/data/CONTRACTS.json` with the
- * handler symbol, the handler file and the commit it was checked at. The desk check stays
- * human. This file automates the two halves that can be automated, plus two that fall out
- * of having the table at all:
- *
- *   COVERAGE   a route string in the client with no table entry fails the build.
- *   STALENESS  a table entry whose checked-commit is not the pinned commit fails the build.
- *   SOURCE     the worktree the handlers are read from is AT the pin, and every entry's
- *              handler file still exists there, still registers that path, and still
- *              contains that symbol. (Coverage says the CLIENT is tabled; this says the
- *              TABLE is still true of the server.)
- *   RETIREMENT the spellings of the retired contract bugs appear nowhere in the client.
- *
- * WHY STALENESS IS A GATE AND NOT A CHORE. ReaPrime is EXPECTED to move under this build —
- * A2, and the R1–R8 work list. Contract drift is a certainty, not a risk. The stamp turns
- * "did anyone re-check?" from a question nobody asks into a diff.
- *
- * WHY THE SOURCE HALF RESOLVES THE WORKTREE'S HEAD FIRST. Staleness compares three strings
- * that all live in this repo — the table's pin, each row's stamp, and PINNED_COMMIT — so on
- * its own it proves only that the repo agrees with itself. It says nothing about the commit
- * the handlers were actually read at, and REA_ROOT is an environment variable. Without this
- * check a run against a DIFFERENT ReaPrime checkout re-verified 46 of 50 rows against the
- * wrong commit and printed the four route strings that happened to differ; a drift in a
- * response SHAPE — the drift A2 says is a certainty — would have printed "OK". So the tree
- * is resolved with `git rev-parse` and required to equal the pin BEFORE any row is read,
- * and a tree that is not the pin re-verifies nothing: a row "confirmed" against the wrong
- * commit is worse than a row nobody checked, because it carries a stamp saying otherwise.
- *
- * SCAN BY CONSTRUCTION, NOT BY ALLOWLIST — the Gate C rule, applied here. Coverage walks
- * every authored module under `src/`, finds route-shaped string literals and route ids in
- * CODE (comments stripped, so a module header may discuss a dead route in prose without
- * earning an exemption), and requires each to resolve to a row. The one thing a literal
- * scan cannot see is a path assembled from fragments, so there is a third scan for those:
- * any template literal that interpolates into a path is a violation UNLESS its file is
- * declared in the table's `constructedRouteBuilders`, naming the rows it builds. That list
- * is three entries, each checked to exist, and the canary proves an undeclared builder
- * fails. It is the one place this gate trusts a declaration over an enumeration, and it
- * says so rather than hiding it.
- *
- * EVERY GUARD SHIPS WITH A CANARY: `test/fixtures/gate-d/` violates each rule on purpose
- * and `test/gate-d.test.mjs` asserts each rule fails on it. All three of this project's
- * previous guard failures were guards that silently stopped covering their target.
- *
- * Usage:
- *   node scripts/gate-d.js              # human output, exit 1 on any violation
- *   node scripts/gate-d.js --json       # machine-readable, for the wave GATE agent
- *   node scripts/gate-d.js --no-source  # skip the ReaPrime worktree half (see below)
- *
- * The SOURCE half needs the pinned worktree. It is REQUIRED by default and its absence is
- * a failure rather than a silent skip — a check that quietly stops running is the exact
- * decay this gate exists to prevent. `--no-source` is for a machine that genuinely has no
- * ReaPrime checkout, and it prints what it did not do.
- */
-
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,31 +8,18 @@ import { PINNED_COMMIT, REA_ROOT, resolveReaCommit } from './lib/rea-source.js';
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Where the contract table lives. Part 3 §7 says "in the new repo"; it lives beside the
- *  client it gates, in the ReaPrime address layer. See src/data/CONTRACTS.md. */
 export const TABLE_PATH = 'src/data/CONTRACTS.json';
 
 /** Scan roots for the client. `test/` is excluded because its canaries break every rule on
  *  purpose; `vendor/` because it is not authored here. */
 export const SCAN_ROOTS = ['src'];
 
-/**
- * Files inside a scan root that are not the client.
- *
- * `rea-routes.generated.js` is the DOCUMENTED SURFACE — every path ReaPrime's own specs
- * carry, 143 of them. It is a table, not a caller. Requiring a contract row for all 143
- * would turn the contract table into a second copy of the generated one and destroy the
- * distinction the tables exist to keep: the generated table says what ReaPrime documents,
- * the contract table says what we checked and consume.
- */
 export const SCAN_EXCLUDE = [
     'src/data/rea-routes.generated.js',
     'src/data/CONTRACTS.json',
 ];
 
 const BASE_PREFIXES = new Set(['/api/v1', '/ws/v1', '/', '/api', '/ws']);
-
-/* ------------------------------------------------------------------ the table */
 
 export function loadTable(root = REPO_ROOT) {
     const path = join(root, TABLE_PATH);
@@ -132,14 +60,6 @@ export function buildIndex(table) {
     };
 }
 
-/* ------------------------------------------------------------- source scanning */
-
-/**
- * Every string literal in a chunk of JavaScript, with a flag for template interpolation.
- *
- * `stripComments` runs first, so a route named in prose is invisible here. That is the
- * rule the whole scan family shares: a name USED is not a name DISCUSSED.
- */
 export function extractStringLiterals(source) {
     const code = stripComments(source);
     const out = [];
@@ -196,16 +116,6 @@ export function collectRouteIds(source) {
     return [...ids];
 }
 
-/**
- * Template literals that interpolate into something path-shaped.
- *
- * The shape test is deliberately structural rather than a keyword list: a path has no
- * newline, no `;` and no `{`, which is exactly what separates it from the `css` tagged
- * template every component carries (those interpolate token names into CSS containing all
- * three). Narrowing by "does it mention a known route word" would be the allowlist mistake
- * one level down — it would pass a constructed route the table has never heard of, which
- * is the only kind this scan exists to catch.
- */
 export function collectConstructedPaths(source) {
     const pathShaped = (v) => v.includes('/') && !/[\n;{]/.test(v) && v.length < 200;
     return extractStringLiterals(source)
@@ -232,8 +142,6 @@ export function collectFiles(root = REPO_ROOT, { roots = SCAN_ROOTS, exclude = S
     }
     return files;
 }
-
-/* ------------------------------------------------------------------ the checks */
 
 const violation = (rule, file, detail, fix) => ({ rule, file, detail, fix });
 
@@ -293,25 +201,6 @@ const symbolOf = (handlerSymbol) => {
 
 const dartTemplate = (path) => path.replace(/\{([^}]+)\}/g, '<$1>');
 
-/**
- * The one registration shape a literal search cannot see: a handler that registers ONE
- * parameterised route and switches on the last segment.
- *
- *     app.put('/api/v1/scale/<command>', (request, command) async {
- *       switch (command) { case 'tare': ... }
- *
- * The OpenAPI table enumerates the concrete commands — `/api/v1/scale/tare` — because
- * that is what a client calls, so the row carries the concrete path and the source half
- * would otherwise report it as unregistered. The KV-store rows do not hit this because
- * their generated routes are parameterised too, and both halves agree.
- *
- * DELIBERATELY NARROW, AND IT ASKS FOR MORE THAN THE PATH. Exactly one trailing segment
- * may be swapped for a parameter, and the handler must ALSO name the command in a
- * `case` — so a route that merely shares a prefix with a parameterised one is still a
- * violation, and a command the handler does not implement is still a violation. That is
- * the property the check is for: the table may not claim a route the source does not
- * serve.
- */
 function registeredByCommandSwitch(text, template) {
     const at = template.lastIndexOf('/');
     if (at <= 0) return false;
@@ -323,41 +212,6 @@ function registeredByCommandSwitch(text, template) {
     return new RegExp(`case\\s+'${command.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}'`).test(text);
 }
 
-/**
- * THE SECOND REGISTRATION SHAPE A LITERAL SEARCH CANNOT SEE: a handler that registers ONE
- * CATCH-ALL and a spec that documents a concrete path underneath it.
- *
- *     app.get('/api/v1/account/proxy/<rest|.*>', _handleGet);
- *
- * against a row whose path is `/api/v1/account/proxy/support/api/{endpoint}`. The spec
- * documents the narrower form ON PURPOSE and says so in its own prose: "the runtime route
- * is a catch-all under `/api/v1/account/proxy/`, but OpenAPI documents this single-segment
- * `support/api` form so generated clients do not encode slash-containing path parameters
- * incorrectly". A generated client that emitted the catch-all would percent-encode the
- * slashes in `support/api/email` into one path segment, and the proxy — which splits the
- * decoded path on `/` and matches it against an allowlist prefix — would answer 403.
- *
- * So the table carries the documented path, the handler carries the catch-all, and both
- * are right. This is the same class of accommodation as `registeredByCommandSwitch` above,
- * one axis over: there the table is NARROWER at the tail than the registration and the
- * handler proves the tail with a `case`; here the table is DEEPER than the registration and
- * the catch-all's own regex marker proves it swallows the rest.
- *
- * DELIBERATELY NARROW, ON THE SAME PRINCIPLE. It accepts only a registration whose LAST
- * segment is an explicit regex catch-all — a parameter carrying a `|`, which is Dart
- * shelf_router's syntax for "match this pattern" and is how `<rest|.*>` differs from an
- * ordinary `<id>`. A plain `<id>` segment matches ONE segment and cannot stand for a deeper
- * path, so it is not accepted here and a row claiming depth under one is still a violation.
- * And the row's path must lie strictly UNDER the catch-all's prefix: sharing a prefix is not
- * enough, `/api/v1/account/proxyother/x` does not match `/api/v1/account/proxy/<rest|.*>`.
- *
- * WHAT THIS DOES NOT CHECK, said plainly rather than left to be discovered. A catch-all
- * accepts every path beneath it, so this check cannot tell a row that names a real upstream
- * endpoint from one that names an imaginary one — the server would route both to the same
- * handler. That judgement is the desk check's, and for this route it is written out in the
- * row's own `notes`: `support/api/email` is corroborated inside ReaPrime, `support/api/emails`
- * is corroborated only by Slate, and the row says which is which.
- */
 function registeredByCatchAll(text, template) {
     for (const match of text.matchAll(/'((?:\/(?:api|ws)\/v1)[^']*)\/<[^>|]+\|[^>]*>'/g)) {
         const prefix = match[1];
@@ -366,14 +220,6 @@ function registeredByCatchAll(text, template) {
     return false;
 }
 
-/**
- * The tree the SOURCE half reads, and whether it is the pin.
- *
- * Returns `{ head, violation }`. `head` is the resolved commit, or null when it could not be
- * resolved at all — which is a violation and never a skip. `resolveReaCommit` is called with
- * `require: false` so the mismatch arrives as a violation like every other finding, rather
- * than a throw that would take the coverage and retirement halves down with it.
- */
 export function resolveReaWorktree({ reaRoot = REA_ROOT, pin = PINNED_COMMIT } = {}) {
     if (!existsSync(reaRoot)) {
         return {
@@ -405,7 +251,6 @@ export function resolveReaWorktree({ reaRoot = REA_ROOT, pin = PINNED_COMMIT } =
     return { head, violation: null };
 }
 
-/** SOURCE — the table is still true of the server at the pin. */
 export function checkSource(table, reaRoot = REA_ROOT, pin = PINNED_COMMIT, worktree = null) {
     const out = [];
     const tree = worktree || resolveReaWorktree({ reaRoot, pin });
@@ -530,8 +375,6 @@ export async function checkGeneratedAgreement(table, root = REPO_ROOT) {
     return out;
 }
 
-/* ------------------------------------------------------------------- the gate */
-
 export async function runGateD({ root = REPO_ROOT, table = null, files = null, reaRoot = REA_ROOT, source = true, pin = PINNED_COMMIT } = {}) {
     const t = table || loadTable(root);
     const f = files || collectFiles(root);
@@ -576,8 +419,6 @@ if (isMain) {
         console.log(`Gate D — contract table (${TABLE_PATH})`);
         console.log(`  ${c.restRows} REST rows (${c.consumed} consumed / ${c.declared} declared / ${c.recorded} recorded), ${c.socketRows} socket rows, ${c.gates} handler-body gates`);
         console.log(`  pin ${c.pin}`);
-        // What tree the handlers were read from, and what commit it is actually at — the
-        // pin above is three strings in this repo agreeing with each other.
         console.log(source
             ? `  worktree ${c.reaRoot} at ${c.reaHead || 'UNRESOLVED'}`
             : '  worktree NOT READ (--no-source)');

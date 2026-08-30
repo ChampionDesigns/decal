@@ -1,46 +1,13 @@
 /**
- * ui-exit-sentence.entry.js — the gallery entry for Wave 4 item #41.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array and its README says "Edit entries.js. That is the whole
- * procedure" — true for one builder, false for a pipelined wave writing whole files
- * in parallel: the last write wins and every other entry vanishes silently, which
- * the gallery cannot detect because a missing entry is just a shorter list. Each
- * builder owns one file here and the wave's single cross-cutting writer wires it in.
- *
- * FOR THE GATE:  import { entry as uiExitSentence } from './entries/ui-exit-sentence.entry.js';
- *                export const entries = [ …, uiExitSentence ];
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component (spec §2.1 Rule 1), and a state's
- * full id is `ui-exit-sentence--<state.id>` — a capture-battery filename, so these
- * ids are identifiers and renaming one is a re-baseline.
- *
- * THE STAGE WIDTH IS 346px AND IT IS AN ORACLE ANSWER, not a taste:
- *   CITE find --cls pe-empty-slot -> 3 element(s) in 1 state(s); 346 x 64  x3
- *   CITE find --cls pe-chip-summary -> 274 x 64  x6, and find --cls pe-chip-x
- *        -> 64 x 64  x6, at x=518 against the sentence's x=236 (+274) — so
- *        274 + 8 + 64 = 346, the same number from the other side.
- * The component itself declares none of those three; it is `minmax(0, 1fr) auto`
- * at a --ui-space-2 gap, and a 346px stage is what makes it land on Slate's numbers.
- * The `narrow` and `wide` states below are there to show that it is a ratio.
- *
- * The `step` property is handed in as a JSON attribute — Lit's default converter for
- * `type: Object` parses it — which is what lets a static gallery page declare an
- * editor draft with no script.
+ * The gallery entry for.
  */
 
-/* The first column of the oracle's editor-steps capture, verbatim:
- *   CITE [i=161] "Pressurerises past4.5 bar"   CITE [i=167] "Volumereaches100 mL" */
 const PRESSURE_STEP = JSON.stringify({
     pump: 'flow',
     exit: { type: 'pressure', condition: 'over', value: 4.5 },
     volume: 100,
 });
 
-/* The third column, which is the one carrying the dead exit:
- *   CITE [i=193] "Flowfalls below0.0 mL/s"
- *   CITE [i=198] .pe-exit-dead-note "never fires — cannot fall below zero · e" */
 const DEAD_FLOW_STEP = JSON.stringify({
     pump: 'pressure',
     exit: { type: 'flow', condition: 'under', value: 0 },

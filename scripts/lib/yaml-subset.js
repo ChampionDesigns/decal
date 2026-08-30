@@ -1,34 +1,4 @@
-// A deliberately small YAML reader — enough for ReaPrime's two API specs, and no more.
-//
-// WHY THIS EXISTS. The Decal tree takes no npm dependencies (Part 2: a contributor
-// clones and opens index.html), so the generated client cannot lean on `js-yaml`. The
-// alternative to a parser is transcription, and transcription is the defect this whole
-// gate exists to kill: 872 of api.js's lines are hand-copied wrappers around a surface
-// that is already machine-readable upstream.
-//
-// THE RULE THAT KEEPS A SMALL PARSER HONEST: it refuses everything it does not implement.
-// Every unsupported construct throws with a file and a line number, so an upstream spec
-// that starts using anchors, multi-document streams or complex keys FAILS THE BUILD
-// instead of parsing to something plausible and slightly wrong. A parser that guesses is
-// worse than no parser, because the wrongness lands in a committed artifact.
-//
-// SUPPORTED, and verified present in the two specs at 2b047d02:
-//   block mappings, block sequences, nesting by indentation (spaces only)
-//   plain / single-quoted / double-quoted scalars, including quoted keys ("200":)
-//   multi-line plain scalars (folded to one line with spaces, as YAML specifies)
-//   block scalars: | and > with the -, + and explicit-indent indicators
-//   flow sequences and flow mappings, including ones spanning several lines
-//   full-line and trailing comments (never inside quotes: "#/components/..." survives)
-//
-// REFUSED, loudly: anchors (&a) and aliases (*a), multi-document streams (---), merge
-// keys (<<), explicit keys (? ), tabs in indentation, tags (!!str), and any line that
-// cannot be read as one of the supported forms.
-//
-// ORDERING. Objects are returned as plain objects, so keys that look like integers
-// ("200", "304") are re-ordered by the JS engine. Callers that care about the order of
-// such keys must impose one themselves — the route generator sorts response statuses
-// explicitly for exactly this reason. Every other key in these two specs is a
-// non-integer string, where insertion order is preserved.
+
 
 export class YamlSubsetError extends Error {
     constructor(message, { file, line } = {}) {
@@ -65,8 +35,6 @@ export function parseYaml(text, { file = '<yaml>' } = {}) {
     return value;
 }
 
-/* ------------------------------------------------------------------ lexing */
-
 function lex(text, file) {
     const out = [];
     const raw = text.split('\n');
@@ -85,8 +53,6 @@ function lex(text, file) {
             no,
             raw: line,
             indent,
-            // `content` is comment-stripped; `raw` is not, because block scalars keep
-            // everything after their header verbatim, '#' included.
             content: body.startsWith('#') ? '' : stripComment(body),
         });
     }
@@ -132,15 +98,11 @@ function fail(state, message) {
     return new YamlSubsetError(message, { file: state.file, line: line ? line.no : undefined });
 }
 
-/* ----------------------------------------------------------------- parsing */
-
 function parseBlock(state, indent) {
     skipBlank(state);
     if (state.i >= state.lines.length) return null;
     const line = state.lines[state.i];
     if (isSequenceItem(line.content)) return parseSequence(state, indent);
-    // A flow collection may open on its own line under a bare key, which is how the
-    // long `MachineState` enum is written in rest_v1.yml.
     if (line.content.startsWith('[') || line.content.startsWith('{')) {
         state.i += 1;
         return parseFlow(state, line.content);
@@ -195,9 +157,6 @@ function parseSequence(state, indent) {
         }
 
         if (splitKey(rest)) {
-            // `- name: foo` opens a mapping whose first key sits on this line. Re-present
-            // the line at the mapping's own indent and let parseMapping consume it with
-            // its continuation lines.
             const innerIndent = indent + 1 + lead;
             state.lines[state.i] = { ...line, indent: innerIndent, content: rest };
             items.push(parseMapping(state, innerIndent));
@@ -304,8 +263,6 @@ function parseBlockScalar(state, keyLine, header, keyIndent) {
     if (style === '|') {
         body = `${rows.join('\n')}\n`;
     } else {
-        // Folded: a break between two non-empty, equally-indented lines becomes a space;
-        // a blank line becomes a newline; a MORE-indented line keeps its own breaks.
         let out = '';
         for (let i = 0; i < rows.length; i += 1) {
             const row = rows[i];
@@ -323,8 +280,6 @@ function parseBlockScalar(state, keyLine, header, keyIndent) {
     if (chomp === '+') return body;
     return body.replace(/\n+$/, '\n');
 }
-
-/* ------------------------------------------------------------- flow syntax */
 
 function parseFlow(state, firstChunk) {
     let text = firstChunk;
@@ -418,8 +373,6 @@ function readFlowScalar(r, isKey = false) {
     while (r.pos < r.text.length && !stop.test(r.text[r.pos])) r.pos += 1;
     return r.text.slice(start, r.pos).trim();
 }
-
-/* --------------------------------------------------------------- scalars */
 
 /** Resolve one scalar token: quoted string, null, boolean, number, or plain string. */
 export function scalarText(token) {

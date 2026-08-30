@@ -1,22 +1,5 @@
 /**
- * ui-chart-card.entry.js — the gallery entry for wave 3 item #9, THE CHART CARD.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-chart-card--<state>`): identifiers, not labels, so
- * a rename is a re-baseline.
- *
- * The host style carries the BLOCK size, because uPlot sizes from `clientWidth` /
- * `clientHeight` and a card in an auto-height stage would build its plot at zero. The
- * INLINE size is the stage's, which is what makes `narrow-container` an honest
- * demonstration of a component that reads its own container: same element, same viewport,
- * a narrower host (spec §2.1 Rule 1).
- *
- * WHAT GATE B CAN AND CANNOT SEE HERE, stated because it is this component's whole risk.
- * These captures show the card's LAYOUT — the frame, the legend's row, the gutters, the
- * traces' colours. They cannot show Rule 1 (a chart with no adopted stylesheet is
- * pixel-identical), they cannot show whether the cursor tracks a finger, and they cannot
- * show whether the plot was born at the right size. Those live in
- * `test/render/ui-chart-card.render.test.mjs`, at both Gate A geometries, in computed
- * style and in behaviour under CDP-dispatched input.
+ * The gallery entry for.
  */
 
 /** The card's own box. Block size only — the width is whatever the host gives it. */

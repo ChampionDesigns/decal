@@ -1,32 +1,5 @@
 /**
- * colour-literals.js — what counts as a raw colour literal.
- *
- * Separated from the guard that uses it so the vocabulary can be unit-tested on
- * strings, without a filesystem. The guard decides WHERE to look; this decides WHAT
- * it is looking at.
- *
- * THREE FORMS, and the third is the one a lazier guard misses:
- *   1. hex — `#fff`, `#ff0044`, `#ff004480`
- *   2. colour functions — `rgb()`, `rgba()`, `hsl()`, `hwb()`, `lab()`, `lch()`,
- *      `oklab()`, `oklch()`, `color()`
- *   3. named colours — `red`, `white`, `tomato`. All 148 of them.
- *
- * `color-mix()` and `light-dark()` are deliberately NOT literals: they are the
- * legitimate way to derive from a token (`color-mix(in srgb, currentColor
- * var(--ui-selected-glow), transparent)` is the selection glow, and contains no
- * literal at all). Their ARGUMENTS are still scanned, so a `color-mix` with a hex in
- * it is caught by rule 1.
- *
- * NAMED COLOURS NEED A PROPERTY CONTEXT, and that is a deliberate narrowing rather
- * than a hole. `linen`, `tomato` and `plum` are also ordinary words, and a guard
- * that flags them in `grid-template-areas` or a `content` string produces the false
- * positives that get guards switched off. So a bare name is a violation only when it
- * is the value of a colour-bearing property — or of a custom property, where
- * `--_ui-anything: red` can only be a colour.
- *
- * ALWAYS ALLOWED, everywhere: `transparent`, `currentColor`, and the CSS-wide
- * keywords. They carry no palette information — `currentColor` is in fact how the
- * selection LED gets its colour from the ink dial without a fifth token.
+ * What counts as a raw colour literal.
  */
 
 export const NAMED_COLOURS = new Set([
@@ -91,10 +64,6 @@ export function isColourBearing(property) {
 export function findColourLiterals(property, value) {
     const hits = [];
 
-    // Strings and url() come out first, for every check. `content: "#ff0000"` is a
-    // string that looks like a colour and is not one; `url(#gradient)` is an SVG
-    // fragment reference. Flagging either is a false positive, and a false positive
-    // is what gets an exemption written, and an exemption is how coverage dies.
     const scannable = stripFunctions(stripStrings(value), ['url']);
 
     for (const m of scannable.matchAll(HEX)) {
@@ -105,8 +74,6 @@ export function findColourLiterals(property, value) {
     }
 
     if (isColourBearing(property)) {
-        // Only words that stand alone as values — not `var(--ui-red-thing)`, not a
-        // quoted string, not part of a longer identifier.
         const bare = stripFunctions(scannable, ['var', 'attr', 'counter', 'counters', 'env']);
         for (const m of bare.matchAll(WORD)) {
             const word = m[0].toLowerCase();
@@ -118,13 +85,6 @@ export function findColourLiterals(property, value) {
     return hits;
 }
 
-/**
- * Blank out `name(...)` spans, honouring nesting — so `var(--ui-x, red)`'s fallback
- * is not read as a literal at the top level. (A named colour as a var() fallback is
- * still a literal, but it is a different, much rarer conversation than a bare
- * `color: red`, and flagging it here would mean flagging every `var(--x, 0)` shape
- * this function cannot type-check. If a fallback palette ever appears, widen this.)
- */
 /** Blank out quoted strings, keeping length so nothing else shifts. */
 function stripStrings(value) {
     return value.replace(/(["'])(?:\\.|(?!\1).)*\1/g, (m) => ' '.repeat(m.length));

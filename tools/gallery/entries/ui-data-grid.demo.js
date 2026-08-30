@@ -1,39 +1,10 @@
 /**
- * ui-data-grid.demo.js — the gallery's loader for the DATA GRID (wave 4, item #34).
- *
- * WHY A DEMO MODULE AND NOT `module: '../../../src/components/ui-data-grid.js'`.
- * One mechanical reason, the same one `ui-chart-card.demo.js` records: gallery.js does
- * exactly one `import(entry.module)` per entry and a state's markup is a STRING assigned
- * to `stageHost.innerHTML` (gallery.js:46-51, :81), so there is no hook in which to hand
- * the grid its `columns` and `rows`. They are properties, deliberately — a table whose
- * data arrived as a JSON attribute would be a table that re-parses its own contents on
- * every keystroke of a live shot — so a bare `<ui-data-grid>` in a state would photograph
- * as its empty state. Which IS a state, and has its own entry below; it is just not the
- * one anybody wants to look at first.
- *
- * THE SUBJECT IS THE SHIPPING COMPONENT. Each element here adds ONE thing to
- * `UiDataGrid` — a constructor that sets the two data properties — and overrides nothing
- * that paints, nothing that measures and nothing that renders. The three shapes are the
- * three the row names: SCOPE.md:1697, "Phase table and shot list → #34 data grid
- * variants", plus the empty case. The derived list is the fourth and is deliberately
- * absent (D1).
- *
- * THE NUMBERS ARE SLATE'S OWN, taken from its markup so the picture is comparable with
- * the old screen rather than invented: index.html:359-400 ships the phase table with
- * Time / Weight / Volume over Preinfusion / Extraction / Total, and the shot list's
- * columns are "Date, time, profile, shot length, yield, and the A/B assignment"
- * (slate-live.css:2441-2443).
+ * The gallery's loader for the DATA GRID (.
  */
 
 import { UiDataGrid } from '../../../src/components/ui-data-grid.js';
-/* The `empty` state slots #38 into the grid's own empty region, and gallery.js does one
- * import per entry — without this the tag stays an unknown element and photographs as
- * bare text (the same reason ui-chart-legend.demo.js imports the card). */
 import '../../../src/components/ui-empty-state.js';
 
-/** Live's shot-data panel and the History data page: a row-header column, three
- *  channels, and the Total row emphasised. The volume column carries channel ink —
- *  "Channel ink, matching the traces and the Live panel exactly" (slate-live.css:1950). */
 class UiDataGridPhase extends UiDataGrid {
     constructor() {
         super();
@@ -52,10 +23,6 @@ class UiDataGridPhase extends UiDataGrid {
     }
 }
 
-/** The same table on a shot that never left preinfusion — the case Slate's own comment
- *  describes at history-viewer.js:827-830: "Total has no per-channel ranges and
- *  Extraction can be absent on a shot that never left preinfusion. An em dash says 'not
- *  applicable here'; an empty cell says 'we forgot'." Nothing is computed to fill them. */
 class UiDataGridAbsent extends UiDataGridPhase {
     constructor() {
         super();

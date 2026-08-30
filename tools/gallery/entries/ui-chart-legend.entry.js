@@ -1,28 +1,5 @@
 /**
- * ui-chart-legend.entry.js - the gallery entry for component #10 (wave 3, item #10).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. This wave runs its builders in parallel
- * under a whole-file-write rule, so N appends to one array are N-1 entries lost. Each
- * builder owns one file here and the wave's reviewer wires them in serially:
- *
- *     import { entry as uiChartLegend } from './entries/ui-chart-legend.entry.js';
- *     export const entries = [ ...existing, uiChartLegend ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever the
- * entry object was authored. It points at the demo module, which only imports the
- * shipping component and the chart card; see there.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-chart-legend--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * EVERY LABEL IN EVERY STATE IS SLATE'S OWN, from the corpus:
- *   prov_query.py find --cls slate-chart-legend-item -> 20 buttons in 2 states, text
- *   "Pressure (bar)", "Flow (mL/s)", "GFlow (g/s)", "Target Pressure", "Target Flow",
- *   "Power (W)", "Group °C", "Mix °C", "Group Target °C", "Mix Target °C" - each 44px
- *   tall and as wide as its own words. They are data here: the component authors no word.
+ * The gallery entry for.
  */
 
 const LIVE = [

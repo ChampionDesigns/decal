@@ -1,42 +1,11 @@
 /**
- * ui-list-row.entry.js - the gallery entry for component #26 (wave 2, item #26).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 2 runs twelve builders in parallel
- * under a whole-file-write rule, so twelve appends to one array clobber each other -
- * which is exactly what wave 1 hit and recorded at entries.js:30-45. Each builder
- * therefore owns one file here and the wave's single cross-cutting writer wires them
- * into entries.js, serially, once:
- *
- *     import { entry as uiListRow } from './entries/ui-list-row.entry.js';
- *     export const entries = [ ...existing, uiListRow ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-list-row--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * `hostStyle` sizes the CONTAINER, never the viewport - the row reads its own
- * container (spec §2.1 Rule 1) and the viewport is the capture battery's business.
+ * The gallery entry for.
  */
 
-/* The seam that a LIST draws between rows: a 1px grid gap over --ui-line, which is
- * CONVENTIONS §13 and is the replacement for Slate's per-row
- * `#profile-list > * + * { border-top: 1px solid var(--slate-line) }`. It is written
- * out here rather than imported because a gallery state is light-DOM markup; the real
- * consumer uses the `seams` fragment. The ink is the measured one:
- * CITE profile-selector .p-3 [i=21] border-top-color = rgb(58, 72, 82) / light
- *      rgb(203, 208, 211)  <-  slate-shell.css `#profile-list > * + *`  = --ui-line. */
 const LIST_OPEN =
     '<div style="display:grid; gap:var(--ui-seam); background:var(--ui-line)">';
 const LIST_CLOSE = '</div>';
 
-/* Stand-in for component #35 (the favourite slot), which is a PARALLEL row in this
- * same wave: the row depends on a slot, not on the component, so the gallery shows the
- * shape without importing a sibling builder's work. */
 const DISC = (n) =>
     '<span slot="favourite" aria-label="Favourite slot ' + n + '" style="display:inline-grid;'
     + ' place-items:center; inline-size:48px; block-size:48px; border-radius:var(--ui-radius);'

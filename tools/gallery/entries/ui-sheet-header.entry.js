@@ -1,30 +1,5 @@
 /**
- * ui-sheet-header.entry.js — the gallery entry for component #16 (wave 2, item #16).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 2 runs twelve builders in
- * parallel under a whole-file-write rule, so twelve appends to one array clobber each
- * other — wave 1 hit exactly this and adopted the per-entry split (entries.js:30-45).
- * Each builder owns one file here and the wave's cross-cutting writer wires them into
- * `entries.js` once, serially:
- *
- *     import { entry as uiSheetHeader } from './entries/ui-sheet-header.entry.js';
- *     export const entries = [ ...existing, uiSheetHeader ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies — gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored. It points at `ui-sheet-header.demo.js` rather than
- * at the component, and that file says why.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-sheet-header--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * THE STATE THAT MATTERS MOST IS `in-a-sheet`. This component deliberately does not
- * draw the line under itself — the line between a header and a body is the parent's
- * row seam (CONVENTIONS §13; departure 1) — so a header photographed alone is a
- * header with no rule under it, which is correct and looks unfinished. That state
- * shows the contract #18 will implement, with the seam supplying the line.
+ * The gallery entry for.
  */
 
 export const entry = {

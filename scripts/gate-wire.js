@@ -1,133 +1,4 @@
 #!/usr/bin/env node
-/**
- * gate-wire.js — the dead-wire gate (Wave 0, `_audit/CONTROL_AUDIT_PLAN_2026-08-29.md` §5;
- * built to `_audit/wave-0-plan.md` §2).
- *
- * WHAT IT IS FOR. Every control fault this project has found was found by Ben pressing a
- * button, and the cheapest of those faults is kind 1: the control emits an event and
- * NOBODY LISTENS. A component suite cannot see it — driven alone, an unheard event IS the
- * correct outcome — because the wire is missing one layer up and no test looks at the wire.
- * This gate looks at the wire, statically, across the whole of `src/`.
- *
- * WHAT IT REPORTS — EVENT NAMES, NOT OUTCOMES (plan §5). Two verdicts and one refusal:
- *
- *   DEAD WIRE / unheard emit      a name dispatched somewhere in src/ and heard nowhere.
- *   DEAD WIRE / orphan listener   a name listened for somewhere in src/ and emitted nowhere.
- *   UNRESOLVED                    an event-name POSITION whose value this gate will not guess.
- *
- * MATCHING IS BY NAME ACROSS THE WHOLE OF `src/`, one flat namespace, no target-graph
- * analysis. That is deliberately generous: an emit anywhere heard anywhere passes. So a
- * green name is WEAK evidence — whether the listener is on a target the event can reach is
- * Wave 3's question — but a red name is STRONG: nothing in the skin can hear it.
- *
- * UNRESOLVED IS A FIRST-CLASS FAILING CATEGORY, and that is the design decision that keeps
- * the gate honest. The indirection is the whole difficulty here (plan §5): a naive scan
- * calls a table-driven registration unheard and cries wolf, and a scan that ignores
- * indirection misses the real ones. So this gate resolves the four simple shapes below and
- * REFUSES THE REST OUT LOUD, with file:line and the offending expression. A refusal is never
- * silently dropped into pass or into fail.
- *
- * ── WHAT IS IN SCOPE ────────────────────────────────────────────────────────────────────
- *
- * All `.js` under `src/`. Not `vendor/`, not `tools/`, not `test/`, not `index.html`.
- * DOM event plumbing only:
- *
- *   emit side    `new CustomEvent(NAME, …)` and `new Event(NAME, …)` on any target —
- *                `this`, an element, `window`/`globalThis`, `document` — including through
- *                `#emit`-style wrappers (see WRAPPERS). Every construction counts, not only
- *                one inside a `dispatchEvent(…)`: the two are the same act one line apart,
- *                and `dispatchEvent?.(new CustomEvent(FIT_EVENT, …))` (`src/lib/app-fit.js`)
- *                is already written the second way.
- *   heard side   `addEventListener(NAME, …)` and `addEventListener?.(NAME, …)` on any
- *                target, lit template bindings `@name=${…}`, and table/array-driven
- *                registration loops.
- *
- * OUT OF SCOPE, BY DESIGN: store subscriptions, the WS `fanout` signal bus, `postMessage`,
- * `on<event>` handler properties (builtin-only anyway), and `removeEventListener` — A REMOVE
- * IS NOT A HEARING, so only `addEventListener` and bindings put a name in the heard set.
- *
- * ── WHAT IT RESOLVES, AND THE POSITION RULE ─────────────────────────────────────────────
- *
- * Per file, over `stripComments(source)` — comments out, STRINGS KEPT, because event names
- * live in strings and `@fires` prose, module headers and commented-out code must not count:
- *
- *   1. top-level string constants   `const NAME = 'lit'` / `export const NAME = 'lit'`
- *   2. simple tables                `Object.freeze({K: 'lit', …})`, `Object.freeze(['a','b'])`
- *                                   and the unfrozen equivalents. EVERY value must be a
- *                                   string literal; one that is not makes the table opaque.
- *   3. imports                      `import { A, B as C } from 'spec'`, `spec` resolved
- *                                   relatively or through the import map's `src/` → `./src/`
- *                                   prefix (`index.html`). A BARE specifier is vendor code:
- *                                   the name is external and any position using it is
- *                                   UNRESOLVED, never guessed.
- *   4. member access                `TABLE.KEY` and `Object.values(TABLE)` against (2).
- *
- * THE POSITION RULE. A string becomes an event name ONLY by appearing in an event-name
- * POSITION: the first argument of `CustomEvent` / `Event` / `addEventListener` — directly,
- * through a resolved constant, through a resolved wrapper, or through a resolved loop
- * variable — or a lit `@`-binding. A table is NEVER classified as an event-name table by its
- * shape or by its name. That one rule is what keeps `STEP_ACTIONS` (`src/lib/editor-draft.js`
- * — action ids that ride in `detail`, not event names) out of the name universe without a
- * special case for it, and it is plan §5's "resolve simple frozen tables, refuse the rest"
- * in mechanical form.
- *
- * ── WRAPPERS, AND THE DECOY ─────────────────────────────────────────────────────────────
- *
- * A method is an emit wrapper IFF its body constructs `new CustomEvent(P, …)` (or
- * `new Event(P, …)`) where P is THAT METHOD'S FIRST PARAMETER. Then every call site
- * `this.#name(ARG, …)` in the same file puts ARG in event-name position. One level only: a
- * wrapper that forwards into another wrapper resolves to nothing and is UNRESOLVED.
- *
- * THE CHECK IS ON THE TYPE ARGUMENT, NOT ON THE SHAPE, BECAUSE ONE OF THEM IS A DECOY.
- * `src/components/ui-compare-bar.js` `#emit(reason)` looks exactly like the other six
- * wrappers and is not one: it dispatches the FIXED literal `'offset-change'` and puts
- * `reason` in `detail`. Its call-site arguments — `'slot-change'`, `'slide'`, `'reset'` —
- * are not event names, and a wrapper detector that matched on shape would inject three
- * imaginary events into the universe and then report them dead. `test/gate-wire.test.mjs`
- * carries that exact shape as a required canary.
- *
- * ── WHAT IT DELIBERATELY CANNOT SEE ─────────────────────────────────────────────────────
- *
- * BUILTIN NAMES ARE EXCLUDED FROM BOTH SETS. `BUILTIN_EVENTS` below is fixed and visible.
- * `cancel`, `close` and `open` are ALSO used here as custom names (the `ui-dialog` idiom) —
- * that is fine, because excluding a name from both sets means it can never be flagged and
- * can never mask a non-builtin name. SAID PLAINLY: a CustomEvent deliberately named like a
- * builtin is INVISIBLE to this gate. THE LIST IS FIXED AT SHIP TIME. Growing it later to
- * silence a finding is a rule change and is Ben's call, not a worker's.
- *
- * NAME MATCHING IS NOT DELIVERY. A listener on an element the event never reaches, a
- * `composed: false` event crossing a shadow boundary, a listener added after the emit —
- * all of those are green here and all of them are Wave 3's.
- *
- * LINE NUMBERS ARE LOCATED, NOT COMPUTED. The scan runs on comment-stripped text, whose
- * offsets do not line up with the file's (`stripComments` drops the newlines inside a block
- * comment). So each site is located by searching the ORIGINAL source for the exact text the
- * scanner matched, with a per-pattern cursor that only moves forward. Exact in every normal
- * case; if a file contains COMMENTED-OUT code byte-identical to a real site above it, the
- * line reported can be the commented one. The NAME and the FILE are unaffected — only the
- * line — and `exact: false` is carried in the JSON so a reader can tell.
- *
- * ── FALSE POSITIVES GET A LEDGER, NOT A LOOSENED RULE ───────────────────────────────────
- *
- * `tools/wire-ledger.json` (absent = empty) vouches ONE reported wire as deliberate — an
- * event consumed outside `src/`, or an indirection verified by hand — with a reason a reader
- * can check. A TRUE dead wire never gets an entry; it gets a `FINDINGS.md` entry and the
- * gate stays red, because the audit RECORDS, it does not repair (plan §9). A vouched entry
- * that matches no current violation is STALE and FAILS: an exemption must never outlive its
- * excuse. Same idiom as `mock-contract`'s vouching, and for the same reason — a rule relaxed
- * to stay green stops meaning anything.
- *
- * EVERY GUARD SHIPS WITH A CANARY. `test/fixtures/gate-wire/` breaks each rule on purpose
- * and `test/gate-wire.test.mjs` asserts each rule fires on it, plus the controls that prove
- * it does not over-fire. All three of this project's previous guard failures were guards
- * that silently stopped covering their target.
- *
- * Usage:
- *   node scripts/gate-wire.js          # human output; exit 1 on a dead wire, an unresolved
- *                                      # position, or a stale ledger entry
- *   node scripts/gate-wire.js --json   # machine-readable, for the wave's verifying worker
- */
-
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -136,19 +7,11 @@ import { stripComments } from './lib/source-scan.js';
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** The scan root. `src/` only — plan §2.1. */
 export const SCAN_ROOTS = ['src'];
 
 /** Vouched exceptions. Absent is an empty ledger, never an error. */
 export const LEDGER_PATH = 'tools/wire-ledger.json';
 
-/**
- * The standard DOM/UI names, excluded from BOTH the emitted and the heard set.
- *
- * FIXED AT SHIP TIME. This list is the gate's one allowlist and it is written out in full so
- * that adding to it is a visible diff. Growing it to make a finding go away is a rule change
- * (plan §6) and is Ben's call.
- */
 export const BUILTIN_EVENTS = new Set([
     'abort', 'animationend', 'animationiteration', 'animationstart',
     'beforeinput', 'beforetoggle', 'beforeunload', 'blur',
@@ -172,18 +35,9 @@ export const BUILTIN_EVENTS = new Set([
  * over. The wrappers in this tree dispatch in their first or second statement. */
 const WRAPPER_BODY_LIMIT = 2000;
 
-/* How far past a `for (const X of …)` header a registration may sit and still be read as
- * that loop's body. Scope is approximated by proximity — this gate does no scope analysis —
- * and the failure is LOUD: a registration further away than this resolves to nothing and is
- * reported UNRESOLVED rather than quietly counted as heard. */
 const LOOP_BODY_WINDOW = 600;
 
-/* How much of a `const NAME = …` right-hand side is examined. Every event-name table in
- * this tree is a flat handful of short literals; a declaration whose value does not finish
- * inside this window is OPAQUE, which costs a refusal, never a wrong name. */
 const CONST_VALUE_WINDOW = 600;
-
-/* ------------------------------------------------------------------ file collection */
 
 export function collectFiles(root = REPO_ROOT, { roots = SCAN_ROOTS } = {}) {
     const files = [];
@@ -204,15 +58,6 @@ export function collectFiles(root = REPO_ROOT, { roots = SCAN_ROOTS } = {}) {
     return files;
 }
 
-/* --------------------------------------------------------------------- small helpers */
-
-/**
- * The index of the `)` / `]` / `}` closing the bracket at `open`.
- *
- * Quote-aware, because the scan runs on comment-stripped text with the STRINGS KEPT. This is
- * bracket matching, not lexing — `stripComments` (`scripts/lib/source-scan.js`) is this
- * project's one lexer and it has already run. Returns -1 if the bracket never closes.
- */
 export function matchBracket(code, open) {
     const pairs = { '(': ')', '[': ']', '{': '}' };
     const close = pairs[code[open]];
@@ -236,13 +81,6 @@ export function matchBracket(code, open) {
     return -1;
 }
 
-/**
- * Where a site is in the ORIGINAL file.
- *
- * See the header note on line numbers. One cursor per pattern channel, moving forward only,
- * so the n-th match of a pattern in the stripped text is looked for at or after the (n-1)-th
- * match's position in the source.
- */
 export function lineLocator(source) {
     const starts = [0];
     for (let i = 0; i < source.length; i += 1) if (source[i] === '\n') starts.push(i + 1);
@@ -264,8 +102,6 @@ export function lineLocator(source) {
         return { line: lineOf(at), exact: true };
     };
 }
-
-/* ------------------------------------------------------------------- declarations */
 
 const STRING_VALUE = /^(['"])((?:\\.|(?!\1)[^\\\n])*)\1\s*(?=[;,)\]}\n])/;
 
@@ -291,11 +127,6 @@ function tableFromArrayBody(body) {
     return { kind: 'array', values };
 }
 
-/**
- * What a `const NAME = …` is worth to this gate: a string, a flat table of strings, or
- * OPAQUE. Opaque is not an error here — it becomes UNRESOLVED only if a name position ever
- * uses it, which is the position rule doing its job.
- */
 export function classifyValue(tail) {
     let m = STRING_VALUE.exec(tail);
     if (m) return { kind: 'string', value: m[2] };
@@ -306,10 +137,6 @@ export function classifyValue(tail) {
     return { kind: 'opaque' };
 }
 
-/* Anchored on the literal `const` rather than on a start-of-statement character class, so
- * the engine can prefilter on the word: the class alternation cost 50 ms over 6 MB of src/
- * and bought nothing — `const {` and `for (const x of` both fail the identifier-then-`=`
- * shape anyway. */
 const CONST_HEAD = /\bconst[ \t]+([A-Za-z_$][\w$]*)[ \t]*=[ \t\n]*/g;
 
 /** Every `const NAME = …` this gate can value. A name declared twice, differently, is opaque. */
@@ -352,32 +179,15 @@ export function parseImports(code) {
     return out;
 }
 
-/**
- * A module specifier as a repo-relative path, or null for "not a file this gate scanned".
- *
- * Relative specifiers resolve against the importing file; the import map's `src/` prefix
- * (`index.html`) resolves against the repo root. A BARE specifier is vendor code and null —
- * which makes anything imported from it external, and any name position using it UNRESOLVED.
- */
 export function resolveModule(fromPath, spec) {
     if (spec.startsWith('./') || spec.startsWith('../')) return join(dirname(fromPath), spec);
     if (spec.startsWith('src/')) return spec;
     return null;
 }
 
-/* ---------------------------------------------------------------------- the wrappers */
-
 const METHOD_DEF = /(?:^|\n)[ \t]*(?:static[ \t]+)?(?:async[ \t]+)?(?:get[ \t]+|set[ \t]+)?(#?[A-Za-z_$][\w$]*)[ \t]*\(([^)]*)\)[ \t]*\{/g;
 const NOT_METHODS = new Set(['if', 'for', 'while', 'switch', 'catch', 'function', 'return', 'do', 'else', 'try', 'with']);
 
-/**
- * The emit wrappers in one file, and the span of each one's body.
- *
- * See the header: the test is that the CustomEvent's TYPE ARGUMENT IS the method's first
- * parameter, which is what tells the six real wrappers from `ui-compare-bar`'s decoy. The
- * body is bounded by the next method definition, so a wrapper is read as far as it goes and
- * no further.
- */
 export function findWrappers(code) {
     const defs = [];
     METHOD_DEF.lastIndex = 0;
@@ -402,14 +212,6 @@ export function findWrappers(code) {
     return wrappers;
 }
 
-/* -------------------------------------------------------------------------- the loops */
-
-/**
- * Every `for (const X of ITER)` and `for (const [A, B] of ITER)` header in a file.
- *
- * `at` is the index of the header's closing `)`, so "the site is inside this loop" is
- * approximated as "the site follows this header, within `LOOP_BODY_WINDOW`".
- */
 export function forOfBindings(code) {
     const out = [];
     const rx = /\bfor[ \t]*\(/g;
@@ -429,13 +231,6 @@ export function forOfBindings(code) {
     return out;
 }
 
-/**
- * The `rea-sockets.js:266` shape: `const listeners = [['open', fn], ['close', fn], …]`.
- *
- * Only the FIRST element of each pair is an event-name position; the second is a handler.
- * A pair whose head is not a string literal makes the whole array unresolved rather than
- * partly guessed.
- */
 export function resolvePairArray(code, name) {
     const decl = new RegExp(`const\\s+${name}\\s*=\\s*\\[`).exec(code);
     if (!decl) return null;
@@ -454,8 +249,6 @@ export function resolvePairArray(code, name) {
     }
     return heads.length ? heads : null;
 }
-
-/* ------------------------------------------------------------------- the name positions */
 
 const EMIT_RX = /\bnew\s+(Custom)?Event\s*\(/g;
 const LISTEN_RX = /\baddEventListener[ \t]*(?:\?\.)?[ \t]*\(/g;
@@ -487,8 +280,6 @@ export function firstArgument(code, open) {
     return { kind: 'opaque', expr: code.slice(open + 1, stop).replace(/\s+/g, ' ').trim().slice(0, 80), end: stop };
 }
 
-/* ----------------------------------------------------------------------- the scan */
-
 function resolveConstant(index, path, name, seen = new Set()) {
     const key = `${path}::${name}`;
     if (seen.has(key)) return { kind: 'opaque', why: 'import cycle' };
@@ -519,9 +310,6 @@ export function scanFile(file, index) {
     const loops = forOfBindings(code);
     const wrappers = file.wrappers;
 
-    /* One POSITION is located once, even when it resolves to several names: a
-     * table-driven loop registers five listeners from one line, and looking that line up
-     * five times would report four of them as inexact. */
     const site = (channel, text, extra) => {
         const { line, exact } = locate(channel, text);
         return { file: path, line, exact, ...extra };
@@ -531,8 +319,6 @@ export function scanFile(file, index) {
         return names.map((event) => ({ file: path, line, exact, event, ...extra }));
     };
 
-    /* A name position's value, or a refusal. `allowLoop` is set only where a loop variable
-     * can legitimately stand for a name — a registration loop (plan §2.5). */
     const resolveAt = (expr, at, { allowLoop }) => {
         const dotted = expr.split('.');
         if (dotted.length === 2) {
@@ -599,7 +385,6 @@ export function scanFile(file, index) {
         unresolved.push(site(channel, text, { expr: `${position}(${raw}, …)`, position, why: 'not a literal, a constant, a resolved table lookup or a resolved loop variable' }));
     };
 
-    /* emit side ------------------------------------------------------------------ */
     EMIT_RX.lastIndex = 0;
     let m = EMIT_RX.exec(code);
     while (m) {
@@ -613,7 +398,6 @@ export function scanFile(file, index) {
         m = EMIT_RX.exec(code);
     }
 
-    /* wrapper call sites ---------------------------------------------------------- */
     if (wrappers.size) {
         const rx = /this\.(#?[A-Za-z_$][\w$]*)\s*\(/g;
         let w = rx.exec(code);
@@ -627,7 +411,6 @@ export function scanFile(file, index) {
         }
     }
 
-    /* heard side ------------------------------------------------------------------ */
     LISTEN_RX.lastIndex = 0;
     m = LISTEN_RX.exec(code);
     while (m) {
@@ -654,8 +437,6 @@ export function scanFile(file, index) {
     return { emits, listens, unresolved };
 }
 
-/* ------------------------------------------------------------------------ the ledger */
-
 export function loadLedger(root = REPO_ROOT) {
     const path = join(root, LEDGER_PATH);
     if (!existsSync(path)) return { entries: [] };
@@ -669,15 +450,6 @@ export function loadLedger(root = REPO_ROOT) {
 
 const KINDS = new Set(['unheard-emit', 'orphan-listener', 'unresolved']);
 
-/**
- * Vouched, stale, and malformed.
- *
- * An entry matches a live violation by event+kind, or — for `unresolved` — by a `file:line`
- * in its `sites`. A matched entry takes that violation out of the failing set and into
- * VOUCHED. An unmatched entry is STALE and fails: an exemption must never outlive its
- * excuse. An entry with no reason fails too, because "one line a reader can check" IS the
- * exemption; without it there is nothing to check.
- */
 export function applyLedger(ledger, violations) {
     const vouched = [];
     const stale = [];
@@ -714,8 +486,6 @@ export function applyLedger(ledger, violations) {
     }
     return { vouched, stale, errors, alive };
 }
-
-/* -------------------------------------------------------------------------- the gate */
 
 export function runGateWire({ root = REPO_ROOT, files = null, ledger = null } = {}) {
     const t0 = performance.now();
@@ -778,8 +548,6 @@ export function runGateWire({ root = REPO_ROOT, files = null, ledger = null } = 
         ledgerReadError: book.error ?? null,
     };
 }
-
-/* -------------------------------------------------------------------------- the CLI */
 
 const pad = (s, n) => (s.length >= n ? `${s} ` : s + ' '.repeat(n - s.length));
 

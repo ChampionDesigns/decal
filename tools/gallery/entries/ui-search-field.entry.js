@@ -1,15 +1,5 @@
 /**
- * ui-search-field.entry.js - the gallery entry for Wave 2 item #30.
- *
- * WHY THIS IS ITS OWN FILE. `tools/gallery/entries.js` is ONE shared `export const
- * entries = [...]` array and the only documented registration point; wave 1 measured
- * what happens when parallel builders each write that whole file, and adopted the
- * per-entry split (entries.js:30-45). Wave 2 runs twelve builders, so the same rule
- * binds: this file is written here, and the wave's single cross-cutting writer adds
- * one import line and one array slot to `entries.js`. Nothing else is touched.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`tools/gallery/README.md`): the full id is
- * `ui-search-field--<state.id>`, so these are identifiers, not labels.
+ * The gallery entry for.
  */
 
 export const entry = {

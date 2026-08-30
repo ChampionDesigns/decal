@@ -1,20 +1,5 @@
 /**
- * ui-select.entry.js — the gallery entry for Wave 1 item #7 (Select).
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is ONE
- * exported array in ONE file, and sixteen Wave 1 builders write whole files. Sixteen
- * appends to one array is sixteen chances to clobber fifteen entries, silently, with
- * the loss invisible until a capture battery photographs an empty stage. So each
- * builder owns a file here and the wave GATE agent wires them in — import this
- * module and spread `entry` into the array, or build a manifest from this directory.
- *
- * The shape below is exactly the documented one (tools/gallery/README.md, entries.js
- * header): { id, title, module, notes, states: [{ id, title, html, hostStyle, notes }] }
- * with `module` relative to tools/gallery/. `test/render/gallery.render.test.mjs`
- * drives the registry, so a malformed entry is a red test rather than a silent miss.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-select--<state.id>`), so they are identifiers,
- * not labels; renaming one is a re-baseline.
+ * The gallery entry for.
  */
 
 export const entry = {

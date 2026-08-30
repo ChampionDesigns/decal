@@ -1,35 +1,7 @@
 /**
- * ui-compare-bar.entry.js - the gallery entry for wave 4 item #44, the History screen's
- * A/B alignment strip.
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js: the wave runs its
- * builders in parallel under a whole-file-write rule, so N appends to one hand-written
- * array are N-1 entries lost. Each builder owns one file here; the wave's cross-cutting
- * writer adds the one import line and the one array slot:
- *
- *     import { entry as uiCompareBar } from './entries/ui-compare-bar.entry.js';
- *     export const entries = [ ...existing, uiCompareBar ];
- *
- * `module` stays relative to tools/gallery/ as tools/gallery/README.md specifies -
- * gallery.js does the import(entry.module), so the specifier resolves against gallery.js
- * wherever the entry object was authored. There is no .demo.js sidecar: every state is
- * the shipping component with attributes, and the key slot's content is two spans the
- * History screen will own.
- *
- * STATE IDS ARE CAPTURE FILENAMES (ui-compare-bar--<state>): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * The words are Slate's own, from the corpus and from index.html:575-587 read read-only:
- *   CITE  find --cls slate-compare-bar -> "found 1 element(s) in 1 state(s)",
- *         history-viewer #hv-align-bar [i=172] text "A solid B dashed Align B 0.0 s Reset"
- *         rect x=28 y=136 w=1864 h=90
+ * The gallery entry for.
  */
 
-/* The A-solid / B-dashed key, drawn by the gallery rather than by the component: it is a
- * chart key, the library's key is #10 ui-chart-legend, and #44 exposes a slot instead of
- * a third legend implementation. Slate marks it aria-hidden and draws the two rules with
- * border-top (slate-live.css:2302-2326); this is that shape in one span, in the light
- * tree, which is exactly where a slotted key lives. */
 const KEY = `<span slot="key" aria-hidden="true" style="
         display: inline-flex; align-items: center; gap: var(--ui-space-2);
         color: var(--ui-muted); font-size: var(--ui-text-sm); font-weight: var(--ui-weight-semibold);

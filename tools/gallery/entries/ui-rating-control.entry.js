@@ -1,44 +1,7 @@
 /**
- * ui-rating-control.entry.js — the gallery entry for Wave 4 item #46 (Rating control).
- *
- * A PER-ENTRY FILE, not an edit to `tools/gallery/entries.js`. That file is one shared
- * hand-written array and this wave has twenty-two parallel builders, so N appends to it
- * are N-1 lost entries. The wave's single cross-cutting writer adds one import line and
- * one array slot; `test/ui-rating-control-gallery-entry.test.mjs` makes that hand-off
- * safe by failing here rather than in a battery photographing an empty stage.
- *
- * `module` is resolved by `tools/gallery/gallery.js` (`import(entry.module)`), so it is
- * relative to `tools/gallery/`, not to this directory.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`<entry.id>--<state.id>`), so they are identifiers
- * rather than labels and a rename is a re-baseline.
- *
- * THE SIX STATES ARE THE SIX THINGS WORTH LOOKING AT, and two of them exist only
- * because of bug L4:
- *
- *   - `unrated` and `rated` are the machine without the DYE2 plugin, which is the
- *     common case and the one Slate's 165px box was hand-derived for;
- *   - `handoff` is the FOURTH CHILD arriving — the exact configuration in which
- *     ".slate-shot-rate is 11px shorter than its own contents" (LAYOUT_SPEC_DRAFT.md
- *     §7.2 L4);
- *   - `stated-height` puts Slate's own frozen 165px on the element as an inline
- *     block-size WITH the handoff present. In Slate that is the bug, photographed:
- *     children summing to 176, the button's bottom measured at 1156 against a box
- *     bottom of 1145. Here the box is as tall as its contents anyway, because
- *     `min-block-size: max-content` outranks a stated height. A capture that ever
- *     shows the button clipped is the defect coming back;
- *   - `nothing-to-rate` is Slate's own disabled case (shot-rating.js:69-73, "with no
- *     shot on screen there is nothing to rate ... say so on the control rather than
- *     accepting input and discarding it");
- *   - `narrow` is the container floor at Slate's own zone width, which is the only
- *     honest way to show something that reads its own container rather than the
- *     viewport (spec §2.1 Rule 1).
- *
- * The stage widths are lengths only — no colour literal reaches an inline style, which
- * Gate C scans `tools/` for.
+ * The gallery entry for.
  */
 
-/** Slate's own zone: CITE live-ready .slate-shot-rate [i=154] rect 1720,980,172,165. */
 const SLATE_ZONE = '172px';
 
 /** A stage wide enough that nothing is at its floor, for the four ordinary states. */

@@ -1,47 +1,9 @@
 /**
- * ui-wizard-column.entry.js — the gallery entry for Wave 4 item #39, the Wizard column
- * + step chip.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a single
- * hand-written array and this run writes whole files, so a wave of parallel builders
- * editing it means the last write wins and every other entry vanishes silently — a
- * missing entry is just a shorter list, which the gallery cannot detect. This builder
- * owns this file; the wave's one cross-cutting writer adds the single import line and the
- * single array slot, serially, once.
- *
- * FOR THE GATE:  import { entry as uiWizardColumn } from './entries/ui-wizard-column.entry.js';
- *                export const entries = [ …, uiWizardColumn ];
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/` (here a
- * demo sidecar, because each state mounts three custom elements), `hostStyle` sizes the
- * STAGE and not the component (spec §2.1 Rule 1), and the full state id is
- * `ui-wizard-column--<state.id>` — a capture-battery filename, so these ids are
- * identifiers and renaming one is a re-baseline.
- *
- * WHAT A REVIEWER SHOULD LOOK AT, in the order the states are listed:
- *
- *   1. `step-1` is Slate's own captured leaf, rebuilt. Compare it against
- *      `settings-calibration-load-cells`: same four chips, same 44x44, same square 6px
- *      corners, same "Step 1 of 4 · Zero" line — and a column that ends where every
- *      other leaf ends instead of 63px further right (T1).
- *   2. `mid-walk` is the state Slate has NO capture of: two steps behind the walk, one
- *      current, one ahead. Three luminances, one of them arriving from the four
- *      selection dials rather than from an inline style on a div.
- *   3. `narrow` is what the corpus cannot answer at all — the column at 360px. The chips
- *      hold 44x44 and the strip wraps; nothing shrinks and nothing clips.
- *   4. `no-actions` is the F3 hole, photographed. The wizard ships without a
- *      reset-to-default control (SCOPE.md:94-97, Q1), and because every action is
- *      slotted, "without the control" is a state this component already has rather than
- *      a feature waiting to be removed.
- *
- * THE STEP NAMES ARE SLATE'S — 'Zero', 'Left cell', 'Right cell', 'Verify'
- * (`settings.js:4867`, read-only) — because they are what the machine's calibration walk
- * actually does. They are DATA the screen passes in, not strings this component owns.
+ * The gallery entry for.
  */
 
 const STEPS = JSON.stringify(['Zero', 'Left cell', 'Right cell', 'Verify']);
 
-/** Slate's card copy for step 1 (`settings.js`, the CAL_CARD body), abridged. */
 const ZERO_CARD =
     '<ui-card>Zero the load cells. Remove the cup platform and anything resting on the '
     + 'drip tray, then press Zero.</ui-card>';

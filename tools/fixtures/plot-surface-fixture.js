@@ -1,58 +1,5 @@
 /**
- * plot-surface-fixture — the rendering subjects for Gate 5.
- *
- * `PlotSurfaceElement` ships NO TAG of its own (the `ui-` namespace belongs to the
- * components; it is a base class in the same sense as `UiElement`), so a rendering
- * suite has to bring one. This file brings four, and nothing else: no colours, no
- * lengths, no layout decisions. Every value the plot draws with still comes from the
- * document's own tokens through the host, which is the whole of A6 and the thing the
- * suite measures.
- *
- *   <plot-fixture>          the plain surface, sized by the page.
- *   <plot-fixture-canary>   RULE 1'S CANARY. `adoptPlotStyleSheet` returns false without
- *                           adopting anything AND `plotStyleSheetOptional` is declared
- *                           true, which is precisely what a chart that forgets the vendor
- *                           sheet inside a shadow root looks like — with the waiver made
- *                           explicit, because a mount whose sheet merely FAILED now fails
- *                           outright. Gate C's rule is that every guard ships with a
- *                           canary that fires: the mount-C signature is pixel-identical to
- *                           a healthy chart, so an assertion that cannot tell these two
- *                           apart is an assertion that proves nothing.
- *   <plot-fixture-unsheeted>
- *                           the same failed adoption WITHOUT the waiver — a production
- *                           chart whose sheet did not arrive. It must not mount at all.
- *   <plot-fixture-cursor>   uPlot's own cursor ON — the subject of the coordinate
- *                           re-verify (Part 10 §12), which the suite now RUNS through
- *                           `cursorReport()` rather than leaving as a paragraph, and the
- *                           subject of the `.u-cursor-x` probe, one of the two
- *                           discriminators the spike measured.
- *   <plot-fixture-two>      TWO SCALES. A left channel and a right one, both with fixed
- *                           ranges, because a function-valued `range` used to reach uPlot
- *                           double-wrapped and y2 — which nothing rescues with an explicit
- *                           setScale — came up ranged null/null in silence.
- *   <plot-fixture-temp>     THE FIXED-RANGE ESCAPE. Overrides `yScaleSpec` and `yRangeFor`
- *                           together onto `computeTempRange`, so the suite can assert that
- *                           a subclass's own band survives the frame instead of being
- *                           overwritten by the damped ceiling.
- *   <plot-fixture-late>     a surface that reports what it saw during its OWN mount:
- *                           the store-fed order is "append, then set the channels when
- *                           the shot opens", and the suite has to be able to see what
- *                           the element did in between.
- *
- * The fixtures also carry the tiny amount of test plumbing that would be noise in the
- * component: a deterministic record generator, and a counter for how many times the
- * scheduler actually painted.
- *
- * WHY THIS LIVES UNDER tools/ AND NOT test/fixtures/ (moved by wave 3's gate).
- * `node --test test/` treats EVERY `.js` under a `test/` directory as a test file, so
- * a browser-only module that imports `lit` through the page's importmap is loaded by
- * node's runner and fails there: `Cannot find package 'lit'` — one red in an otherwise
- * green tree, for a file that contains no tests. `test/fixtures/base-fixture.js`
- * escapes only because it declares its elements without importing lit. The repo root
- * IS the served root (test/harness/server.js:4, and the gallery's importmap resolves
- * `../../`), so the move changes the URL and nothing else. Consumers:
- * `test/render/plot-surface.render.test.mjs` (three path strings) and
- * `tools/gallery/entries/plot-surface.demo.js`.
+ * Plot-surface-fixture — the rendering subjects for Gate 5.
  */
 
 import { PlotSurfaceElement } from '../../src/components/plot-surface.js';
@@ -64,11 +11,6 @@ export const CHANNELS = [
     { key: 'flow', label: 'Flow', dash: 'dash' },
 ];
 
-/**
- * The steam view's shape: one channel per scale. `y2` is the case with no rescue —
- * `PlotSurfaceElement.#draw()` calls `setScale('y')` every frame and never `setScale('y2')`,
- * so the right-hand axis is whatever `createPlot` handed uPlot at construction.
- */
 export const TWO_SCALE_CHANNELS = [
     { key: 'steam-temperature', label: 'Steam' },
     { key: 'flow', label: 'Flow', scale: 'y2' },
@@ -96,11 +38,6 @@ export function makeTempRecords({ n = 60, seconds = 30, target = 92 } = {}) {
     };
 }
 
-/**
- * A shot-shaped record set: `n` samples over `seconds`, pressure ramping to `peak`
- * and flow riding under it. Deterministic — no clock, no random — because a chart
- * assertion that moves between runs is not an assertion.
- */
 export function makeRecords({ n = 60, seconds = 30, peak = 9 } = {}) {
     const x = [];
     const pressure = [];
@@ -153,11 +90,6 @@ class PlotFixture extends PlotSurfaceElement {
         };
     }
 
-    /**
-     * What uPlot actually ranged each scale to — `raw.scales`, which no assertion read
-     * before. A scale ranged `null`/`null` draws no axis and raises nothing, so this is
-     * the only way to see a range that never arrived.
-     */
     scaleReport() {
         const raw = this.plotHandle?.raw ?? null;
         if (!raw) return null;
@@ -180,12 +112,6 @@ class PlotFixtureCanary extends PlotFixture {
     get plotStyleSheetOptional() { return true; }
 }
 
-/**
- * THE CANARY'S OWN CANARY: adoption fails and the waiver is NOT declared, which is what a
- * production chart whose vendor sheet did not arrive looks like. It must not mount. The
- * pair only proves anything together — `<plot-fixture-canary>` shows the waiver still
- * lets a subject through, this one shows nothing else does.
- */
 class PlotFixtureUnsheeted extends PlotFixture {
     async adoptPlotStyleSheet() { return false; }
 }
@@ -194,15 +120,6 @@ class PlotFixtureUnsheeted extends PlotFixture {
 class PlotFixtureCursor extends PlotFixture {
     cursorSpec() { return { show: true }; }
 
-    /**
-     * uPlot's own cursor state — the three numbers the coordinate re-verify is about
-     * (Part 10 §12, LAYOUT_SPEC_DRAFT §6.3). `left` is uPlot's x INSIDE the plotting
-     * area, in CSS px, computed from `getBoundingClientRect()`; `val` is what that x maps
-     * back to through `posToVal`, which works in `clientWidth` space; `idx` is the sample
-     * uPlot believes the pointer is over. If the two coordinate spaces disagreed, `left`
-     * would drift from the pointer's real offset into `.u-over` and `val` would stop being
-     * linear in it — at dpr 1.5 first, which is why the suite runs this at both.
-     */
     cursorReport() {
         const raw = this.plotHandle?.raw ?? null;
         if (!raw) return null;
@@ -218,11 +135,6 @@ class PlotFixtureCursor extends PlotFixture {
     }
 }
 
-/**
- * The cursor fixture with the sheet declined — the pair the `.u-cursor-x` assertion
- * needs. It is the ONE discriminator that works at both device pixel ratios, so it is
- * the one that has to have a canary at both.
- */
 class PlotFixtureCursorCanary extends PlotFixtureCursor {
     async adoptPlotStyleSheet() { return false; }
 
@@ -244,13 +156,6 @@ class PlotFixtureTwoScale extends PlotFixture {
     }
 }
 
-/**
- * THE FIXED-RANGE ESCAPE, as a subject. `yScaleSpec` sets the band at construction and
- * `yRangeFor` keeps it there — the pair `PlotSurfaceElement` documents. It returns the
- * band rather than `null` because `computeTempRange` WIDENS as samples arrive, which is
- * the harder half: a fixed range that moves has to be re-applied, and it must still never
- * be the damped ceiling.
- */
 class PlotFixtureTemp extends PlotFixture {
     /** The band the last frame computed, so the suite can compare it with the axis. */
     band = null;
@@ -272,12 +177,6 @@ class PlotFixtureTemp extends PlotFixture {
     }
 }
 
-/**
- * Reports what was true DURING its own mount. The suite cannot observe the inside of
- * an async mount from outside it, and the ordering defect this pins lived exactly
- * there: a surface connected before its channels were set threw out of the mount as an
- * unhandled rejection and left a mounted element with no plot.
- */
 class PlotFixtureLate extends PlotFixture {
     seenDuringMount = null;
 

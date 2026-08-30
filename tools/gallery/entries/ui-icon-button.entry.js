@@ -1,29 +1,7 @@
 /**
- * ui-icon-button.entry.js — the gallery entry for Wave 1 item #2.
- *
- * WHY THIS IS A FILE OF ITS OWN, and not a block appended to `entries.js`:
- * `tools/gallery/entries.js` is ONE shared array in ONE file, and sixteen Wave 1
- * builders writing whole files into it at the same time clobber each other. So each
- * builder owns a file here, exporting the documented entry shape unchanged, and the
- * wave's GATE agent wires them into `entries.js` (import + spread, or a manifest).
- * Nothing else about the gallery changes: `tools/gallery/README.md:12` — "Edit
- * entries.js. That is the whole procedure" — still describes the registration, only
- * with the edit made once by the gate rather than sixteen times in parallel.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`<entry.id>--<state.id>`), so they are
- * identifiers, not labels: renaming one is a re-baseline.
- *
- * `hostStyle` sizes the STAGE, never the viewport. It is how the squeeze state says
- * "in a 40px slot", which is the only honest way to show that a fixed control does
- * not shrink to fit a parent that is too small for it (spec §2.1 Rule 1, §2.3 case 2).
+ * The gallery entry for.
  */
 
-/**
- * The glyph, inline, so the gallery needs no asset pipeline. Stroke and fill stay
- * ON THE ARTWORK (spec §2.3 case 3: "icon and glyph geometry intrinsic to the
- * artwork"); the component only sizes it, to --ui-icon / --ui-icon-lg. `currentColor`
- * is how it takes the button's ink, which is --ui-text-2 in both themes.
- */
 const GLYPH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
     + 'stroke-width="1.6" stroke-linecap="round" aria-hidden="true">'
     + '<path d="M4 7h16M4 12h16M4 17h16"></path></svg>';

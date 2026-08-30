@@ -1,45 +1,5 @@
 /**
- * authored-css.js — find every line of authored CSS in the tree, and parse it.
- *
- * THE ONE RULE THIS FILE EXISTS TO SERVE (SCOPE Part 8 §2, Gate C):
- *
- *   "Scan by construction, not by allowlist. The guard walks *all* authored styles —
- *    which in a Lit tree means parsing the `css` tagged template literals inside
- *    component files, not just `.css` files. A guard that only reads stylesheet
- *    files misses every line of component CSS in the new architecture; that would be
- *    the markup-only colour guard's mistake, inverted."
- *
- * In this tree almost all authored CSS lives inside `css` tagged templates in `.js`
- * files, because a Lit component's `static styles` is where its rules are. A guard
- * that globbed `**\/*.css` would today read three files and miss every component.
- *
- * THREE PLACES CSS CAN BE WRITTEN HERE, and the scanner reads all three:
- *   1. a `.css` sheet — the three global sheets;
- *   2. a `css` tagged template inside a `.js`/`.mjs` file — every component;
- *   3. an HTML `<style>` element, or a `css` template inside an inline `<script>` —
- *      `index.html` and `tools/gallery/index.html` are hand-written documents, and
- *      the gallery's ~120 lines of chrome CSS live in a `<style>` block. Reading only
- *      (1) and (2) meant Gate C reported PASS on a file it had never opened, which is
- *      the same "passes by blindness" failure the rule above is written against.
- *
- * WHY A SCANNER AND NOT A REGEX. Two of the three recorded old-guard failures were
- * guards that stopped covering their target without anyone noticing, and the way a
- * regex does that here is specific: `src/components/base.js` writes the word
- * `!important` a dozen times in prose explaining why it is never used, and quotes
- * measured `rgb(...)` values in its oracle citations. A guard that greps the raw
- * file fails on the file that documents the rule — and the fix for that false
- * positive is always an exemption, which is how coverage dies. So this scanner
- * tracks JavaScript lexical state (strings, comments, regex literals, nested
- * template interpolations) and hands back only what is really inside a `css`
- * template, then strips CSS comments before anything looks at it. The HTML half
- * blanks HTML comments first, for the same reason: a `<style>` block quoted inside
- * `<!-- … -->` is documentation, not authored CSS.
- *
- * WHAT IT RETURNS. A flat list of `Block`s:
- *   { file, kind: 'template' | 'sheet' | 'style-element', line, text, declarations, atRules }
- * `line` is the 1-based line in the original file where the block starts, and every
- * declaration and at-rule carries its own absolute line, so a violation points at
- * the line a human would open.
+ * Find every line of authored CSS in the tree, and parse it.
  */
 
 import fsp from 'node:fs/promises';
@@ -48,35 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 export const REPO_ROOT = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 
-/**
- * Where authored styles live. `src/` is every component and screen; `styles/` is the
- * three global sheets; `tools/` is the gallery, whose page chrome is authored CSS
- * like any other; `index.html` is the one hand-written document the app is served as.
- *
- * A root may be a directory or a single file — `index.html` is a file, and naming the
- * repo root instead would drag in `test/`, `vendor/` and `node_modules`.
- *
- * Note what is NOT here: `test/` holds the canary fixtures, which violate every rule
- * on purpose — "a guard that walks test/ without excluding this directory will fail
- * the build on its own canaries" (test/fixtures/canaries/README.md). `vendor/` is
- * pinned third-party code that is not authored here. `scripts/` and `i18n/` hold no
- * CSS and never will; `fonts/` holds binaries.
- *
- * `tools/` was previously excluded as "scaffolding rather than shipping surface". The
- * open-source decision makes the rig a deliverable that ships with the template, and
- * the gallery's own `<style>` block says why it is written in tokens anyway: "a tool
- * whose chrome drifts from the palette is a tool that lies about what it is showing."
- * Reverting is deleting two entries from this array.
- */
 export const DEFAULT_SCAN_ROOTS = Object.freeze(['src', 'styles', 'tools', 'index.html']);
 
 const CODE_EXTENSIONS = new Set(['.js', '.mjs']);
 const SHEET_EXTENSIONS = new Set(['.css']);
 const MARKUP_EXTENSIONS = new Set(['.html', '.htm']);
-
-/* ===========================================================================
- * File discovery
- * =========================================================================== */
 
 export async function listAuthoredFiles(roots = DEFAULT_SCAN_ROOTS, { root = REPO_ROOT } = {}) {
     const found = [];
@@ -118,10 +54,6 @@ async function walk(dir, out) {
     }
 }
 
-/* ===========================================================================
- * The JavaScript scanner — finding css`…` and nothing else
- * =========================================================================== */
-
 const IDENT = /[A-Za-z0-9_$]/;
 
 /** Keywords after which a `/` starts a regex literal rather than a division. */
@@ -130,17 +62,6 @@ const REGEX_KEYWORDS = new Set([
     'case', 'do', 'else', 'yield', 'await', 'throw',
 ]);
 
-/**
- * Extract every `css` tagged template from JavaScript source.
- *
- * Interpolations (`${focusRing}`) are removed from the returned text rather than
- * kept: an interpolated fragment is itself a `css` template somewhere and gets
- * scanned on its own, and leaving `${…}` in place would break the CSS parse. The
- * count is reported so a guard can say so if it ever matters.
- *
- * Nested templates inside an interpolation are scanned too, so
- * `css\`\${cond ? css\`color: red\` : ''}\`` is not a hiding place.
- */
 export function extractCssTemplates(source) {
     const blocks = [];
     const lineIndex = buildLineIndex(source);
@@ -173,9 +94,6 @@ export function extractCssTemplates(source) {
             continue;
         }
 
-        // Regex literal, using the standard "what came before" heuristic. Getting
-        // this wrong is how a scanner walks into a `/["'`]/` and thinks it opened a
-        // string, so it is worth the twenty lines.
         if (c === '/' && regexAllowed(lastSignificant, lastIdent)) {
             i = skipRegex(source, i);
             lastSignificant = '/';
@@ -218,8 +136,6 @@ export function extractCssTemplates(source) {
         i++;
     }
 
-    // Templates found inside interpolations were pushed during the walk; sort so
-    // callers see them in source order.
     return blocks.sort((a, b) => a.start - b.start);
 }
 
@@ -259,12 +175,6 @@ function skipRegex(src, i) {
     return src.length;
 }
 
-/**
- * Read a template literal starting at the backtick. Returns the index after the
- * closing backtick, the text with interpolations removed, and how many there were.
- * Recurses through `${ … }` so nested templates, strings and comments inside an
- * interpolation cannot terminate the outer template by accident.
- */
 function readTemplate(src, i, blocks, lineIndex) {
     let j = i + 1;
     let text = '';
@@ -334,17 +244,6 @@ function skipInterpolation(src, i, blocks, lineIndex) {
     return src.length;
 }
 
-/* ===========================================================================
- * The HTML scanner — <style> blocks and inline <script> bodies
- * =========================================================================== */
-
-/**
- * Replace HTML comments with equivalent whitespace, blanking rather than deleting so
- * every later offset — and therefore every line number — stays exactly right. Both
- * hand-written documents in this tree carry long explanatory comments, and
- * `index.html`'s comments discuss the sheets it links; a `<style>` quoted inside one
- * is documentation, not authored CSS.
- */
 export function blankHtmlComments(source) {
     let out = '';
     let i = 0;
@@ -378,15 +277,6 @@ function findTagEnd(src, i) {
     return src.length;
 }
 
-/**
- * Every `<style>` and `<script>` body in an HTML document, with absolute line numbers.
- *
- * Returns `{ styles, scripts }`, each entry `{ start, end, line, text }` where `start`
- * and `end` bound the element's body in the comment-blanked source. Raw-text elements
- * are not nested, so the close tag is found by a plain search — and a `<style>` that
- * appears inside a `<script>` body is skipped, because the script's body is consumed
- * whole.
- */
 export function extractHtmlBlocks(source) {
     const src = blankHtmlComments(source);
     const lower = src.toLowerCase();
@@ -434,11 +324,6 @@ function blankOutside(src, spans) {
     return out;
 }
 
-/**
- * Every authored CSS block in one HTML document: each `<style>` element as a block,
- * plus any `css` tagged template inside an inline `<script>` — the same hiding place a
- * `.js` file has, in a file type the scanner previously never opened at all.
- */
 export function collectHtmlCss(source) {
     const src = blankHtmlComments(source);
     const { styles, scripts } = extractHtmlBlocks(source);
@@ -469,15 +354,6 @@ export function collectHtmlCss(source) {
     return blocks.sort((a, b) => a.line - b.line);
 }
 
-/* ===========================================================================
- * The CSS parser — declarations and at-rules, with line numbers
- * =========================================================================== */
-
-/**
- * Replace CSS comments with equivalent whitespace. Blanking rather than deleting
- * keeps every later offset — and therefore every line number — exactly right, which
- * is the difference between a guard that says "line 412" and one that says "somewhere".
- */
 export function stripCssComments(text) {
     let out = '';
     let i = 0;
@@ -501,13 +377,6 @@ export function stripCssComments(text) {
     return out;
 }
 
-/**
- * Parse a CSS block into declarations and at-rules.
- * Not a conforming CSS parser and does not need to be: it needs to know what every
- * declaration's property and value are, which at-rules exist, and what line each is
- * on. Quotes, parentheses (so `url(data:…;base64,…)` does not look like two
- * declarations) and nesting are all tracked.
- */
 export function parseCssBlock(text, { startLine = 1 } = {}) {
     const src = stripCssComments(text);
     const declarations = [];
@@ -604,10 +473,6 @@ function splitAtColon(raw) {
     return null;
 }
 
-/* ===========================================================================
- * The public entry point
- * =========================================================================== */
-
 function buildLineIndex(source) {
     const idx = [0];
     for (let i = 0; i < source.length; i++) if (source[i] === '\n') idx.push(i + 1);
@@ -625,17 +490,6 @@ function lineOf(lineIndex, offset) {
     return lo + 1;
 }
 
-/**
- * Every authored CSS block in the tree, parsed.
- *
- * @param opts.roots    directories or files to scan, repo-relative
- *                      (default src/ + styles/ + tools/ + index.html)
- * @param opts.exempt   repo-relative paths that are allowed to hold anything — the
- *                      token sheets. Passed in by each guard rather than baked in
- *                      here, because "the token sheet is the single exempted home"
- *                      is a rule about COLOUR, and @font-face's exempted home is a
- *                      different file.
- */
 export async function collectAuthoredCss({
     roots = DEFAULT_SCAN_ROOTS,
     root = REPO_ROOT,

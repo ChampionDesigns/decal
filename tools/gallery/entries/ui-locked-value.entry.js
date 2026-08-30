@@ -1,27 +1,5 @@
 /**
- * ui-locked-value.entry.js - the gallery entry for component #43 (wave 1, item #43).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 1 runs sixteen builders in parallel
- * under a whole-file-write rule, so sixteen appends to one array clobber each other.
- * Each builder owns one file here and the wave's GATE agent wires them into
- * `entries.js` once, serially:
- *
- *     import { entry as uiLockedValue } from './entries/ui-locked-value.entry.js';
- *     export const entries = [ ...existing, uiLockedValue ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-locked-value--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * WHAT EACH STATE IS FOR. The box owns no width, so the states that matter are the
- * CONTAINER states: `hostStyle` is the only honest way to show a component that reads
- * its own container rather than the viewport (spec §2.1 Rule 1), and this component
- * has nothing else to vary - one variant, one size, no interaction, no state.
+ * The gallery entry for.
  */
 
 export const entry = {

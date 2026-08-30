@@ -1,35 +1,5 @@
 /**
- * ui-numeric-keypad.entry.js — gallery entry for component #53, the numeric keypad.
- *
- * Its own file because `tools/gallery/entries.js` is one shared array under a
- * whole-file-write rule: N builders appending to it in parallel is N−1 entries lost.
- * The wave's single cross-cutting writer adds the import line and the array slot,
- * serially, once.
- *
- * `module` points at the DEMO sidecar, not at the component — the limits table is a
- * property and a gallery state is a string of HTML, so the states mount thin
- * subclasses that carry the port's own table. See `ui-numeric-keypad.demo.js`.
- *
- * THE SAME TWO THINGS ui-dialog's AND #19's ENTRIES SAY, because this is one of its
- * bodies.
- *
- * 1. A MODAL DIALOG DOES NOT SIT IN THE STAGE. It is in the browser's top layer, so it
- *    is centred on the VIEWPORT and its scrim covers the whole gallery — the one
- *    component family whose geometry is the window's by design (spec §4.6).
- *    `hostStyle` still does its usual job: `stacked` sets `--_ui-numpad-inline`, which
- *    is what the card's width reads, so the carried breakpoint can be shown without
- *    touching the viewport (§2.1 Rule 1).
- * 2. THE GALLERY'S OWN NAV IS INERT while one of these is on the stage, and that is
- *    the component working. Move between states with the URL's `?state=`, which is
- *    what `tools/capture_battery.py` does anyway (capture_battery.py:107).
- *
- * WHAT TO LOOK AT, in Slate's own numbers:
- *   CITE modal-numpad .numpad-modal-container [i=166] rect x=550 y=284 w=820 h=545
- *   CITE modal-numpad .numpad-modal-numpad-btn "distinct geometries (w x h), all
- *        matched elements: 107 x 88 x12"
- *   CITE modal-numpad #numpad-modal-title [i=167] font-size = 28px <- <inline>
- *        authored `28px` (FROZEN/hardcoded)  ← bug O10, and there is no inline size
- *        anywhere in these states: the heading is #16's, through .ui-title.
+ * Gallery entry for.
  */
 
 export const entry = {

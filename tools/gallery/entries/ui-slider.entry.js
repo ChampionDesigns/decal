@@ -1,21 +1,5 @@
 /**
- * ui-slider.entry.js — the gallery entry for Wave 1 item #23 (Slider).
- *
- * A PER-ENTRY FILE, not an edit to `tools/gallery/entries.js`. That file is one
- * shared array and sixteen wave-1 builders write whole files, so sixteen appends to
- * it are fifteen lost entries. The GATE agent wires these in (import + spread, or a
- * manifest); the shape below is exactly what `entries.js` documents, so wiring is
- * mechanical and `test/render/gallery.render.test.mjs` fails loudly if it is not.
- *
- * `module` is resolved by `tools/gallery/gallery.js` (`import(entry.module)`), so it
- * is relative to `tools/gallery/`, not to this directory.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`<entry.id>--<state.id>`), so they are
- * identifiers rather than labels. The five below are the five things worth looking
- * at: the resting control, the fill at both ends of its travel, the origin-anchored
- * variant the HV align slider needs, the disabled dim, and the control in a narrow
- * container — which is the only honest way to show something that reads its own
- * container rather than the viewport (spec §2.1 Rule 1).
+ * The gallery entry for.
  */
 
 export const entry = {

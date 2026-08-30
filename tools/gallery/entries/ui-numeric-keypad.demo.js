@@ -1,33 +1,5 @@
 /**
- * ui-numeric-keypad.demo.js — the gallery's loader for component #53, the numpad body.
- *
- * WHY A DEMO SIDECAR AND NOT A BARE `module`. Two reasons, both structural.
- *
- * 1. gallery.js does one `import(entry.module)` per entry (gallery.js:46-51, :78), and
- *    it then waits on `customElements.whenDefined()` for EVERY hyphenated tag it finds
- *    on the mounted stage (gallery.js:86-88). A state that puts `<ui-button>` or
- *    `<ui-keycap>` on the stage without their modules imported does not fail — it hangs
- *    forever with no error, which `ui-menu.demo.js` measured in full. #53 imports all
- *    three itself, so this file's job is really reason 2.
- *
- * 2. THE LIMITS TABLE IS A PROPERTY, NEVER AN ATTRIBUTE, and a gallery state is a
- *    string of HTML. B2 says there is ONE limits table in the skin and it lives behind
- *    the R2 adapter; a `limits='{"dose":{"min":1,…}}'` attribute in a gallery state
- *    would be the second hand-written copy that decision exists to forbid. So the
- *    states mount thin SUBCLASSES that set `limits` from the port itself — the same
- *    shape `ui-data-grid.demo.js` uses for its rows.
- *
- * `limitsFor()` is imported here and nowhere in `src/`: a screen gets the table from
- * `capabilitiesStore.machineLimits().value`, which is the R2 envelope, and the gallery
- * has no store. The gallery is scaffolding, not shipping surface
- * (tools/gallery/README.md), and this import is the whole of the difference.
- *
- * THE STEAM STATES ARE THE POINT OF THE FILE. B3: Slate's steam row was 130..170 and
- * 130 °C is inside the dead band where the heater is off, so its clamp snapped users
- * onto a temperature the machine does not hold. `steam-bengle` and `steam-de1` below
- * are the corrected row on the two machine classes — floor 135, ceiling 165 and 160
- * (`doc/Skins.md:573`) — and `steam-unknown` is what an unresolved machine class looks
- * like: no row, no keypad, no invented ceiling (A7).
+ * The gallery's loader for.
  */
 
 import { limitsFor } from '../../../src/lib/machine-limits.js';

@@ -1,22 +1,5 @@
 /**
- * ui-switch.entry.js — the gallery entry for Wave 1 item #5.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single exported array and its README says "Edit entries.js. That is the whole
- * procedure" — which is true for one builder and false for sixteen working in
- * parallel with whole-file writes: the last write wins and fifteen entries vanish
- * silently, which the gallery cannot detect because a missing entry is just a
- * shorter list. So each builder owns one file here and the GATE agent wires them
- * into `entries.js` (an import plus a spread, or a manifest).
- *
- * SHAPE is exactly the one entries.js documents, so the gate's wiring is
- * mechanical: `module` is relative to `tools/gallery/` (gallery.js resolves it
- * against its own URL), `hostStyle` sizes the STAGE not the component, and the
- * full state id is `ui-switch--<state.id>` — a capture-battery filename, so these
- * ids are identifiers and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiSwitch } from './entries/ui-switch.entry.js';
- *                export const entries = [ …, uiSwitch ];
+ * The gallery entry for.
  */
 
 export const entry = {

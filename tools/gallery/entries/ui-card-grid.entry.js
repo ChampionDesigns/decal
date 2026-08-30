@@ -1,24 +1,5 @@
 /**
- * ui-card-grid.entry.js - the gallery entry for component #51 (wave 4, item #51).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js: wave 4 runs its
- * builders in parallel under a whole-file-write rule, so N appends to one hand-written
- * array clobber each other. Each builder owns one file here and the wave's single
- * cross-cutting writer wires them into `entries.js` once, serially:
- *
- *     import { entry as uiCardGrid } from './entries/ui-card-grid.entry.js';
- *     export const entries = [ ...existing, uiCardGrid ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies, and points at the
- * demo sidecar because a state's cells are real #8 cards (see the sidecar's header).
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-card-grid--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * THE FOUR CONTAINER WIDTHS BELOW ARE THE POINT OF THE ENTRY. This component reads its
- * own container and nothing else (spec §2.1 Rule 1), so the honest way to show it is
- * four states at four `hostStyle` inline sizes, which is exactly what hostStyle is for.
- * The numbers are the measured crossover, not taste: 2 x 280 + 12 = 572.
+ * The gallery entry for.
  */
 
 export const entry = {

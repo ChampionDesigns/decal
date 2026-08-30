@@ -1,38 +1,4 @@
 #!/usr/bin/env node
-// Generate `src/data/rea-routes.generated.js` — the typed route table — from ReaPrime's
-// own API specs: `assets/api/rest_v1.yml` and `assets/api/websocket_v1.yml`.
-//
-//   node scripts/generate-rea-routes.js            write the artifact
-//   node scripts/generate-rea-routes.js --check    exit 1 if the artifact is stale
-//   node scripts/generate-rea-routes.js --summary  print the counts, write nothing
-//
-// WHY A GENERATOR, AND NOT 872 MORE HAND-WRITTEN LINES.
-// E2's count (16 Aug 2026, `scope/e2-api.md`) measured the old `api.js` at 2,406 lines, of
-// which **872 are REPLACE-WITH-REAPRIME** — one-line wrappers whose entire content is a
-// path, a verb and a `fetch`. 90 of the 95 call sites hit a path *and* verb already
-// documented in `rest_v1.yml`; all 9 socket URLs are in `websocket_v1.yml`. The addressing
-// was never expensive to know. It was expensive to keep *true*: every one of those
-// wrappers is a private copy of a fact the server publishes, and a copy has no way to
-// notice when the fact moves. Five of the 31 live contract bugs are exactly that failure —
-// `POST /machine/scale/calibrate`, a path that has never existed in ReaPrime's history,
-// with a five-field body no handler has ever read.
-//
-// So the table is generated, committed (contributors need no toolchain — Part 2), and a
-// test regenerates it and fails on a diff.
-//
-// WHAT THIS FILE IS NOT. It is not a client. It emits no `fetch`, holds no base URL and
-// knows nothing about errors, retries or caching: that is `src/data/rea-transport.js`,
-// built by Gate 3 CORE, and this layer plugs into it rather than duplicating it. The
-// generated artifact is DATA. `src/data/rea-routes.js` is the thin, hand-written binding
-// that turns a table row plus an injected transport into a call.
-//
-// THE SPEC IS NOT THE AUTHORITY — THE HANDLER IS.
-// Two documented facts are wrong at the pinned commit, both verified by reading the Dart:
-// `rest_v1.yml` publishes a `/api/v1/shots` `orderBy` parameter no handler reads, and
-// documents `/api/v1/plugins/{id}/{endpoint}` as GET-only against an `app.all` route. Both
-// upstream fixes are outside this run (R/F items stay out), so the generator carries them
-// as NAMED EXCEPTIONS below, conforming the output to the handler. Each one hard-fails the
-// moment the spec is fixed, which is how it deletes itself instead of rotting.
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -52,15 +18,6 @@ export const API_PREFIX = '/api/v1';
 /** HTTP methods a path item may carry. Anything else in the spec is a hard failure. */
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'];
 
-// ===========================================================================
-// THE NAMED EXCEPTIONS — spec says X, the handler does Y, the table follows Y.
-//
-// Recorded as a deferred question in the wave digest. REVERSAL, for both: delete the
-// exception object; the generator then emits the spec as written. Each exception declares
-// a `stillNeeded` predicate over the parsed spec, and the generator FAILS if the predicate
-// says the defect is gone — so when the upstream fix lands, the build tells you to remove
-// the workaround rather than letting it linger as folklore.
-// ===========================================================================
 export const SPEC_EXCEPTIONS = Object.freeze([
     Object.freeze({
         id: 'shots-orderBy-not-read',
@@ -68,12 +25,6 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         path: '/api/v1/shots',
         method: 'GET',
         param: 'orderBy',
-        // `shots_handler.dart` reads `params['order']` in both branches of `_getShots` —
-        // the `ids=` batch branch (~:73) and the paginated branch (~:89) — and the string
-        // `orderBy` does not occur anywhere in the handler directory. A generated client
-        // that emitted it would send a parameter the server discards, and every reader of
-        // the client would believe sort-by-field was supported. It is not: the only sort
-        // key is `timestamp`, applied unconditionally.
         handlerFile: 'lib/src/services/webserver/shots_handler.dart',
         handlerSymbol: 'ShotsHandler._getShots',
         handlerEvidence: "params['order'] at ~:73 and ~:89; no occurrence of 'orderBy' in the handler directory",
@@ -90,17 +41,6 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         path: '/api/v1/plugins/{id}/{endpoint}',
         from: 'get',
         add: Object.freeze(['post']),
-        // `plugins_handler.dart:90` registers the route with `app.all`, and
-        // `_handlePluginApiEndpoint` reads `req.method` at :184 and forwards it to the
-        // plugin verbatim. The spec's own prose says "the runtime applies this contract to
-        // every HTTP method" — but prose is not schema, and a generator reads schema, so a
-        // faithful client would emit GET only and silently lose the POST passthrough that
-        // two live call sites depend on (`callPluginEndpoint`, `verifyVisualizerCredentials`).
-        //
-        // POST is added because POST is what is demonstrably used. PUT/DELETE/PATCH are
-        // NOT added: the handler would accept them, but nothing asks for them, and
-        // inventing surface is how a table stops being evidence. `anyMethod: true` on the
-        // emitted row records the full truth without emitting speculative rows.
         handlerFile: 'lib/src/services/webserver/plugins_handler.dart',
         handlerSymbol: 'PluginsHandler._handlePluginApiEndpoint',
         handlerEvidence: "app.all('/api/v1/plugins/<id>/<endpoint>', …) at :90; final method = req.method at :184; "
@@ -126,18 +66,6 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         inItems: true,
         from: 'name',
         to: 'id',
-        // FOUND BY THIS WAVE'S OWN CONTRACT CHECK, not by E2 — the third instance of the
-        // same class as the two above, and the reason the check is a build activity.
-        // `sensors_handler.dart` builds each list entry as `{'id': s.deviceId, 'info':
-        // info.toJson()}`. The spec names that first property `name`. A client generated
-        // faithfully would publish a response shape whose id field does not exist, and
-        // sensor discovery — which derives the estimator's id from this very list — would
-        // read `undefined` and report "no estimator" on a machine that has one. The
-        // spec's own description already says "all the sensors and their ids".
-        //
-        // This is an UPSTREAM ASK like the other two, not a local workaround: the table
-        // states the handler's truth and the yml fix is filed, never patched around at a
-        // call site.
         handlerFile: 'lib/src/services/webserver/sensors_handler.dart',
         handlerSymbol: "SensorsHandler.addRoutes (inline GET /api/v1/sensors)",
         handlerEvidence: "returns {'id': s.deviceId, 'info': info.toJson()} per sensor; the key 'name' is never emitted",
@@ -161,43 +89,6 @@ export const SPEC_EXCEPTIONS = Object.freeze([
             Object.freeze({ name: 'subject', required: false, type: 'string' }),
             Object.freeze({ name: 'body', required: false, type: 'string' }),
         ]),
-        // FOUND BY THE TALK-TO-DECENT BUILD (27 August 2026), and it is the FOURTH instance
-        // of the class the three above belong to: the spec describes a narrower surface than
-        // the handler serves, and a spec-faithful client loses a capability that is
-        // demonstrably in use.
-        //
-        // The spec documents this operation with ONE parameter, the `endpoint` path segment,
-        // and NO query parameters at all. The handler does not read a query at all in the
-        // sense the spec implies — it forwards the WHOLE query string verbatim:
-        // `_handleGet` passes `rawQuery: request.requestedUri.query` into
-        // `DecentProxyService.proxyGet`, and `_buildUri` puts that string on the upstream
-        // URI untouched (`query: rawQuery == null || rawQuery.isEmpty ? null : rawQuery`).
-        // The spec's own prose says as much about the PATH — "the runtime route is a
-        // catch-all under /api/v1/account/proxy/" — and is silent about the query, which is
-        // the same prose-not-schema gap as `plugins-passthrough-any-method` above.
-        //
-        // WHY THIS MATTERS RATHER THAN BEING PEDANTRY. `buildQuery` in `rea-routes.js`
-        // THROWS on a query key a row does not declare, deliberately — that guard is what
-        // stops a caller silently sending a parameter the server discards. Here it would
-        // stop a caller sending the parameters the server DOES forward, and there is no
-        // other way to send: the write half of this proxy (POST/PUT) requires a token scoped
-        // `account:proxy:write` and the token ReaPrime injects into a served skin page is
-        // scoped `account:proxy` only (`main.dart` builds the skin caller with
-        // `scopes: {scopeAccountProxy}`), so a skin gets 403 on POST. A GET with a query
-        // string is the ONLY shape a skin can use.
-        //
-        // TWO PARAMETERS, AND BOTH ARE EVIDENCED IN REAPRIME'S OWN DART rather than in
-        // Slate. `DecentAccountService.emailSerialMismatch` builds exactly
-        // `/support/api/email?subject=$subject&body=$body` and sends it with the account's
-        // credentials — the same upstream endpoint, the same two names, from the same app.
-        // Slate's skin sends the same pair. Nothing else is added: Slate also sends `since`
-        // to `support/api/emails`, and NO ReaPrime source names that parameter, so it stays
-        // out of the table and out of this skin (see `decent-support-store.js`, which asks
-        // for the whole thread instead).
-        //
-        // THE POST AND PUT ROWS ARE LEFT ALONE. They forward a query the same way, but
-        // nothing in this skin can call them — see the scope note above — and a table row
-        // widened for a caller that cannot exist is invented surface.
         handlerFile: 'lib/src/services/webserver/account_proxy_handler.dart',
         handlerSymbol: 'AccountProxyHandler._handleGet',
         handlerEvidence: "rawQuery: request.requestedUri.query at ~:28, forwarded by "
@@ -229,8 +120,6 @@ const hasQueryParam = (spec, path, method, name) => {
     const op = spec.paths?.[path]?.[method];
     return Boolean(op && (op.parameters || []).some((p) => p.in === 'query' && p.name === name));
 };
-
-/* =================================================================== REST */
 
 /** `/api/v1/shots/{id}` -> `/shots/<id>`: transport-relative, ReaPrime's own param syntax. */
 export function toClientRoute(path) {
@@ -266,11 +155,6 @@ function resolveRef(spec, ref) {
     return { name: m[2], schema: target };
 }
 
-/**
- * Describe a schema compactly: its kind, the component name if it came from a `$ref`, and
- * its top-level property names. Enough for a contract-table entry and for a caller to see
- * the response shape without opening the yml; not a validator, and not trying to be.
- */
 function describeSchema(spec, schema, depth = 0) {
     if (!schema || typeof schema !== 'object') return null;
     if (schema.$ref) {
@@ -308,8 +192,6 @@ function describeRequestBody(spec, requestBody) {
     return {
         required: Boolean(requestBody.required),
         media,
-        // A media entry may carry no schema at all (the raw octet-stream firmware push).
-        // That is a real absence, recorded as null, not filled in with a guess.
         schema: describeSchema(spec, content[media]?.schema),
     };
 }
@@ -317,11 +199,6 @@ function describeRequestBody(spec, requestBody) {
 function describeParam(param) {
     const schema = param.schema || {};
     if (schema.$ref) {
-        // Refused rather than resolved. The referenced component would be emitted as
-        // truth, and the specs' own `MachineState` enums are already stale AND mutually
-        // inconsistent (rest_v1.yml lists 20 members, websocket_v1.yml 16, machine.dart
-        // 21 — only machine.dart has `schedIdle`). Resolving one into a query parameter
-        // would bake a wrong list into the table with no way to notice.
         throw new GenerateRoutesError(
             `parameter "${param.name}" uses $ref ${schema.$ref}; resolve it deliberately after checking the `
             + 'referenced schema against the handler, do not let the generator assume it',
@@ -336,7 +213,6 @@ function describeParam(param) {
     return out;
 }
 
-/** Line of `^  <path>:` in the spec text, so a contract entry can cite the yml. */
 function lineIndex(text, needle) {
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i += 1) if (lines[i].startsWith(needle)) return i + 1;
@@ -416,7 +292,6 @@ export function extractRest(spec, text) {
     return routes;
 }
 
-/** Apply the named exceptions, and fail if one of them is no longer needed. */
 export function applyExceptions(spec, routes) {
     const applied = [];
     const claim = (route, exception) => {
@@ -454,13 +329,6 @@ export function applyExceptions(spec, routes) {
             continue;
         }
 
-        /* THE MIRROR OF `drop-query-param`, and it fails in the same two directions.
-         *
-         * A parameter that is ALREADY declared is a hard failure rather than a no-op: if
-         * the spec has grown the name, the exception has served its purpose and must be
-         * deleted, and silently doing nothing would leave a workaround in the tree
-         * pretending to still be needed. (`stillNeeded` catches the ordinary version of
-         * that; this catches the partial one, where one of two names has landed upstream.) */
         if (exception.kind === 'add-query-params') {
             const target = routes.find((r) => r.path === exception.path && r.method === exception.method);
             if (!target) throw new GenerateRoutesError(`exception ${exception.id}: ${exception.method} ${exception.path} is not in the spec`);
@@ -551,8 +419,6 @@ export function applyExceptions(spec, routes) {
     return applied;
 }
 
-/* ================================================================ SOCKETS */
-
 export function extractSockets(spec, text) {
     if (!spec || typeof spec.channels !== 'object') throw new GenerateRoutesError('websocket_v1.yml has no channels');
     const messageName = (ref) => {
@@ -610,8 +476,6 @@ export function extractSockets(spec, text) {
         specLine: c.specLine,
     }));
 }
-
-/* ============================================================== rendering */
 
 const INDENT = '    ';
 
@@ -752,8 +616,6 @@ export const SOCKET_CHANNEL_BY_ROUTE = deepFreeze(Object.fromEntries(
 ));
 `;
 }
-
-/* ============================================================ CLI plumbing */
 
 /** @returns {{ok: boolean, stale: boolean, expected: string, actual: string|null}} */
 export function check(options = {}) {

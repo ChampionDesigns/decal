@@ -1,36 +1,7 @@
 /**
- * ui-data-grid.entry.js — the gallery entry for component #34 (wave 4, item #34).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 1 ran sixteen builders in parallel under
- * a whole-file-write rule and sixteen appends to one array clobbered each other, so the
- * wave adopted the per-entry split (entries.js:30-45). Wave 4 runs the same way: each
- * builder owns one file here and the wave's cross-cutting writer wires them into
- * `entries.js` once, serially:
- *
- *     import { entry as uiDataGrid } from './entries/ui-data-grid.entry.js';
- *     export const entries = [ ...existing, uiDataGrid ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies, and it points at the
- * DEMO sidecar rather than at the component — see ui-data-grid.demo.js for the one
- * mechanical reason (a state's markup is a string, and this component's data are
- * properties).
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-data-grid--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * WHAT THE STATES ARE FOR. The row's acceptance test is "the defect cannot be expressed",
- * and the two defects are structural — H4 is a role="grid" with no rows, L23 is rows that
- * own nothing — so neither is visible in a photograph. That half is asserted from
- * Chrome's own accessibility tree in test/render/ui-data-grid.render.test.mjs. What these
- * states DO show is the half that is visible: one table where there were three, the fixed
- * tracks gone (§4.5), the header rule continuous instead of segmented, and the emphasis
- * on the Total row alive instead of overridden to nothing.
+ * The gallery entry for.
  */
 
-/** The stage sizes below are the CONTAINER, not the viewport (spec §2.1 Rule 1) —
- *  `hostStyle` sets the stage box and the component reads that, never the window. */
 const AB = (key) => '<button slot="cell-' + key + '-ab" style="min-block-size:44px;'
     + ' min-inline-size:44px">A</button>'
     + '<button slot="cell-' + key + '-ab" style="min-block-size:44px;'

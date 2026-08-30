@@ -1,35 +1,5 @@
 /**
- * ui-section-header.entry.js - the gallery entry for component #27 (wave 2, item #27).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 1 ran sixteen builders in parallel
- * under a whole-file-write rule and sixteen appends to one array clobbered each other,
- * so the wave adopted the per-entry split (entries.js:30-45). Wave 2 runs twelve
- * builders, so the same rule binds: each builder owns one file here and the wave's
- * cross-cutting writer wires them into `entries.js` once, serially:
- *
- *     import { entry as uiSectionHeader } from './entries/ui-section-header.entry.js';
- *     export const entries = [ ...existing, uiSectionHeader ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-section-header--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * ONE STATE DELIBERATELY SHOWS A LIST AROUND THE COMPONENT, not the component alone:
- * the stick is the whole point of #27 and a caption photographed on a blank stage
- * cannot show its context. THE STUCK STATE ITSELF IS NOT A GALLERY STATE, and that is
- * a measured limitation rather than an omission - `gallery.js:84` mounts a state with
- * `stageHost.innerHTML`, and innerHTML never executes a `<script>`, so a state cannot
- * pre-scroll its own port. A state that carried one would photograph the RESTING list
- * while claiming to be the scrolled one, which is worse than not shipping it. The
- * stick is asserted mechanically instead - test/render/ui-section-header.render.test.mjs
- * scrolls the port over CDP and checks the band's top against the port's, the ground's
- * opacity, and `elementFromPoint` through the stuck band - which is the same question
- * a screenshot asks, answered where the answer can be checked.
+ * The gallery entry for.
  */
 
 /** Six rows, so a 240px port has something to scroll under the caption. */

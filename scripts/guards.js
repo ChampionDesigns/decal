@@ -1,52 +1,6 @@
 #!/usr/bin/env node
 /**
- * guards.js — Gate C. Static rules that fail the build, and the registry that runs them.
- *
- *     node scripts/guards.js            # all guards, exit 1 on any error
- *     node scripts/guards.js --json     # machine-readable, for the wave GATE agent
- *     node scripts/guards.js --only colour-literal
- *
- * WHY THESE EXIST AT ALL. The audit's one-line verdict on the old library is that
- * *discipline without enforcement decays*: it was well designed, well documented,
- * and still ended up with five focus treatments, thirteen selection looks and 364
- * `!important` declarations. Gate C is the half of the answer a code review cannot
- * do twice a night.
- *
- * THE TWO REQUIRED RULES (SCOPE Part 8 §2, Gate C):
- *   - a raw colour literal in authored component CSS fails the build (A8);
- *   - `@font-face` is forbidden in component styles (Part 8 §3 Rule 2, static half).
- *
- * TWO MORE ride along, because their canaries were handed forward from item #2 and
- * the scanner that finds one finds all four: zero `!important` in component styles
- * (spec §2.1 Rule 3) and no re-declaring a public `--ui-*` token inside a component
- * (bug L12, where the Live screen re-declares the public palette three times under
- * private names). Their severity is a field in the table below — the whole reversal
- * is changing `error` to `warn` on one line (recorded in DEFERRED_QUESTIONS.md).
- *
- * TWO CONSTRUCTION RULES THE GUARDS INHERIT, both from the recorded failures:
- *
- *   1. SCAN BY CONSTRUCTION, NOT BY ALLOWLIST. `scripts/lib/authored-css.js` parses
- *      the `css` tagged templates inside component files as well as `.css` files,
- *      because in a Lit tree that is where the CSS is. A `**\/*.css` glob would read
- *      three files today and miss every component ever written.
- *
- *   2. EVERY GUARD SHIPS WITH A CANARY. `test/fixtures/canaries/` holds a fixture
- *      that violates each rule on purpose, and `test/guards.test.mjs` asserts the
- *      guard FAILS on it. "All three old-guard failures were guards that silently
- *      stopped covering their target; a canary converts that decay from invisible to
- *      a red build."
- *
- * EXEMPTIONS ARE THE DANGEROUS PART, so each one is (a) an exact path, never a
- * pattern, (b) justified in the table, and (c) checked to still exist ON DISK — an
- * exemption pointing at a file nobody has, silently covering a file everybody has, is
- * the failure mode of the old markup-only colour guard. A missing exempt path is
- * reported as a violation of the guard itself.
- *
- * "On disk" is load-bearing and was once not true: the check used to test whether the
- * exempt path appeared in THIS run's scanned file list, which is a different fact. A
- * run over narrowed roots then reported five files as non-existent while they sat in
- * `styles/` — and the obvious remedy for five false errors is `checkExemptions: false`,
- * which is the check turning itself off. It now stats the file.
+ * Gate C.
  */
 
 import fsp from 'node:fs/promises';
@@ -55,10 +9,6 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { collectAuthoredCss, listAuthoredFiles, DEFAULT_SCAN_ROOTS, REPO_ROOT } from './lib/authored-css.js';
 import { findColourLiterals } from './lib/colour-literals.js';
-
-/* ===========================================================================
- * The guards
- * =========================================================================== */
 
 /** The palette's one legitimate home. Nothing else in the tree may hold a literal. */
 const TOKEN_SHEETS = ['styles/tokens.css', 'styles/chart-channels.css'];
@@ -180,26 +130,6 @@ export const privatePaletteGuard = {
     },
 };
 
-/**
- * THE ONE SHAPE THAT IS NOT L12: a public token aimed at another public token.
- *
- *     :host { --ui-selected-face: var(--ui-preset-selected-face); }
- *
- * L12 is "the values go local, so every consumer downstream reads a colour the token
- * file does not control". A wiring like the above keeps the value in the token file —
- * it says only WHICH public name this subtree's dial reads, which is composition, not
- * a private palette. A fork retargets `--ui-preset-selected-face` in styles/tokens.css
- * and the row moves with everything else.
- *
- * It has to be allowed somewhere, because the obvious alternative does not work: a
- * DOCUMENT stylesheet cannot match an element inside a shadow root, so a
- * `ui-preset-bank { ... }` block in tokens.css reaches that component's light-DOM test
- * fixture and nothing in the app. The wiring can only be written by the component.
- *
- * DELIBERATELY NARROW. A literal is still a violation, a raw colour is still a
- * violation, and so is `var(--ui-x, #123456)` — the fallback must be a public token
- * too, or the local value is back with one more step in front of it.
- */
 const WIRES_ONE_TOKEN_TO_ANOTHER =
     /^var\(\s*--ui-[\w-]+\s*(?:,\s*var\(\s*--ui-[\w-]+\s*\)\s*)?\)$/;
 
@@ -231,11 +161,6 @@ export const viewportUnitGuard = {
             for (const decl of block.declarations) {
                 const hit = VIEWPORT_UNIT.exec(decl.value);
                 if (!hit) continue;
-                /* THE ONE EXCEPTION, and it is the pre-fit fallback rather than a use:
-                 * `var(--ui-app-h, 100dvh)` is what a WebView with the inline script
-                 * blocked falls back to, and it is the reason such a WebView still gets
-                 * a page instead of a blank one. Only inside a var() fallback, and only
-                 * the full-viewport value — `var(--x, 18dvh)` is a real use in hiding. */
                 if (new RegExp(`var\\([^)]*,\\s*100(dvh|dvw|vh|vw)\\s*\\)`).test(decl.value)
                     && hit[1] === '100') continue;
                 out.push({
@@ -251,29 +176,6 @@ export const viewportUnitGuard = {
     },
 };
 
-/**
- * A BACKTICK INSIDE A `css` TEMPLATE CLOSES IT, AND EVERY GUARD THEN GOES BLIND.
- *
- * This is not hypothetical. It happened three times in one session on 23 Aug 2026, and
- * the third time it produced a GREEN Gate C over a component whose rules had silently
- * stopped applying. The file still parses as valid JavaScript, so `node --check` is
- * happy; the scanner recovers the TRUNCATED head of the template; and every rule after
- * the backtick is simply not there to violate anything. `ui-preset-bank.js` and
- * `live-header.js` both carry a written warning about it, and a warning is what this
- * tree calls "discipline without enforcement".
- *
- * THE SIGNATURE IS A TRUNCATED TEMPLATE, NOT A MISSING ONE. A first draft looked for
- * components that yielded NO block at all and its own canary refused to trip it: a
- * template cut in half still hands back its first half. What a cut leaves behind is
- * text that is not well-formed CSS, in one of two ways, and healthy CSS is never either:
- *
- *   1. AN UNTERMINATED COMMENT. Both real cases put the backtick inside a comment, so
- *      the recovered text ends with a `/*` that never closes.
- *   2. UNBALANCED BRACES. A cut anywhere else ends inside a rule, so the block carries
- *      more `{` than `}`.
- *
- * Neither can happen in a template that closed where its author meant it to.
- */
 export const lostStylesheetGuard = {
     id: 'lost-stylesheet',
     severity: 'error',
@@ -285,19 +187,6 @@ export const lostStylesheetGuard = {
         + 'session; the third produced a passing build and a broken screen.',
     exempt: [],
     exemptWhy: null,
-    /* A THIRD SIGNATURE WAS TRIED AND WITHDRAWN, and it is recorded because the gap it
-     * aimed at is real. On 23 Aug 2026 a backtick inside a comment cut ui-slider.js's
-     * template in half AND the recovered head balanced its braces and closed its
-     * comments — so both checks below passed while the component had stopped painting.
-     * The attempt looked for CSS left OUTSIDE every recovered template, which is what a
-     * truncation leaves behind. It fired on three healthy files: the scanner's recovered
-     * text is not byte-identical to the source it came from, so "everything the scanner
-     * did not recover" is not a subtraction that can be done with a string replace.
-     *
-     * WHAT ACTUALLY CAUGHT IT was test/ui-slider-thumb-parity.test.mjs, which parses the
-     * same file for a different reason and reported "unbalanced braces in the component
-     * CSS". A guard that fires on healthy files is worse than a gap a suite already
-     * covers, so this one keeps the two signatures it can prove. */
     check(blocks) {
         const out = [];
         for (const block of blocks) {
@@ -337,34 +226,6 @@ export const lostStylesheetGuard = {
     },
 };
 
-/**
- * EVERY AUTHORED FILE STILL PARSES.
- *
- * THE GAP THIS CLOSES, AND IT WAS FOUND THE HARD WAY. `lost-stylesheet` above catches a
- * stray backtick inside a `css` tagged template — the failure that has cost this project
- * three sessions. It cannot catch the same mistake inside an `html` template, and the
- * reason is one line: the scanner these guards run on extracts a template only when its
- * tag is `css` (scripts/lib/authored-css.js:188, `lastIdent === 'css'`). An `html`
- * template is never handed to a guard at all, so every signature above has nothing to
- * look at.
- *
- * That is not hypothetical. On 27 August 2026 an agent hit the trap in an `html`
- * template, ran `npm run guards`, was told Gate C was OK, and lost a debugging cycle to
- * a green gate over a file that no longer parsed.
- *
- * WHY A PARSE CHECK IS THE RIGHT ANSWER HERE and is not what `lost-stylesheet` does.
- * The two failures are different shapes. In a `css` template the file usually still
- * PARSES — the tail is valid JavaScript — which is exactly why that guard has to reason
- * about comment openers and braces instead. In an `html` template the tail is markup, so
- * the file almost always stops parsing, and a parser is then both the cheapest and the
- * most complete detector: it catches the backtick, and it catches every other syntax
- * error a hand edit can introduce, in one pass.
- *
- * Measured: 578 authored files, spawned eight at a time, about two seconds.
- *
- * NEITHER GUARD REPLACES THE OTHER. Keep both — one covers the silent case, one covers
- * the loud case, and the loud case was the one nothing was watching.
- */
 export const parsesGuard = {
     id: 'parses',
     severity: 'error',
@@ -416,22 +277,6 @@ export const parsesGuard = {
 export const GUARDS = [colourLiteralGuard, fontFaceGuard, importantGuard, privatePaletteGuard,
     viewportUnitGuard, lostStylesheetGuard, parsesGuard];
 
-/* ===========================================================================
- * The runner
- * =========================================================================== */
-
-/**
- * Run the guards over a tree.
- *
- * @param opts.root    repo root (the canary tests point this at a fixture directory)
- * @param opts.roots   scan roots inside it (default src/ + styles/ + tools/ + index.html)
- * @param opts.only    guard ids to run
- * @param opts.checkExemptions  default true; set false only when `root` itself is a
- *                     fixture tree that legitimately has no styles/ directory.
- *                     Narrowing `roots` is NOT a reason to disable it — the check
- *                     resolves each exempt path against `root` on disk, not against
- *                     the files this run happened to walk.
- */
 export async function runGuards({
     root = REPO_ROOT,
     roots = DEFAULT_SCAN_ROOTS,
@@ -445,11 +290,6 @@ export async function runGuards({
     }
 
     const { blocks, files } = await collectAuthoredCss({ root, roots, exempt: [] });
-    /* A FILE-KIND GUARD ASKS A QUESTION ABOUT FILES, NOT ABOUT CSS BLOCKS. `parses` is the
-     * first: the block scanner only extracts css templates, so a guard that needs to see
-     * every authored file cannot be written against `blocks` at all — which is precisely
-     * the gap it exists to close. Listed lazily so a `--only` run that names no file guard
-     * does not pay for the walk. */
     let authored = null;
     const authoredFiles = async () => {
         if (authored === null) authored = await listAuthoredFiles(roots, { root });
@@ -467,9 +307,6 @@ export async function runGuards({
             : guard.check(scanned);
         const violations = found.map((v) => ({ ...v, guard: guard.id, severity: guard.severity }));
 
-        // Exemption rot: an exemption that points at nothing is an exemption that has
-        // stopped protecting what it was written for, and may be shadowing a rename.
-        // The question is whether the FILE is there, so ask the filesystem.
         if (checkExemptions) {
             for (const rel of guard.exempt) {
                 if (!(await fileExists(path.resolve(root, rel)))) {
@@ -490,10 +327,6 @@ export async function runGuards({
             guard: guard.id,
             severity: guard.severity,
             title: guard.title,
-            /* A FILE GUARD COUNTS FILES AND HAS NO BLOCKS. Reported as zero rather than
-             * as a coincidence: `scanned.length` would print the file count in the block
-             * column and a set of characters in the file column, which reads like a
-             * measurement and is not one. */
             blocksScanned: guard.kind === 'files' ? 0 : scanned.length,
             filesScanned: guard.kind === 'files'
                 ? scanned.length
@@ -553,10 +386,6 @@ export function formatReport(report) {
         : `Gate C: FAILED — ${report.errors.length} violation${report.errors.length === 1 ? '' : 's'}`);
     return lines.join('\n');
 }
-
-/* ===========================================================================
- * CLI
- * =========================================================================== */
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
 

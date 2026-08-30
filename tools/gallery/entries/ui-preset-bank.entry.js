@@ -1,20 +1,5 @@
 /**
- * ui-preset-bank.entry.js — the gallery entry for Wave 4 item #37, the Preset bank.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array, and under a whole-file-write rule a wave of parallel
- * builders editing it means the last write wins and every other entry vanishes
- * silently — a missing entry is just a shorter list, which the gallery cannot detect.
- * So this builder owns this file and the wave's one cross-cutting writer adds the
- * single import line and the single array slot, serially, once.
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component (spec §2.1 Rule 1), and the full
- * state id is `ui-preset-bank--<state.id>` — a capture-battery filename, so these ids
- * are identifiers and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiPresetBank } from './entries/ui-preset-bank.entry.js';
- *                export const entries = [ …, uiPresetBank ];
+ * The gallery entry for.
  */
 
 export const entry = {

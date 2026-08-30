@@ -1,24 +1,4 @@
 #!/usr/bin/env node
-// The i18n build (D2). Reads the authored table in i18n/source/ and writes one
-// generated file per language into i18n/. No dependencies, no toolchain: node only.
-//
-// Why a build step at all: the old skin fetched a 1.5 MB CSV at every boot and
-// parsed it in the browser (slate app/src/modules/i18n.js:16-76). Per-language JSON
-// generated here removes the fetch, the parser and the 32 unused language columns
-// from the runtime entirely.
-//
-// Generated files are COMMITTED so contributors need no toolchain — which
-// reintroduces the app.css risk in miniature (a checked-in artifact whose generator
-// silently stopped running). The rule from SCOPE Part 2 §7 closes it: every
-// committed generated file has its generator here and a test that regenerates it
-// and fails on a diff. `--check` is that test's engine.
-//
-//   node scripts/build-i18n.js            write i18n/<lang>.json
-//   node scripts/build-i18n.js --check    exit 1 if any committed file is stale
-//
-// Validation is a guard, so it ships with canaries (test/i18n-generator.test.js):
-// duplicate keys, keys differing only in case, translations for keys that no longer
-// exist, and placeholder sets that disagree with the key are ALL build failures.
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -41,7 +21,6 @@ class BuildError extends Error {
 const placeholders = (text) => new Set([...String(text).matchAll(PLACEHOLDER)].map((m) => m[1]));
 const sameSet = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
 
-/** Parse and validate i18n/source/strings.json. Collects every problem, not the first. */
 export function readTable(sourceDir = DEFAULT_SOURCE_DIR) {
   const path = join(sourceDir, 'strings.json');
   if (!existsSync(path)) throw new BuildError([`missing authored table: ${path}`]);
@@ -79,8 +58,6 @@ export function readTable(sourceDir = DEFAULT_SOURCE_DIR) {
       problems.push(`duplicate key "${key}" (strings[${seen.get(key)}] and strings[${i}])`);
       return;
     }
-    // Lookup is case-insensitive at runtime (src/lib/i18n.js), so two keys differing
-    // only in case cannot both be addressed — one would shadow the other silently.
     const lower = key.toLowerCase();
     if (seenLower.has(lower)) {
       problems.push(
@@ -96,7 +73,6 @@ export function readTable(sourceDir = DEFAULT_SOURCE_DIR) {
   return { sourceLanguage: raw.sourceLanguage, entries, path };
 }
 
-/** Every i18n/source/<lang>.json beside the table: a flat {key: translation} map. */
 export function readOverlays(sourceDir = DEFAULT_SOURCE_DIR, sourceLanguage = 'en') {
   const names = readdirSync(sourceDir)
     .filter((n) => n.endsWith('.json') && n !== 'strings.json')
@@ -135,11 +111,6 @@ const sha256 = (parts) => {
 
 const render = (payload) => JSON.stringify(payload, null, 2) + '\n';
 
-/**
- * Build every language file. Returns the exact bytes each file should have, plus a
- * coverage report — which is also the answer to "which visible strings have no
- * translation?", the one idea worth keeping from the retired i18n_audit.mjs.
- */
 export function generate({ sourceDir = DEFAULT_SOURCE_DIR } = {}) {
   const table = readTable(sourceDir);
   const overlays = readOverlays(sourceDir, table.sourceLanguage);
@@ -148,9 +119,6 @@ export function generate({ sourceDir = DEFAULT_SOURCE_DIR } = {}) {
   const files = [];
   const coverage = [];
 
-  // The source language: the key IS the text, so the file is the key set made
-  // explicit. It ships (rather than being implied by "no file") so every language
-  // loads through one code path, and so translators have the string list verbatim.
   files.push({
     name: `${table.sourceLanguage}.json`,
     text: render({
@@ -175,8 +143,6 @@ export function generate({ sourceDir = DEFAULT_SOURCE_DIR } = {}) {
         problems.push(`${overlay.language}.json: "${key}" is not a string`);
         continue;
       }
-      // A translation that loses (or invents) a placeholder renders a literal
-      // "{value}" on screen, or drops the number entirely. Cheap to catch here.
       if (value.trim() !== '' && !sameSet(placeholders(key), placeholders(value))) {
         problems.push(
           `${overlay.language}.json: "${key}" expects placeholders ` +
@@ -184,9 +150,6 @@ export function generate({ sourceDir = DEFAULT_SOURCE_DIR } = {}) {
           `{${[...placeholders(value)].join('} {')}}`);
       }
     }
-    // Missing and empty are the same thing: absent from the generated file, so the
-    // runtime falls back to the key — which is the English text (i18n.js:203's rule,
-    // carried). Nothing is ever silently filled in with English at build time.
     const strings = {};
     let missing = 0;
     for (const { key } of table.entries) {
@@ -233,12 +196,6 @@ export function write({ sourceDir = DEFAULT_SOURCE_DIR, outDir = DEFAULT_OUT_DIR
   return { ...report, changed, files: files.map((f) => f.name) };
 }
 
-/**
- * Compare the committed files against a fresh build without touching the tree.
- * `stale` = present but different, `missing` = never generated, `orphan` = an
- * i18n/*.json no source backs (a hand-edited language file, the failure mode this
- * whole build step exists to make impossible).
- */
 export function check({ sourceDir = DEFAULT_SOURCE_DIR, outDir = DEFAULT_OUT_DIR } = {}) {
   const { files, report } = generate({ sourceDir });
   const stale = [];

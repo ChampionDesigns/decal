@@ -1,22 +1,5 @@
 /**
- * ui-pick-disc.entry.js — the gallery entry for Wave 2 item #45, the A/B pick disc.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array and its README still says "Edit entries.js. That is the
- * whole procedure" — true for one author, false for the twelve builders of wave 2
- * working in parallel under a whole-file-write rule: the last write wins and eleven
- * entries vanish silently, which the gallery cannot detect because a missing entry
- * is just a shorter list. Wave 1 hit exactly this (entries.js:30-45) and adopted the
- * per-entry split. So this builder owns this file, and one cross-cutting writer adds
- * the single import line and the single array slot, serially, once.
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component, and the full state id is
- * `ui-pick-disc--<state.id>` — a capture-battery filename, so these ids are
- * identifiers and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiPickDisc } from './entries/ui-pick-disc.entry.js';
- *                export const entries = [ …, uiPickDisc ];
+ * The gallery entry for.
  */
 
 export const entry = {

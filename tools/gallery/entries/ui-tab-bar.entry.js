@@ -1,35 +1,5 @@
 /**
- * ui-tab-bar.entry.js — the gallery entry for Wave 3 item #32 (Tab bar / tablist).
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is ONE
- * exported array in ONE file and a wave runs its builders under a whole-file-write
- * rule, so N appends to one array is N chances to clobber N-1 entries, silently,
- * with the loss invisible until a capture battery photographs an empty stage. Wave 1
- * hit exactly this and adopted the per-entry split (entries.js:30-45); the same rule
- * binds here. Each builder owns a file, and ONE cross-cutting writer adds the import
- * line and the array slot, serially, once.
- *
- * The shape below is the documented one (entries.js:8-28):
- * { id, title, module, notes, states: [{ id, title, html, hostStyle, notes }] } with
- * `module` relative to tools/gallery/. `hostStyle` styles the STAGE WRAPPER, never the
- * component — that is how a state says "at a 900px container", which is the only
- * honest way to photograph a component that reads its own container (spec §2.1
- * Rule 1).
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-tab-bar--<state.id>`), so they are identifiers,
- * not labels; renaming one is a re-baseline.
- *
- * EVERY `value` HERE MATCHES A TAB'S VALUE EXACTLY, and the string shorthand makes
- * that easy to get wrong: `tabs='["Steps",…]'` gives the tab the value `Steps`, so
- * `value="steps"` selects NOTHING — the component refuses to invent a selection (see
- * ui-tab-bar.js, "NO SELECTION INVENTED"), which is right in a screen and fatal in a
- * gallery state whose whole subject is what selected looks like. The suite asserts
- * every state here paints exactly one selected tab, so the trap cannot come back.
- *
- * WHAT TO LOOK AT, IN ONE SENTENCE: the tablist is a `ui-bank` and nothing else — the
- * states below change the container, the panels, the aria and all four selection
- * dials, and not one of them can change what "selected" looks like except by turning
- * a dial, because there is no selected rule in this component to find.
+ * The gallery entry for.
  */
 
 export const entry = {

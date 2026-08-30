@@ -1,22 +1,5 @@
 /**
- * ui-card.entry.js - the gallery entry for component #8 (wave 1, item #8).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 1 runs sixteen builders in
- * parallel under a whole-file-write rule, so sixteen appends to one array clobber
- * each other. Each builder therefore owns one file here and the wave's GATE agent
- * wires them into `entries.js` (import + spread, or a manifest) once, serially:
- *
- *     import { entry as uiCard } from './entries/ui-card.entry.js';
- *     export const entries = [ ...existing, uiCard ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js
- * does the `import(entry.module)`, so the specifier resolves against gallery.js
- * wherever the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-card--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
+ * The gallery entry for.
  */
 
 export const entry = {

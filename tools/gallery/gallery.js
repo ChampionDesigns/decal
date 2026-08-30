@@ -1,27 +1,5 @@
 /**
- * gallery.js — mounts one state at a time, and exposes the walk to the capture battery.
- *
- * Scaffolding, not shipping surface: no build step, no framework, no state model.
- * The whole page is "import the entry's module, put its markup in the stage, wait for
- * it to settle".
- *
- * THE MACHINE-FACING HALF is the part that matters tonight. Gate B's capture battery
- * (`review/tools/capture_battery.py`, ported in its own 0a row) drives a browser over
- * CDP and needs to enumerate states and show one deterministically. So:
- *
- *     window.__gallery.ready            // resolves once the first render has settled
- *     window.__gallery.states()         // [{ id, title, entryId, stateId }, …]
- *     await window.__gallery.show(id)   // mounts it and resolves when settled
- *     document.body.dataset.galleryState // the id currently shown
- *     document.body.dataset.gallerySettled // '1' once settled, removed while mounting
- *
- * and `?state=<id>&theme=<light|dark>` selects one on load, so a battery can also
- * simply navigate. Both routes end in the same `show()`.
- *
- * SETTLING is deliberately conservative — await every element's `updateComplete`
- * through the shadow tree, then `document.fonts.ready`, then two frames. A capture
- * taken one frame early is a baseline that is wrong forever, and the first baseline
- * is a human review rather than a diff (Gate B change 3).
+ * Mounts one state at a time, and exposes the walk to the capture battery.
  */
 
 import { entries, allStates } from './entries.js';
@@ -38,10 +16,6 @@ const byId = new Map(states.map((s) => [s.id, s]));
 const loaded = new Map();
 
 let current = null;
-
-/* ---------------------------------------------------------------------------
- * Mounting
- * ------------------------------------------------------------------------- */
 
 async function loadModule(entry) {
     if (!loaded.has(entry.id)) {
@@ -106,10 +80,6 @@ async function show(id, { push = true } = {}) {
     return id;
 }
 
-/* ---------------------------------------------------------------------------
- * Chrome
- * ------------------------------------------------------------------------- */
-
 function buildNav() {
     for (const entry of entries) {
         const group = document.createElement('section');
@@ -143,10 +113,6 @@ function setTheme(theme) {
     }
     updateReadout();
 }
-
-/* ---------------------------------------------------------------------------
- * Boot
- * ------------------------------------------------------------------------- */
 
 const params = new URLSearchParams(location.search);
 

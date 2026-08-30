@@ -1,16 +1,5 @@
 /**
- * ui-text-field.entry.js - the gallery entry for Wave 1 item #6.
- *
- * WHY THIS IS ITS OWN FILE. `tools/gallery/entries.js` is ONE shared `export const
- * entries = [...]` array and the only documented registration point, and sixteen
- * Wave 1 builders writing whole files into it would clobber each other. Each builder
- * therefore owns one file here; the GATE agent wires them into `entries.js` (import
- * + spread, or a manifest). The exported object is in exactly the shape `entries.js`
- * documents - id / title / module / notes / states[{ id, title, html, hostStyle }] -
- * so wiring it in is a spread and nothing else.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`tools/gallery/README.md`): the full id is
- * `ui-text-field--<state.id>`, so these are identifiers, not labels.
+ * The gallery entry for.
  */
 
 export const entry = {

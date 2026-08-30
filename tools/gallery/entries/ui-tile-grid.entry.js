@@ -1,44 +1,7 @@
 /**
- * ui-tile-grid.entry.js — the gallery entry for component #40 (wave 4, item #40).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js:
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. This wave runs its builders in
- * parallel under a whole-file-write rule, so N appends to one array clobber each
- * other. Each builder owns one file here and the wave's single cross-cutting writer
- * wires them into `entries.js` once, serially:
- *
- *     import { entry as uiTileGrid } from './entries/ui-tile-grid.entry.js';
- *     export const entries = [ ...existing, uiTileGrid ];
- *
- * `module` points at the .demo.js sidecar, not at the component: the states stage
- * real #8 cards as the tiles and the gallery hangs on an undefined custom element.
- * See there.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-tile-grid--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * WHAT THE STATES ARE FOR, and this component is the extreme case of the general
- * rule. `hostStyle` sizes the STAGE, not the window (spec §2.1 Rule 1), and for #40
- * the stage width IS the entire input: there is no attribute, no property and no
- * media query that changes what this component does. Five of the six states are
- * therefore one markup at five stage widths, and the battery's diff between them is
- * the component's whole behaviour. `leaf-1200` is Slate's own leaf reproduced from
- * the oracle at the width Slate gave it; the rest are widths Slate has never been
- * asked about and has no vote on (Part 10 §4: responsive behaviour disqualifies the
- * corpus, and 98.4 % of its geometry is frozen).
+ * The gallery entry for.
  */
 
-/** Slate's own language list, in Slate's own order, from the oracle.
- *  CITE prov_query.py find --cls slate-lang-tile → "found 30 element(s) in 1
- *  state(s)", settings-units---language-select-language, text in DOM order
- *  "EnglishEnglish" "françaisFrench" "españolSpanish" "DeutschGerman"
- *  "Schweizer HochdeutschSwiss High German" "简体中文Simplified Chinese"
- *  "繁體中文Traditional Chinese" "한국어Korean" "portuguêsPortuguese"
- *  "العربيةArabic" "עבריתHebrew" "danskDanish" "svenskaSwedish" "norskNorwegian" …
- *  — the endonym leads and the English name follows underneath, which is Slate's own
- *  P37 note: "First-run language choice is often made by someone who cannot read the
- *  English chrome" (slate-shell.css:1844-1846). */
 const LANGUAGES = [
     ['English', 'English'],
     ['français', 'French'],
@@ -54,28 +17,15 @@ const LANGUAGES = [
     ['dansk', 'Danish'],
 ];
 
-/* Two type roles, inline, because a gallery state is light DOM and the type-role
- * classes live behind adoptTypeRoles(). Every value is a token — Gate C scans tools/
- * (authored-css.js:71) and a literal here would fail the build, which is the point.
- *   ORACLE the endonym is --slate-text-lg / --slate-weight-medium / --slate-text and
- *   the English name --slate-text-note / --slate-muted (slate-shell.css:1881-1889),
- *   carried to --ui-text-lg / --ui-weight-medium / --ui-text and --ui-text-note /
- *   --ui-muted. */
 const ENDONYM = 'display:block; font-size:var(--ui-text-lg); font-weight:var(--ui-weight-medium); color:var(--ui-text)';
 const ENGLISH = 'display:block; font-size:var(--ui-text-note); color:var(--ui-muted)';
 
-/** One tile. `role="radio"` + `aria-checked` on the CARD, never on the grid: the
- *  selected look belongs to the tile (DECISIONS.md:244, spec §3.9), and #40 declares
- *  no colour at all so it could not express one if it wanted to. */
 const tile = ([endonym, english], checked = false) =>
     '<ui-card pad="tight" role="radio" aria-checked="' + (checked ? 'true' : 'false') + '" tabindex="0">'
     + '<span style="' + ENDONYM + '">' + endonym + '</span>'
     + '<span style="' + ENGLISH + '">' + english + '</span>'
     + '</ui-card>';
 
-/** The grid, with `role="radiogroup"` written by the CONSUMER — exactly as Slate's
- *  screen does it (`settings.js:5657`), and exactly what this component preserves:
- *  an author-written role is captured once and never overwritten. */
 const grid = (attrs, count = LANGUAGES.length) =>
     '<ui-tile-grid role="radiogroup" aria-label="Display language"' + (attrs ? ' ' + attrs : '') + '>'
     + LANGUAGES.slice(0, count).map((lang, i) => tile(lang, i === 0)).join('')

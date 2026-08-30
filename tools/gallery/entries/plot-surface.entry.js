@@ -1,17 +1,5 @@
 /**
- * plot-surface.entry.js — the gallery entry for gate 5's chart surface (wave 3).
- *
- * NOT A SHIPPING COMPONENT, like `base-fixture` above it in the registry: the subject is
- * `PlotSurfaceElement` through the Gate A fixture, because item #9 (chart card) was not
- * built. The reason the module is a `.demo.js` — the states are strings, the mount is
- * asynchronous, and the settle has to wait for the first draw — is in that file's header.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`plot-surface--<state>`): identifiers, not labels.
- *
- * The host style carries the BLOCK size, because uPlot sizes from `clientWidth` /
- * `clientHeight` and a surface in an auto-height stage would build at zero. The inline
- * size is the stage's, so `narrow-container` is the honest container demonstration:
- * the same element, the same viewport, a narrower host.
+ * The gallery entry for gate 5's chart surface (.
  */
 
 /** The chart's own box. Block size only — the width is whatever the host gives it. */

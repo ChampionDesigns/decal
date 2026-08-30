@@ -1,46 +1,7 @@
 /**
- * ui-stat-tile.entry.js - the gallery entry for component #33 (wave 2, item #33).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 2 runs twelve builders in parallel under
- * a whole-file-write rule, so twelve appends to one array clobber each other - which is
- * exactly what wave 1 hit (entries.js:30-45). Each builder owns one file here and the
- * wave's cross-cutting writer wires them into `entries.js` once, serially:
- *
- *     import { entry as uiStatTile } from './entries/ui-stat-tile.entry.js';
- *     export const entries = [ ...existing, uiStatTile ];
- *
- * The registry stays a hand-written array rather than a glob, so an unimported entry file
- * is a visible omission rather than a silent pickup. Order is SCOPE order.
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does the
- * `import(entry.module)`, so the specifier resolves against gallery.js wherever the entry
- * object was authored. It points at ui-stat-tile.demo.js because one state needs a second
- * module loaded; the reason, and the hang it avoids, are in that file's header.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-stat-tile--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * WHY EVERY STATE SETS `container-type` IN `hostStyle`, AND WHY THAT IS THE SUBJECT
- * RATHER THAN BOILERPLATE. This is the one wave-2 component that OPTS OUT of the base's
- * `container-type: inline-size` (CONVENTIONS §2's one-line opt-out). It has to:
- * LAYOUT_SPEC_DRAFT.md:368 says of the fluid display scale that "cqi resolves against the
- * gauge cluster's own container", and seven tiles in a cluster are each ~1/7 of it, so a
- * per-tile container would resolve 4.2cqi against ~170px and pin every reading in the
- * skin at the clamp's 38px floor forever, with the clamp doing nothing at all. The
- * CONSUMER declares the container. `hostStyle` "sizes the CONTAINER, not the viewport"
- * (README), so stating it there is the honest demonstration of the contract rather than a
- * workaround for it: change the number and every reading in the state moves together.
+ * The gallery entry for.
  */
 
-/* Slate's own cluster shape, quoted once and reused, so no state re-invents it:
- *     #main-page .slate-gauge-cluster { display: grid;
- *         grid-template-columns: 1.15fr repeat(6, minmax(0, 1fr)); column-gap: 24px; }
- * (slate-live.css:919-931, read READ-ONLY - grid placement is outside the corpus's
- * 18-property appearance surface, so the oracle says so and stops.)
- * Its `height: 84px; min-height: 84px` is DELIBERATELY NOT CARRIED: that pair is L2's
- * mechanism. 24px is --ui-space-5. */
 const CLUSTER = 'display:grid; grid-template-columns:1.15fr repeat(6, minmax(0, 1fr));'
     + ' column-gap:var(--ui-space-5)';
 

@@ -1,26 +1,5 @@
 /**
- * ui-stepper.entry.js — the gallery entry for Wave 2 item #4 (Stepper).
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is ONE
- * exported array in ONE file, and a wave's builders write whole files. Twelve appends
- * to one array is twelve chances to clobber eleven entries, silently, with the loss
- * invisible until a capture battery photographs an empty stage. entries.js:30-45
- * records wave 1 hitting exactly this and adopting the per-entry split; wave 2 runs
- * twelve builders, so the same rule binds. Each builder owns a file here and the
- * wave's single cross-cutting writer wires them in, serially, once.
- *
- * The shape below is exactly the documented one (tools/gallery/README.md, entries.js
- * header): { id, title, module, notes, states: [{ id, title, html, hostStyle, notes }] }
- * with `module` relative to tools/gallery/. `test/render/gallery.render.test.mjs`
- * drives the registry, so a malformed entry is a red test rather than a silent miss.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-stepper--<state.id>`), so they are identifiers,
- * not labels; renaming one is a re-baseline.
- *
- * `hostStyle` sizes the CONTAINER, never the viewport — which is the only honest way
- * to photograph a component that reads its own container (spec §2.1 Rule 1). 268px is
- * the oracle's one distinct geometry for this control, so it is the width most states
- * below are staged at.
+ * The gallery entry for.
  */
 
 export const entry = {

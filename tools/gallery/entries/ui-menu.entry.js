@@ -1,39 +1,5 @@
 /**
- * ui-menu.entry.js — the gallery entry for Wave 3 item #21, the menu / popover.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array and its README still says "Edit entries.js. That is the
- * whole procedure" — true for one author, false for parallel builders under a
- * whole-file-write rule: the last write wins and the other entries vanish silently,
- * which the gallery cannot detect because a missing entry is just a shorter list. So
- * this builder owns this file, and one cross-cutting writer adds the single import
- * line and the single array slot, serially, once.
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component, and the full state id is
- * `ui-menu--<state.id>` — a capture-battery filename, so these ids are identifiers
- * and renaming one is a re-baseline.
- *
- * `module` IS THE .demo.js SHIM, NOT THE COMPONENT, and that is load-bearing. gallery.js
- * does one `import()` per entry (gallery.js:46-51, :78) and then waits on
- * `customElements.whenDefined()` for every hyphenated tag on the stage (gallery.js:86-88).
- * Six of the seven states below slot `<ui-button slot="trigger">`, so pointing `module`
- * straight at `ui-menu.js` left those six waiting forever on a tag nothing would define:
- * no error, no `gallerySettled`, and 45 s of battery timeout per state, per theme, per
- * geometry. `./entries/ui-menu.demo.js` imports both modules; its header carries the
- * measurement. Same shape as `seams.demo.js`, `ui-sheet-header.demo.js` and
- * `ui-stat-tile.demo.js`.
- *
- * EVERY OPEN STATE'S STAGE CARRIES `contain: layout`, AND THAT IS NOT DECORATION.
- * A menu is `position: fixed`; `contain: layout` makes the stage the containing block
- * for it (MEASURED, ui-menu.js's header table), so the menu both positions and CLAMPS
- * inside its own stage. Without it every open state on this page would compute its
- * clamp against the window and eight menus would pile into one corner as you scroll.
- * With it, each state is a self-contained coordinate space — which is also the claim
- * the component makes about transformed and contained ancestors, on screen.
- *
- * FOR THE GATE:  import { entry as uiMenu } from './entries/ui-menu.entry.js';
- *                export const entries = [ …, uiMenu ];
+ * The gallery entry for.
  */
 
 /** Items travel through the attribute, JSON-parsed by Lit — the static-markup path. */

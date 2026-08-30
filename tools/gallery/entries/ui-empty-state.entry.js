@@ -1,28 +1,5 @@
 /**
- * ui-empty-state.entry.js - the gallery entry for component #38 (wave 1, item #38).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 1 runs sixteen builders in
- * parallel under a whole-file-write rule, so sixteen appends to one array clobber
- * each other. Each builder therefore owns one file here and the wave's GATE agent
- * wires them into `entries.js` (import + spread, or a manifest) once, serially:
- *
- *     import { entry as uiEmptyState } from './entries/ui-empty-state.entry.js';
- *     export const entries = [ ...existing, uiEmptyState ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js
- * does the `import(entry.module)`, so the specifier resolves against gallery.js
- * wherever the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-empty-state--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * The `left-pressure` state exists so the capture battery photographs T11's exact
- * hostile environment: the three shell rules that left-align Slate's four call
- * sites are applied to the stage, and the block is still centred. Those rules carry
- * the loud override this file is not allowed to spell; they live in
- * test/render/ui-empty-state.render.test.mjs, where they belong.
+ * The gallery entry for.
  */
 
 export const entry = {

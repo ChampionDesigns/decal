@@ -1,25 +1,5 @@
 /**
- * ui-bank.entry.js — the gallery entry for Wave 2 item #3 (Segmented bank).
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is ONE
- * exported array in ONE file and Wave 2 runs twelve builders under a whole-file-write
- * rule, so twelve appends to one array is twelve chances to clobber eleven entries,
- * silently, with the loss invisible until a capture battery photographs an empty
- * stage. Wave 1 hit exactly this and adopted the per-entry split (entries.js:30-45);
- * the same rule binds here. Each builder owns a file, and ONE cross-cutting writer
- * adds the import line and the array slot, serially, once.
- *
- * The shape below is the documented one (tools/gallery/README.md, entries.js header):
- * { id, title, module, notes, states: [{ id, title, html, hostStyle, notes }] } with
- * `module` relative to tools/gallery/. `test/render/gallery.render.test.mjs` drives
- * the registry, so a malformed entry is a red test rather than a silent miss.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-bank--<state.id>`), so they are identifiers,
- * not labels; renaming one is a re-baseline.
- *
- * WHAT TO LOOK AT, IN ONE SENTENCE PER STATE: the same component, in three aria
- * spellings, two dial settings and four container widths, with exactly one selected
- * treatment throughout — which is the founding defect made un-photographable.
+ * The gallery entry for.
  */
 
 export const entry = {

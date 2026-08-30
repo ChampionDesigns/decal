@@ -1,49 +1,13 @@
 /**
- * ui-nav-row.entry.js - the gallery entry for component #24 (wave 2, item #24).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 2 runs twelve builders in parallel under
- * a whole-file-write rule, so twelve appends to one array clobber each other - which is
- * exactly what wave 1 hit and recorded at entries.js:30-45. Each builder therefore owns
- * one file here and the wave's single cross-cutting writer wires them into entries.js,
- * serially, once:
- *
- *     import { entry as uiNavRow } from './entries/ui-nav-row.entry.js';
- *     export const entries = [ ...existing, uiNavRow ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does the
- * `import(entry.module)`, so the specifier resolves against gallery.js wherever the entry
- * object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-nav-row--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * `hostStyle` sizes the CONTAINER, never the viewport - the row reads its own container
- * (spec §2.1 Rule 1) and the viewport is the capture battery's business.
+ * The gallery entry for.
  */
 
-/* THE COLUMN IS THE SEAM DRAWER, not the row (CONVENTIONS §13): a 1px grid gap over
- * --ui-line, which replaces Slate's per-row
- * `#main-categories-panel ul > li + li .settings-nav-btn { box-shadow: inset 0
- * var(--slate-hairline) 0 var(--slate-line) }` - the rule whose sub-nav twin cannot match
- * and leaves that column with zero separators (T2). Written out here rather than imported
- * because a gallery state is light-DOM markup; the real consumer uses the `seams`
- * fragment. The ink is the measured one:
- * CITE settings-machine-machine-info #accessories-btn [i=11] box-shadow = rgb(58, 72, 82)
- *      0px 1px 0px 0px inset / [prov-light] the --ui-line twin  <-  slate-shell.css
- *      authored `inset 0 var(--slate-hairline) 0 var(--slate-line)`  = --ui-line.
- * The width is Slate's own 260, measured:
- * CITE settings-machine-machine-info .settings-nav-btn rects [0,219,260,89] ... */
 const column = (rows, { width = '260px' } = {}) =>
     '<div style="display:grid; gap:var(--ui-seam); background-color:var(--ui-line);'
     + ` align-content:start; inline-size:${width}">` + rows.join('') + '</div>';
 
 const row = (label, attrs = '') => `<ui-nav-row ${attrs}>${label}</ui-nav-row>`;
 
-/* Slate's ten Settings categories, in order, read read-only from settings.html:30-39.
- * Ten and not eleven is half of bug T18 - "--slate-nav-row: 89px justifies itself with a
- * derivation that is wrong on both halves ... there are 10 categories, not 11". */
 const CATEGORIES = [
     'Machine', 'Accessories', 'Connections', 'Calibration', 'Maintenance',
     'Display', 'Units &amp; Language', 'Extensions', 'Updates', 'Help',

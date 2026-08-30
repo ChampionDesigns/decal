@@ -1,26 +1,5 @@
 /**
- * ui-favourite-slot.entry.js - the gallery entry for component #35 (wave 2, item #35).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 2 runs twelve builders in parallel
- * under a whole-file-write rule, so twelve appends to one array clobber each other -
- * which is what wave 1 measured before it adopted this split (entries.js:30-45). Each
- * builder owns one file here and the wave's cross-cutting writer wires them into
- * `entries.js` once, serially:
- *
- *     import { entry as uiFavouriteSlot } from './entries/ui-favourite-slot.entry.js';
- *     export const entries = [ ...existing, uiFavouriteSlot ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js does
- * the `import(entry.module)`, so the specifier resolves against gallery.js wherever
- * the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-favourite-slot--<state>`): identifiers, not
- * labels. A rename is a re-baseline.
- *
- * NO RAW COLOUR LITERAL in any `html` below - tools/ is inside Gate C's scan roots,
- * so the stage scaffolding is built from --ui-* tokens like everything else.
+ * The gallery entry for.
  */
 
 export const entry = {

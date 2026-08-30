@@ -1,38 +1,5 @@
 /**
- * ui-toast.entry.js — the gallery entry for Wave 3 item #22.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single exported array and the run's rule is whole-file writes; N builders appending
- * to one array in parallel is N−1 entries lost, silently, because a missing entry is
- * just a shorter list. Each builder owns one file here and the wave's cross-cutting
- * reviewer wires the import line and the array slot in serially, as single writer.
- *
- * FOR THE GATE:  import { entry as uiToast } from './entries/ui-toast.entry.js';
- *                export const entries = [ …, uiToast ];
- *
- * TWO THINGS EVERY STATE HERE HAS TO DO, and both are properties of this component
- * rather than of the gallery:
- *
- *   1. `anchor="container"` and a POSITIONED stage. The toast surface is
- *      `position: fixed` on the --ui-z-toast layer, so without this every state would
- *      land in the same corner of the window, on top of the gallery's own chrome, and
- *      the capture battery would shoot the identical picture for all of them.
- *      `hostStyle` is applied to the STAGE WRAPPER, which is exactly the positioned
- *      ancestor an absolutely-positioned layer needs — the honest way to show a
- *      component that owns a layer, the same way `inline-size` is the honest way to
- *      show one that reads its own container.
- *
- *   2. `duration="0"` on every notice. A toast with a clock is gone before the shutter
- *      opens: the battery drives 1281×801@dsf1.5 / 1920×1200 / 1000×600 over the same
- *      states, and the default is 2400 ms (ui.js:3283). Sticky notices are also what
- *      makes the baseline deterministic, together with DEPARTURE 10 — a notice present
- *      at mount does not animate in, so no capture can catch a half-faded card.
- *
- * THE CORPUS HAS NO PICTURE OF THIS COMPONENT TO COMPARE AGAINST, mechanically:
- * `prov_query.py find --cls toast` and `find --id app-toast` both return "0 elements
- * matched anywhere in this corpus" across all 49 states, because Slate ships both toast
- * containers `display: none` in markup (index.html:645, :657) and shows them from
- * script. These captures are therefore a NEW baseline, not a comparison.
+ * The gallery entry for.
  */
 
 /** Every state sits in a panel-sized, positioned stage. */

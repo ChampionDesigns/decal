@@ -1,40 +1,5 @@
 /**
- * ui-sheet.entry.js — the gallery entry for component #20 (wave 4, item #20).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * `tools/gallery/README.md:12` says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 4 runs many builders in parallel
- * under a whole-file-write rule, so N appends to one array is N-1 entries lost — wave
- * 1 hit exactly this and adopted the per-entry split (`entries.js:30-45`). Each
- * builder owns one file here and the wave's single cross-cutting writer wires them
- * into `entries.js` once, serially:
- *
- *     import { entry as uiSheet } from './entries/ui-sheet.entry.js';
- *     export const entries = [ ...existing, uiSheet ];
- *
- * `module` stays relative to `tools/gallery/` as the README specifies — gallery.js
- * does the `import(entry.module)`, so the specifier resolves against gallery.js
- * wherever the entry object was authored. It points at `ui-sheet.demo.js` rather than
- * at the component, and that file says why.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-sheet--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * TWO THINGS TO KNOW BEFORE READING THE SCREENSHOTS.
- *
- * 1. THE STATE THAT MATTERS MOST IS `schedule-editor`, and it is a MODAL DIALOG, so
- *    it does not sit in the stage: it is in the top layer, centred on the viewport,
- *    with its scrim over the whole gallery. That is #18 working, not the stage
- *    failing — ui-dialog.entry.js says the same thing at more length, and the gallery
- *    nav is inert while it is up (navigate with `?state=`, which is what
- *    `tools/capture_battery.py` already does).
- *
- * 2. THE FOOTER IS NOT IN THE SHEET. Cancel and Save are `slot="actions"` on the
- *    DIALOG, one level out. That is the whole of the row's carried repair (O13:
- *    ".slate-sheet-actions means two different things — a header cluster in the
- *    library, a dialog footer in the shell"), and it is visible in the capture as the
- *    seam between the body and the buttons: the footer is the dialog's last grid row,
- *    not a flex-end cluster inside the body.
+ * The gallery entry for.
  */
 
 export const entry = {

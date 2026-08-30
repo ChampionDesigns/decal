@@ -1,37 +1,10 @@
 /**
- * seams.entry.js - the gallery entry for component #14 (wave 1, item #14).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * `tools/gallery/README.md:12` says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 1 runs sixteen builders in
- * parallel under a whole-file-write rule, so sixteen appends to one array clobber
- * each other. Each builder therefore owns one file here and the wave's GATE agent
- * wires them into `entries.js` once, serially:
- *
- *     import { entry as seams } from './entries/seams.entry.js';
- *     export const entries = [ ...existing, seams ];
- *
- * WHY THE SUBJECT IS A MODULE AND NOT A COMPONENT. Row #14 ships no element -
- * SCOPE Part 4: "the good pattern is a 1px grid `gap` over a coloured grid background
- * (spec §2.2), so this becomes a documented layout utility, not an element." The
- * utility is a shared css fragment (`src/components/seams.js`) plus its documentation
- * (`src/components/CONVENTIONS.md` §13). `module` therefore points at
- * `./entries/seams.demo.js`, whose one job is `adoptSeams(document)` - after which
- * every state below is plain light-DOM markup wearing the utility's classes, which is
- * exactly how a screen will wear them.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`seams--<state>`): identifiers, not labels. A
- * rename is a re-baseline.
- *
- * NO RAW COLOUR LITERAL in any `html` below - `tools/` is inside Gate C's scan roots
- * and an inline `style="..."` is authored CSS to the scanner, so the stage
- * scaffolding is built from --ui-* tokens like everything else.
+ * The gallery entry for.
  */
 
 const CELL = 'padding: var(--ui-space-4); color: var(--ui-text); font-size: var(--ui-text-base)';
 const LABEL = 'color: var(--ui-muted); font-size: var(--ui-text-2xs); padding-block-end: var(--ui-space-2)';
 
-/** One settings row, as the oracle measured it: 1150 x 63, label left, value right. */
 const row = (label, value) =>
     '<div class="seam-cell" style="display: flex; align-items: center;'
     + ' justify-content: space-between; block-size: 63px;'

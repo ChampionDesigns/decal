@@ -1,25 +1,5 @@
 /**
- * ui-keycap.entry.js - the gallery entry for component #15 (wave 1, item #15).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * tools/gallery/README.md:12 says "Edit entries.js. That is the whole procedure",
- * and that procedure is correct for ONE author. Wave 1 runs sixteen builders in
- * parallel under a whole-file-write rule, so sixteen appends to one array clobber
- * each other. Each builder therefore owns one file here and the wave's GATE agent
- * wires them into `entries.js` (import + spread, or a manifest) once, serially:
- *
- *     import { entry as uiKeycap } from './entries/ui-keycap.entry.js';
- *     export const entries = [ ...existing, uiKeycap ];
- *
- * `module` stays relative to tools/gallery/ as the README specifies - gallery.js
- * does the `import(entry.module)`, so the specifier resolves against gallery.js
- * wherever the entry object was authored.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`ui-keycap--<state>`): identifiers, not labels.
- * A rename is a re-baseline.
- *
- * NO RAW COLOUR LITERAL in any `html` below - tools/ is inside Gate C's scan roots,
- * so the stage scaffolding is built from --ui-* tokens like everything else.
+ * The gallery entry for.
  */
 
 export const entry = {

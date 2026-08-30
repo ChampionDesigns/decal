@@ -1,29 +1,5 @@
 /**
- * ui-dialog.entry.js — gallery entry for component #18, the dialog / modal shell.
- *
- * Written as its own file because `tools/gallery/entries.js` is one shared array under
- * a whole-file-write rule: N builders appending to it in parallel is N−1 entries lost,
- * which is why wave 1 moved to per-entry files. The wave's reviewer wires the import
- * line and the array slot in serially. `test/ui-dialog-gallery-entry.test.mjs` asserts
- * the shape before that hand-off, and `test/render/ui-dialog.render.test.mjs` mounts
- * every state below in a real browser at both Gate A geometries.
- *
- * TWO THINGS TO KNOW BEFORE READING THE SCREENSHOTS.
- *
- * 1. A MODAL DIALOG DOES NOT SIT IN THE STAGE. It is in the browser's top layer, so it
- *    is centred on the VIEWPORT and its scrim covers the whole gallery, stage frame and
- *    all. That is not the stage failing to contain it — it is the one component in the
- *    inventory whose geometry is the window's by design (spec §4.6: "One real
- *    breakpoint survives here ... query the real window, which for a top-layer dialog is
- *    the only query that means anything"). `hostStyle` still does its usual job: it sets
- *    the custom properties the dialog inherits, which is how `narrow-card` shows the
- *    720px container query firing without touching the viewport.
- *
- * 2. THE GALLERY'S OWN NAV IS INERT WHILE ONE OF THESE STATES IS ON THE STAGE, and that
- *    is the component working. Real modality means every sibling on the composed path
- *    is marked `inert` (the H9/O8 half of the row). Move between these states with the
- *    URL's `?state=` parameter — which is exactly what `tools/capture_battery.py` does
- *    (it navigates per state, capture_battery.py:107), so the battery is unaffected.
+ * Gallery entry for.
  */
 
 export const entry = {

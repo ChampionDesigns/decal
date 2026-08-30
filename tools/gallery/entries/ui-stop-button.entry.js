@@ -1,37 +1,11 @@
 /**
- * ui-stop-button.entry.js — the gallery entry for Wave 4 item #47.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a single
- * exported array and its README says "Edit entries.js. That is the whole procedure" —
- * true for one builder, false for a wave of them working in parallel under a
- * whole-file-write rule: the last write wins and the other entries vanish silently, and
- * the gallery cannot detect that because a missing entry is just a shorter list. So each
- * builder owns one file here and the wave's single cross-cutting writer wires them in.
- *
- * SHAPE is exactly the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component, and the full state id is
- * `ui-stop-button--<state.id>` — a capture-battery filename, so these ids are identifiers
- * and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiStopButton } from './entries/ui-stop-button.entry.js';
- *                export const entries = [ …, uiStopButton ];
+ * The gallery entry for.
  */
 
-/* The rail at Slate's frozen capture width. `find --cls slate-stepper` measures 85
- * elements in 16 states, every one 268x64 at x=134; the abort target is 430 wide,
- * i.e. the RAIL, not the row. Quoted as what Slate does — --ui-rail-w is
- * clamp(320px, 26%, 460px) and 430 is one point on that line. */
 const RAIL = { 'inline-size': '430px' };
 
-/* One grid cell holding both the row and the overlay, which is how the rewrite gets
- * Slate's `position: absolute; top: 25px; z-index: 6` without a component that positions
- * itself. Nothing moves when the control appears. */
 const STACK = 'display:grid;';
 const CELL = 'grid-area:1/1;';
-/* The seam IS the divider, written the way the spec's own Live skeleton writes it —
- * LAYOUT_SPEC_DRAFT.md:521-525, `display:grid; gap: var(--ui-seam); background:
- * var(--ui-line-strong)`. Inline here because a gallery state is markup, not a
- * component; a component would import the `seams` fragment (CONVENTIONS §13). */
 const RAIL_ROWS = 'display:grid; gap:var(--ui-seam); background:var(--ui-line-strong);';
 
 export const entry = {

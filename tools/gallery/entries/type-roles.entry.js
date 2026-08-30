@@ -1,34 +1,5 @@
 /**
- * type-roles.entry.js - the gallery entry for component #13 (wave 1, item #13).
- *
- * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
- * `tools/gallery/README.md:12` says "Edit entries.js. That is the whole procedure", and
- * that procedure is correct for ONE author. Wave 1 runs sixteen builders in parallel
- * under a whole-file-write rule, so sixteen appends to one array clobber each other.
- * Each builder therefore owns one file here and the wave's GATE agent wires them into
- * `entries.js` once, serially:
- *
- *     import { entry as typeRoles } from './entries/type-roles.entry.js';
- *     export const entries = [ ...existing, typeRoles ];
- *
- * WHY THE SUBJECT IS A FIXTURE AND NOT A COMPONENT. Row #13 ships no element -
- * SCOPE.md:1531: "Dissolves into the token layer plus a shared style module rather than
- * an element - recorded here so the inventory stays 57-for-57." The roles are classes
- * applied to plain markup inside some component's shadow root, so there is nothing to
- * mount directly: `stageHost.innerHTML` is LIGHT DOM, and a shadow-scoped fragment
- * cannot reach it. `test/fixtures/type-roles-fixture.js` is the subject, exactly as
- * wave 0a's `base-fixture` is the subject for the base conventions - a real element that
- * is not a shipping component, so the gallery and the capture battery have something to
- * photograph.
- *
- * THE THREE STATES ARE THREE CONTAINER WIDTHS, because that is the only variable a type
- * layer has. `hostStyle` sizes the CONTAINER, never the viewport (README: "the only
- * honest way to show a component that reads its own container"), and the display step is
- * `clamp(32px, 3.4cqi, 42px)` - so the same specimen shows the clamp floor at 600px, an
- * intermediate value at 1100px, and the UI scale holding its fixed px throughout. The
- * viewport half of the matrix is the battery's business.
- *
- * STATE IDS ARE CAPTURE FILENAMES (`type-roles--<state>`): identifiers, not labels.
+ * The gallery entry for.
  */
 
 export const entry = {

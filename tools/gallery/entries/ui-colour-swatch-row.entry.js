@@ -1,38 +1,7 @@
 /**
- * ui-colour-swatch-row.entry.js — the gallery entry for Wave 4 item #52, the Colour
- * swatch row.
- *
- * WHY THIS IS A FILE AND NOT A DIFF TO entries.js. `tools/gallery/entries.js` is a
- * single hand-written array, and under a whole-file-write rule a wave of parallel
- * builders editing it means the last write wins and every other entry vanishes silently
- * — a missing entry is just a shorter list, which the gallery cannot detect. So this
- * builder owns this file and the wave's one cross-cutting writer adds the single import
- * line and the single array slot, serially, once.
- *
- * SHAPE is the one entries.js documents: `module` is relative to `tools/gallery/`,
- * `hostStyle` sizes the STAGE and not the component (spec §2.1 Rule 1), and the full
- * state id is `ui-colour-swatch-row--<state.id>` — a capture-battery filename, so these
- * ids are identifiers and renaming one is a re-baseline.
- *
- * FOR THE GATE:  import { entry as uiColourSwatchRow } from './entries/ui-colour-swatch-row.entry.js';
- *                export const entries = [ …, uiColourSwatchRow ];
- *
- * THE HEX STRINGS BELOW ARE DATA, NOT A PALETTE. They are LED colours — the strip's, not
- * the skin's — carried from the old skin's `LED_PRESETS` (`settings.js:3829-3833`), which
- * is where a palette of suggestions belongs: ReaPrime serves the strip's CURRENT colour
- * and has no concept of a preset list. Nothing here is authored CSS, so guard 3 (no raw
- * colour literal) is not in play; the component itself contains no colour value at all.
- *
- * ONE PRESET IS CHANGED ON PURPOSE. Slate stores its "Blue" preset as
- * `var(--slate-primary)` and resolves it with `getComputedStyle(document.documentElement)`
- * (`settings.js:3841-3848`), which means the LED colour the machine is asked to wear
- * depends on which SKIN THEME is loaded — #234f63 in dark, #173b4d in light
- * (`slate-tokens.css:202`, `:315`). A hardware colour is not a theme value, so the
- * component's boundary is literal `#RRGGBB` in both directions and a caller that wants a
- * themed preset resolves it first. Here it is stated as the dark value.
+ * The gallery entry for.
  */
 
-/** Slate's ten LED presets, with the var() one resolved (see the header). */
 const LED_PRESETS = JSON.stringify([
     { hex: '#000000', label: 'Off' },
     { hex: '#FFAA55', label: 'Warm White' },
