@@ -11,8 +11,6 @@ import { css, html, nothing } from 'lit';
 import { UiElement, selectionSurface } from 'src/components/base.js';
 import { bindPressHold } from 'src/lib/press-hold.js';
 
-/* The three ARIA spellings share one treatment: aria-checked, aria-selected and
-   aria-pressed all mean the same thing here. */
 const MODES = {
     radio: { host: 'radiogroup', item: 'radio', state: 'aria-checked' },
     tablist: { host: 'tablist', item: 'tab', state: 'aria-selected' },
@@ -21,7 +19,6 @@ const MODES = {
 
 const DEFAULT_MODE = 'radio';
 
-/* Strings or objects in, one shape out. */
 function normaliseItem(raw, index) {
     if (raw !== null && typeof raw === 'object') {
         const value = String(raw.value ?? raw.label ?? index);
@@ -38,52 +35,40 @@ function normaliseItem(raw, index) {
 
 export class UiBank extends UiElement {
     static properties = {
-        /* The choices: strings, or { value, label, disabled, controls }. Parsed from a JSON
-           attribute so a bank can be stated in markup. */
+        /* Strings, or { value, label, disabled, controls }. Parsed from a JSON attribute so
+           a bank can be stated in markup. */
         items: { type: Array },
 
-        /* The chosen value. Reflected — it is the state. */
+        /* The chosen value. Reflected. */
         value: { type: String, reflect: true },
 
-        /* Which ARIA spelling this bank speaks. */
+        /* Which ARIA spelling this bank speaks: radio, tablist or toolbar. */
         mode: { type: String, reflect: true },
 
         /* Accessible name for the group. */
         label: { type: String },
 
-        /* How much room a cell gives its inset. It moves the item's inline padding and
-           nothing else. */
         density: { type: String, reflect: true },
 
         /* Offer a second action per cell on hold. Off by default: a hidden gesture on a
            control with no second action is a trap. */
         hold: { type: Boolean, reflect: true },
 
-        /* The tall form, orthogonal to density. */
         tall: { type: Boolean, reflect: true },
 
-        /* The other end of the same dial: a bank whose row is text rather than a control. */
         plain: { type: Boolean, reflect: true },
 
-        /* Paint and behaviour both: the base dims the host, the buttons refuse input. */
         disabled: { type: Boolean, reflect: true },
     };
 
     static styles = [
-        /* No hit-area import. An item's ink is its own box, and the cell is already at the
-           touch floor. */
         css`
             :host {
-                /* The cell's inset, named once so compact moves it without a second declaration
-                   to keep in step. */
                 --_ui-item-inset: var(--ui-space-4);
 
-                /* The row height and the cell height, named once for the same reason: the tall form
-                   moves both from one place. */
                 --_ui-bank-row: var(--ui-control-h);
                 --_ui-bank-item: var(--ui-control-inner);
 
-                /* A bank is a row of equal cells; these three declarations are what "equal" means. */
                 display: grid;
                 grid-auto-flow: column;
                 grid-auto-columns: 1fr;
@@ -96,62 +81,46 @@ export class UiBank extends UiElement {
 
                 background-color: var(--ui-key);
 
-                /* A floor, so a bank never falls below the touch target. */
                 min-block-size: var(--_ui-bank-row);
 
-                /* overflow: hidden — the radius has to clip a selected cell's face at the two end
-                   corners. */
                 overflow: hidden;
                 --_ui-focus-offset: var(--ui-focus-offset-inset);
             }
 
-            /* Cells are equal at the widest, so the row does not reflow as labels change. */
             :host([density="compact"]) {
                 --_ui-item-inset: var(--ui-space-2);
             }
 
-            /* The tall form moves the row and the cell together. */
             :host([tall]) {
                 --_ui-bank-row: var(--ui-control-lg);
                 --_ui-bank-item: calc(var(--ui-control-lg) - 2 * var(--ui-hairline));
             }
 
-            /* The plain form, at the touch floor. Written after the tall rule so a bank given
-               both attributes resolves to this one. */
             :host([plain]) {
-                /* The arithmetic runs the other way here: the cell is the floor and the row is the
-                   cell plus its two hairlines. */
                 --_ui-bank-item: var(--ui-hit-min);
                 --_ui-bank-row: calc(var(--ui-hit-min) + 2 * var(--ui-hairline));
             }
 
-            /* The item is a class, never an id: a bank may appear more than once on a page. */
             .item {
-                /* No flex basis. The equal-cell arithmetic is the host's grid-auto-columns: 1fr —
-                   one mechanism, stated once. */
                 min-inline-size: var(--_ui-bank-item-min, 0);
 
-                /* Derived from the control height and the hairlines, so a bank at another size
-                   stays consistent without a second number. */
                 min-block-size: var(--_ui-bank-item);
 
                 display: flex;
                 align-items: center;
                 justify-content: center;
 
-                /* The inset comes from the host and moves with density. */
                 padding-block: 0;
                 padding-inline: var(--_ui-item-inset);
 
                 border: 0;
                 border-radius: 0;
 
-                /* An unselected cell is transparent: the bank's own ground shows through. */
                 background-color: transparent;
 
                 color: var(--ui-muted);
 
-                /* A button does not inherit its font — the browser sets the font shorthand on it,
+                /* A button does not inherit its font: the browser sets the font shorthand on it,
                    resetting family, size, weight and line-height together. */
                 font-family: inherit;
                 line-height: inherit;
@@ -161,11 +130,9 @@ export class UiBank extends UiElement {
                 cursor: pointer;
             }
 
-            /* There is no selected-state rule here. Everything a selected cell looks like
-               arrives through the shared selection surface, so every selection in the app
-               moves together. */
+            /* No selected-state rule here — the shared selection surface paints it, so every
+               selection in the app moves together. */
 
-            /* The bank answers a narrow container by shrinking its cells and ellipsising. */
             .label {
                 min-inline-size: 0;
                 overflow: hidden;
@@ -173,8 +140,6 @@ export class UiBank extends UiElement {
                 white-space: nowrap;
             }
 
-            /* The seam survives selection: it is written at a specificity the selection paint
-               does not beat. */
             :where(.item + .item) {
                 --_ui-rest-shadow: inset var(--ui-seam) 0 0 0 var(--ui-seam-ink);
                 box-shadow: var(--_ui-rest-shadow);
@@ -184,13 +149,10 @@ export class UiBank extends UiElement {
                 color: var(--ui-text-2);
             }
 
-            /* The pointer affordance only; the paint is the base's disabled dial. */
             .item:where(:disabled) {
                 cursor: default;
             }
 
-            /* Painted once. A disabled bank disables every button in it, so without this the
-               dim would be applied to the host and again to each cell. */
             :host([disabled]) .item:disabled {
                 opacity: 1;
             }
@@ -212,18 +174,16 @@ export class UiBank extends UiElement {
     /* The root's gesture binding, or null while hold is off. */
     #holdOff = null;
 
-    /* The author's role, captured once, so mode can own the role without overwriting
-       one a screen stated deliberately. */
+    /* The author's role and label, captured once so mode never overwrites what a
+       screen stated deliberately. */
     #authorRole = null;
 
-    /* The author's aria-label, captured for the same reason. label is this
-       component's own API for the group name and wins while it is set. */
     #authorLabel = null;
 
     #captured = false;
 
-    /* Which item is the tab stop when that is not the selected one. Only toolbar mode
-       can be in that position. null means "follow the selection". */
+    /* Which item is the tab stop when that is not the selected one. null means
+       "follow the selection". */
     #roving = null;
 
     get #mode() {
@@ -235,7 +195,7 @@ export class UiBank extends UiElement {
     }
 
     /* Nothing to clean up on disconnect: every listener is on this element or its own
-       root, and both go with it. */
+       root. */
     connectedCallback() {
         super.connectedCallback();
         if (!this.#captured) {
@@ -247,20 +207,15 @@ export class UiBank extends UiElement {
 
     willUpdate(changed) {
         super.willUpdate?.(changed);
-        /* A selection arriving from outside takes the tab stop back. */
         if (changed.has('value') || changed.has('items') || changed.has('mode')) {
             this.#roving = null;
         }
     }
 
-    /* The ARIA state and the visual state are one state. This writes the group half and
-       render() writes the item half. */
     updated(changed) {
         super.updated(changed);
         this.#bindHold();
         if (this.#authorRole === null) this.setAttribute('role', MODES[this.#mode].host);
-        /* Both branches, because an attribute written and never removed is a state that
-           cannot go back. */
         if (this.label) this.setAttribute('aria-label', this.label);
         else if (this.#authorLabel !== null) this.setAttribute('aria-label', this.#authorLabel);
         else this.removeAttribute('aria-label');
@@ -268,8 +223,7 @@ export class UiBank extends UiElement {
         else this.removeAttribute('aria-disabled');
     }
 
-    /* Bound once, to the root, resolving the cell when it fires. Binding every cell would
-       rebind on every render. */
+    /* Bound once to the root; binding every cell would rebind on every render. */
     #bindHold() {
         const wanted = !!this.hold;
         if (wanted === (this.#holdOff !== null)) return;
@@ -281,7 +235,7 @@ export class UiBank extends UiElement {
         this.#holdOff = bindPressHold(this.renderRoot, {
             onHold: ({ path }) => {
                 if (this.disabled) return;
-                /* The path is the pointerdown's, captured at press time: reading it off the event
+                /* The path is the pointerdown's, captured at press time — reading it off the event
                    here answers empty, because the hold completes after the pointer has moved on. */
                 const button = path.find((node) => node instanceof Element
                     && node.classList?.contains('item'));
@@ -289,8 +243,8 @@ export class UiBank extends UiElement {
                 const index = [...this.renderRoot.querySelectorAll('.item')].indexOf(button);
                 const item = this.#items[index];
                 if (!item) return;
-                /* A disabled cell still holds. An empty favourite slot refuses the ordinary press
-                   and is exactly the slot a person holds to fill. */
+                /* A disabled cell still holds: an empty favourite slot refuses the press and is
+                   exactly the slot a person holds to fill. */
                 this.dispatchEvent(new CustomEvent('item-hold', {
                     detail: { value: item.value, index },
                     bubbles: true,
@@ -305,7 +259,6 @@ export class UiBank extends UiElement {
         super.disconnectedCallback();
     }
 
-    /* The index carrying tabindex="0" — one per bank. */
     #tabStop(items) {
         if (this.#roving !== null && items[this.#roving] && !items[this.#roving].disabled) {
             return this.#roving;
@@ -322,8 +275,6 @@ export class UiBank extends UiElement {
 
         return items.map((item, index) => {
             const on = item.value === this.value;
-            /* Three bindings rather than one computed name, so exactly one is present per mode
-               and the contract is readable in the template. */
             return html`
                 <button
                     id="item-${index}"
@@ -346,8 +297,8 @@ export class UiBank extends UiElement {
         });
     }
 
-    /* Choose an item. The only way value changes from inside, and the only place
-       change is fired — never for a programmatic write. */
+    /* Choose an item. The only place change is fired, and never for a programmatic
+       write. */
     #choose(index) {
         const items = this.#items;
         const item = items[index];
@@ -372,7 +323,6 @@ export class UiBank extends UiElement {
         return null;
     }
 
-    /* The first or last enabled index. */
     #edge(dir) {
         const items = this.#items;
         for (let k = 0; k < items.length; k++) {
@@ -387,7 +337,6 @@ export class UiBank extends UiElement {
         this.shadowRoot?.getElementById(`item-${index}`)?.focus();
     }
 
-    /* Roving tabindex: one tab stop per bank, arrows move within it. */
     #onKeydown(event, index) {
         let next = null;
         switch (event.key) {
@@ -398,7 +347,7 @@ export class UiBank extends UiElement {
             case ' ':
             case 'Spacebar':
             case 'Enter':
-                /* Space would scroll the page otherwise, and the page is a wall panel. */
+                /* Space would scroll the page otherwise. */
                 event.preventDefault();
                 this.#choose(index);
                 return;

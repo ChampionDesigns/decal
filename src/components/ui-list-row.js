@@ -11,8 +11,8 @@ import { css, html, nothing } from 'lit';
 import { UiElement, selectionSurface } from 'src/components/base.js';
 import 'src/components/ui-badge.js';
 
-/* aria-selected is three-valued and a listbox option carries it in both states, so
-   toAttribute never returns null — an absent attribute is a different thing. */
+/* aria-selected is three-valued and an option carries it in both states, so
+   toAttribute never returns null. */
 const ARIA_SELECTED = {
     fromAttribute: (value) => value === 'true',
     toAttribute: (value) => (value ? 'true' : 'false'),
@@ -20,8 +20,7 @@ const ARIA_SELECTED = {
 
 export class UiListRow extends UiElement {
     static properties = {
-        /* Selected, as the ARIA state. Reflected, so the paint and the announcement cannot
-           disagree. */
+        /* Selected, as the ARIA state. Reflected. */
         selected: { reflect: true, attribute: 'aria-selected', converter: ARIA_SELECTED },
         /* The provenance chip's text. Empty renders no chip. */
         provenance: { type: String },
@@ -30,22 +29,17 @@ export class UiListRow extends UiElement {
 
     static styles = [
         css`
-            /* The host is the row and keeps the base's container-type: a row fills its column,
-               so there is nothing to opt out of. */
             :host {
                 display: flex;
                 align-items: center;
                 gap: var(--ui-space-3);
 
-                /* A floor, not a height: a row with a two-line title grows rather than clipping. */
                 min-block-size: var(--ui-list-row);
 
                 padding-inline: var(--ui-space-5);
 
                 background-color: var(--ui-fascia);
 
-                /* The type is set on the row rather than on the title, so a slotted control
-                   inherits it. */
                 font-size: var(--ui-text-lg);
                 font-weight: var(--ui-weight-regular);
 
@@ -53,7 +47,6 @@ export class UiListRow extends UiElement {
                 user-select: none;
             }
 
-            /* Title and chip share a baseline. */
             .lead {
                 display: flex;
                 flex: 1 1 auto;
@@ -62,7 +55,6 @@ export class UiListRow extends UiElement {
                 min-inline-size: 0;
             }
 
-            /* The title declares no type: it takes the row's. */
             .title {
                 min-inline-size: 0;
                 overflow: hidden;
@@ -70,21 +62,16 @@ export class UiListRow extends UiElement {
                 white-space: nowrap;
             }
 
-            /* The chip is not squeezed by a long title — the title ellipsises, the provenance
-               does not. */
+            /* The title ellipsises; the chip does not. */
             .provenance {
                 flex: none;
             }
 
-            /* Nor is a slotted control. Every non-lead child holds its own width, so the title
-               is the only thing that gives. */
             ::slotted(*) {
                 flex: none;
             }
 
         `,
-        /* The selection fragment comes last so it beats the resting paint above it, and is
-           deliberately not wrapped in :where(). */
         selectionSurface,
     ];
 
@@ -94,8 +81,8 @@ export class UiListRow extends UiElement {
         this.provenance = '';
     }
 
-    /* The row's own accessible name, composed from the three places a name-from-content
-       walk would reach: the title, the chip and the lead slot. */
+    /* The row's own accessible name, composed from the title, the chip and the lead
+       slot. */
     #composeRowLabel() {
         const root = this.renderRoot;
         if (!root) return '';
@@ -103,8 +90,8 @@ export class UiListRow extends UiElement {
             ?.assignedNodes?.({ flatten: true }) ?? [])
             .map((node) => node.textContent ?? '')
             .join(' ');
-        /* The actions slot is deliberately excluded. A control slotted there carries its
-           own name and must not be folded into the row's. */
+        /* The actions slot is deliberately excluded: a control slotted there carries its own
+           name. */
         return [
             slotText('slot:not([name])'),
             root.getElementById('provenance')?.textContent ?? '',
@@ -112,8 +99,8 @@ export class UiListRow extends UiElement {
         ].join(' ').replace(/\s+/g, ' ').trim();
     }
 
-    /* Written only for a row whose list has given it a role. A row with no role is a
-       generic element, and naming one is noise in the tree. */
+    /* Written only for a row whose list has given it a role — a name on a generic is
+       announced by nothing. */
     #applyRowLabel() {
         if (this.hasAttribute('aria-labelledby')) return;
         const written = this.getAttribute('aria-label');
@@ -125,17 +112,16 @@ export class UiListRow extends UiElement {
         else this.removeAttribute('aria-label');
     }
 
-    /* The last name this element wrote for itself. */
     #rowLabel = null;
 
-    /* The role is a plain attribute set by the list, so no update fires when it
-       changes and the name has to be recomposed on every update. */
+    /* The role is a plain attribute set by the list, so no update fires when it changes
+       and the name must be recomposed on every update. */
     #roleWatch = null;
 
     #onContentChange = () => this.#applyRowLabel();
 
     /* Set here and never in the constructor: a custom element constructor must not gain
-       attributes. No role is set — the list owns that. */
+       attributes. */
     connectedCallback() {
         super.connectedCallback();
         if (!this.hasAttribute('focus-ring')) this.setAttribute('focus-ring', 'inset');
@@ -152,8 +138,6 @@ export class UiListRow extends UiElement {
 
     updated(changed) {
         super.updated?.(changed);
-        /* The chip is rendered here, so a change to it fires no slotchange and the label
-           must be recomposed on update as well as on slot change. */
         this.#applyRowLabel();
     }
 
