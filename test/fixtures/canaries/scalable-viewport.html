@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- THE CANARY FOR THE ZOOM TRAP. This carries index.html's viewport meta AS IT WAS
+     BEFORE 27 August 2026 — no minimum-scale, no maximum-scale, no user-scalable — and
+     it exists so that the pin in test/render/app-fit.render.test.mjs is a measurement
+     rather than a hope.
+
+     WHY A WHOLE DOCUMENT AND NOT A REWRITE. The obvious way to write the control is to
+     load the real page and put the old string back with `setAttribute`. Measured, and it
+     does not work: a runtime rewrite that LOOSENS the constraints leaves the already
+     established ones in force, so the "unrestricted" control silently behaved exactly
+     like the restricted case and would have made the pin pass for the wrong reason. The
+     constraints are established at parse, so the control has to be parsed.
+
+     WHAT THE SUITE DOES WITH IT: force a page scale of 3 in mobile viewport mode. Here it
+     STICKS — visualViewport.scale 3, a 427x267 visual viewport inside 1281x801, which is
+     Ben's report — and on index.html it is refused. Same rig, same gesture, one
+     difference, and the difference is the line below.
+
+     "All three old-guard failures were guards that silently stopped covering their
+     target" (scripts/guards.js). This is the same idea one layer up: without it, a rig
+     that had quietly lost the ability to change page scale at all would report the trap
+     as fixed. Every guard ships with a canary. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content">
+<title>canary — a scalable viewport</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #101010; color: #f0f0f0; }
+  p { font: 17px/1.5 system-ui, sans-serif; padding: 24px; }
+</style>
+</head>
+<body>
+<p>Canary: this page permits browser page scaling. Not part of the app.</p>
+</body>
+</html>

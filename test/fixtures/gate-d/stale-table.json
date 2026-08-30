@@ -1,0 +1,26 @@
+{
+  "$canary": "STALENESS. The table pin and one row's checkedCommit are both off the pinned ReaPrime commit. ReaPrime is EXPECTED to move under this build (A2), so drift is a certainty, not a risk — this is the fixture that proves the stamp is load-bearing.",
+  "pinnedCommit": "0000000000000000000000000000000000000000",
+  "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
+  "constructedRouteBuilders": [],
+  "forbiddenSpellings": [],
+  "rest": [
+    {
+      "id": "getShots",
+      "path": "/api/v1/shots",
+      "route": "/shots",
+      "verb": "GET",
+      "requestFields": { "query": ["limit"], "body": null },
+      "responseShape": "200 {items,total,limit,offset}",
+      "handlerSymbol": "ShotsHandler._getShots",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "1111111111111111111111111111111111111111",
+      "status": "consumed",
+      "consumedBy": ["src/data/rea-routes.js"],
+      "gates": [],
+      "retires": [],
+      "notes": []
+    }
+  ],
+  "sockets": []
+}

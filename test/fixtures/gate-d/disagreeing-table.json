@@ -1,0 +1,39 @@
+{
+  "$canary": "AGREEMENT. Two tables about one server must agree. Here the contract row claims POST /shots while the generated table, read from ReaPrime's own spec, says GET.",
+  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
+  "constructedRouteBuilders": [],
+  "forbiddenSpellings": [],
+  "rest": [
+    {
+      "id": "getShots",
+      "path": "/api/v1/shots",
+      "route": "/shots",
+      "verb": "POST",
+      "requestFields": { "query": [], "body": null },
+      "responseShape": "200 {items,total,limit,offset}",
+      "handlerSymbol": "ShotsHandler._getShots",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "recorded",
+      "consumedBy": [],
+      "gates": [],
+      "retires": [],
+      "notes": []
+    }
+  ],
+  "sockets": [
+    {
+      "id": "notAChannel",
+      "path": "/ws/v1/machine/imaginary",
+      "handlerSymbol": "De1Handler._handleSnapshot",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "recorded",
+      "carries": "nothing — this channel does not exist",
+      "commands": null,
+      "retires": [],
+      "notes": []
+    }
+  ]
+}

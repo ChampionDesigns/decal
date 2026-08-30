@@ -1,0 +1,138 @@
+/**
+ * ui-card-grid.entry.js - the gallery entry for component #51 (wave 4, item #51).
+ *
+ * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js: wave 4 runs its
+ * builders in parallel under a whole-file-write rule, so N appends to one hand-written
+ * array clobber each other. Each builder owns one file here and the wave's single
+ * cross-cutting writer wires them into `entries.js` once, serially:
+ *
+ *     import { entry as uiCardGrid } from './entries/ui-card-grid.entry.js';
+ *     export const entries = [ ...existing, uiCardGrid ];
+ *
+ * `module` stays relative to tools/gallery/ as the README specifies, and points at the
+ * demo sidecar because a state's cells are real #8 cards (see the sidecar's header).
+ *
+ * STATE IDS ARE CAPTURE FILENAMES (`ui-card-grid--<state>`): identifiers, not labels.
+ * A rename is a re-baseline.
+ *
+ * THE FOUR CONTAINER WIDTHS BELOW ARE THE POINT OF THE ENTRY. This component reads its
+ * own container and nothing else (spec §2.1 Rule 1), so the honest way to show it is
+ * four states at four `hostStyle` inline sizes, which is exactly what hostStyle is for.
+ * The numbers are the measured crossover, not taste: 2 x 280 + 12 = 572.
+ */
+
+export const entry = {
+    id: 'ui-card-grid',
+    title: 'Card grid',
+    module: './entries/ui-card-grid.demo.js',
+    notes:
+        'Component #51 (SCOPE.md:1643, "2-up card layout (skin picker, update list), '
+        + 'small, #8"). Slate builds this twice in one screen and the two disagree: the '
+        + 'skin picker measures a 14px gap around 593px cards, the USB-charger tiles a '
+        + '12px gap around 594px - bug T20 ("fourteen distinct gap literals pass through '
+        + 'the shell\'s rhythm rules untouched") and T14. Here there is one gap, '
+        + '--ui-space-3, on both axes and in both column modes, and no per-instance gap '
+        + 'on the API, so two uses cannot disagree; spec §3.3 snaps Slate\'s 14 to 12, '
+        + 'which lands the cells on 594px at a 1200px leaf - the charger grid\'s measured '
+        + 'width to the pixel. The tracks are '
+        + 'repeat(auto-fill, minmax(max(min(100%, 280px), (100% - gap) / 2), 1fr)): two '
+        + 'columns while half the container clears the 280px floor (Appendix 14, the '
+        + 'auto-fill tile grid "the pattern to copy"), one below it, never three, with '
+        + 'the crossover falling out of the arithmetic rather than being written down '
+        + 'again as a breakpoint. auto-fill and not auto-fit, so the column count is the '
+        + 'container\'s answer and never the item count. It paints nothing and owns no '
+        + 'selected look: the surface is #8 and selection stays on the cell.',
+    states: [
+        {
+            id: 'skin-picker',
+            title: 'Skin picker, 2-up at 900px',
+            notes:
+                'The row\'s primary use. Two tracks of (900 - 12) / 2 = 444px, one gap '
+                + 'token on both axes, row-major - across, then down, as the oracle '
+                + 'measures it (settings-display-skin cards at x 629 / 1236, y 479 then '
+                + '589). The cells are #8 cards; the grid constructs none of them.',
+            hostStyle: { 'inline-size': '900px' },
+            html:
+                '<ui-card-grid label="Installed skins">'
+                + '<ui-card>Streamline.js v0.1.88 - update available</ui-card>'
+                + '<ui-card>Beanie v0.3.5 - update available</ui-card>'
+                + '<ui-card>NSX v0.4.0 - bundled</ui-card>'
+                + '<ui-card>OverDose v0.0.11 - bundled</ui-card>'
+                + '<ui-card>Passione v0.9.4 - bundled</ui-card>'
+                + '<ui-card>WorkFlow v0.3.7 - update available</ui-card>'
+                + '<ui-card>Insight v0.1.0 - bundled</ui-card>'
+                + '<ui-card>Radian v0.1.0 - installed</ui-card>'
+                + '</ui-card-grid>',
+        },
+        {
+            id: 'ragged-cells',
+            title: 'Equal height by construction',
+            notes:
+                'One cell wraps to three lines and its neighbour to one. The cells '
+                + 'stretch to the row band, so a card is never shorter than the row it '
+                + 'sits in. Slate\'s ten skin cards are all 96px tall only because their '
+                + 'content happens to be uniform.',
+            hostStyle: { 'inline-size': '900px' },
+            html:
+                '<ui-card-grid label="Installed skins">'
+                + '<ui-card>Streamline.js v0.1.88</ui-card>'
+                + '<ui-card>Streamline.js (Bengle) v0.1.85 - installed, and this one '
+                + 'carries the long provenance caption that wraps onto a second and a '
+                + 'third line at this container width</ui-card>'
+                + '<ui-card>Slate v0.1.18 - active</ui-card>'
+                + '<ui-card>Radian v0.1.0 - installed</ui-card>'
+                + '</ui-card-grid>',
+        },
+        {
+            id: 'crossover',
+            title: 'At the crossover, 572px',
+            notes:
+                '2 x 280 + 12 = 572, the last width at which two cells still clear the '
+                + 'floor. Both tracks measure exactly 280px here; one pixel narrower and '
+                + 'the grid is the next state.',
+            hostStyle: { 'inline-size': '572px' },
+            html:
+                '<ui-card-grid label="Installed skins">'
+                + '<ui-card>Streamline.js v0.1.88</ui-card>'
+                + '<ui-card>Beanie v0.3.5</ui-card>'
+                + '<ui-card>NSX v0.4.0</ui-card>'
+                + '<ui-card>OverDose v0.0.11</ui-card>'
+                + '</ui-card-grid>',
+        },
+        {
+            id: 'collapsed',
+            title: 'Collapsed to 1-up at 520px',
+            notes:
+                'Below the crossover the grid is one full-width column - the shape a '
+                + '1000x600 window puts the settings leaf pane into. Nothing is dropped '
+                + 'and nothing overflows: min(100%, 280px) is the clause that keeps a '
+                + 'narrow pane from growing a horizontal scrollbar.',
+            hostStyle: { 'inline-size': '520px' },
+            html:
+                '<ui-card-grid label="Installed skins">'
+                + '<ui-card>Streamline.js v0.1.88</ui-card>'
+                + '<ui-card>Beanie v0.3.5</ui-card>'
+                + '<ui-card>NSX v0.4.0</ui-card>'
+                + '<ui-card>OverDose v0.0.11</ui-card>'
+                + '</ui-card-grid>',
+        },
+        {
+            id: 'update-list',
+            title: 'Update list, columns="1"',
+            notes:
+                'The row\'s second use (LAYOUT_SPEC_DRAFT.md:922, "skin picker (2-up), '
+                + 'update list"): one full-width column, the same gap token, the same '
+                + 'flow. One component means the stack and the grid cannot drift apart '
+                + 'the way Slate\'s two card grids did.',
+            hostStyle: { 'inline-size': '900px' },
+            html:
+                '<ui-card-grid columns="1" label="Available updates">'
+                + '<ui-card>Streamline.js - v0.1.88 to v0.1.95</ui-card>'
+                + '<ui-card>Beanie - v0.3.5 to v0.3.6</ui-card>'
+                + '<ui-card>WorkFlow - v0.3.7 to v0.3.9</ui-card>'
+                + '</ui-card-grid>',
+        },
+    ],
+};
+
+export default entry;

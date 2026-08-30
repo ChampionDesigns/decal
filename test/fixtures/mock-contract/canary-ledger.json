@@ -1,0 +1,7 @@
+{
+ "$schema": "The empty ledger the fixture-dir canaries run against, so each canary fires its own rule and nothing else. The real ledger's entries name the real fixtures, which are not in these directories.",
+ "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+ "nonJson": [],
+ "unadopted": [],
+ "findings": []
+}

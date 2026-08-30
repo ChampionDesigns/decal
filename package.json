@@ -1,0 +1,16 @@
+{
+  "name": "decal",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test --test-concurrency=4 $(find test -name '*.test.mjs' | sort)",
+    "test:render": "for f in test/render/*.render.test.mjs; do node --test \"$f\" || exit 1; done",
+    "guards": "node scripts/guards.js",
+    "a8": "node scripts/a8-source-text.js",
+    "gate-d": "node scripts/gate-d.js",
+    "gate-wire": "node scripts/gate-wire.js",
+    "i18n": "node scripts/build-i18n.js",
+    "mock-contract": "python3 tools/check_mock_contract.py"
+  }
+}

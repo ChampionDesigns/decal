@@ -1,0 +1,11 @@
+# The working guide is not part of the published skin.
+AGENTS.md
+
+__pycache__/
+*.pyc
+node_modules/
+*.zip
+
+.DS_Store
+*.swp
+*~

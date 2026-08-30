@@ -1,0 +1,228 @@
+{
+  "$schema": "Every fixture tools/mock_rea.py can serve that the contract table does not vouch for, and why. tools/check_mock_contract.py re-derives every entry each run: an entry that stops reproducing FAILS the build (ledger-stale). It is evidence, not a suppression list.",
+  "wave": "5.4",
+  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — read, never restated",
+  "reaRoot": "/home/ben/bengle/_port/worktrees/rea-reanchor-v3",
+  "authority": "The handler body AS WRITTEN at the pinned commit, same as src/data/CONTRACTS.json. A recorded fixture is evidence and never authority: when the two disagree the handler decides which is stale, and the fixture is never edited to agree.",
+  "sections": {
+    "nonJson": "Fixtures that are not JSON at all. Recorded, kept, and served as what they are.",
+    "unadopted": "Routes the mock has a recording for that the client does not address, so the contract table has no row (its rowRule admits consumed / declared / recorded only). Each one is still checked against its handler at the pin and carries the same columns a table row does, so the GATE agent can merge it verbatim if the client later adopts the route.",
+    "findings": "Fixtures the handler at the pin REFUTES. `disposition: refuse` takes the frame out of the mock's reply path (410 with the evidence); `disposition: serve` keeps it and says why the violation cannot mislead a screen.",
+    "resolved": "PROVENANCE, NOT AN EXEMPTION — the checker does not read this section and nothing is suppressed by it. A fixture that was REPLACED, with the command that reproduces the replacement byte for byte. Nothing here was edited: each entry names a committed blob that is a truer recording of the route than the bytes wave 0a copied, so the ledger keeps the record of why tools/FIXTURES.sha256 moved.",
+    "upgraded": "PROVENANCE, NOT AN EXEMPTION — the checker does not read this section and nothing is suppressed by it. A route whose recording is INCOMPLETE against the handler at the pin, and which the mock therefore serves through the handler's own pure transform rather than verbatim. The bytes on disk are untouched and tools/FIXTURES.sha256 does not move: this is the same standing rule the `authority` line above states, applied where the disagreement is an ABSENCE rather than a contradiction. Every entry names the handler code that is being applied and the exact expression, so a reader can check the instrument against the server."
+  },
+  "nonJson": [
+    {
+      "fixture": "ws__v1__machine__snapshot.json",
+      "path": "/ws/v1/machine/snapshot",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "De1Handler._handleSnapshot",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/machine/snapshot', sws.webSocketHandler(_handleSnapshot))` — registered as a GET, but shelf_web_socket answers a request with no upgrade headers 404 'Only WebSocket connections are supported.' The recorded body IS that page. Serving it 200 application/json, as the mock did, turns a recorded truth into a manufactured one."
+    },
+    {
+      "fixture": "ws__v1__machine__shotSettings.json",
+      "path": "/ws/v1/machine/shotSettings",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "De1Handler._handleShotSettings",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/machine/shotSettings', sws.webSocketHandler(_handleShotSettings))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__machine__shotState.json",
+      "path": "/ws/v1/machine/shotState",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "De1Handler._handleShotState",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/machine/shotState', sws.webSocketHandler(_handleShotState))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__machine__waterLevels.json",
+      "path": "/ws/v1/machine/waterLevels",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "De1Handler._handleWaterLevels",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/machine/waterLevels', sws.webSocketHandler(_handleWaterLevels))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__devices.json",
+      "path": "/ws/v1/devices",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "DevicesHandler._handleDevicesSocket",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/devices', sws.webSocketHandler(_handleDevicesSocket))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__display.json",
+      "path": "/ws/v1/display",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "DisplayHandler._handleWebSocket",
+      "handlerFile": "lib/src/services/webserver/display_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/display', _handleWebSocket)`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__scale__snapshot.json",
+      "path": "/ws/v1/scale/snapshot",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "ScaleHandler._handleSnapshot",
+      "handlerFile": "lib/src/services/webserver/scale_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/scale/snapshot', sws.webSocketHandler(_handleSnapshot))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__update.json",
+      "path": "/ws/v1/update",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "UpdateHandler._handleSocket",
+      "handlerFile": "lib/src/services/webserver/update_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/update', sws.webSocketHandler(_handleSocket))`; the recorded body is the same 404 page."
+    },
+    {
+      "fixture": "ws__v1__plugins__time-to-ready.reaplugin__timeToReady.json",
+      "path": "/ws/v1/plugins/{id}/{endpoint}",
+      "kind": "recorded-404-html",
+      "serveAs": {
+        "status": 404,
+        "contentType": "text/html"
+      },
+      "handlerSymbol": "PluginsHandler._handlePluginSocketEndpoint",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "`app.get('/ws/v1/plugins/<id>/<endpoint>', _handlePluginSocketEndpoint)`; recorded for id=time-to-ready.reaplugin, endpoint=timeToReady. The same 404 page."
+    }
+  ],
+  "unadopted": [],
+  "findings": [
+    {
+      "fixture": "api__v1__machine__cupWarmer.json",
+      "path": "/api/v1/machine/cupWarmer",
+      "row": "getMachineCupWarmer",
+      "rules": [
+        "forbidden-spelling",
+        "keys-extra",
+        "keys-missing"
+      ],
+      "disposition": "refuse",
+      "observedKeys": [
+        "temperature",
+        "currentTemperature",
+        "prewarmEnabled",
+        "prewarmLeadMinutes",
+        "prewarmActive"
+      ],
+      "handlerSymbol": "De1Handler.addRoutes",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "the inline `app.get('/api/v1/machine/cupWarmer', …)` answers exactly `{'temperature': t.toInt(), 'enabled': await bengle.getCupWarmerEnabled(), 'currentTemperature': await bengle.getCupWarmerCurrentTemperature()}`. Three keys. The recording has no `enabled` at all and carries three `prewarm*` keys the handler never writes — pre-heat moved to its own route, GET /api/v1/machine/cupWarmer/preheat, whose CupWarmerPreheatState.toJson is {enabled, leadMinutes, active}.",
+      "retires": "CB-18 / CB-19. `prewarmEnabled|prewarmLeadMinutes` is a forbiddenSpelling in the contract table: CB-19 is the old skin's `resolvePrewarm` reading prewarm* off THIS route and concluding, permanently, that the firmware had no pre-warm. Gate D scans the client for that spelling. Nothing scanned the frames the client is developed against — and this is one of them.",
+      "why": "The fixture predates the pre-heat split. It is a recording of an older ReaPrime, not of the server at the pin.",
+      "bench": "re-record GET /api/v1/machine/cupWarmer from a Bengle machine on current ReaPrime; until then the mock refuses the route and any cup-warmer control renders its absent state. Slate's git HEAD carries the same stale bytes (md5 4881ad9e…, identical to the working-tree copy), so a re-copy does NOT fix this one."
+    }
+  ],
+  "resolved": [
+    {
+      "fixture": "api__v1__shots__latest.json",
+      "path": "/api/v1/shots/latest",
+      "row": "getShotsLatest",
+      "wasDisposition": "refuse",
+      "replacedOn": "2026-08-17",
+      "restoreCommand": "git -C /home/ben/bengle/_skinlab/slate show 5705362:review/tools/rea-fixtures/api__v1__shots__latest.json",
+      "handlerSymbol": "ShotsHandler._getLatestShot",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "The bytes wave 0a copied were Slate's UNCOMMITTED working-tree edit: 221203 B, md5 ab6b9472…, byte-identical to api__v1__shots__cd020a51-….json, i.e. the by-id response pasted over this route's file — 426 measurements on a route whose handler is `jsonOk(shot?.toJsonWithoutMeasurements())`. The committed blob at 5705362 is 1984 B with keys [annotations, id, stopReason, timestamp, workflow] and no `measurements` key: a recording of THIS route, of the shot d5139a1f that was latest when it was taken. Swapping in the committed blob is not editing a fixture — it replaces a paste with a recording, which is what Gate B rule 4 asks for.",
+      "consequence": "getShotsLatest went from 410-with-evidence (and a `no-fixture` coverage note reading 'only a REFUTED recording') to a served 200. tools/FIXTURES.sha256 moved for this file: 1c03ea7c… → the hash of the committed blob."
+    },
+    {
+      "fixture": "api__v1__shots~limit=20~offset=0~order=desc.json",
+      "path": "/api/v1/shots?limit=20&offset=0&order=desc",
+      "row": "getShots",
+      "wasDisposition": "serve",
+      "replacedOn": "2026-08-17",
+      "restoreCommand": "git -C /home/ben/bengle/_skinlab/slate show '5705362:review/tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc.json'",
+      "handlerSymbol": "ShotsHandler._getShots",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "The copied bytes had 21 items for limit=20, with the 15 Aug shot cd020a51 PREPENDED to a recorded 12–13 Aug page — a frame `shot_dao.getShotsPaginated`'s SQL LIMIT cannot produce. The committed blob at 5705362 has items=20, limit=20, offset=0, total=321: the page as recorded. Same uncommitted Slate working-tree edit as the latest-shot one, same swap.",
+      "consequence": "The `invariant` finding stops reproducing, so the ledger entry that declared it had to go with it (an entry that no longer reproduces is `ledger-stale`, by design). tools/FIXTURES.sha256 moved for this file: 7b9c9f9d… → the hash of the committed blob."
+    },
+    {
+      "fixture": "api__v1__machine__ledStrip.json",
+      "path": "/api/v1/machine/ledStrip",
+      "row": "getMachineLedStrip",
+      "wasDisposition": "serve",
+      "replacedOn": "2026-08-30",
+      "restoreCommand": "git -C /home/ben/bengle/_skinlab/decal show HEAD:tools/rea-fixtures/api__v1__machine__ledStrip.json   # also kept on disk as tools/rea-fixtures/api__v1__machine__ledStrip.json.pre-2026-08-30, which is not globbed as a fixture (the walkers take *.json)",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/ledStrip)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "RE-RECORDED FROM THE RUNNING MACHINE, read-only: GET http://192.168.1.73:8080/api/v1/machine/ledStrip -> 200, on Ben's standing machine authorization and by his decision D22 of 30 Aug 2026. The old bytes are a real recording and were never edited; what changed is that they disagree with the machine about the 16-bit spelling. Recorded: frontStrip/backStrip/frontSwitch all sleeping 4A4A2B2B0000, awake FFFFC1C18080 -- every channel BYTE-REPLICATED. Machine, now: sleeping 400022000000; awake FF00D900A000 (front strip and front switch) and FF00D3008E00 (back strip) -- every channel SHIFTED INTO THE HIGH BYTE, and the two strips no longer identical. The awake values match _audit/e2e-2026-08-29/settings-B-e2e.md section 3.5 exactly, which read FF00D900A000 and FF00D3008E00 off the tablet before writing anything, so this is the same machine state the audit measured and not a one-off. Same byte length as the file it replaces, no trailing newline either side.",
+      "consequence": "The fixture now agrees with the machine that audit F-044 already made the skin agree with. F-044 (FIXLOG S-6, 29 Aug) changed led8to16 from replication to a high-byte shift on the strength of the machine over this recording -- 'O2: the machine is the truth teller' -- and deliberately did NOT edit the fixture, because a recording is evidence. D22 replaces the recording with a newer recording, which is a different act from editing one. led-colour.js's decode path takes the high byte and ignores the low one, so both spellings still decode identically and nothing that reads this fixture changes meaning; test/settings-bespoke.test.mjs asserts exactly that (ledColour16ToHex8('FFFFC1C18080') === ledColour16ToHex8('FF00C1008000')). tools/FIXTURES.sha256 moved for this file: 3900117e827ed6e04e146b65279e69ead85408252a24aada05dbad90bf8657d9 -> 27142cbb449b9fcdcf6605bde8db7d0dceb50a4180812aa3361efecde4e377ef. mock-contract and gate-d re-run green after the swap."
+    }
+  ],
+  "upgraded": [
+    {
+      "fixtures": [
+        "api__v1__shots__5fc3f631-6b18-471b-9800-00d552dbbecb.json",
+        "api__v1__shots__cd020a51-f353-4ffb-8389-72c931640181.json",
+        "api__v1__shots__d5139a1f-c4ee-47e2-bb80-0cbf3e39b6a3.json"
+      ],
+      "path": "/api/v1/shots/{id}",
+      "row": "getShot",
+      "declaredOn": "2026-08-21",
+      "declaredBy": "fix run 6 — the History power page",
+      "handlerSymbol": "MachineSnapshot.toJson (through ShotRecord.toJson / ShotSnapshot.toJson, served by ShotsHandler._getShot)",
+      "handlerFile": "lib/src/models/device/machine.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "evidence": "machine.dart:64-140 — the three derived channels are 'computed on read from the raw [pressure] and [flow] fields — never stored — so already-recorded history shots gain these channels with zero migration ([fromJson] does not read them; [toJson] recomputes them)'. toJson (:176-186) writes puckResistanceDerived / loadImpedanceDerived / hydraulicPowerDerived conditionally; _derivedOrNull (:70-76) is the gate. ShotSnapshot.toJson calls machine.toJson() per measurement and ShotsHandler._getShot answers jsonOk(shot.toJson()), so a ReaPrime at the pin serves these keys on EVERY recorded shot wherever the gate passes.",
+      "observed": "The three recorded shot fixtures carry 923 measurements between them and ZERO *Derived keys (and zero `sensors` maps). They are recordings of an older ReaPrime, taken before the getters existed — an incomplete recording, not a server without the feature.",
+      "transform": "For each measurement, with p = machine.pressure and f = machine.flow: write puckResistanceDerived = p/(f*f), loadImpedanceDerived = p/f and hydraulicPowerDerived = 0.1*p*f only when f >= 0.3 and p >= 0.3 and every input and result is finite. Keys are OMITTED below the gate, never written null — key presence IS the validity signal (src/data/rea-names.js:48-53). Measured over the three fixtures: 34/50, 317/336 and 124/136 in-shot samples gain the keys.",
+      "implementedIn": [
+        "tools/mock_rea.py — upgrade_recorded_shot(), applied in do_GET for /api/v1/shots/{id} only",
+        "test/fixtures/history-route-fixture.js — upgradeRecordedShot(), the same rule in the other language, for the rendering suites and the capture battery's screen states"
+      ],
+      "why": "The History power page (fix run 6) is the first surface that renders the derived channels, and with the recordings as they stand every instrument would photograph its honest empty state instead of the chart. Editing the fixtures was refused: a fixture edited to pass a check has stopped being a recording, and FIXTURES.sha256 would have moved for three files with no truer recording behind the change.",
+      "bench": "Re-record GET /api/v1/shots/{id} from a machine on current ReaPrime and this entry retires: the recording will carry the keys and the transform becomes a no-op. Until then it is the instrument answering as the pinned server answers."
+    }
+  ]
+}

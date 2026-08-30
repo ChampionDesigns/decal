@@ -1,0 +1,196 @@
+/**
+ * ui-sheet.entry.js — the gallery entry for component #20 (wave 4, item #20).
+ *
+ * WHY THIS IS A FILE OF ITS OWN, and not an append to ../entries.js.
+ * `tools/gallery/README.md:12` says "Edit entries.js. That is the whole procedure",
+ * and that procedure is correct for ONE author. Wave 4 runs many builders in parallel
+ * under a whole-file-write rule, so N appends to one array is N-1 entries lost — wave
+ * 1 hit exactly this and adopted the per-entry split (`entries.js:30-45`). Each
+ * builder owns one file here and the wave's single cross-cutting writer wires them
+ * into `entries.js` once, serially:
+ *
+ *     import { entry as uiSheet } from './entries/ui-sheet.entry.js';
+ *     export const entries = [ ...existing, uiSheet ];
+ *
+ * `module` stays relative to `tools/gallery/` as the README specifies — gallery.js
+ * does the `import(entry.module)`, so the specifier resolves against gallery.js
+ * wherever the entry object was authored. It points at `ui-sheet.demo.js` rather than
+ * at the component, and that file says why.
+ *
+ * STATE IDS ARE CAPTURE FILENAMES (`ui-sheet--<state>`): identifiers, not labels. A
+ * rename is a re-baseline.
+ *
+ * TWO THINGS TO KNOW BEFORE READING THE SCREENSHOTS.
+ *
+ * 1. THE STATE THAT MATTERS MOST IS `schedule-editor`, and it is a MODAL DIALOG, so
+ *    it does not sit in the stage: it is in the top layer, centred on the viewport,
+ *    with its scrim over the whole gallery. That is #18 working, not the stage
+ *    failing — ui-dialog.entry.js says the same thing at more length, and the gallery
+ *    nav is inert while it is up (navigate with `?state=`, which is what
+ *    `tools/capture_battery.py` already does).
+ *
+ * 2. THE FOOTER IS NOT IN THE SHEET. Cancel and Save are `slot="actions"` on the
+ *    DIALOG, one level out. That is the whole of the row's carried repair (O13:
+ *    ".slate-sheet-actions means two different things — a header cluster in the
+ *    library, a dialog footer in the shell"), and it is visible in the capture as the
+ *    seam between the body and the buttons: the footer is the dialog's last grid row,
+ *    not a flex-end cluster inside the body.
+ */
+
+export const entry = {
+    id: 'ui-sheet',
+    title: 'Sheet body',
+    module: './entries/ui-sheet.demo.js',
+    notes:
+        'Component #20 (SCOPE.md:1615): the labelled field stack a #18 dialog wears as '
+        + 'its body — the settings schedule editor. It owns two rhythms and nothing '
+        + 'else: 28px (--ui-space-6) between fields, 12px (--ui-space-3) inside one, '
+        + 'read from slate-shell.css:2205-2222 and corroborated six times in the '
+        + 'capture at the DaisyUI closed scale of 0.9. The card, the title and the '
+        + 'footer are #18 and #16; the label is #13\'s microcap role; the controls are '
+        + 'whatever the consumer slots in. A labelled field is a real aria group named '
+        + 'by its own label — an IDREF cannot cross the slot, so the group and the '
+        + 'label are both in the shadow root and the control is a flat-tree descendant '
+        + 'of the group. Slate\'s three labels name nothing at all.',
+    states: [
+        {
+            id: 'schedule-editor',
+            title: 'The whole thing — sheet body inside a #18 dialog',
+            notes:
+                'Slate\'s #add-schedule-modal (settings.js:2608), rebuilt as composition. '
+                + 'ORACLE settings-machine-sleep---wake-schedules div.modal-box.slate-sheet-box '
+                + '[i=73] rect 612x564 closed at 0.9 scale; layout/settings.md V3 proves the '
+                + 'open card is 680 wide. The dialog is asked for exactly that with '
+                + '--_ui-dialog-inline: 680px — which is INSIDE #18\'s one container query '
+                + '(§4.6\'s surviving breakpoint, numpad-modal.css:411 max-width: 720px), so '
+                + 'the cell inset is --ui-space-4 and the body measure is 644, against '
+                + 'Slate\'s 600 under a 40px sheet-only padding. One dialog, one inset. '
+                + 'The Days of Week row is a #3 bank: single-select as #3 ships today, and '
+                + 'the seven-day MULTI-select is #3\'s contract to add (findings-digest '
+                + '"compose instead of copy", .slate-day-toggle -> .slate-bank-item), not '
+                + 'this component\'s — the sheet supplies the labelled group, never the '
+                + 'control.',
+            html: `
+<ui-dialog id="d" open heading="Add schedule" style="--_ui-dialog-inline: 680px">
+  <ui-sheet slot="body" fields='[
+      {"name":"time","label":"Wake Time"},
+      {"name":"days","label":"Days of Week"},
+      {"name":"awake","label":"Keep Awake For","layout":"inline",
+       "caption":"Duration to keep machine awake after schedule starts."}]'>
+    <ui-text-field slot="time" label="Wake Time" hide-label value="05:30"></ui-text-field>
+    <ui-bank slot="days" label="Days of week" value="Mon"
+             items='["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]'></ui-bank>
+    <ui-text-field slot="awake" label="Hours" hide-label value="1"
+                   align="center" style="inline-size: 120px"></ui-text-field>
+    <span slot="awake">hr</span>
+    <ui-text-field slot="awake" label="Minutes" hide-label value="00"
+                   align="center" style="inline-size: 120px"></ui-text-field>
+    <span slot="awake">min</span>
+  </ui-sheet>
+  <ui-button slot="actions">Cancel</ui-button>
+  <ui-button slot="actions" variant="primary">Save</ui-button>
+</ui-dialog>`,
+        },
+        {
+            id: 'field-stack',
+            title: 'The body alone, at its own measure',
+            notes:
+                'The same stack out of the dialog, at the 644px measure a 680px sheet '
+                + 'dialog gives it. This is what the component actually is: two gaps, a '
+                + 'microcap, a caption and three slots. No surface, no radius, no border, '
+                + 'no padding and no overflow — every one of those is the dialog cell\'s, '
+                + 'and a body that repainted them would be the second card in one box.',
+            hostStyle: { 'inline-size': '644px' },
+            html: `
+<ui-sheet fields='[
+    {"name":"time","label":"Wake Time"},
+    {"name":"days","label":"Days of Week"},
+    {"name":"awake","label":"Keep Awake For","layout":"inline",
+     "caption":"Duration to keep machine awake after schedule starts."}]'>
+  <ui-text-field slot="time" label="Wake Time" hide-label value="05:30"></ui-text-field>
+  <ui-bank slot="days" label="Days of week" value="Mon"
+           items='["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]'></ui-bank>
+  <ui-text-field slot="awake" label="Hours" hide-label value="1"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">hr</span>
+  <ui-text-field slot="awake" label="Minutes" hide-label value="00"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">min</span>
+</ui-sheet>`,
+        },
+        {
+            id: 'inline-cluster',
+            title: 'The one horizontal arrangement',
+            notes:
+                'SOURCE slate-shell.css:2218-2222 .slate-sheet-duration { display: flex; '
+                + 'align-items: center; gap: var(--slate-space-3) }, measured 11px between '
+                + '[i=94] and [i=95] at 0.9 scale. The 120px field width is NOT here: Slate '
+                + 'sets it one selector deeper (:2224, layout/settings.md row 70), and that '
+                + 'is a declaration about a control, which now owns its own size. One '
+                + 'number, one owner.',
+            hostStyle: { 'inline-size': '440px' },
+            html: `
+<ui-sheet fields='[
+    {"name":"awake","label":"Keep Awake For","layout":"inline",
+     "caption":"Duration to keep machine awake after schedule starts."}]'>
+  <ui-text-field slot="awake" label="Hours" hide-label value="1"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">hr</span>
+  <ui-text-field slot="awake" label="Minutes" hide-label value="30"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">min</span>
+</ui-sheet>`,
+        },
+        {
+            id: 'unlabelled-and-tail',
+            title: 'A field with no label, and the tail slot',
+            notes:
+                'A field whose label is omitted is not an empty group: the role, the '
+                + 'aria-labelledby and the label element all go with it, because a group '
+                + 'announcing nothing is worse than no group. The default slot is the TAIL '
+                + '— anything after the last field, for a body that does not end in one. '
+                + 'Content carrying a slot name no field answers to renders nowhere at all, '
+                + 'slot="actions" included: the footer belongs to the dialog.',
+            hostStyle: { 'inline-size': '644px' },
+            html: `
+<ui-sheet fields='[
+    {"name":"bare"},
+    {"name":"named","label":"Repeat weekly"}]'>
+  <ui-text-field slot="bare" label="Schedule name" hide-label
+                 value="Morning"></ui-text-field>
+  <ui-bank slot="named" label="Repeat weekly" value="On" items='["Off","On"]'></ui-bank>
+  <p class="tail" style="margin: 0; opacity: .75">
+    Schedules run while the machine is on standby.
+  </p>
+  <ui-button slot="actions">This button is not rendered — the footer is the dialog's</ui-button>
+</ui-sheet>`,
+        },
+        {
+            id: 'narrow',
+            title: 'A 320px container — the cluster wraps, the rhythm does not move',
+            notes:
+                'The component reads its own container and never the viewport (§2.1 Rule '
+                + '1); there is no width query anywhere in it, so the only thing a narrow '
+                + 'container changes is the wrap. The gaps at 320px are the gaps at 644px. '
+                + 'Slate\'s sheet cannot do this: slate-shell.css:2194 sizes the card with '
+                + 'min(92vw, 680px) — "FLUID but vw != canvas" (layout/settings.md row 67) '
+                + '— and its duration row has no wrap at all.',
+            hostStyle: { 'inline-size': '320px' },
+            html: `
+<ui-sheet fields='[
+    {"name":"time","label":"Wake Time"},
+    {"name":"awake","label":"Keep Awake For","layout":"inline",
+     "caption":"Duration to keep machine awake after schedule starts."}]'>
+  <ui-text-field slot="time" label="Wake Time" hide-label value="05:30"></ui-text-field>
+  <ui-text-field slot="awake" label="Hours" hide-label value="1"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">hr</span>
+  <ui-text-field slot="awake" label="Minutes" hide-label value="30"
+                 align="center" style="inline-size: 120px"></ui-text-field>
+  <span slot="awake">min</span>
+</ui-sheet>`,
+        },
+    ],
+};
+
+export default entry;

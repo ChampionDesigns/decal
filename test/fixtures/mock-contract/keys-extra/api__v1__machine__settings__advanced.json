@@ -1,0 +1,9 @@
+{
+ "heaterPh1Flow": 4.0,
+ "heaterPh2Flow": 4.0,
+ "heaterIdleTemp": 85.0,
+ "heaterPh2Timeout": 5.0,
+ "heaterVoltage": 230,
+ "refillKitSetting": 1,
+ "heaterPh3Flow": 4.0
+}

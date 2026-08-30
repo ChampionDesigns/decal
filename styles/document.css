@@ -1,0 +1,124 @@
+/* document.css - the document-level sheet, and the ONLY place a font face may be
+ * declared (SCOPE Part 2 §7, and layout/uplot-shadow-spike.md Rule 2, proven by
+ * measurement: canvas text resolves fonts against the DOCUMENT's registry, so a
+ * face declared inside a shadow root never registers - the shadow-declared face
+ * measured at exactly the unknown-family fallback width, 105.00 vs 118.50, with
+ * document.fonts.size === 0). Components USE var(--ui-font-family); they never
+ * declare a face.
+ *
+ * Everything else here is deliberately tiny: the ground under <app-root> and the
+ * base scrollbar treatment. Screens and components carry their own styles.
+ *
+ * TOKEN CONTRACT - this file consumes four tokens that styles/tokens.css must
+ * declare (Wave 0a item #1 owns that file). Three are renames of the current
+ * skin's own tokens under the --ui- prefix (A4), traced so the names can be
+ * checked rather than guessed:
+ *     --ui-font-family   fixed by C9 / SCOPE Part 2 §6 - the single family token
+ *     --ui-canvas        <- slate-tokens.css:156 --slate-canvas  ("behind everything")
+ *     --ui-text          <- slate-tokens.css:164 --slate-text    ("primary ink")
+ *     --ui-line-strong   <- slate-tokens.css:169 --slate-line-strong ("emphasised
+ *                           divider"), which is already the scrollbar thumb in two
+ *                           of the current skin's three treatments
+ *                           (profile-editor-v3.css:275, slate-shell.css:2055)
+ * If item #1 lands different names, this file is a four-line edit. No raw colour
+ * literal appears here, by A8. */
+
+@font-face {
+    font-family: "Geist";
+    src: url("../fonts/Geist-Variable.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+html {
+    height: 100%;
+    background: var(--ui-canvas);
+    color: var(--ui-text);
+    font-family: var(--ui-font-family);
+
+    /* THE DOCUMENT'S LEADING, and it has to be HERE.
+     *
+     * Slate's leading is a DOCUMENT-layer declaration nobody wrote on a component:
+     * Tailwind's preflight, `html, :host { line-height: 1.5 }`
+     * (`slate/app/src/css/output.css:53-54`, @layer base, read read-only because a
+     * document-layer declaration is outside the corpus's per-element surface). Every
+     * frozen box the oracle measured inherited it.
+     *
+     * This file used to declare none, and the UA's `normal` is not 1.5 - for 14px
+     * Geist it is 18px against 21px. `height` IS one of the oracle's eighteen probed
+     * properties, so a component that inherits `normal` misses a FROZEN RECORD by 3px
+     * and nothing in the corpus says why. Both reported instances have the same
+     * cause: `.slate-badge` height 21px (= 14 x 1.5) rendering 18, and the status
+     * chip's 21.5938px rendering 23. Six wave-1 primitives independently hand-wrote a
+     * literal ratio to get their own box back; the seventh through sixteenth did not
+     * notice. Restoring an inherited measured value is not a departure - the
+     * departure was dropping it.
+     *
+     * A LITERAL, NOT A TOKEN, for now: there is no `--ui-leading-*` family (spec §3.5
+     * proposes none; `grep -n "line-height|leading" styles/tokens.css` = 0 hits) and
+     * `styles/tokens.css` is wave 0a's file. Deleting this ONE line returns every
+     * component to `normal`, which is the whole reversal. Recorded as a deferred
+     * question for the gate: whether the leading becomes `--ui-leading-normal` in
+     * tokens.css, at which point the six local copies collapse into it. */
+    line-height: 1.5;
+
+    /* The tablet already renders text ~10% larger than the desk harness
+     * (LAYOUT_SPEC_DRAFT §1.4); do not let the WebView inflate it again. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100%;
+    background: inherit;
+    color: inherit;
+    font-family: inherit;
+    /* NOTE: no `overflow: hidden` here, deliberately. The old app's
+     * main.css:153-155 is the head of the inherited pattern LAYOUT_SPEC_DRAFT §2.4
+     * exists to stop - hidden as the default answer everywhere, with nothing
+     * telling the user content was removed. app-root is exactly one viewport tall,
+     * so nothing should overflow the document; if something does, it must be
+     * visible rather than silently clipped. */
+}
+
+/* The app-root ground. One document: a route change swaps which screen component
+ * is mounted in here - there are no HTML fragments (bugs P2, P1, S10). */
+app-root {
+    display: block;
+
+    /* THE FIT (src/lib/app-fit.js). The design is drawn at a reference height of 1200
+     * units and mapped onto the real screen by ONE number. The zoom must sit here and
+     * not on :root: `zoom` does not expand the layout viewport, so a zoomed :root left
+     * the initial containing block at 1281 units and painted 855x535 inside a 1281x801
+     * screen. Zoom on an element that carries EXPLICIT design-unit dimensions fills it
+     * exactly, measured at four geometries.
+     *
+     * The fallbacks are the pre-fit values, i.e. exactly what this rule said before:
+     * a WebView whose script is blocked gets the old unscaled behaviour rather than a
+     * blank page. app-fit's inline copy in index.html writes them before first paint,
+     * so the fallbacks should never be observed. */
+    zoom: var(--ui-app-scale, 1);
+    inline-size: var(--ui-app-w, 100%);
+    block-size: var(--ui-app-h, 100dvh);
+    /* Only ever asymmetric when a cap binds — 21:9 and wider, where the app stops
+     * growing in design units and the body ground shows as a band each side. */
+    margin-inline: auto;
+    background: var(--ui-canvas);
+    /* Every component reads its own container, never the viewport
+     * (LAYOUT_SPEC_DRAFT §2.1 Rule 1); app-root is where that chain starts. */
+    container-type: size;
+    container-name: app;
+}
+
+/* Base scrollbar treatment. Carried from the current skin's dark-mode.css:106-123
+ * but expressed in the standard properties only: the WebView is Chrome 123+
+ * (DECISIONS, "Browser baseline is not a risk"), where scrollbar-color and
+ * scrollbar-width are supported, so the four ::-webkit-scrollbar rules the current
+ * skin also carries are dead weight. Inherits to descendants; a component that
+ * wants a different treatment overrides it inside its own shadow root. */
+:root {
+    scrollbar-color: var(--ui-line-strong) transparent;
+    scrollbar-width: thin;
+}

@@ -1,0 +1,19 @@
+{
+  "_rule": "Vouched exceptions to gate-wire, per CONTROL_AUDIT_PLAN_2026-08-29.md §5. An entry vouches ONE reported wire as deliberate — an event consumed outside src/, or an indirection verified by hand. A TRUE dead wire never gets an entry; it gets a FINDINGS.md entry and the gate stays red. The rule is never loosened.",
+  "entries": [
+    {
+      "event": "connecting",
+      "kind": "orphan-listener",
+      "sites": ["src/data/rea-sockets.js:266"],
+      "reason": "emitted by the vendored fork at vendor/reconnecting-websocket.js:262 (`eventTarget.dispatchEvent(generateEvent('connecting'))`), which the gate does not scan — src/ only, plan §2.1. rea-sockets.js:228 registers the pair and rea-sockets.js:249 names the wrapper as the emitter in prose.",
+      "added": "2026-08-29"
+    },
+    {
+      "event": "dppxchange",
+      "kind": "orphan-listener",
+      "sites": ["src/components/ui-chart-card.js:785"],
+      "reason": "emitted by the vendored uPlot at vendor/uPlot.esm.js:81 (`win.dispatchEvent(new CustomEvent(dppxchange))`), outside the gate's src/-only scan. Live: test/render/ui-chart-card.render.test.mjs:1146 drives the same event.",
+      "added": "2026-08-29"
+    }
+  ]
+}

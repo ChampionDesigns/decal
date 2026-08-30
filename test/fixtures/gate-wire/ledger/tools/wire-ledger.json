@@ -1,0 +1,12 @@
+{
+  "_rule": "FIXTURE ledger for test/gate-wire.test.mjs — not the repo's. One entry, vouching the one violation this fixture tree raises, so the on-disk read path is exercised and not only the injected one.",
+  "entries": [
+    {
+      "event": "ui-toast-dismiss",
+      "kind": "unheard-emit",
+      "sites": ["src/component.js:9"],
+      "reason": "consumed outside src/ by the fixture's imaginary gallery harness",
+      "added": "2026-08-29"
+    }
+  ]
+}

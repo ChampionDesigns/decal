@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- THE PANEL'S SCALE IS THE APP'S, NOT THE BROWSER'S — and this line is what
+     decides it. Read the whole comment before shortening it; the attribute list is
+     four decisions, not one.
+
+     WHAT THIS USED TO SAY, and it was honest at the time: "whether pinch-zoom is
+     reachable in the tablet WebView is unmeasured (SCOPE Part 2 §8 item 3), so this
+     deliberately does NOT say user-scalable=no: adding a restriction later is one
+     attribute, removing one users have come to rely on is not." The measurement is
+     in. It came from Ben, 27 August 2026, verbatim:
+
+         "after going into the editor and other pages, the page zoom good odd and I
+          zoom in a lot and have to drage the view around to see the rest of the page
+          with no way to zoom out."
+
+     THE STATE HE IS DESCRIBING IS THE BROWSER'S PAGE SCALE — the visual viewport,
+     which is a layer above everything this app controls. It is not `app-fit`'s zoom
+     and it is not a layout overflow. Measured through CDP at the bench geometry
+     (1281x801 @ dsf 1.5) with the old attribute list: forcing a page scale of 3
+     leaves `visualViewport.scale === 3` and a 427x267 visual viewport inside a
+     1281x801 layout viewport. That is exactly the report — a fraction of the panel
+     visible, the rest reachable only by dragging.
+
+     AND THERE IS NO WAY BACK, which is the part that makes it a trap rather than an
+     annoyance. This is a full-screen WebView on a wall panel: no address bar, no
+     menu, no zoom control, no ctrl+0. Nor can the app undo it in script — page scale
+     has no setter, and re-stamping THIS META AT RUNTIME DOES NOT CLAMP A SCALE THAT
+     IS ALREADY APPLIED (measured the same session: scale stayed at 3 after the
+     content attribute was rewritten to name maximum-scale=1). The only moment the
+     constraint can be established is document parse. So it is established here, or
+     it is not established at all, and a "reset zoom" button elsewhere in the app
+     would be a control that cannot work.
+
+     THE TRIGGER IS NOT A PINCH, AND THE HOST APP IS WHAT PROVES IT. ReaPrime's own
+     WebView is configured `supportZoom: false, builtInZoomControls: false`
+     (reaprime/lib/src/skin_feature/skin_view.dart, `_createSettings()`), so pinch and
+     double-tap zoom are BOTH off at the WebView level, below anything this document
+     can say. Ben cannot have pinched in — and, decisively, he cannot pinch out
+     either, which is the "no way to zoom out" in his sentence, stated as a
+     configuration rather than as a guess.
+
+     What is still on in an Android WebView with those settings is Chromium's
+     `setAutoZoomFocusedEditableToLegibleScale`: focus an editable and the engine
+     raises the page scale until that field's text is legible. It is not governed by
+     `supportZoom`; it IS governed by whether the page's scale constraints are
+     adjustable, which is what the line below now settles. That mechanism explains the
+     report to the word — "after going into the editor and other pages" names exactly
+     the routes that have text fields, and Live and History, which have none, are not
+     in it.
+
+     And under the fit every field in this app is small on glass BY CONSTRUCTION, so
+     the engine's legibility heuristic has every reason to fire: `--ui-text-base` is 17
+     design units and the bench scale is 0.6675, so an input paints at 11.35 CSS px.
+     Measured, at every route that has one: selector 11.35, editor 11.35, settings
+     11.35.
+
+     (`enableViewportScale: true` is set in the same `_createSettings()` — the iOS side
+     of asking that the viewport meta's scale directives be honoured — so this line is
+     read on both platforms rather than only on Android.)
+
+     WHAT THIS RIG COULD NOT MEASURE, stated so nobody reads more into the above than
+     it says. The TRIGGER is not reproduced here. A synthesized pinch
+     (`Input.synthesizePinchGesture`) does not move page scale in this headless build
+     at all — not on this app and not on a bare scalable page with a 3000px body, run
+     as the control — and the focus autozoom is a WebView setting that desktop Blink
+     does not carry, so neither path can be fired in the harness. What the harness can
+     say, and what the pin in test/render/app-fit.render.test.mjs asserts, is the thing
+     that was actually wrong: with this attribute list the page REFUSES to hold a scale
+     other than 1, and with the old one it holds it. A canary page carrying the old
+     meta is what keeps that a measurement rather than a hope.
+
+     SO THIS IS A FIX THAT NOBODY HAS WATCHED WORK ON THE GLASS. If Ben still ends up
+     zoomed after it ships, the next lever is not here — it is the host's
+     `InAppWebViewSettings` in `reaprime/lib/src/skin_feature/skin_view.dart`, a
+     different repo, where the autozoom would have to be turned off directly.
+
+     THE FOUR ATTRIBUTES:
+
+       width=device-width, initial-scale=1.0   unchanged, and the whole basis of the
+           fit: `app-fit.js` maps the design onto the CSS viewport, which is only the
+           screen if the browser is not scaling it first.
+
+       minimum-scale=1.0, maximum-scale=1.0, user-scalable=no
+           The three that are new, and they say one thing three ways on purpose.
+           `user-scalable=no` alone pins min=max=1 in Blink and is the whole of it on
+           Android. The two numeric constraints are belt to its braces: WKWebView reads
+           the numbers, engines have differed over which of the three they honour, and
+           this file cannot see — let alone pin — the host's WebView settings, which
+           live in another repo and another release train.
+
+       interactive-widget=overlays-content   unchanged, and load-bearing: it asks the
+           WebView not to resize the layout viewport when the on-screen keyboard
+           opens. Ben's 25 August report ("when the keyboard appears the whole screen
+           gets smaller") is the evidence that his WebView does it anyway, which is
+           why `app-fit.js` carries a keyboard rule as well.
+
+     WHAT IT COSTS. On a general web page `user-scalable=no` is an accessibility
+     anti-pattern and should not be reached for: it takes magnification away from
+     someone who needs it. Three things make this the better of two bad options here
+     rather than the usual mistake, and the first is the one that decides it:
+
+       1. ON THE PLATFORM THIS SHIPS TO, IT TAKES NOTHING AWAY. The host WebView
+          already sets `supportZoom: false, builtInZoomControls: false`, so pinch and
+          double-tap magnification were never available to the operator. What this line
+          removes is not a way IN that anyone was using; it is the engine's ability to
+          put the panel somewhere the operator has no gesture to leave. On a desktop
+          browser — where the meta's scale limits are ignored anyway — nothing changes.
+
+       2. What browser zoom magnifies here is not a document that reflows: it is a
+          fixed-size instrument panel already mapped onto the screen by one number the
+          operator never chose. So the result is always "part of the panel, pan for the
+          rest", never "the same panel, larger". That is not a usable magnifier even
+          when it is reachable.
+
+       3. THE MAGNIFIER IS NOT BEING REMOVED, it is being pointed at the control that
+          reflows. Settings > Display > Display size (`src/lib/density.js`, C6) has
+          four steps to "Largest" — it drives `--ui-density-base` and `--ui-type-scale`
+          so the layout re-flows at the larger rhythm instead of being photographed and
+          stretched, it survives a reload, and it has a way back. C6's own note says
+          why it exists: "the people who turned it up did so because text was too
+          small; that need survives the canvas." That is the accessible answer, and it
+          is the one this line points at.
+
+     REVERSING IT is deleting the three attributes on the line below. If that is ever
+     done, the trap comes back and the pin in test/render/app-fit.render.test.mjs goes
+     red naming this comment — which is the intent. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=overlays-content">
+<title>Decal</title>
+<!-- Empty data URL, not a missing file: without an explicit icon the browser
+     requests /favicon.ico from the served root and logs a 404 on every page load,
+     which would be a permanent false positive in every Gate A rendering test.
+     Replace with the template's icon when there is one. -->
+<link rel="icon" href="data:,">
+
+<!-- Module resolution. No bundler: the tree is served as-is by ReaPrime and the
+     importmap is the whole mechanism (SCOPE Part 2 §7; proven in this WebView by
+     the current skin's own importmap at index.html:8-13).
+     lit, uplot and iro are ESM. easymde is still a UMD build and installs a global
+     when imported. reconnecting-websocket was UMD too and threw on import (top-level
+     `this` is undefined in a module); wave 0b converted it to `export default` and made
+     it DOM-free, keeping both local patches (A11). Measured, all of them, and the five
+     changes to that one fork are listed: vendor/README.md. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "./vendor/lit.js",
+    "uplot": "./vendor/uPlot.esm.js",
+    "iro": "./vendor/iro.js",
+    "reconnecting-websocket": "./vendor/reconnecting-websocket.js",
+    "easymde": "./vendor/easymde.min.js",
+    "src/": "./src/"
+  }
+}
+</script>
+
+<!-- Pre-paint theme stamp. One of the two inline scripts no module contains
+     (CARRY_FORWARD §1); re-created deliberately, with the two corrections
+     SCOPE Part 2 §6 designs in:
+       1. it goes through the app's storage prefix (A10 - `decal.`, renamed with
+          the id, no migration). The prefix is inlined ON PURPOSE: nothing can be
+          imported before first paint. It is the ONE hand-written copy of the
+          prefix in the tree and the storage router (B7) owns the other end -
+          keep them in step or the theme silently desyncs (CARRY_FORWARD,
+          storage-keys.js entry).
+       2. it never writes on first run, so "no stored choice" stays distinguishable
+          from a deliberate one. The current skin persists 'dark' on first paint and
+          can never tell the two apart again (bug S11).
+       3. AND THE OTHER HALF OF S11: the `prefers-color-scheme` branch is LIVE, not
+          commented out (`LAYOUT_SPEC_DRAFT.md` §7.1 S11; SCOPE.md:1992 names the bug
+          "theme boot ignoring prefers-color-scheme"). Precedence, in one order, in
+          two places that must not disagree - here and in src/lib/theme.js's
+          resolveTheme():  stored choice -> prefers-color-scheme -> 'dark'.
+          It only ever READS the preference; a panel that says nothing, an engine with
+          no matchMedia and a WebView that throws all land on 'dark' exactly as before.
+          Deliberately shaped so `stored || DEFAULT_THEME` stays the literal expression
+          test/harness/server.js parses out of this file (readDocumentShell).
+
+     AND IT DECODES THE SAME WAY THE BACKEND ENCODES. Web Storage holds strings, so
+     src/lib/storage-backends.js JSON-serialises every value it writes: after one
+     theme change localStorage holds `"dark"` WITH the quotes. Reading it raw stamped
+     data-theme='"dark"', which matches no [data-theme="dark"] selector in
+     styles/tokens.css or styles/chart-channels.css - so the theme silently reverted
+     on every boot, which is exactly the desync note 1 warns about. The prefix is not
+     the only thing that has to stay in step with the router; the ENCODING does too.
+     Unparseable is treated as absent, byte for byte what createWebStorageBackend's
+     get() does, so the two ends cannot disagree about what "no stored choice" means.
+     Pinned by test/storage-routes.test.mjs, which runs this script against a store
+     the real backend wrote. -->
+<script>
+(function () {
+  var PREFIX = 'decal.';
+  var DEFAULT_THEME = 'dark';
+  var raw = null;
+  try { raw = localStorage.getItem(PREFIX + 'theme'); } catch (e) { /* private-mode WebView */ }
+  var stored = null;
+  if (raw !== null && raw !== undefined) {
+    try { stored = JSON.parse(raw); } catch (e) { stored = null; /* corrupt = absent */ }
+  }
+  if (typeof stored !== 'string' || stored === '') stored = null;
+  if (stored === null) {
+    try {
+      if (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches) {
+        DEFAULT_THEME = 'light';
+      }
+    } catch (e) { /* no matchMedia, or a WebView that refuses it: stay on 'dark' */ }
+  }
+  document.documentElement.setAttribute('data-theme', stored || DEFAULT_THEME);
+})();
+</script>
+
+<!-- THE FIT, BEFORE FIRST PAINT. The second and last inlined thing in this file, for
+     the same reason as the theme above: nothing can be imported before first paint,
+     and the frame this would otherwise miss is the frame the tablet reflows in. The
+     design is drawn at a 1200-unit reference height and mapped onto the screen by one
+     number; styles/document.css reads the three properties written here on app-root.
+
+     THIS IS A COPY. src/lib/app-fit.js is the canonical implementation and owns the
+     constants, the caps and the resize listeners; app-root installs it on connect and
+     overwrites these same three properties with the identical numbers. The two must
+     agree, and test/app-fit.test.mjs runs THIS script against the module at a table of
+     geometries to prove they do — the same shape as the theme boot's own pin in
+     test/storage-routes.test.mjs. Change one end, change the other. -->
+<script>
+(function () {
+  var MIN_H = 1200, MIN_W = 1280, MAX_W = 2400, MAX_H = 1600, MIN_S = 0.4, MAX_S = 2;
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  var w = window.innerWidth, h = window.innerHeight;
+  if (!(w > 0) || !(h > 0)) return;
+  var s = clamp(Math.min(h / MIN_H, w / MIN_W), MIN_S, MAX_S);
+  var style = document.documentElement.style;
+  style.setProperty('--ui-app-scale', String(s));
+  style.setProperty('--ui-app-w', clamp(w / s, MIN_W, MAX_W) + 'px');
+  style.setProperty('--ui-app-h', clamp(h / s, MIN_H, MAX_H) + 'px');
+})();
+</script>
+
+<!-- The only global CSS in the project (SCOPE Part 2 §2). uPlot.min.css is
+     deliberately NOT here: it is adopted inside the chart component's shadow root,
+     where it is load-bearing for hit-testing (§7 Rule 1). -->
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/chart-channels.css">
+<link rel="stylesheet" href="styles/document.css">
+
+<script type="module" src="src/components/app-root.js"></script>
+</head>
+<body>
+<!-- One document. A route change swaps which screen component is mounted in here;
+     there are no HTML fragments and no innerHTML-injected pages (bugs P2, P1, S10). -->
+<app-root></app-root>
+</body>
+</html>

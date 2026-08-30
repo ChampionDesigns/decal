@@ -1,0 +1,1839 @@
+/* tokens.css — Decal's design tokens. The single source for every value a
+ * component paints or measures with.
+ *
+ * PREFIX: --ui-  (A4, and reaffirmed when the template was named: the prefix
+ * deliberately does NOT follow the name — never --rl-, never --decal-.
+ * SCOPE Part 2 §2, "the token prefix deliberately does not follow the name".)
+ *
+ * WHY THIS FILE EXISTS AT ALL. Custom properties are the only styling that
+ * crosses a shadow boundary, so this file is not a convenience — it is the
+ * entire theming mechanism (SCOPE Part 2 §4 "Consumption"; A6). A component
+ * writes `background: var(--ui-selected-face)` and the value resolves from the
+ * document however deep the component sits. A fork retargets the template by
+ * editing values here and in chart-channels.css, and rewrites no rule.
+ *
+ * THEMING MODEL (SCOPE Part 2 §6). A theme is a set of token values. `:root`
+ * carries the LIGHT values; `[data-theme="dark"]` overrides the colour-bearing
+ * ones. Geometry, type and timing are theme-invariant and declared once. The
+ * switch is one attribute on <html>, stamped before first paint by the inline
+ * script in index.html — that script is the switch, this file is the two sets
+ * of values. Every colour-bearing token is declared in BOTH blocks, which is
+ * the current skin's own stated discipline (slate-tokens.css:22-25) made
+ * executable by Gate C's token-integrity check (SCOPE Part 2 §7 guard 4).
+ *
+ * TWO DEFINITION RULES, carried from the best of the old file (SCOPE Part 2 §4):
+ *   1. Derive, don't restate. `--ui-band-h` is control-lg + 2 x inset, not a
+ *      second literal. The old file did this once, correctly, and then wrote
+ *      `62px` out by hand 18 times in the editor while using its own token zero
+ *      times (LAYOUT_SPEC_DRAFT §3.1).
+ *   2. Fixed px appears in exactly four cases: hairlines, the physically
+ *      justified touch floors, intrinsic icon geometry, and minimum floors on a
+ *      grid track (§2.3). Canvas arithmetic — anything derived by subtracting
+ *      from 1920 or 1200 — is DROPPED, not retokenised. That is why
+ *      --slate-band-top (826px), --slate-shot-history-width (470px),
+ *      --slate-band-pad (35px) and --slate-rail-gap (26.75px) have no heir here.
+ *
+ * CITATION CONVENTION (Part 10 §4). Where a starting value mirrors a Slate
+ * appearance value it was MEASURED, not chosen: the anchor of each family
+ * carries an ORACLE line quoting the prov corpus verbatim — state id, element,
+ * property, computed value, winning rule. `prov-baseline/` is the dark theme,
+ * `prov-light/` the light one. Properties outside the corpus's 18-property
+ * appearance surface (motion, z-index, outlines, ::backdrop) have no oracle
+ * answer at all and fall through to a read-only source read, marked SOURCE.
+ * Responsive and geometry decisions follow LAYOUT_SPEC_DRAFT, never Slate —
+ * Slate is a 1920x1200 canvas with 98.4% frozen geometry and has no answer.
+ *
+ * COUNT. LAYOUT_SPEC_DRAFT §3.10 heads "93 tokens" but its own ten families
+ * enumerate 97 (14+7+8+5+20+5+5+4+8+15+6). This file follows the ENUMERATION,
+ * not the headline, and adds two things §3 never enumerated because §3 is
+ * titled "Sizing token set": the family token --ui-font-family (C9) and the
+ * 25-token colour palette that SCOPE Part 2 §4 and guard 4 require and that
+ * styles/document.css already consumes by name. 97 + 1 + 25 = 123 here;
+ * chart-channels.css holds 20 more, for 143 --ui-* tokens in all.
+ */
+
+:root {
+
+    /* ===================================================================
+     * 3.1  GEOMETRY — CONTROLS  (14)
+     * ORACLE  state=expanded-charts element=[19] <div class="slate-stepper">
+     *         property=min-height value=64px
+     *         winning rule=slate-components.css {.slate-stepper}
+     *         authored `var(--slate-control-height)`
+     * ORACLE  state=editor-review element=[8] <button id="editor-tab-0"
+     *         class="slate-bank-item editor-tab-btn"> property=min-height
+     *         value=62px winning rule=slate-components.css {.slate-bank-item}
+     *         authored `var(--slate-control-inner)`   <- the derivation below
+     * ORACLE  state=editor-review element=[7] <nav class="slate-bank
+     *         slate-editor-tabs"> property=min-height value=82px
+     *         winning rule=profile-editor-v3.css {.slate-editor-tabs}
+     *         authored `var(--slate-control-lg)`
+     * ORACLE  state=expanded-charts element=[176] <button
+     *         class="slate-chart-legend-item"> property=height value=44px
+     *         winning rule=slate-components.css {.slate-chart-legend-item}
+     *         authored `var(--slate-chip-height)`
+     * ORACLE  state=settings-help-keyboard-shortcuts element=[43]
+     *         <kbd id="kb-current-espresso" class="slate-keycap">
+     *         property=height value=48px
+     *         winning rule=slate-components.css {.slate-keycap}
+     *         authored `var(--slate-hit-min)`
+     * =================================================================== */
+
+    /* Intrinsic. A token so it can become 0.5px at high dpr later without
+     * touching a rule (§2.3 case 1). */
+    --ui-hairline: 1px;
+
+    /* The skin's spine: buttons, fields, selects, list rows, rail rows,
+     * settings rows all stand this tall (§3.1). */
+    --ui-control-h: 64px;
+
+    /* DERIVED, not declared — a segmented child inside a hairline-seamed bank.
+     * Resolves to 62px. The old skin declared it as a literal AND wrote `62px`
+     * by hand 18 times in the editor while reading the token zero times. */
+    --ui-control-inner: calc(var(--ui-control-h) - 2 * var(--ui-hairline));
+
+    /* Header controls only — a toolbar control that carries a whole screen. */
+    --ui-control-lg: 82px;
+
+    /* Chips, legend items, wizard step chips, the lever help button, the
+     * favourite badge: four consumers that each write `44px` today. Physically
+     * justified (§2.3 case 2) — the smallest target reliably hittable with a
+     * wet fingertip when the thing above it wants the height. */
+    --ui-control-sm: 44px;
+
+    /* The floor a HIT AREA reaches even when the ink is smaller. Physically
+     * justified: "a wet fingertip is about 9mm; at this panel's density that is
+     * ~48px" (slate-tokens.css:99-102). Ink and hit floor are separate — the
+     * shared hit-area utility is item #2's, not a token. */
+    --ui-hit-min: 48px;
+
+    /* The +/- cap of a stepper. DISAGREEMENT RESOLVED to 78px (§3.1): the
+     * global token said 92px and renders nowhere; Live and Settings both
+     * override to 78; the editor re-implements the control at 64 and never
+     * reads the token.
+     * ORACLE  state=settings-machine-hot-water elements=[50] <div
+     *         class="slate-stepper"> rect=[1561,285,268,64] and [52] <label
+     *         class="slate-stepper-value"> rect=[1640,286,110,62]
+     *         => left cap = 1640 - 1561 - 1(hairline) = 78px, and the control
+     *         reads 78 + 1 + 110 + 1 + 78 = 268 exactly. */
+    --ui-stepper-cap: 78px;
+
+    /* THE NAME BESIDE A STEPPER, WHEN ONE IS DRAWN (label-position="start").
+     *
+     * 144px -> 88px, PARITY SURFACE 0, AND THE NUMBER IS BEN'S OWN.
+     * BEN_DECISIONS_2026-08-21.md, cmp-lo-3: "visible label to the LEFT of each
+     * stepper, the stepper filling the remaining full width of the rail row
+     * (Slate's shape: 88px label + control)". 144 was arithmetic nobody asked
+     * for — the rail's leftover width after the well, which is a DIFFERENT
+     * quantity from the width Slate gives the name.
+     *
+     * ORACLE, and it is unanimous: live-ready #grind-label [i=18], #dose-label
+     * [i=23], #drink-label [i=30], #brew-label [i=41], #flush-label [i=67] and
+     * both .slate-continuation-label spans [i=56, i=82] all render width = 88px.
+     * The declared width on those elements is `auto !important` (slate-live.css),
+     * so 88 is the LABEL COLUMN the rail's row grid hands them — which is exactly
+     * what this token is. Slate's own two exceptions are the labels that opt OUT
+     * of the column and take a row to themselves (#steam-label 67.875px,
+     * #hotwater-label 108px, both `display: block`), so they do not contradict it.
+     *
+     * WHAT THIS CHANGES: the name column narrows 144 -> 88 and the well moves 46px
+     * left, landing the whole row on Slate's geometry (label at x=28+, well at
+     * x=134 against Slate's 135). "Brew temperature" wraps to two lines at 88 —
+     * which is Slate's own behaviour for a long name (CITE #hotwater-label [i=74]
+     * rect [28,991,108,41], two lines). A word longer than the column breaks
+     * inside it rather than pushing the well; the component says why at .label. */
+    --ui-stepper-label-w: 88px;
+
+    /* THE VALUE CELL'S FLOOR — the third of the stepper's three widths, and the one
+     * the oracle MEASURED rather than derived: `prov_query.py find --cls
+     * slate-stepper-value` answers 85 elements in 16 states with ONE distinct
+     * geometry, 110 x 62. In Slate that width is an accident of `minmax(0, 1fr)`
+     * inside a 268px box; here it is a floor, and the well's two forms are built
+     * from it (78 + 110 + 78 + 2 = 268 stated, 48 + 110 + 48 + 2 = 208 squeezed).
+     *
+     * IT IS PUBLIC BECAUSE THE RAIL'S OTHER ROWS HAVE TO ALIGN TO THE SAME COLUMN
+     * (parity 7-live-polish). Slate draws the preset banks and the stop-condition
+     * captions against the WELL, not against the rail's inset — ORACLE live-ready
+     * #drink-out-preset-1 [i=37] rect.x = 134, the same x as .slate-stepper [i=31]
+     * — and the Live screen therefore needs the identical `min(label, what is left
+     * after the well)` the stepper computes for its own label column. Restating
+     * `110px` there would be a second copy of the one number the corpus measured;
+     * naming it once here is how both sides read the same arithmetic. */
+    --ui-stepper-value-min: 110px;
+
+    /* Intrinsic icon geometry (§2.3 case 3).
+     * SOURCE  slate-live.css:355-357 `#main-page .slate-icon-action svg {
+     *         width: 24px; height: 24px }`; notes-modal.css:187-188 agrees.
+     *         SVG elements are not in the oracle's element walk, so this family
+     *         has no corpus answer and is a read-only source read. */
+    --ui-icon: 24px;
+    --ui-icon-lg: 28px;
+
+    /* The selected-state LED strip. Off in Slate (see --ui-selected-led), but
+     * the strip's own height is a geometry token either way.
+     * ORACLE  state=settings-accessories-cup-warmer element=[11] <button
+     *         id="accessories-btn" class="settings-nav-btn"> property=box-shadow
+     *         value=`rgba(0, 0, 0, 0) 0px -4px 0px 0px inset, color(srgb
+     *         0.690196 0.768627 0.807843 / 0.72) 0px -4px 0px 0px inset`
+     *         winning rule=slate-components.css {.slate-nav-selected}
+     *         authored `inset 0 calc(-1 * var(--slate-toggle-indicator-height))
+     *         ...`  => 4px. */
+    --ui-toggle-led: 4px;
+
+    /* Switch geometry, newly tokenised. Today `w-[100px] h-[50px]`,
+     * `size-[40px]` and `left-[5px]` appear 20 times EACH in settings.js
+     * template strings and the component sheet sets no width or height at all,
+     * only paint (§3.1). Four tokens plus a derived throw replaces 80 literals.
+     * The throw is DERIVED at the consumer, never the literal 46px:
+     *     calc(var(--ui-switch-track-w) - var(--ui-switch-knob)
+     *          - 2 * var(--ui-switch-inset) - 2 * var(--ui-border-w-strong))
+     *     = 100 - 40 - 10 - 4 = 46
+     * ORACLE  state=settings-display-wake-lock element=[46] <label
+     *         class="slate-switch ... w-[100px] h-[50px]"> rect=[1729,291,100,50]
+     *         property=width value=100px winning rule=app.css {.w-\[100px\]}
+     *         authored `100px`; property=height value=50px winning rule=app.css
+     *         {.h-\[50px\]} authored `50px`. */
+    --ui-switch-track-w: 100px;
+    --ui-switch-track-h: 50px;
+    --ui-switch-knob: 40px;
+    --ui-switch-inset: 5px;
+
+    /* ===================================================================
+     * 3.2  GEOMETRY — BANDS AND ROWS  (7)
+     * ORACLE  state=expanded-charts element=[1] <header class="slate-live-header">
+     *         property=min-height value=118px
+     *         winning rule=slate-live.css {#main-page .slate-live-header}
+     *         authored `var(--slate-header-height)`
+     * ORACLE  state=profile-selector element=[17] <button
+     *         class="slate-profile-folder"> property=min-height value=64px
+     *         winning rule=slate-shell.css {#subpage-host
+     *         .profile-selector-bg #profile-list > *, ...}
+     *         authored `var(--slate-list-row)`
+     * ORACLE  state=profile-selector element=[14] <div
+     *         class="slate-section-header select-none"> property=height
+     *         value=60px winning rule=slate-shell.css {#subpage-host
+     *         #profile-list [class*="uppercase"], ...} authored `60px !important`
+     * =================================================================== */
+
+    --ui-band-inset: var(--ui-space-4);
+
+    /* DENSITY APPLIES HERE, AND ONLY HERE (§2.2 row 2, §2.1 Rule 2).
+     * The spec's band strategy is "control + 2 x space, THEN x --ui-density",
+     * and --ui-density is the vertical-rhythm multiplier declared in §3.7. The
+     * three band tokens below are the whole of its arithmetic in this sheet:
+     * a band is the one thing that may lose height when height runs out.
+     *   band-h   118 -> 103.25   (x 0.875, the compact band)
+     *   nav-row   88 -> 77
+     *   toolbar  120 -> 105
+     * NOT multiplied, deliberately: --ui-control-h and --ui-hit-min (Rule 2
+     * names both — ergonomics is physical), and therefore not --ui-list-row or
+     * --ui-row-min either, which ARE --ui-control-h under another name. A
+     * content row is a touch target; a band is chrome around one.
+     * --ui-section-head-h is a fixed literal, not a control+space derivation,
+     * so it is outside the row-2 pattern and stays put.
+     * Row gaps are the other half of Rule 2's "vertical rhythm", but a gap is
+     * laid down by whatever lays rows out, not by this sheet: --ui-space-* is
+     * one scale used in both axes, and multiplying it here would shrink
+     * horizontal gutters too. A component's vertical gap multiplies at its own
+     * use site.
+     *
+     * THE COMPACT VALUES ARE FRACTIONAL (103.25px) AND THAT IS INTENDED.
+     * round() is not used: it shipped in Chrome 125 and the stated WebView
+     * floor is Chrome 123 (§1.1). If a blurred band edge at dpr 1.5 turns out
+     * to matter on the tablet, wrapping each of the three in round(down, ...,
+     * 1px) is a three-token edit. */
+
+    /* THE header band — one of them. 82 + 18 + 18 = 118. The one derivation the
+     * old file got right, and the pattern every band here copies. */
+    --ui-band-h: calc((var(--ui-control-lg) + 2 * var(--ui-band-inset)) * var(--ui-density));
+
+    /* DISAGREEMENT RESOLVED, 89 -> 88 (§3.2). The old token justified 89px in
+     * its own comment — "11 entries, a 981px panel, so 89 fills it exactly" —
+     * and BOTH halves are wrong: there are 10 categories, 10 x 89 leaves 91px
+     * of empty column (measured), and 11 x 89 = 979, not 981. It is canvas
+     * arithmetic, so it is derived instead.
+     * The oracle's 89px is DISQUALIFIED here: it is a measured consequence of
+     * the fixed canvas, which the rewrite rejects (§1.2).
+     * ORACLE (for the record, not as a target)  state=settings-accessories-cup-warmer
+     *         element=[9] <button id="machine-btn" class="settings-nav-btn">
+     *         property=height value=89px winning rule=slate-shell.css
+     *         {#subpage-host .settings-nav-btn} authored `var(--slate-nav-row)`.
+     * Visible change: rows lose 1px each; the column's tail grows 91 -> 101px,
+     * which the rewrite fills by letting the column be 1fr. */
+    --ui-nav-row: calc((var(--ui-control-h) + 2 * var(--ui-space-3)) * var(--ui-density));
+
+    /* Merged: the old --slate-list-row and --slate-control-height have always
+     * been the same number. A scrolling list is a different problem from a
+     * fixed nav — 64px shows ~16 rows at a time instead of 7 — but it is the
+     * same height as every other control, so it is the same token. */
+    --ui-list-row: var(--ui-control-h);
+
+    /* The settings row's height FLOOR (it may grow with its content). */
+    --ui-row-min: var(--ui-control-h);
+
+    /* Sticky list captions. */
+    --ui-section-head-h: 60px;
+
+    /* DISAGREEMENT RESOLVED, 121.5 -> 120 (§3.2). `h-[121.5px]` appears twice
+     * in profile_selector.html and both are effective. A .5px in a design that
+     * also ships 37.5px and 22.5px type literals that never even compiled.
+     * Visible change: 1.5px, twice, on one screen. */
+    --ui-toolbar-h: calc((var(--ui-control-h) + 2 * var(--ui-space-6)) * var(--ui-density));
+
+    /* ===================================================================
+     * 3.3  SPACING  (8)
+     * The seven steps are the WHOLE vocabulary; off-scale values snap to the
+     * nearest step (§3.3). Today 30/32/26/20/16/14/9/6/10/36/48 are all in live
+     * use, settings.js emits 18 distinct `gap-[Npx]` literals, and 14 of them
+     * reach nothing. Visible change: page titles on Settings and the editor
+     * shift 2px left; leaf rhythm on 29 Settings leaves tightens 32 -> 28.
+     * --ui-space-8 is new, for page-level rhythm.
+     * ORACLE  state=history-shotdata element=[92] <div id="live-alert"
+     *         class="slate-live-alert"> property=gap value=4px
+     *         winning rule=slate-live.css {#main-page .slate-live-alert}
+     *         authored `var(--slate-space-1)`
+     * ORACLE  state=expanded-charts element=[118] <button id="history-open-viewer"
+     *         class="slate-btn slate-history-open"> property=gap value=8px
+     *         winning rule=slate-live.css {#main-page .slate-history-open}
+     *         authored `var(--slate-space-2)`
+     * ORACLE  state=history-viewer element=[174] <label
+     *         class="slate-compare-offset"> property=gap value=18px
+     *         winning rule=slate-live.css {#history-viewer-overlay
+     *         .slate-compare-offset} authored `var(--slate-space-4)`
+     * ORACLE  state=expanded-charts element=[145] <dl class="slate-derived-list">
+     *         property=padding-left value=24px winning rule=slate-live.css
+     *         {#main-page .slate-derived-list} authored `var(--slate-space-5)`
+     * =================================================================== */
+
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 18px;
+    --ui-space-5: 24px;
+    --ui-space-6: 28px;
+    --ui-space-7: 40px;
+    --ui-space-8: 56px;
+
+    /* ===================================================================
+     * 3.4  RADIUS  (5)
+     * ORACLE  state=live-ready element=[12] <button id="edit-profile-btn"
+     *         class="slate-btn slate-btn-tall slate-btn-primary">
+     *         property=border-top-left-radius value=6px
+     *         winning rule=slate-components.css {.slate-btn}
+     * ORACLE  state=expanded-charts element=[91] <div class="... slate-chart-card">
+     *         property=border-top-left-radius value=8px
+     *         winning rule=slate-components.css {.slate-chart-card}
+     * SOURCE  slate-components.css:454 `border-radius: 4px !important` (the
+     *         switch knob — a literal in the file that forbids literals)
+     * SOURCE  help-overlay.css:10 and :113 `border-radius: 9999px`
+     * Dropped: profile_selector.html's rounded-[20px]/[15px] (already dead) and
+     * main.css:424's machine-generated `border-radius: 2617.374px`.
+     * =================================================================== */
+
+    --ui-radius-sm: 4px;
+    --ui-radius: 6px;
+    --ui-radius-lg: 8px;      /* wells, panels, chart cards */
+    --ui-radius-xl: 12px;     /* a floating SURFACE: modal, sheet, menu */
+    --ui-radius-pill: 9999px;
+
+    /* ===================================================================
+     * 3.5  TYPE  (20)  + the family token (C9, +1)
+     *
+     * UI scale: fixed px, 10 steps, never fluid (§2.2) — legibility is a floor,
+     * and the bench tablet already renders text ~10% larger than the desk
+     * harness, so the margin is spoken for.
+     * Display scale: clamp()ed against the component's OWN container (cqi), the
+     * only fluid type in the system. Upper bounds are today's values; the lower
+     * bounds are the spec's proposals and want a look on the bench.
+     *
+     * ORACLE  state=editor-review element=[12] <button id="editor-cancel-btn"
+     *         class="slate-btn slate-btn-tall"> property=font-size value=17px
+     *         winning rule=slate-components.css {.slate-btn}
+     *         authored `var(--slate-text-base)`
+     * ORACLE  state=editor-review element=[4] <button id="editor-title-display"
+     *         class="slate-editor-title"> property=font-size value=28px
+     *         winning rule=profile-editor-v3.css {.slate-editor-title,
+     *         .slate-editor-title-input} authored `var(--slate-text-xl)`
+     * ORACLE  state=expanded-charts element=[21] <span id="grind-value"
+     *         class="slate-stepper-value"> property=font-size value=27px
+     *         winning rule=slate-components.css {.slate-stepper-value}
+     *         authored `var(--slate-display-xs)`
+     * ORACLE  state=editor-review element=[8] <button id="editor-tab-0">
+     *         property=font-weight value=400 winning rule=slate-components.css
+     *         {.slate-bank-item} authored `var(--slate-weight-regular)`
+     * ORACLE  state=editor-review element=[12] <button id="editor-cancel-btn">
+     *         property=font-weight value=500 winning rule=slate-components.css
+     *         {.slate-btn-tall} authored `var(--slate-weight-medium)`
+     * ORACLE  state=editor-review element=[1] <main class="slate-profile-editor">
+     *         property=font-family value=`Geist, system-ui, sans-serif`
+     *         winning rule=profile-editor-v3.css {.slate-profile-editor}
+     *         authored `var(--slate-font-ui)`  (n=1186 elements)
+     *
+     * Off-scale type deliberately retired: font-size:33px x3 on the status
+     * messages; text-[37.5px] / gap-[22.5px] (dead — never compiled);
+     * text-[30px] on list rows (overridden to 20px anyway); text-[20px] on
+     * review prose; and the numpad title's inline 28px written on every open
+     * with a shrink loop to a 16px floor — the one piece of type in the skin
+     * whose size is not a token.
+     * =================================================================== */
+
+    /* C9 — the template ships Geist behind ONE family token. IBM Plex belongs
+     * to Radian, not the base. The @font-face itself is declared in
+     * styles/document.css and NOWHERE else, because canvas text resolves fonts
+     * against the DOCUMENT's registry: a face declared only inside a shadow
+     * root measurably never registers (measureText('0123456789.') at 20px:
+     * 105.00 shadow-declared vs 118.50 registered, document.fonts.size === 0 —
+     * LAYOUT_SPEC_DRAFT §6.3 Rule 2). Components USE this token; they never
+     * declare a face. The chart's axis font family reads this token too, rather
+     * than the string 'Geist, sans-serif' hardcoded twice today (§6.2).
+     * One family, not two: the old --slate-font-numeric was already defined as
+     * var(--slate-font-ui). */
+    --ui-font-family: "Geist", system-ui, sans-serif;
+
+    /* THE SCALE, AND C6 MULTIPLIES IT (wave 5.4). Ten steps, each still one
+     * authored number — the ladder is unchanged and `--ui-type-scale` is 1
+     * until the Display Size control moves it, so every rendered size is what
+     * it was. The multiplication is here, once, for the same reason the density
+     * arithmetic is: a component that scaled its own font size would be a
+     * second writer of a system-wide preference (CONVENTIONS §11).
+     *
+     * NOT the display scale below: those clamp against the component's own
+     * container and are already fluid, and multiplying a clamp by a preference
+     * would give one piece of type two elastic behaviours. */
+    --ui-text-xs: calc(12px * var(--ui-type-scale));    /* dense capability labels */
+    --ui-text-2xs: calc(14px * var(--ui-type-scale));   /* column headers, units */
+    --ui-text-sm: calc(15px * var(--ui-type-scale));    /* uppercase microcaps */
+    --ui-text-note: calc(16px * var(--ui-type-scale));  /* secondary notes beside a control */
+    --ui-text-base: calc(17px * var(--ui-type-scale));  /* body, control values, buttons */
+    --ui-text-md: calc(18px * var(--ui-type-scale));    /* nav rows, list rows */
+    --ui-text-lg: calc(20px * var(--ui-type-scale));    /* section headings */
+    --ui-text-nav: calc(22px * var(--ui-type-scale));   /* settings navigation rows */
+    --ui-text-2xl: calc(24px * var(--ui-type-scale));   /* editor step names */
+    --ui-text-xl: calc(28px * var(--ui-type-scale));    /* page titles */
+
+    /* THE DISPLAY SCALE IS FIXED, PARITY SURFACE 0 — 27 / 30 / 42 / 45 / 52, which
+     * are Slate's own numbers (slate-tokens.css:142-146) and were already this
+     * family's clamp CEILINGS. The clamp came from LAYOUT_SPEC_DRAFT §3.5, which
+     * states plainly that the upper bounds are Slate's current values and that the
+     * "Lower bounds are proposals and want a look on the bench". They never got that
+     * look; they got shipped. A proposal is not the default, and Slate is.
+     *
+     * WHAT THIS CHANGES, MEASURED: nothing at 1920x1200 or at the bench — the gauge
+     * cluster's container is wide enough there that every clamp already sat on its
+     * ceiling (ORACLE live-ready #slate-live-time 52px, #slate-live-pressure and
+     * #slate-live-flow 45px; Decal renders 52/45 at desktop today). The floor
+     * geometry (1000x600) is where a readout used to shrink and now holds, so that
+     * is the one place to look for an overflow. If a readout overflows there, that
+     * is a FINDING and Ben's call, not a licence to re-clamp: he asked for Slate's
+     * numbers.
+     *
+     * NOT MULTIPLIED BY --ui-type-scale, unchanged: the UI ladder above carries the
+     * Display Size preference; these are the shot readouts, whose size is the shot
+     * chart's business. Making them fixed does not change which of the two scales
+     * they belong to. */
+    --ui-display-xs: 27px;
+    --ui-display-sm: 30px;
+    --ui-display-md: 42px;
+    --ui-display-lg: 45px;
+    --ui-display-xl: 52px;
+
+    /* FOUR WEIGHTS — SLATE'S OWN FOUR, RESTORED AT PARITY SURFACE 1.
+     *
+     * This block used to read "Three weights, not five ... 600 -> 700 on the ~50
+     * elements that read semibold, and the 300 'light' numeric readouts land on 400",
+     * on the authority of LAYOUT_SPEC_DRAFT §3.5. That sentence is a TRANSCRIPTION
+     * ERROR, and it is the same one surface 0 caught in the same sentence: §3.5 reads
+     *
+     *     Plus `--ui-weight-regular: 400`, `--ui-weight-medium: 500`,
+     *     `--ui-weight-bold: 700`, `--ui-tracking-cap: .04em`
+     *     (`slate-tokens.css:148-153`)
+     *
+     * and slate-tokens.css:148-153 is, verbatim and complete:
+     *
+     *     148| --slate-weight-regular: 400;
+     *     149| --slate-weight-medium: 500;
+     *     150| --slate-weight-semibold: 600;
+     *     151| --slate-weight-light: 300;   / large numeric readouts only /
+     *     152|
+     *     153| --slate-tracking-cap: .12em; / uppercase microcaps /
+     *
+     * Its own citation refutes it on BOTH halves. Surface 0 restored the tracking
+     * half (.04em -> .12em) after proving 190 rendered elements carry .12em and none
+     * carry .04em; this restores the weight half on the same evidence.
+     *
+     * CENSUS, all 49 states of prov-baseline/, every record carrying a font-weight:
+     *     400  2660      600   496   <- semibold, the microcap role
+     *     500   870      300   587   <- light, the numeric-readout role
+     *                    700    51   <- and all 51 are ONE Tailwind literal,
+     *                                   h3.font-bold.text-lg (49) plus two <strong>
+     * So 700 is not a step of Slate's ladder at all: it is a utility class on a modal
+     * title, which is exactly the token-blind literal the audit catalogues. Shipping
+     * 700 as "the bold step" put ~50 microcaps a full weight above Slate and 587
+     * readouts a step below their light — which is precisely what Ben reported when he
+     * said "different font ... everything thick". Surface 0 fixed the tracking half of
+     * that sentence; this is the weight half.
+     *
+     * ORACLE  state=live-ready element=[96] <span> (the "Time" gauge label)
+     *         property=font-weight value=600  winning rule=slate-live.css
+     *         {#main-page .slate-microcap, #main-page .slate-gauge > span:first-child,
+     *         #main-page #weight-text, #main-page #shot-history-label} authored `600`
+     *         !important=yes
+     * ORACLE  state=live-ready element=[100] <span id="slate-live-pressure">
+     *         property=font-weight value=300  (no declaration — inherited from
+     *         .slate-gauge strong, slate-live.css:959 `var(--slate-weight-light)`)
+     * ORACLE  state=live-ready element=[26] <span id="dose-in-value"
+     *         class="slate-stepper-value"> property=font-weight value=300
+     *         winning rule=slate-components.css {.slate-stepper-value} authored
+     *         `var(--slate-weight-light)` !important=no  (token-driven)
+     *
+     * --ui-weight-bold IS GONE, not aliased: a name that says "bold" and resolves to
+     * 600 is a second lie on top of the first. Its eight consumers were all the
+     * microcap role and all now read --ui-weight-semibold. */
+    --ui-weight-light: 300;
+    --ui-weight-regular: 400;
+    --ui-weight-medium: 500;
+    --ui-weight-semibold: 600;
+
+    /* .04em -> .12em, PARITY SURFACE 0. Slate ships .12em and the oracle confirms
+     * it on 190 rendered elements; .04em was never Slate's and it is the single
+     * biggest type tell Ben reported ("different font ... everything thick" —
+     * losing two thirds of a microcap's letter-spacing makes uppercase read as a
+     * solid block).
+     * ORACLE  state=editor-review element=[6] <p id="editor-profile-totals"
+     *         class="pe-profile-totals"> property=letter-spacing value=1.8px
+     *         winning rule=profile-editor-v3.css {.slate-profile-editor
+     *         .pe-profile-totals} authored `var(--slate-tracking-cap)`
+     *         (1.8px = .12em at 15px).
+     * CENSUS  every uppercase element in prov-baseline/ carrying a letter-spacing:
+     *         140 at .12em/15px + 50 at .12em/17px — the two microcap steps — and
+     *         no cluster at .04em anywhere in the 49 states.
+     * SOURCE  slate-tokens.css:153 `--slate-tracking-cap: .12em`.
+     * WHY THE OLD COMMENT WAS WRONG: it deferred to LAYOUT_SPEC_DRAFT §3.5, which
+     * writes ".04em" while citing slate-tokens.css:148-153 — the very lines that
+     * declare .12em. The spec's own citation contradicts its number, so there is
+     * no disagreement to resolve in .04em's favour; the draft has a typo.
+     * Visible change: microcaps loosen 0.6px -> 1.8px at 15px on ~43 elements. */
+    --ui-tracking-cap: .12em;
+
+    /* THE UNIT'S OWN TRACKING (parity surface 1). A unit is set beside a number a third
+     * its size and Slate opens it slightly so it does not read as the number's last
+     * digits — one value, one place, on the rail's own unit rule.
+     * ORACLE  state=live-ready element=[28] <small> "g" property=letter-spacing
+     *         value=0.54px (= .03em at 18px)  winning rule=slate-live.css
+     *         {#main-page #drink-ratio-value, #main-page .slate-value-note,
+     *         #main-page [data-rail-unit], #main-page .slate-stepper-value small}
+     *         authored `.03em`  !important=no  (FROZEN/hardcoded)
+     * Slate writes it as a literal; here it is a token because CONVENTIONS §7 has no
+     * literals, and because the microcap's .12em above is the only other tracking in
+     * the sheet — two values, both named, is the whole tracking scale. */
+    --ui-tracking-unit: .03em;
+
+    /* THE PROMOTED READOUT'S TRACKING (parity surface 1). The one place in the skin
+     * where type is tightened rather than opened: a 52px number, where the default
+     * spacing reads as a gap between digits rather than as one figure.
+     * ORACLE  state=live-ready element=[97] <span id="slate-live-time"> property=
+     *         letter-spacing value=-1.04px (= -.02em at 52px)  SOURCE slate-live.css:978
+     *         `#main-page .slate-gauge-time strong { font-size: var(--slate-display-xl);
+     *         letter-spacing: -.02em }`.  It is Slate's own exception and applies to
+     *         exactly one gauge — every other readout in the corpus reads normal — so it
+     *         is named here and spent by the one caller that wants it. */
+    --ui-tracking-readout: -.02em;
+
+    /* Prose line length. SOURCE slate-components.css:111. */
+    --ui-measure: 70ch;
+
+    /* THE SETTINGS LEAF MEASURE, and the death certificate of three live widths.
+     * LAYOUT_SPEC_DRAFT.md §4.4 writes the leaf as
+     * `inline-size: min(100%, var(--ui-measure-wide)); margin-inline: auto`, and
+     * SCOPE Part 5 §4 gives the value: "The leaf measure is one value (~84ch,
+     * centred), replacing today's three undocumented widths (1200 / 885 / 760 —
+     * T21)".
+     *
+     * WIDER THAN --ui-measure ON PURPOSE, and the two are not interchangeable.
+     * 70ch is PROSE (a caption, a paragraph — the measure a reader's eye can
+     * track); 84ch is a FORM COLUMN, a label block on the left and a control on
+     * the right (#29), where the pair has to fit side by side before the row
+     * wraps. Setting the form to the prose measure would wrap ~30 leaves at the
+     * design width; setting prose to the form measure is the 155-character line
+     * slate-components.css:107-109 complains about.
+     *
+     * ch, NOT px, which is what makes it survive C6: the density and type-scale
+     * control moves --ui-text-base, and a measure in ch moves with the type it
+     * is a measure OF. A px cap would silently narrow the column in characters
+     * every time the type grew — which is the mechanism behind the old Display
+     * Size control turning the viewport into a scroller. */
+    --ui-measure-wide: 84ch;
+
+    /* ===================================================================
+     * 3.6  BORDER AND FOCUS  (5)   — a family that does not exist today
+     *
+     * ORACLE  state=expanded-charts element=[176] <button
+     *         class="slate-chart-legend-item"> property=border-top-width
+     *         value=1px winning rule=slate-components.css
+     *         {.slate-chart-legend-item}
+     * SOURCE  slate-components.css:733-734 `outline: 3px solid
+     *         var(--slate-steel); outline-offset: 2px` — outline is outside the
+     *         oracle's 18-property surface, so focus geometry is a source read.
+     *
+     * FOCUS IS FIVE TREATMENTS FOR ONE SKIN today: 3px/offset 2px
+     * (slate-components.css:733), 3px/offset 3px (slate-live.css:78-82,
+     * slate-components.css:479), 3px/offset -3px (slate-shell.css:925-926),
+     * offset -1px (slate-shell.css:1132) and 2px (numpad-modal.css:39-42).
+     * Worse, the component layer's ring reaches only four classes, and the
+     * rings that ARE drawn get clipped on all four sides because the +/- caps
+     * live inside `.slate-stepper { overflow: hidden }` and the tabs inside
+     * `.slate-bank { overflow: hidden }` (bug L24). Hence the inset variant:
+     * a control inside an overflow-hidden parent draws its ring INSIDE its own
+     * box instead of outside it. Item #2 turns these three numbers into the one
+     * base-element treatment. */
+    --ui-border-w: var(--ui-hairline);
+    --ui-border-w-strong: 2px;   /* replaces the 3px selected-swatch border */
+    --ui-focus-w: 3px;
+    --ui-focus-offset: 2px;
+    --ui-focus-offset-inset: -3px;
+
+    /* ===================================================================
+     * 3.7  MOTION  (4)   — a family that does not exist today
+     * Transitions are outside the oracle's 18-property surface: SOURCE reads.
+     * SOURCE  context-menu.css:81 `transition: background-color 80ms ease-out,
+     *         color 80ms ease-out`                       -> --ui-dur-fast
+     * SOURCE  context-menu.css:31 `transition: opacity 120ms ease-out,
+     *         transform 120ms ease-out`; numpad-modal.css:319 `transition:
+     *         background-color 0.12s, transform 0.12s`   -> --ui-dur
+     * SOURCE  slate-components.css:314 (.2s); notes-modal.css:17 (.18s)
+     *                                                    -> --ui-dur-slow
+     * The easing curve is new: the old skin uses bare `ease-out` everywhere.
+     * =================================================================== */
+    --ui-dur-fast: 80ms;
+    --ui-dur: 120ms;
+    --ui-dur-slow: 200ms;
+    --ui-ease: cubic-bezier(.2, 0, 0, 1);
+
+    /* ===================================================================
+     * 3.7  STATE OPACITY, Z-INDEX, DENSITY  (8)
+     *
+     * §3.6-3.7 cites slate-components.css:424 as the disabled anchor at .38.
+     * Read today that line is `.slate-bank-item:disabled { opacity: .45 }`, and
+     * the oracle shows a THIRD value in force —
+     * ORACLE  state=editor-steps element=[211] <button class="pe-action-btn
+     *         pe-act-disabled"> property=opacity value=0.5
+     *         winning rule=slate-shell.css {#subpage-host :is(button, a):disabled,
+     *         #subpage-host [aria-disabled="true"]}
+     * Three numbers for one state is exactly the drift this family exists to
+     * end. The spec is a Step 0 document and wins: .38.
+     *
+     * SOURCE  slate-live.css:1805-1806 — .62 in light, .42 in dark, on the
+     *         rail's inactive controls during a shot. The point is "not now",
+     *         not "gone", so it recedes further in dark where a low opacity
+     *         still leaves ink on a black ground. Both names are kept because
+     *         the dark dial is a real design value, but --ui-opacity-dim is
+     *         REDECLARED in the dark block so a component reads one name and
+     *         never has to know the theme (which is the whole point of A6).
+     *
+     * THE OLD Z-INDEX NUMBERS LIE, and this is the family that stops the habit:
+     * because #scaled-content is transformed it is a stacking context, so the
+     * notes modal's z-index: 10000 is SEALED INSIDE IT and paints BELOW the
+     * context menu's 9999 (bug S8). Four literals on a scale beat thirteen
+     * literals with no scale. With no canvas and real top-layer <dialog>,
+     * nothing outside a dialog needs a z-index above --ui-z-sticky.
+     * SOURCE  profile-editor-v3.css:318 (z-5, the sticky rail) -> --ui-z-sticky
+     * SOURCE  index.html:455 (60), :542 (62)                   -> --ui-z-overlay
+     * SOURCE  context-menu.css:4, :14 (9998/9999)              -> --ui-z-menu
+     * SOURCE  index.html:645, :657 (10000/10001)               -> --ui-z-toast
+     * SOURCE  ui.js:1408-1412 (10000, the screensaver div)     -> --ui-z-blackout
+     *
+     * --ui-z-blackout is ABOVE the toast layer, and Slate's own numbers are why:
+     * the screensaver and the app toast are both 10000 there and the fullscreen
+     * prompt is 10001, so on the old scale a notice paints ON a blanked screen.
+     * D10 makes the skin the single owner of blanking; a layer that something
+     * else can paint over is not an owner. The top layer is the real mechanism
+     * (#57 promotes itself with popover=manual); this number is what orders the
+     * box in a WebView that has no popover.
+     * =================================================================== */
+    --ui-opacity-disabled: .38;
+    --ui-opacity-dim: .62;
+    --ui-opacity-dim-dark: .42;
+
+    --ui-z-sticky: 10;
+    --ui-z-overlay: 100;
+    --ui-z-menu: 200;
+    --ui-z-toast: 300;
+    --ui-z-blackout: 400;
+
+    /* Vertical rhythm multiplier — new (§2.1 Rule 2). Multiplies band heights
+     * and row gaps ONLY; never --ui-control-h and never --ui-hit-min, because
+     * ergonomics is physical: a control that shrinks with the window becomes
+     * unusable exactly when the window is small. Three writers compose here
+     * (SCOPE Part 2 §5): the C6 "Display Size" preference sets the BASE, the
+     * height band MULTIPLIES it, and a component may re-declare `compact` for
+     * its own subtree, which wins locally. Regular is 1; the compact band is
+     * at the foot of this file.
+     * CONSUMERS (§3.2, and they are the only ones in this sheet):
+     * --ui-band-h, --ui-nav-row, --ui-toolbar-h. Declared later in source than
+     * they are used, which is fine — custom properties substitute at
+     * computed-value time, not in declaration order.
+     *
+     * SPLIT BY WAVE 5.4 (C6), which is the obligation the height band at the
+     * foot of this file wrote down against itself: "when C6 lands, split into a
+     * base token and a band factor whose product is --ui-density". Two writers
+     * now have a token each and --ui-density is their PRODUCT, so a choice made
+     * in Settings survives a short window instead of being overwritten by it.
+     * The third writer (C3's named `compact`) still re-declares the cap it
+     * wants, not this multiplier — see the band block for why a subtree cannot
+     * re-declare any of these three.
+     *
+     * --ui-density IS REGISTERED (@property, at the foot of this file) so that
+     * it COMPUTES to a number rather than substituting as the string
+     * "calc(1 * 0.875)". Registration is what keeps every existing reader —
+     * `parseFloat(getComputedStyle(root).getPropertyValue('--ui-density'))` in
+     * two render suites — reading a number, and it is why the split needed no
+     * change anywhere else in the tree. */
+    --ui-density-base: 1;
+    --ui-density-band: 1;
+    --ui-density: calc(var(--ui-density-base) * var(--ui-density-band));
+
+    /* C6's other half: the multiplier on the ten UI type steps below. The
+     * control drives "--ui-density and the type scale" (SCOPE Part 5 §4) and
+     * this is the type scale — one number, applied once, in this file. A
+     * component that multiplied a font size itself would be §11's density
+     * arithmetic wearing a different name. */
+    --ui-type-scale: 1;
+
+    /* ===================================================================
+     * 3.8  CHART GEOMETRY  (15)   — colour lives in chart-channels.css (A6)
+     *
+     * All five --slate-chart-* tokens have ZERO consumers today: their own
+     * comment says "chart.js mirrors these", i.e. they are documentation of JS
+     * constants, hand-kept in sync — and one has already fallen out of sync
+     * (bug C4: the token says 19px, the rendered chip is 17px). Here the CSS
+     * token IS the value: the chart component reads its computed tokens once
+     * per build and per theme change, or takes them as properties. Never two
+     * declarations of one number.
+     *
+     * TICK FONT — five values for one job (20 Live, 17 expanded/history, 20
+     * steam, 16 editor preview, 14 fallback). Resolved to 17: the value most
+     * plots already use and the value the orphaned token already declares.
+     * Visible change: Live and steam tick labels shrink 20 -> 17; the editor
+     * preview grows 16 -> 17.
+     * LEGEND — 19 vs 17 resolved to 17; nothing on screen moves, because the
+     * rendered chip already reads the 17px base.
+     * GUTTERS — four objects, two values: {50,50,20,40} x3 and {70,64,12,52}
+     * x1. Resolved to 70/64/12/52, the set the largest charts already use and
+     * the one slate-live.css:1817 hand-matches with `padding-left: 70px`
+     * across a file boundary. Visible change: the Live plot, the steam plot and
+     * the editor preview gain 20px of left gutter and 14px of right, and lose
+     * 8px of top and bottom furniture. Nothing else may state a gutter (§6.2).
+     * --ui-chart-min-h is new: PAD.top 20 + PAD.bottom 40 = 60 of furniture
+     * plus a tick font, so below ~120px the plot area is smaller than its own
+     * labels; 160px gives headroom (§6.1 item 7).
+     *
+     * ORACLE  state=expanded-charts element=[176] <button
+     *         class="slate-chart-legend-item"> property=height value=44px
+     *         winning rule=slate-components.css {.slate-chart-legend-item}
+     *         authored `var(--slate-chip-height)`   -> --ui-legend-chip-h
+     * SOURCE  slate-tokens.css:108-112 (stroke 3, minor 2, stat 27) and :76,
+     *         :78-79 (swatch 30, timekey 54, strip 14). The swatch is "wide
+     *         enough to show a dash pattern"; the timekey is the trajectory
+     *         chart's gradient strip and its two numbers.
+     * SOURCE  chart-uplot.js:63 / uplot-plot.js:21 — the 170px minimum gap
+     *         between time ticks, written twice today.
+     * =================================================================== */
+    --ui-chart-stroke: 3px;
+    --ui-chart-stroke-minor: 2px;   /* targets, derived channels, step rules */
+    --ui-chart-tick: 17px;
+    --ui-chart-legend: 17px;
+    /* THE STEP NAME WRITTEN UP A BOUNDARY. Ben, 25 August 2026, asking for the names back
+     * on the Live chart: "likely around the 14px would work I think."
+     *
+     * ONE NUMBER FOR THREE SURFACES, which is this block's own habit and is also closer to
+     * Slate than what it replaces. Slate writes the same label at 14px on the Live chart
+     * and 13px on the expanded pages and the History viewer (`expanded-layout.js`
+     * STEP_LABEL_FONT_PX and its own note). Decal had no number at all — the label fell
+     * through to --ui-chart-tick, so every step name was set at 17px, four larger than
+     * Slate draws it anywhere. 14 is Ben's number for the surface he asked about and it
+     * moves the other two toward the reference rather than away from it. */
+    --ui-chart-step-label: 14px;
+    --ui-chart-stat: 27px;
+    --ui-chart-gutter-l: 70px;
+    --ui-chart-gutter-r: 64px;
+    --ui-chart-gutter-t: 12px;
+    --ui-chart-gutter-b: 52px;
+    /* ===================================================================
+     * HOW MUCH OF A GUTTER THE AXIS NUMBERS THEMSELVES OCCUPY
+     * ===================================================================
+     * Ben, 25 August 2026: "the gauge cluster, shot description etc are all too far to the
+     * right, need to reduce the left margin so that the text is basically aligned with the
+     * left side of the 1 in the 14 of the Y axis label ... Likewise the right margin
+     * should be reduced" — and, of the legends on the expanded and history pages, "the
+     * left side of the legend button aligned with the left side of the text in the Y axis
+     * labels."
+     *
+     * THIS IS THE SECOND READING OF A SENTENCE ui-chart-card.js ALREADY WROTE DOWN. Its
+     * legend-gutter rule ends: "That is one reading of Ben's sentence; the other is the
+     * numbers' own left edge, which is not a stable number — it moves with how many digits
+     * the scale happens to need." He has chosen the second reading and said what it costs:
+     * "this I know will not be perfect but should be able to get close."
+     *
+     * SO IT IS AN ALLOWANCE, NOT A MEASUREMENT, and these two numbers are what it is made
+     * of. On the left: uPlot's tick 5px + its label gap 5px + a two-digit label, MEASURED
+     * at 16.6px in Geist at --ui-chart-tick. On the right: half a two-digit label, because
+     * an x label is CENTRED on its tick and only its right half escapes the plot area.
+     *
+     * A THREE-DIGIT SCALE OVERRUNS THE LEFT ONE BY 12px and a one-digit scale falls short
+     * by 6. That is the imprecision Ben named, and it is bounded: the label can never be
+     * wider than the gutter it lives in, so nothing clips either way.
+     * =================================================================== */
+    --ui-chart-label-l: 27px;
+    --ui-chart-label-r: 8px;
+    --ui-chart-min-h: 160px;
+    --ui-chart-tick-gap: 170px;
+    --ui-legend-chip-h: var(--ui-control-sm);
+    --ui-legend-swatch-w: 30px;
+    --ui-timekey-w: 54px;
+    --ui-timekey-strip-w: 14px;
+
+    /* ===================================================================
+     * 3.9  LAYOUT AND THE FIVE SELECTION DIALS  (9)
+     *
+     * --ui-rail-w replaces the literal 430px written in three separate places
+     * with nothing keeping them in step (bug BUG-11). 26% is 430/1650 at the
+     * reference width; the clamp is what makes it survive a window that is not
+     * 1920 wide — Slate has no answer here at all and must not be consulted
+     * (98.4% frozen geometry; the layout spec governs, §2.2).
+     *
+     * THE CEILING IS 430, PARITY SURFACE 1 (surface 0's finding F-RAIL, closed here).
+     * It was 460, which is a number no oracle record carries: Slate's rail is
+     * aside#shot-settings [i=17] width 430 with a 28px inset, an 18px label gutter and
+     * an 88px name column, so its well is 430 - 28 - 88 - 18 - 28 = 268 and its value
+     * cell 268 - 2*78 - 2*1 = 110 — the composition every stepper in the corpus renders.
+     * At 460 the same rule gave a 324 well and a 166 value cell: Decal's own name
+     * column was right (Ben's cmp-lo-3 88) and every number to the right of it was
+     * 56px wide. Twelve element-level rows at live-ready had this ONE cause. The
+     * clamp's shape is untouched (it still gives the rail back below 1654px of screen);
+     * only the ceiling moves, so the reference geometry lands on Slate's arithmetic
+     * exactly and no other width changes behaviour.
+     * ORACLE  state=live-ready element=[17] <aside id="shot-settings">
+     *         property=width value=430px; element=[23] <span id="dose-label">
+     *         rect=[28,256,88,20]; element=[24] <div class="slate-stepper">
+     *         rect=[134,234,268,64]; element=[26] <div class="slate-stepper-value">
+     *         width=110px.  28 + 88 + 18 + 268 + 28 = 430, exact.
+     * --ui-seam is a LENGTH, named apart from --ui-hairline for intent: it is
+     * the grid `gap` that DRAWS a divider over a coloured grid background,
+     * already the good pattern in slate-live.css:382. The seam's COLOUR is
+     * --ui-seam-ink / --ui-zone-seam in the palette below.
+     *
+     * FOUR OF THE FIVE SELECTION DIALS are carried unchanged from
+     * slate-tokens.css:188-191 — "the one genuinely re-themable idea in the
+     * codebase". The fifth, --ui-selected-weight, is parity surface 2's and is
+     * declared below with its own census; it is theme-invariant, which is why it
+     * appears once here and not in either palette. Quoted verbatim from that file:
+     *     188| --slate-selected-face: var(--slate-steel);
+     *     189| --slate-selected-ink: var(--slate-on-steel);
+     *     190| --slate-selected-led: 0px;      / Radian: var(--slate-toggle-indicator-height) /
+     *     191| --slate-selected-glow: 0%;      / Radian: ~55% of the channel colour /
+     * Slate's answer is a solid block of the accent: the fill IS the indicator,
+     * so the LED strip is off and nothing glows. Radian's is the opposite — a
+     * seated slice, quieter than its unselected siblings, with glowing
+     * channel-coloured text and the LED carrying the state. Both are expressible
+     * in these four values and zero rule changes — but only because there is ONE
+     * selection component. Today Live's favourites bank (bug L8/BUG-12) and the
+     * editor's tab bank (bug E10/B10) bypass the dials entirely, which is the
+     * decay the rewrite exists to stop.
+     * ORACLE  state=settings-accessories-cup-warmer element=[11] <button
+     *         id="accessories-btn" class="settings-nav-btn">
+     *         property=background-color value=rgb(49, 92, 112) [prov-light] /
+     *         rgb(176, 196, 206) [prov-baseline, dark]
+     *         winning rule=slate-shell.css {#subpage-host .settings-nav-btn.active,
+     *         ...} authored `var(--slate-selected-face) !important`
+     *         => the face IS --ui-steel, and it inverts with the theme.
+     * ORACLE  state=expanded-charts element=[164] <button id="expanded-tab-flow"
+     *         class="slate-bank-item"> property=color value=rgb(248, 252, 253)
+     *         [prov-light] / rgb(18, 24, 28) [prov-baseline, dark]
+     *         winning rule=slate-components.css {.slate-bank-item[aria-pressed="true"],
+     *         .slate-bank-item[aria-selected="true"], .slate-bank-item[aria-checked="true"],
+     *         .slate-bank-item.is-selected} authored `var(--slate-selected-ink)`
+     *         => the ink IS --ui-on-steel, and it inverts with it.
+     * =================================================================== */
+    --ui-rail-w: clamp(320px, 26%, 430px);
+    /* THE PANE DIVIDER, AS ITS OWN KNOB. One hairline, which is what --ui-seam is —
+     * the token exists so the divider between the two panes can be dialled without
+     * touching the 53 row seams inside them, not because it differs today.
+     *
+     * IT WAS TWO FOR ONE VERSION. Decal's divider measured 224 on a 242 ground against
+     * the chart card's border at 203, so the card edge read as the pane boundary; doubling
+     * it fixed the ordering and Ben's answer was that the divider then read too heavy. The
+     * real complaint was a THIRD line — a vertical hairline of seam ground down the list's
+     * own right edge, 24px inside the divider — and with that gone the divider has nothing
+     * competing with it at one hairline. See selector-list.js.
+     *
+     * A 1px GAP DOES LOSE WEIGHT HERE, and that is not a bug to chase: this screen draws
+     * inside zoom 0.6675 at dsf 1.5, so a gap lands on a fraction of a device pixel while
+     * a border on an element is snapped to a whole one. Slate's separator is an element
+     * and measures 196; Decal's is a gap and measures 224. Both read as the divider. */
+    --ui-seam-split: var(--ui-hairline);
+
+    --ui-seam: var(--ui-hairline);
+
+    /* THE FIFTH SELECTION DIAL (parity surface 2). Theme-invariant, so it is declared
+     * here with the geometry rather than twice in the palettes: a weight does not
+     * change with the ground it sits on, and guard 4's light/dark symmetry check reads
+     * the colour-bearing blocks only.
+     *
+     * Slate ships a selected weight in three RULES and no token, which is why §3.9's
+     * table names four dials and the render carries five values:
+     *     slate-components.css:392  .slate-bank-item[aria-pressed|selected|checked
+     *                               ="true"], .is-selected
+     *                               `font-weight: var(--slate-weight-medium)`
+     *     slate-components.css:265  .slate-nav-selected
+     *                               `font-weight: var(--slate-weight-medium) !important`
+     *     slate-shell.css:310       #profile-list [data-profile-key][aria-selected
+     *                               ="true"]  `font-weight: 500`
+     * ORACLE, all 49 baseline states: Slate paints 100 elements with
+     * --slate-selected-face and 95 render font-weight 500 - settings-nav-btn 38,
+     * settings-subnav-btn 38, .slate-bank-item 11, plus one each of .slate-lang-tile,
+     * .slate-card, .slate-btn .slate-is-picked, .slate-btn-primary,
+     * .numpad-modal-confirm and the day toggle. The other 5 are the pick discs.
+     * ORACLE  state=expanded-charts element=[164] <button id="expanded-tab-flow"
+     *         class="slate-bank-item"> property=font-weight value=500 winning
+     *         rule=slate-components.css {.slate-bank-item[aria-pressed="true"], ...}
+     *         authored `var(--slate-weight-medium)`; element=[165]
+     *         <button id="expanded-tab-power"> resting, value=400.
+     * The ONE class of exception is .hv-pick-btn / .slate-hv-pick-tag at 600, and they
+     * are 600 RESTING too - a component's own paint, kept through --_ui-rest-weight
+     * (src/components/base.js), not through this dial. */
+    --ui-selected-weight: var(--ui-weight-medium);
+
+    /* ===================================================================
+     * THE LIVE FOOT BAND'S TWO LAYOUT NUMBERS  (§4.1, C2, M3)
+     *
+     * --ui-live-foot-min-h IS A TOKEN TO FILL, NOT A MEASUREMENT.
+     * LAYOUT_SPEC_DRAFT.md §7.9 item 2, verbatim: "The real rendered height of
+     * the Live foot band's content on a five-phase profile - never measured;
+     * 'does 256px clip' is asserted only from the sheet's own comment history.
+     * OQ-8 depends on this." OQ-8 is register decision C2, whose residual
+     * action is exactly that measurement (M3), and until it is taken the floor
+     * is unknown. So this is written as a DERIVATION over rows that already
+     * exist rather than as a number, and the derivation says what it means:
+     * the phase table's caption, ONE phase row, and the band's own inset -
+     * the smallest band that still shows the table is there.
+     *
+     * WHY ONE ROW AND NOT FIVE. The floor cannot be larger than the design
+     * floor can pay for. At 1000x600 the band gets 600 - --ui-band-h (103.25
+     * in the compact height band) - two seams - <live-main>'s own content
+     * floor (the gauge cluster plus --ui-chart-min-h plus the card's chrome),
+     * and a five-row floor spends more than that: the screen would overflow at
+     * the design floor, which §4.1 forbids ("None on Live at or above the
+     * design floor"). A floor that cannot be honoured is not a floor.
+     * M3 REPLACES THIS LINE with the measured five-phase height, and if that
+     * number is bigger than the design floor's budget then C2's "scroll as a
+     * last resort" starts above the floor and that is the finding, not a bug.
+     * Not multiplied by --ui-density: --ui-list-row and --ui-section-head-h
+     * are not (a content row is a touch target; §3.2's row-2 pattern).
+     *
+     * --ui-live-foot-max-share is §4.1's "maximum share of the column", the
+     * other half of the same table row ("Foot band | auto, content-sized, with
+     * a min-block-size and a maximum share of the column"). It is a SHARE and
+     * not a length on purpose: it is what stops a band with a lot of content
+     * from eating the chart, and because it is a share of the screen's own
+     * body it shrinks when the window does. 40% is a dial, not a measurement:
+     * at the design floor it is 240px against a band whose content is ~190, so
+     * it does not bind there and only comes into play once M3's real content
+     * lands - or below ~476 rows, where it is what makes the band give.
+     *
+     * --ui-live-foot-share IS THE THIRD MEMBER, AND IT IS BEN'S ANSWER TO
+     * DQ-541 (21 August 2026), verbatim: "The foot band should scale, not have
+     * fixed pixel height but reduce so it looks similar regardless of
+     * resolution. The Chart will need to reduce in height so it still fits."
+     *
+     * The band was content-sized and nothing else, so it measured 190.3px at
+     * 1200 rows, at 801 and at 600 alike - which meant that going from
+     * 1920x1200 to 1920x1080 the CHART gave all 120 rows and the band gave
+     * none. That is what DQ-541 recorded and what this token ends: the band's
+     * floor gains a proportional term, so above it the band takes a share of
+     * the screen and gives that share back when the screen shrinks.
+     *
+     * WHY 18, AND WHY IT IS THE SMALLEST HONEST NUMBER. The band's content is
+     * 190.3px and does not scale - it is a caption, a header and three phase
+     * rows beside a 176px control column, all built from fixed row tokens - so
+     * any share bigger than the content shows as band ground under the last
+     * row, and any share smaller than the content would put C2's last-resort
+     * scroll above the design floor, which §4.1 forbids. 190.3 / 1080 = 17.62%,
+     * so 18 is the smallest whole step that BINDS at C1's 1080 - the geometry
+     * Ben named - and it leaves the bench (801 -> 144.2) and the design floor
+     * (600 -> 108) under the floor token, i.e. content-sized exactly as they
+     * are today, which is right: neither has spare height to hand the band.
+     * MEASURED at 1200 / 1080 / 800: band 216 / 194.4 / 190.3, and 194.4 is
+     * exactly 90% of 216 against a screen that is exactly 90% - both regions
+     * give together, which is the whole of the ask.
+     *
+     * NOT %, and it is the same argument the density band makes twelve
+     * hundred lines down: a percentage here would resolve against the band's
+     * own grid area, which is content-sized, and a percentage that depends on
+     * the thing it is sizing resolves to auto. The share is a share of THE
+     * SCREEN.
+     *
+     * AND NOT dvh EITHER, SINCE THE FIT LANDED. This token used to read `18dvh`
+     * on the strength of "app-root is 100dvh, so the viewport height and the app
+     * container's height are the same number". THAT FACT IS NOW FALSE.
+     * src/lib/app-fit.js draws the app at a 1200-unit reference height and scales
+     * it, so on Ben's tablet the app container is 1200 design units tall while
+     * the viewport is 801 layout units: `18dvh` would have quietly become 144.2
+     * units where the design says 216, and the band would have lost a phase row
+     * on the one screen that matters. `--ui-app-h` is the app's own height in the
+     * units the design is written in, so the share is taken from that. It carries
+     * the same 100dvh fallback the app-root rule does, for the pre-fit frame.
+     *
+     * MEASURED at 1200 / 1080 / 800: band 216 / 194.4 / 190.3, and 194.4 is
+     * exactly 90% of 216 against a screen that is exactly 90% - both regions
+     * give together, which is the whole of the ask. Those numbers are unchanged
+     * by the fit: 1200 is what every landscape screen now gets.
+     * =================================================================== */
+    --ui-live-foot-min-h: calc(var(--ui-section-head-h) + var(--ui-list-row) + 2 * var(--ui-space-3));
+    --ui-live-foot-share: calc(0.18 * var(--ui-app-h, 100dvh));
+    --ui-live-foot-max-share: 40%;
+
+    /* ===================================================================
+     * THE PROFILE SELECTOR'S THREE LAYOUT NUMBERS  (§4.2, §2.4, M10, M18)
+     *
+     * The same shape as the Live foot band above: a screen's floors are
+     * tokens, derived from rows that already exist, so no component writes a
+     * pixel and the morning has three dials rather than a search.
+     *
+     * --ui-selector-list-min-h is §4.2's own arithmetic, kept as arithmetic:
+     * "Profile list | 4 x var(--ui-list-row) = 256px (spec §4.2) | auto,
+     * VISIBLE scrollbar". Four rows is the smallest list that still reads as a
+     * list rather than as a peephole, and it is NOT multiplied by
+     * --ui-density: --ui-list-row is not (a content row is a touch target,
+     * §3.2's row-2 pattern), so neither is a floor made of four of them.
+     * NOT a proposal - the spec states the number and its derivation.
+     *
+     * --ui-selector-notes-min-h IS A PROPOSAL AND IS MARKED ONE (M18).
+     * §4.2's floors table: "Notes pane | one line of its own type (proposal -
+     * confirm on prototype)". So it is written as one line of its own type and
+     * nothing else: --ui-text-base at the 1.5 ratio .ui-body sets, = 25.5px.
+     * TWO THINGS THE MORNING MUST KNOW, both measured rather than argued:
+     *   1. this token GOVERNS - swept to a 160px stage the notes region holds
+     *      25.5px at BOTH Gate A geometries (reached from a 380px stage at
+     *      BENCH, a 340px stage at FLOOR). <ui-notes-editor> (#55) does NOT
+     *      raise it: ui-notes-editor.js:355-359 declares
+     *      ":host { block-size: 100%; min-block-size: 0 }" so a dialog body can
+     *      compress (§4.6), and its --_ui-notes-min-h sits on .CodeMirror
+     *      inside that zero-floor host, overflowing internally instead of
+     *      pushing the region. An earlier reading of this comment claimed the
+     *      realised minimum was larger than the token (63px at BENCH, 89.5px at
+     *      FLOOR); those are a 420px-stage leftover-space reading and the 32%
+     *      cap, not minimums.
+     *      test/render/selector-skeleton.render.test.mjs section 4 sweeps it.
+     *   2. M10 owns the measurement that freezes it - "the two selector
+     *      text-width questions: the shot-picker option text, and whether
+     *      #profile_notes' 275px is ever exceeded" (SCOPE Part 9 M10). That
+     *      measurement is not this wave's and is not blocked on: M18's rule is
+     *      "each screen's phase freezes its own", and freezing it needs the
+     *      number M10 has not taken yet. Until then: token + note, not frozen.
+     *
+     * --ui-selector-notes-share replaced §4.2's "auto, capped at 32% of the
+     * pane" - the OTHER half of the same row, and the half that is the bug
+     * fix. Today the pane is an unconditional 275px (layout/selector.md V.0),
+     * which is why "notes should give before the chart is destroyed" reads
+     * backwards in the old app. A SHARE cannot outlive the box it is a share
+     * of, so as the pane shrinks the cap tightens with it and the chart keeps
+     * its floor - §4.2's order of surrender, expressed rather than policed.
+     *
+     * THERE IS NO --ui-selector-split-collapse TOKEN, and that is a language
+     * limit, not an oversight: a container query's condition may not contain
+     * var() (custom properties are not substituted in @container / @media
+     * conditions), so the 900px threshold has to be a literal. It is written
+     * ONCE, in src/screens/selector-split.js, which is the file the query
+     * lives in - §2.3's rule is "the same number written in two places", and
+     * this number is written in one.
+     * =================================================================== */
+    /* THE SELECTOR'S COMMAND BAND — the first row of BOTH panes, so the toolbar's
+     * buttons and the detail pane's title sit on one line by construction rather than
+     * by two numbers that agree today.
+     *
+     * IT IS --ui-control-h AND NOT --ui-toolbar-h, which is the change Ben asked for on
+     * 25 August 2026: "Buttons are too tall, we are using the header height buttons when
+     * we shouldn't" and "The gap between the bottom of the header and the functions below
+     * is too big, should be halved... keep that consistent with other margins like in the
+     * Live Page." --ui-toolbar-h is 120 (a 64 control plus 2 x space-6), which centred a
+     * 64px control in a 120px row and left 28px of air above it; on top of the pane's own
+     * 18px inset that was 46px between the header's underline and the top of the first
+     * button. The band is now the control's own height and the pane's inset is the Live
+     * page's inset, so that distance IS the page margin: 24. Halved, near enough, and the
+     * same number the Live page uses rather than a second one that resembles it. */
+    /* THE LIST'S SHARE OF THE SPLIT. Ben, 25 August 2026: "We seem to have wider list
+     * panel, yet there seems to be more white space, ie could make the list more narrow
+     * making the chart bigger. OR is that being auto scaled based on the longest profile
+     * name?"
+     *
+     * IT IS NOT AUTO-SCALED, and never was. It was a flat 40% written into
+     * selector-split.js, which is 767.6 at 1920. Slate's is a flat 640px
+     * (slate-shell.css:209, `minmax(0, 640px) 1px minmax(0, 1fr)`), measured 639. So
+     * Decal's list was 128px wider than Slate's and the chart 128px narrower, for no
+     * reason anyone had stated.
+     *
+     * 33.3% IS SLATE'S 640 EXPRESSED AS A SHARE — 640 / 1920 = 33.33%. A share rather than
+     * Slate's fixed pixel count because the floor geometry is 1000 wide, where a 640 track
+     * would take two thirds of the screen; the minimum in the split holds the other end.
+     *
+     * WHAT IT COSTS: the title ellipsises sooner. MEASURED over the 48 rows on Ben's
+     * machine, title ink at 20/400 — median 197, p90 480, longest 657. The handful past
+     * the new box get an ellipsis; the median row uses a third of it either way, which is
+     * the white space Ben is looking at. */
+    --ui-selector-list-share: 33.3%;
+
+    /* THE LIST'S FLOOR, AND IT IS TIED TO THE SHARE. §4.2 collapses the split to one
+     * column below 900px, and 900 is chosen to be exactly where the two clauses of the
+     * track cross: below it the minimum governs and the track stops responding, so there
+     * is nothing left for a two-column layout to do.
+     *
+     *     900 x 33.3% = 299.7
+     *
+     * It was 360px while the share was 40% (900 x 40% = 360), for the same reason. Change
+     * one of these three numbers and the other two have to move with it; the render test
+     * asserts the relation rather than the literals, so a share changed alone fails
+     * there rather than quietly moving the crossing off the threshold. */
+    --ui-selector-list-min: 300px;
+
+    /* THE SETTINGS LEAF PANE'S TWO INSETS. Ben, 26 August 2026 (O4): "The gap to the
+     * left and right on the settings [is] too big. Reduce Left by around ~70%, right by
+     * ~50% of what it currently is, a little more then what Slate does."
+     *
+     * WHAT IT WAS: --ui-measure-wide (84ch) capped the leaf and centred it, which on a
+     * 1188-wide pane left 148.8px on EACH side. MEASURED, not inferred: pane x 731.2 to
+     * 1919.1, leaf x 880 to 1770.3.
+     *
+     *     start  148.8 - 70% = 44.6   ->  space-6 + space-4 = 28 + 18 = 46
+     *     end    148.8 - 50% = 74.4   ->  2 x space-6 + space-4 = 74
+     *
+     * BOTH LAND ON THE SPACE SCALE, which is the reason for the arithmetic rather than
+     * the round numbers: P16 says every inset in this screen is a step of the seven-step
+     * scale, and a 45 would be the first literal in the file to break it.
+     *
+     * THE TWO ARE DIFFERENT ON PURPOSE and that is Ben's instruction, not a slip. The
+     * content sits left of centre because the label reads from the left and the control
+     * is right-aligned: the space the eye crosses is between them, not outside them.
+     *
+     * THE MEASURE CAP GOES WITH THIS. A leaf that fills the pane needs its DESCRIPTION
+     * capped rather than its whole self (O1), which is the row's own business. */
+    --ui-settings-pane-inset-start: calc(var(--ui-space-6) + var(--ui-space-4));
+    --ui-settings-pane-inset-end: calc(2 * var(--ui-space-6) + var(--ui-space-4));
+
+    --ui-selector-band-h: var(--ui-control-h);
+
+    --ui-selector-list-min-h: calc(4 * var(--ui-list-row));
+    --ui-selector-notes-min-h: calc(var(--ui-text-base) * 1.5);
+
+    /* THE NOTES TAKE A QUARTER OF THE PANE, WHICH IS SLATE'S SHARE, AND THEY TAKE IT
+     * WHETHER OR NOT THERE IS ANYTHING IN THEM.
+     *
+     * Ben, 25 August 2026: "Reduce the chart height and make more space for the
+     * description."
+     *
+     * MEASURED, both panes at the reference geometry:
+     *   Slate    chart 622, notes 275, of a 1082 pane   ->  notes 25.4 %
+     *   Decal  chart 673, notes 164, of a 1081 pane   ->  notes 15.2 %
+     *
+     * A CAP WAS THE WRONG INSTRUMENT AND THAT IS WHY THE OLD 32 % NEVER SHOWED. The row
+     * was fit-content(cap), so a short note took its own height and the CHART kept the
+     * rest; the cap only ever stopped a LONG note eating the chart. Slate's box is 275
+     * whatever it holds, and the notes scroll inside it.
+     *
+     * SO IT IS A SHARE, NOT A CEILING. --ui-selector-notes-max-share is retired with the
+     * fit-content row that needed it; the detail pane's own note records the swap. */
+    --ui-selector-notes-share: 25%;
+
+
+    /* ===================================================================
+     * THE SETTINGS SCREEN'S TWO FLOORS  (§4.4, §2.4, M18)
+     *
+     * Same shape as the two blocks above: a screen's floors are tokens,
+     * derived from rows that already exist, so no component writes a pixel
+     * and the morning has two dials rather than a search.
+     *
+     * BOTH ARE PROPOSALS AND BOTH ARE MARKED ONE (M18). SCOPE Part 5 §4's
+     * floors table says "3 x var(--ui-nav-row) (proposal - confirm on
+     * prototype)" for the nav column list, "same" for the sub-nav column
+     * list, and "one settings row + its heading (proposal)" for the leaf
+     * pane. Part 10 §9's screen review checks exactly this: every floor
+     * marked "proposal - confirm" is a TOKEN with an M18 note, never a
+     * frozen literal. M18's rule is "each screen's phase freezes its own",
+     * and freezing these two needs a look at the prototype that has not
+     * happened, so: token + note, not frozen.
+     *
+     * --ui-settings-nav-min-h is ONE token for BOTH nav columns, and that
+     * is T2 read one box out. The columns are two instances of ONE
+     * component (src/screens/settings-nav-column.js), so they cannot be
+     * given two floors any more than they can be given two pitches - which
+     * is what "89 vs 93" was. Three rows is the smallest list that still
+     * reads as a list rather than a peephole; the pitch itself is
+     * --ui-nav-row, already derived (C4, :220 above), so a category added
+     * to the tree costs nothing here. NOT multiplied by --ui-density a
+     * second time: --ui-nav-row already carries the factor, and three of
+     * something is not a length of its own.
+     *
+     * --ui-settings-leaf-min-h is Part 5 §4's sentence as arithmetic: one
+     * settings row (#29's own min-block-size is --ui-control-h, with its
+     * padding inside the border box) plus one .ui-heading line
+     * (--ui-text-lg at the 1.3 ratio src/components/type-roles.js sets).
+     * Written from those two rather than from a measurement, so a change
+     * to either moves the floor with it.
+     *
+     * THERE IS NO --ui-settings-collapse TOKEN, for the same language
+     * reason the selector has no --ui-selector-split-collapse: a container
+     * query's condition may not contain var(), so the 1100px threshold has
+     * to be a literal. It is written ONCE, in
+     * src/screens/settings-master-detail.js, which is the file the query
+     * lives in, and exported from there for the suite to sweep.
+     * =================================================================== */
+    --ui-settings-nav-min-h: calc(3 * var(--ui-nav-row));
+    --ui-settings-leaf-min-h: calc(var(--ui-control-h) + var(--ui-text-lg) * 1.3);
+
+    /* ===================================================================
+     * THE PROFILE EDITOR'S TWO PANEL FLOORS  (SCOPE Part 5 §5, §2.4, M18)
+     *
+     * Same shape as the three blocks above: a screen's floors are tokens,
+     * derived from rows that already exist, so no component writes a pixel
+     * and the morning has two dials rather than a search.
+     *
+     * NEITHER IS MARKED "proposal - confirm" BY ITS OWN ROW, and that is
+     * the difference from the selector's notes floor and the settings
+     * screen's two. Part 5 §5's floors table reads "Settings panel | one
+     * field row | auto (y)" and "Each review column | one prose block |
+     * auto (y)" - a DERIVATION, stated in rows this skin already has,
+     * with no confirm-on-prototype clause attached. So they are written
+     * as arithmetic over existing tokens and NOT carried as M18
+     * proposals; Part 10 §9's screen review asks that every floor marked
+     * "proposal - confirm" is a token with an M18 note, and these two are
+     * tokens whose rows do not mark them.
+     *
+     * --ui-editor-field-min-h IS ONE FIELD ROW, and the editor's field row
+     * is a label line over a control: #6 ui-text-field renders exactly that
+     * (ui-text-field.js .label - --ui-text-note, margin-block-end
+     * --ui-space-2 - over a --ui-control-h control), and the editor's
+     * toggle / select / stepper rows put the same label above the same
+     * control height. Written from those three tokens rather than from a
+     * measurement, so a change to any of them moves the floor with it.
+     * The 1.5 factor is the document line-height (styles/document.css:64),
+     * which is where a label line's height actually comes from.
+     *
+     * NOT multiplied by --ui-density: --ui-control-h is not (a control is
+     * a touch target, and ergonomics is physical), so neither is a floor
+     * made of one.
+     *
+     * --ui-editor-review-min-h IS ONE PROSE BLOCK at its own minimum,
+     * and a block is what editor-review-panel.js renders: a heading line
+     * (.ui-caption - --ui-text-note at line-height 1.5) over one sentence
+     * (.ui-body - --ui-text-base at 1.5), separated by the block's own
+     * --ui-space-2 gap. The three terms are the three the component
+     * declares, so the floor moves with the type rather than describing
+     * it. A sentence that wraps to two lines in a narrow column takes
+     * more; the floor is what ONE BLOCK cannot go below, not what a
+     * particular sentence happens to occupy.
+     *
+     * THERE ARE NO --ui-editor-*-collapse TOKENS, for the same language
+     * reason the selector has no --ui-selector-split-collapse and the
+     * settings screen no --ui-settings-collapse: a container query's
+     * condition may not contain var(), so each threshold has to be a
+     * literal. Each is written ONCE, in the file its query lives in
+     * (src/screens/editor-settings-panel.js,
+     * src/screens/editor-review-panel.js) and exported from there for the
+     * suite to sweep.
+     * =================================================================== */
+    --ui-editor-field-min-h: calc(var(--ui-control-h) + var(--ui-text-note) * 1.5 + var(--ui-space-2));
+    --ui-editor-review-min-h: calc(var(--ui-text-note) * 1.5 + var(--ui-text-base) * 1.5 + var(--ui-space-2));
+
+    /* ===================================================================
+     * --ui-editor-matrix-min-h - THE STEP MATRIX'S FLOOR (Part 5 §5, E1)
+     *
+     * Part 5 §5's floors table reads "Step matrix | its own header + one
+     * step row | auto (both axes)", so the floor is those two rows and
+     * nothing else, written as the boxes they are made of:
+     *
+     *   the header row   one ordinal line (--ui-text-note at the document
+     *                    line-height 1.5) + the head cell's own gap
+     *                    (--ui-space-2) + one #6 ui-text-field control
+     *                    (--ui-control-h)
+     *   one step row     one control (--ui-control-h)
+     *   the rhythm       four cell paddings, two per row
+     *
+     * THE RHYTHM TERM IS STATED AT THE REGULAR DENSITY (--ui-space-3,
+     * Slate's own measured 12px cell padding) AND DOES NOT FOLLOW C3'S
+     * COMPACT. A floor that shrank when the rows got denser would make
+     * this token a second writer of the density it is supposed to be
+     * independent of; at compact the floor is generous by four steps of
+     * the ladder, which is the safe direction for a guarantee about what
+     * must stay reachable.
+     *
+     * NOT multiplied by --ui-density, for the reason the two floors above
+     * are not: --ui-control-h is not (a control is a touch target, and
+     * ergonomics is physical), so neither is a floor made of two.
+     *
+     * The matrix's own private lengths - the rail's floor and cap, the
+     * step column minimum, the exit row's three stable slots - are NOT
+     * tokens: each is read only by the track list it is written beside,
+     * and they live as --_ui-* properties in
+     * src/screens/step-matrix.js. There is no --ui-editor-matrix-fill
+     * token either, and there is no threshold to hold: the fill/scroll
+     * flip is a consequence of minmax(step-min, 1fr) meeting the
+     * container's width, not a number anybody declares.
+     * =================================================================== */
+    --ui-editor-matrix-min-h: calc(
+        2 * var(--ui-control-h) + var(--ui-text-note) * 1.5
+        + var(--ui-space-2) + 4 * var(--ui-space-3));
+
+    /* ===================================================================
+     * --ui-cal-status-h / --ui-cal-body-h - THE LOAD-CELL WIZARD'S TWO TEXT
+     * SLOTS (wave 5.4, D9)
+     *
+     * THE ONE LAYOUT RULE THAT SURVIVED loadcell-cal.js, and the reason it
+     * is a token rather than a number in a component: SCOPE Part 6's row
+     * says the survivor is "a single button that swaps label and action in
+     * place plus a fixed-height status slot, so the card never jumps", and
+     * Part 5 §4 adds that the first cut of the rebuild WAS REJECTED FOR
+     * JUMPING. A slot that is sized by its contents re-creates that defect
+     * the moment a status sentence wraps to two lines.
+     *
+     * TWO LINES OF .ui-caption, written from the type role rather than
+     * measured: the longest of the nine diagnostic sentences wraps to two
+     * at the leaf measure, and the countdown line ("Settling - 12 s") is
+     * one. Anything that needs three is a copy change, and it should move
+     * this token rather than the card.
+     *
+     * FROM THE RIGHT TYPE ROLE, WHICH IS THE FIX HERE. Both slots are
+     * `.ui-caption` and type-roles.js sets that role at --ui-text-note with
+     * line-height 1.5 - so two of its lines are 2 x 16 x 1.5 = 48px, not the
+     * 2 x --ui-text-sm x 1.4 = 42px this token used to say. A floor written
+     * from the WRONG role is not a floor: a status that wrapped to two lines
+     * grew its box past 42 and moved the card, which is the one thing D9's
+     * surviving rule forbids. Same arithmetic now serves the body copy,
+     * whose weigh-step sentence really is two lines where the other eight
+     * are one.
+     *
+     * A PROPOSAL, MARKED ONE (M18), exactly like the two floors above: the
+     * number of lines is a judgement about copy at a measure and wants a
+     * look at the prototype. Token + note, not frozen.
+     * =================================================================== */
+    --ui-cal-status-h: calc(2 * var(--ui-text-note) * 1.5);
+    --ui-cal-body-h: calc(2 * var(--ui-text-note) * 1.5);
+
+    /* ===================================================================
+     * THE HISTORY SCREEN'S ONE FLOOR  (SCOPE Part 5 §6, §2.4, M18)
+     *
+     * Same shape as the four screen blocks above: a screen's floors are
+     * tokens derived from rows this skin already has, so no component
+     * writes a pixel and the morning has a dial rather than a search.
+     *
+     * Part 5 §6's floors table has three rows and only ONE of them is a
+     * length this file can hold:
+     *
+     *   Chart page plots | --ui-chart-min-h each | never scroll
+     *   Shot list        | 3 x var(--ui-list-row) (proposal - confirm on
+     *                      prototype) | auto, VISIBLE scrollbar
+     *   Data tables      | their own min-content | none
+     *
+     * --ui-chart-min-h IS NOT RE-DECLARED HERE. It exists at :602 as the
+     * PLOT AREA's floor and it belongs to the chart card (#9), which
+     * restates it as a host minimum with its own chrome added. A history
+     * copy would be a second owner of a number two files already agree
+     * on, which is §2.3's rule read the wrong way round. The data tables
+     * get no token at all: min-content is not a length, it is the box
+     * asking its own contents, and there is nothing to declare.
+     *
+     * --ui-history-list-min-h IS A PROPOSAL AND IS MARKED ONE (M18).
+     * Part 5 §6 writes the figure with "(proposal - confirm on
+     * prototype)" attached, so it ships as a token carrying this note and
+     * is never frozen as a literal in a component, a test or a comment -
+     * Part 10 §9's screen review checks exactly that. THE EXACT
+     * PRECEDENT IS --ui-selector-list-min-h (:753), whose row is NOT a
+     * proposal because §4.2 states its derivation; this one is the same
+     * shape one row shallower, and the difference between them is only
+     * which document had a number it was sure of.
+     *
+     * THREE ROWS, AND WHY THREE IS A COMPOSITION RATHER THAN A NUMBER:
+     * --ui-list-row (:226) is the shot list's own pitch, so a floor made
+     * of three of them moves when the row does and cannot drift from it.
+     * NOT multiplied by --ui-density, for the reason --ui-list-row is not
+     * (:679, :709 - "a content row is a touch target"): three of
+     * something is not a length of its own.
+     * =================================================================== */
+    --ui-history-list-min-h: calc(3 * var(--ui-list-row));
+
+    /* ===================================================================
+     * PALETTE — LIGHT  (25)
+     *
+     * Not enumerated by spec §3, which is titled "Sizing token set"; required
+     * by SCOPE Part 2 §4 ("Colour tokens are declared in BOTH theme blocks"),
+     * by guard 4, and by name from styles/document.css, which already consumes
+     * --ui-canvas, --ui-text and --ui-line-strong.
+     *
+     * Names stay SEMANTIC, never descriptive: --ui-surface, --ui-accent-ink,
+     * never --ui-blue. A re-theme changes what the accent looks like; it should
+     * never require renaming the thing that uses it (slate-tokens.css:17-20).
+     * There are no private token namespaces shadowing these (DECISIONS.md:248):
+     * the Live screen re-declares this palette three times under its own names
+     * today (bug L12, slate-live.css:7-22, :57-72) and the editor a fourth
+     * (--slate-editor-pressure and friends, which the oracle shows resolving to
+     * the CHART palette's values, not this one) — the colour-literal guard and
+     * the token-integrity check fail both patterns.
+     *
+     * ORACLE  state=editor-review element=[0] <div id="subpage-host">
+     *         property=background-color value=rgb(232, 234, 235) [prov-light] /
+     *         rgb(9, 13, 16) [prov-baseline] winning rule=slate-shell.css
+     *         {body, #subpage-host}                          -> --ui-canvas
+     * ORACLE  state=editor-review element=[2] <header class="slate-editor-header">
+     *         property=background-color value=rgb(250, 250, 250) [prov-light] /
+     *         rgb(17, 22, 26) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.slate-editor-header} / {[data-theme="dark"] .slate-profile-editor
+     *         .slate-editor-header}                          -> --ui-bar
+     * ORACLE  state=editor-review element=[14] <section class="slate-editor-content">
+     *         property=background-color value=rgb(242, 243, 243) [prov-light] /
+     *         rgb(14, 19, 23) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.slate-editor-content}                        -> --ui-fascia
+     * ORACLE  state=editor-review element=[71] <div id="review-graph">
+     *         property=background-color value=rgb(255, 255, 255) [prov-light] /
+     *         rgb(24, 30, 35) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {#review-graph}                                -> --ui-surface
+     * ORACLE  state=history-shotdata element=[167] <select id="hv-pick-a"
+     *         class="slate-select slate-hv-select"> property=background-color
+     *         value=rgb(248, 249, 249) [prov-light] / rgb(26, 33, 39)
+     *         [prov-baseline] winning rule=slate-components.css {.slate-select}
+     *         authored `var(--slate-key) !important`          -> --ui-key
+     * ORACLE  state=editor-review element=[10] <button id="editor-tab-2"
+     *         class="slate-bank-item editor-tab-btn is-selected">
+     *         property=background-color value=rgb(227, 231, 233) [prov-light] /
+     *         rgb(40, 49, 57) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.slate-editor-tabs .editor-tab-btn.is-selected} -> --ui-key-on
+     * ORACLE  state=editor-review element=[0] <div id="subpage-host">
+     *         property=color value=rgb(23, 26, 28) [prov-light] /
+     *         rgb(244, 247, 248) [prov-baseline] winning rule=slate-shell.css
+     *         {body, #subpage-host} authored `var(--slate-text)` (n=403)
+     * ORACLE  state=editor-review element=[11] <button id="editor-history-btn"
+     *         class="slate-icon-btn"> property=color value=rgb(63, 71, 76)
+     *         [prov-light] / rgb(186, 196, 202) [prov-baseline]
+     *         winning rule=slate-components.css {.slate-icon-btn}
+     *         authored `var(--slate-text-2)`                  -> --ui-text-2
+     * ORACLE  state=editor-review element=[3] <span class="slate-editor-kicker">
+     *         property=color value=rgb(90, 101, 108) [prov-light] /
+     *         rgb(148, 161, 169) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.slate-editor-kicker} authored `var(--slate-muted)` (n=548)
+     * ORACLE  state=settings-accessories-cup-warmer element=[13] <button
+     *         id="bluetooth-btn" class="settings-nav-btn"> property=box-shadow
+     *         value=`rgb(203, 208, 211) 0px 1px 0px 0px inset` [prov-light] /
+     *         `rgb(58, 72, 82) 0px 1px 0px 0px inset` [prov-baseline]
+     *         winning rule=slate-shell.css {#subpage-host #main-categories-panel
+     *         ul > li + li .settings-nav-btn} authored `inset 0
+     *         var(--slate-hairline) 0 var(--slate-line)`      -> --ui-line
+     * ORACLE  state=editor-review element=[2] <header class="slate-editor-header">
+     *         property=box-shadow value=`rgb(170, 178, 183) 0px -1px 0px 0px inset`
+     *         [prov-light] / `rgb(82, 97, 107) 0px -1px 0px 0px inset`
+     *         [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.slate-editor-header} authored `inset 0 -1px
+     *         var(--slate-line-strong)`                       -> --ui-line-strong
+     * ORACLE  state=editor-review element=[9] <button id="editor-tab-1"
+     *         class="slate-bank-item"> property=box-shadow value=
+     *         `rgba(30, 42, 50, 0.11) 1px 0px 0px 0px inset` [prov-light] /
+     *         `rgba(194, 208, 218, 0.17) 1px 0px 0px 0px inset` [prov-baseline]
+     *         winning rule=slate-components.css {.slate-bank-item +
+     *         .slate-bank-item} authored `inset var(--slate-hairline) 0
+     *         var(--slate-seam)`                              -> --ui-seam-ink
+     * ORACLE  state=live-ready element=[0] <div id="main-page">
+     *         property=background-color value=rgb(58, 72, 82) [prov-baseline]
+     *         winning rule=slate-live.css {#main-page}         -> --ui-zone-seam
+     * ORACLE  state=editor-steps element=[213] <button class="pe-action-btn
+     *         pe-act-add"> property=color value=rgb(49, 92, 112) [prov-light] /
+     *         rgb(176, 196, 206) [prov-baseline] winning rule=profile-editor-v3.css
+     *         {.pe-action-btn.pe-act-add} authored `var(--slate-steel)`
+     * ORACLE  state=history-shotdata element=[166] <span class="slate-hv-pick-tag">
+     *         property=color value=rgb(248, 252, 253) [prov-light] /
+     *         rgb(18, 24, 28) [prov-baseline] winning rule=slate-live.css
+     *         {.slate-hv-pick-tag[data-slot="a"]} authored `var(--slate-on-steel)`
+     * ORACLE  state=settings-accessories-lighting element=[63] <button
+     *         class="slate-swatch"> property=background-color
+     *         value=rgb(35, 79, 99) [prov-light] / rgb(23, 59, 77)
+     *         [prov-baseline] winning rule=<inline> authored `var(--slate-primary)`
+     * ORACLE  state=expanded-charts element=[12] <button id="edit-profile-btn"
+     *         class="slate-btn slate-btn-primary"> property=color
+     *         value=rgb(248, 252, 253) [prov-light] / rgb(246, 251, 253)
+     *         [prov-baseline] winning rule=slate-components.css
+     *         {.slate-btn-primary} authored `var(--slate-on-primary)`
+     * ORACLE  state=settings-accessories-cup-warmer element=[55] <p
+     *         class="slate-accent-text"> property=color value=rgb(63, 71, 76)
+     *         [prov-light] / rgb(186, 196, 202) [prov-baseline]
+     *         winning rule=slate-components.css {.slate-accent-text}
+     *         authored `var(--slate-accent-ink) !important`   -> --ui-accent-ink
+     * ORACLE  state=history-shotdata element=[93] <strong id="live-alert-state">
+     *         property=color value=rgb(181, 28, 35) [prov-light] /
+     *         rgb(230, 102, 97) [prov-baseline] winning rule=slate-live.css
+     *         {#main-page .slate-live-alert strong} authored `var(--slate-danger)`
+     *                                                        -> --ui-status-danger
+     * ORACLE  state=expanded-charts element=[60] <span> property=color
+     *         value=rgb(0, 82, 212) [prov-light] / rgb(70, 142, 246)
+     *         [prov-baseline] winning rule=slate-live.css {#main-page
+     *         #drink-out-value, ...}                          -> --ui-tint-flow
+     * ORACLE  state=expanded-charts element=[85] <div class="slate-stepper-value
+     *         slate-temperature-value"> property=color value=rgb(186, 64, 14)
+     *         [prov-light] / rgb(233, 145, 103) [prov-baseline]
+     *         winning rule=slate-live.css {#main-page .slate-temperature-value}
+     *         authored `var(--slate-live-heat) !important`  -> --ui-tint-heat
+     *         (note the winning rule reads a PRIVATE token, --slate-live-heat,
+     *         a member of bug L12's shadow palette; the value it resolves to is
+     *         --slate-heat's)
+     *
+     * NO ORACLE ANSWER for --ui-status-ok and --ui-tint-lever: neither renders
+     * in any of the 49 captured states (no ready/success chrome, no lever-mode
+     * screen). Corpus carve-out, so these two fall through to a read-only
+     * source read: slate-tokens.css:211 declares `--slate-pressure: #007540`
+     * with the trailing note "also the success green" — which is precisely the
+     * conflation A5 ends — and :214 `--slate-lever: #7046b5`; dark :322
+     * `#00d4ab` and :325 `#a88be1`.
+     * =================================================================== */
+
+    --ui-canvas: #e8eaeb;        /* behind everything */
+    --ui-bar: #fafafa;           /* top bars */
+    --ui-fascia: #f2f3f3;        /* page body */
+    --ui-surface: #ffffff;       /* raised card */
+    --ui-key: #f8f9f9;           /* control face */
+    --ui-key-on: #e3e7e9;        /* control face, selected */
+    --ui-selection: #e3e7e9;     /* text selection / row highlight */
+
+    /* THE FILTER'S MATCH. Ben, 25 August 2026: "Highlight the match." Slate marks the
+     * matched letters in yellow; the platform's own <mark> default is a flat yellow that
+     * reads as ink on the dark theme, so the colour is stated rather than inherited.
+     *
+     * A GROUND AND NOT AN INK, so the letters keep the row's own colour and the mark reads
+     * as a wash behind them — which is what makes it survive selection, where the row's
+     * ink changes and a coloured letter would fight it. */
+    --ui-match: #ffd75e;
+
+    --ui-text: #171a1c;          /* primary ink */
+    --ui-text-2: #3f474c;        /* secondary ink */
+    --ui-muted: #5a656c;         /* labels, units, disabled */
+
+    --ui-line: #cbd0d3;          /* hairline around a control */
+    --ui-line-strong: #aab2b7;   /* emphasised divider; the scrollbar thumb */
+    --ui-seam-ink: rgb(30 42 50 / .11);  /* the seam INSIDE a one-piece bank */
+
+    /* THE GROUND BETWEEN ZONES, distinct from the edge around a control. Slate
+     * draws both with --ui-line, which works because Slate's seam is LIGHTER
+     * than its fascia — panels ruled with hairlines. A fork that draws the seam
+     * DARKER than the fascia (panels floating on black, which is what Radian
+     * does) cannot express that while the two share one token, because moving
+     * --ui-line moves every control border with it. Same value as --ui-line
+     * here, so the split changes nothing today. */
+    --ui-zone-seam: #cbd0d3;
+
+    /* THE ACCENT, in three parts that must not be conflated. --ui-primary is a
+     * FILL and never a glyph colour: in dark it is a deep navy that gives
+     * 1.37:1 as text. --ui-steel INVERTS between themes — dark here, light in
+     * dark — so its ink has to invert with it, which is why --ui-on-steel is
+     * not --ui-on-primary (pairing steel with on-primary gives 1.35:1 in dark:
+     * text that is present, addressable and unreadable). --ui-accent-ink is
+     * what anything drawing the accent as a glyph or a label reads instead. */
+    --ui-steel: #315c70;         /* focus ring, selected LED, selected FILL */
+    --ui-on-steel: #f8fcfd;
+    --ui-primary: #234f63;       /* primary action FILL */
+    --ui-on-primary: #f8fcfd;
+    --ui-accent-ink: var(--ui-text-2);
+
+    /* STATUS AND CHANNEL TINT — a separate family from the structural accent,
+     * deliberately.
+     *
+     * A5, DECIDED: TWO GREENS, NAMED BY ROLE. --ui-status-ok is ready/success
+     * chrome; --ui-channel-pressure (chart-channels.css) is the pressure trace.
+     * They are already different colours in practice — #007540 vs #2ec27e —
+     * they do different jobs, and deriving one from the other would hold chart
+     * legibility hostage to a status hue. Separate tokens even where the values
+     * coincide, which today they do not.
+     *
+     * The same argument settles the other four: --ui-tint-* are UI INK for the
+     * live readouts, and they are NOT the chart's channels. Flow is the proof —
+     * this family's flow is #0052d4 while the chart channel's is #397bce. The
+     * rail's numbers and the chart's traces answer to different contrast
+     * problems (ink on a control face vs a trace on a dark well), and the old
+     * skin already keeps them apart by value while pretending they are one
+     * idea. */
+    --ui-status-ok: #007540;
+    --ui-status-danger: #b51c23;
+    --ui-tint-flow: #0052d4;
+    --ui-tint-power: #965400;
+    --ui-tint-lever: #7046b5;
+    --ui-tint-heat: #ba400e;
+
+    /* ===================================================================
+     * 3.6  SCRIM AND ELEVATION  (5)   — colour-bearing, so both blocks
+     *
+     * ONE SCRIM, replacing eight literals. Today: rgba(8,12,15,0.56)
+     * (numpad-modal.css:30), rgba(0,0,0,0.58) (:341), rgba(0,0,0,0.35) and
+     * 0.75 (time-picker-modal.css:15, :32), rgba(0,0,0,.62)
+     * (notes-modal.css:15), rgba(0,0,0,0.55) (help-overlay.css:59),
+     * rgba(0,0,0,.62) (slate-shell.css:895), rgba(0,0,0,.55) (:2189),
+     * rgba(0,0,0,0.46) (profile-editor-v3.css:1386). ::backdrop is unreachable
+     * by the oracle's element walk, so these are source reads. The nine alphas
+     * sorted are .35 .46 .55 .55 .56 .58 .62 .62 .75 — the median is .56, which
+     * is also the value the most-opened dialog (the numpad) already uses. One
+     * value, both themes, per §3.6.
+     * Blur radii today are 10/6/6/4/6/12px; the mode is 6px, which §3.6 adopts.
+     *
+     * THREE ELEVATIONS, replacing six literal box-shadows across five overlay
+     * sheets, as a ladder by ROLE rather than by sheet:
+     * SOURCE  help-overlay.css:17  `0 3px 12px rgba(0,0,0,0.35)`   -> elev-1
+     * SOURCE  context-menu.css:21  `0 12px 32px rgba(0,0,0,0.18),
+     *                               0 2px 6px rgba(0,0,0,0.08)`    -> elev-2
+     * SOURCE  numpad-modal.css:52, profile-editor-v3.css:910, :1279
+     *         `0 24px 70px rgba(15,23,42,0.30)` and their dark twins
+     *         numpad-modal.css:347, profile-editor-v3.css:1036
+     *         `0 24px 70px rgba(0,0,0,0.52)`                       -> elev-3
+     * elev-3 is the only one that varies by theme, and it is the one written
+     * most often (three light sites, two dark). Two further literals —
+     * help-overlay.css:88/:119 `0 6px 20px rgba(0,0,0,.28)` and
+     * profile-editor-v3.css:854 `0 18px 54px rgba(0,0,0,0.28)` — collapse onto
+     * the ladder rather than adding steps to it.
+     * =================================================================== */
+    --ui-scrim: rgb(0 0 0 / .56);
+    --ui-scrim-blur: 6px;
+    /* D10 — THE BLANK. "Fully black, one owner: the skin" (SCOPE.md:218). The one
+     * token that is deliberately the SAME in both themes: a blanked screen does not
+     * follow the theme, which is the whole content of the decision. Not --ui-canvas,
+     * which is a theme ground and goes #e8eaeb in light. Read only by #57. */
+    --ui-blackout: #000000;
+    /* THE INK ON THAT GROUND, and it is the same in both themes for exactly the reason
+     * the ground is. Ben, 24 Aug 2026, asked for a faint clock on the blank; the first
+     * build painted it with --ui-text, which is NEAR-BLACK in light — a 22%-alpha clock
+     * on a black screen, invisible, and invisible only for half the users. A ground that
+     * does not follow the theme cannot carry an ink that does. Read only by #57. */
+    --ui-blackout-ink: #f4f7f8;
+    --ui-elev-1: 0 3px 12px rgb(0 0 0 / .35);
+    --ui-elev-2: 0 12px 32px rgb(0 0 0 / .18), 0 2px 6px rgb(0 0 0 / .08);
+    --ui-elev-3: 0 24px 70px rgb(15 23 42 / .30);
+
+    /* ===================================================================
+     * 3.9  THE FOUR COLOUR-BEARING SELECTION DIALS — light
+     * (the fifth, --ui-selected-weight, is theme-invariant and lives above)
+     * =================================================================== */
+    --ui-selected-face: var(--ui-steel);
+    --ui-selected-ink: var(--ui-on-steel);
+    --ui-selected-led: 0px;      /* Radian: var(--ui-toggle-led) */
+    --ui-selected-glow: 0%;      /* Radian: ~55% of the channel colour */
+}
+
+/* =======================================================================
+ * DARK
+ *
+ * Only colour-bearing tokens are redeclared. Geometry, type, motion, z-index
+ * and density are theme-invariant and appear exactly once, above. Every token
+ * in this block has a light twin in :root and vice versa — that symmetry is
+ * what guard 4 checks, and it is why a value that happens to be identical in
+ * both themes is still written twice rather than left to inherit.
+ *
+ * The stamp is [data-theme="dark"] on <html>, written before first paint by
+ * index.html's inline script. [data-theme="light"] is a real, explicit value
+ * too — it simply needs no block, because :root already carries the light set.
+ * ======================================================================= */
+[data-theme="dark"] {
+    --ui-canvas: #090d10;
+    --ui-bar: #11161a;
+    --ui-fascia: #0e1317;
+    --ui-surface: #181e23;
+    --ui-key: #1a2127;
+    --ui-key-on: #283139;
+    --ui-selection: #141a1f;
+    /** Dimmer on the dark ground: the same hue at the weight it needs there. */
+    --ui-match: #c99b26;
+
+    --ui-text: #f4f7f8;
+    --ui-text-2: #bac4ca;
+    --ui-muted: #94a1a9;
+
+    --ui-line: #3a4852;
+    --ui-line-strong: #52616b;
+    --ui-seam-ink: rgb(194 208 218 / .17);
+    --ui-zone-seam: #3a4852;
+
+    /* Steel is the LIGHT one here, so its ink is the dark one. 11.4:1. */
+    --ui-steel: #b0c4ce;
+    --ui-on-steel: #12181c;
+    --ui-primary: #173b4d;
+    --ui-on-primary: #f6fbfd;
+    /* Lifted well clear of the fill: 6.4:1 on --ui-key, where the fill itself
+     * managed 1.37:1. */
+    --ui-accent-ink: var(--ui-text-2);
+
+    --ui-status-ok: #00d4ab;
+    --ui-status-danger: #e66661;
+    --ui-tint-flow: #468ef6;
+    --ui-tint-power: #e5a50e;
+    --ui-tint-lever: #a88be1;
+    --ui-tint-heat: #e99167;
+
+    /* One value, both themes (§3.6) — declared here as well so no colour token
+     * is missing from a theme block. */
+    --ui-scrim: rgb(0 0 0 / .56);
+    /* D10's blank, same value in both themes on purpose — see the light block. */
+    --ui-blackout: #000000;
+    /* The same pair, and the same value, in the dark theme — see the light block. */
+    --ui-blackout-ink: #f4f7f8;
+    --ui-elev-1: 0 3px 12px rgb(0 0 0 / .35);
+    --ui-elev-2: 0 12px 32px rgb(0 0 0 / .18), 0 2px 6px rgb(0 0 0 / .08);
+    /* The only elevation that differs: on a black ground the light ladder is
+     * invisible, so the modal sheet's shadow goes deeper. */
+    --ui-elev-3: 0 24px 70px rgb(0 0 0 / .52);
+
+    /* The dim state recedes further in dark, where a low opacity still leaves
+     * ink on a black ground (slate-live.css:1805-1806). Components read
+     * --ui-opacity-dim and never have to know which theme is on. */
+    --ui-opacity-dim: var(--ui-opacity-dim-dark);
+
+    --ui-selected-face: var(--ui-steel);
+    --ui-selected-ink: var(--ui-on-steel);
+    --ui-selected-led: 0px;
+    --ui-selected-glow: 0%;
+}
+
+/* =======================================================================
+ * DENSITY — the compact height band (§2.1 Rule 2)
+ *
+ * Two bands, not three: DECISIONS allows "two or three" and a third has no
+ * evidence behind it, while each band is a layout somebody has to check by
+ * hand. Regular is 1 (declared on :root); below 700px of height, 0.875.
+ *
+ * The spec writes this as `@container app (height < 700px) { :root { ... } }`.
+ * That form cannot work as written — a container query styles the container's
+ * DESCENDANTS, and :root is the container's ancestor, so the rule would never
+ * match and --ui-density would silently never leave 1. It is expressed here as
+ * the equivalent global height query instead, which is exactly what §2.1 Rule 2
+ * permits ("the only global queries are on height, and there are two") and no
+ * more: app-root is 100dvh, so the viewport height and the app container's
+ * height are the same number. Reversible in two lines if item #2 hosts the
+ * container differently.
+ *
+ * WHAT THIS BAND MOVES: --ui-band-h 118 -> 103.25, --ui-nav-row 88 -> 77,
+ * --ui-toolbar-h 120 -> 105 (§3.2). Nothing else. Before those three tokens
+ * took the factor this whole block changed zero rendered pixels.
+ *
+ * DONE IN WAVE 5.4 (C6): this block no longer overwrites --ui-density. It sets
+ * --ui-density-band, and --ui-density is the product of that and the C6 base
+ * (§3.7). Numerically identical at a base of 1 — the whole point is that it is
+ * no longer identical when somebody has chosen "Larger", because the band now
+ * multiplies the choice instead of replacing it: 1.1 x 0.875, not 0.875.
+ *
+ * ONE THING A LATER WAVE STILL OWNS:
+ *   - C3's named `compact` (the editor step matrix) is a subtree
+ *     re-declaration that "wins locally". It cannot be a subtree
+ *     re-declaration of --ui-density: var() substitutes at computed-value time
+ *     on the element that DECLARES the custom property, so --ui-band-h is
+ *     already resolved on :root and a descendant's --ui-density does not
+ *     re-derive it. C3 re-declares the cap/band token it wants, not the
+ *     multiplier. That is also why CONVENTIONS.md §11 bans density arithmetic
+ *     in components: the arithmetic lives here, once.
+ * ======================================================================= */
+@media (height < 700px) {
+    :root {
+        --ui-density-band: 0.875;
+    }
+}
+
+/* ===========================================================================
+ * REGISTRATION — one property, and it is not decoration (wave 5.4, C6).
+ *
+ * --ui-density is now a PRODUCT (§3.7), and an unregistered custom property
+ * substitutes its value as written: `getPropertyValue('--ui-density')` would
+ * hand back the string "calc(1 * 0.875)". Everything that PAINTS would be
+ * unaffected — calc nests fine — but two render suites read the number
+ * directly, with parseFloat, to derive the band height they expect
+ * (`ui-page-header.render.test.mjs`, `ui-nav-row.render.test.mjs`), and
+ * parseFloat("calc(...)") is NaN.
+ *
+ * Registering it as a <number> makes the browser COMPUTE it: the same two
+ * readers get 1 or 0.875 as they always did, and the split cost no change
+ * anywhere outside this file. `inherits: true` because every consumer of it is
+ * a descendant of the element that declares it; `initial-value: 1` so a root
+ * that somehow carries no declaration still renders at regular density rather
+ * than at zero.
+ *
+ * Registration also makes an invalid override fall back to 1 instead of
+ * substituting garbage, which is the behaviour a token drill wants anyway.
+ * =========================================================================== */
+@property --ui-density {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 1;
+}
+
+/* ===========================================================================
+ * THE PRESET ROW'S SELECTION IDIOM — Ben, 23 Aug 2026
+ * ===========================================================================
+ * "the presets for Drink weight, Steam flow shouldn't be the normal toggle, but
+ * insted the same look slate had with just numbers with line underneath
+ * highlighting what value is selected. Maybe the selected value could also be a
+ * little bold or slighyl larger? Might look good but needs to be sutble."
+ *
+ * That is Slate's own paint for this row, measured in ui-preset-bank.js's header:
+ * selected color = var(--slate-text) against a resting 300 and a selected 400
+ * weight, plus a text-shadow glow and a 42px ::after underline at 72 percent steel
+ * (slate-live.css:774-800). Slate reaches NONE of that through a dial, which is why
+ * that header calls the idiom a bug — a fork retargets every dial and the row does
+ * not move.
+ *
+ * SO THE LOOK COMES BACK AS DIALS, AND IT LIVES HERE. Which row wears which
+ * selection idiom is a theme decision: putting these three in the component would
+ * be bug L12 (a public token re-declared privately, so the token file stops
+ * controlling it), and Gate C's private-palette guard refuses it by name. Scoped to
+ * the element, they inherit into the <ui-bank> the component composes, which is the
+ * only way in — ui-bank refuses ::part on purpose.
+ *
+ *   face  transparent  there is no fill. The numbers sit on the rail's own ground,
+ *                      which is the whole of "just numbers".
+ *   ink   --ui-text    the selected number is the brightest thing in the row.
+ *   led   the underline. --ui-selected-led is a LENGTH and base.js's selectionSurface
+ *                      draws it as an inset bottom bar in currentColor — the same
+ *                      mechanism Slate's Settings nav uses, so no fifth property.
+ *
+ * THE WEIGHT DIAL IS DELIBERATELY ABSENT: ui-bank rests its cells at
+ * --ui-weight-regular and a selected cell already takes --ui-selected-weight, which
+ * is --ui-weight-medium above. 400 -> 500 is one notch, the same size of step as
+ * Slate's 300 -> 400, and it reads as emphasis now that the fill it hid behind is
+ * gone. Neither is a font-size: the row is a grid of equal cells, so a larger
+ * selected number would move its three neighbours every time the value changed.
+ *
+ * The glow dial is left where the theme put it. Slate's is 0 percent on every other
+ * selected thing, and a glow here would be the one place in the skin that shimmers.
+ * =========================================================================== */
+/* THREE NAMES OF THEIR OWN, AND THE COMPONENT WIRES THEM TO THE DIALS. A first
+ * draft wrote the dials directly under a `ui-preset-bank` selector here, and that
+ * cannot work for a reason worth recording: a DOCUMENT stylesheet cannot match an
+ * element inside a shadow root, and every preset bank in the app is inside
+ * <live-screen>'s. The rule matched only the component's own test fixture, where the
+ * element sits in the light DOM — green suite, unchanged glass.
+ *
+ * So the VALUES live here, where one owner keeps them and a fork retargets them, and
+ * ui-preset-bank's own sheet aims the three dials at these three names. That wiring is
+ * the one shape Gate C's private-palette guard allows through: a re-declaration whose
+ * value is itself a public token, never a literal. */
+:root {
+    --ui-preset-selected-face: transparent;
+    --ui-preset-selected-ink: var(--ui-text);
+    --ui-preset-selected-led: var(--ui-toggle-led);
+}
+
+/* ===========================================================================
+ * THE FORM CONTROL WIDTH — one number, two leaf renderers
+ * ===========================================================================
+ * A text or number control that states no width of its own gets this one.
+ *
+ * WHY IT IS PUBLIC. It began private inside settings-bespoke-leaf.js, where the
+ * rebuilt pages lay their form rows out. Then a registry-built leaf slotted a
+ * ui-text-field straight into a settings row, and MEASURED at the bench the row's
+ * control track computed 0px and the field drew at x=1207 with the pane ending at
+ * 1281 — outside the surface holding it. ui-settings-row's control track is
+ * flex: none, so it takes the content's own base size, and ui-text-field declares
+ * no host block at all.
+ *
+ * The fix needs a width, and the width has to be the SAME one, or the field on a
+ * registry leaf and the field on the bespoke leaf beside it are two different sizes
+ * for one job. So the number lives here, where one owner keeps it, and the bespoke
+ * sheet aims its private name at this public one.
+ * =========================================================================== */
+:root {
+    --ui-form-control-w: 320px;
+}

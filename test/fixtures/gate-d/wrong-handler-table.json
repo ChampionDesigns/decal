@@ -1,0 +1,42 @@
+{
+  "$canary": "SOURCE. Three ways a row can stop being true of the server while still looking tidy: a handler file that no longer exists, a path that handler does not register, and a symbol that is not in it. Coverage says the client is tabled; this says the table is still true.",
+  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
+  "constructedRouteBuilders": [],
+  "forbiddenSpellings": [],
+  "rest": [
+    {
+      "id": "getShots",
+      "path": "/api/v1/shots",
+      "route": "/shots",
+      "verb": "GET",
+      "requestFields": { "query": [], "body": null },
+      "responseShape": "200 {items,total,limit,offset}",
+      "handlerSymbol": "ShotsHandler._getShots",
+      "handlerFile": "lib/src/services/webserver/no_such_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "recorded",
+      "consumedBy": [],
+      "gates": [],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "getSensors",
+      "path": "/api/v1/sensors",
+      "route": "/sensors",
+      "verb": "GET",
+      "requestFields": { "query": [], "body": null },
+      "responseShape": "200 array of {id, info}",
+      "handlerSymbol": "SensorsHandler._noSuchSymbolAnywhere",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "recorded",
+      "consumedBy": [],
+      "gates": [],
+      "retires": [],
+      "notes": []
+    }
+  ],
+  "sockets": []
+}

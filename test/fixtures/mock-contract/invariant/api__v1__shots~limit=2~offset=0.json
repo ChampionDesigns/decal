@@ -1,0 +1,34 @@
+{
+ "items": [
+  {
+   "id": "canary-0",
+   "timestamp": "2026-08-16T09:00:00.000",
+   "workflow": {
+    "id": "w",
+    "name": "n"
+   },
+   "stopReason": "machineEnded"
+  },
+  {
+   "id": "canary-1",
+   "timestamp": "2026-08-16T09:00:00.000",
+   "workflow": {
+    "id": "w",
+    "name": "n"
+   },
+   "stopReason": "machineEnded"
+  },
+  {
+   "id": "canary-2",
+   "timestamp": "2026-08-16T09:00:00.000",
+   "workflow": {
+    "id": "w",
+    "name": "n"
+   },
+   "stopReason": "machineEnded"
+  }
+ ],
+ "total": 9,
+ "limit": 2,
+ "offset": 0
+}

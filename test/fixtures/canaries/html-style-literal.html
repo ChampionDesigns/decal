@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>canary — authored CSS inside an HTML document</title>
+
+<!-- VIOLATES ON PURPOSE. Gate C's third scan surface: this tree has two hand-written
+     HTML documents (index.html and tools/gallery/index.html) and the gallery's page
+     chrome is ~120 lines of authored CSS in a <style> block. A scanner that reads only
+     .css and .js files reports PASS on a file it never opened.
+
+     The decoys below matter as much as the violations: a colour written inside an HTML
+     comment, and one written inside a JS string in the inline script, must NOT be
+     violations — the same "the file that documents the rule must not fail it" rule the
+     .js canaries pin. This comment writes #ff0000 and rgb(1, 2, 3) for exactly that. -->
+
+<style>
+    .literal-in-a-style-element {
+        color: #c0ffee;
+        background-color: rgb(12, 34, 56);
+    }
+</style>
+</head>
+<body>
+<script type="module">
+import { css } from 'lit';
+
+// A colour in a comment is prose, not CSS: #ff0000
+const documentation = 'never write background: #ff0000 in a component';
+
+export const styles = css`
+    .literal-in-an-inline-script {
+        border-color: #0ff;
+    }
+`;
+</script>
+</body>
+</html>

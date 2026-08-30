@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decal gallery</title>
+<link rel="icon" href="data:,">
+
+<!-- SCAFFOLDING, NOT SHIPPING SURFACE (Wave 0a item #4). The gallery mounts
+     components in their states so a human can look at them and the Gate B capture
+     battery has something to photograph. Waves 1–4 add entries to entries.js; this
+     document does not change.
+
+     It is a SEPARATE document from index.html on purpose — the app is "one document"
+     and a route change swaps which screen is mounted inside <app-root> (Part 2 §2).
+     The gallery is a tool, so it lives under tools/ with its own tiny page rather
+     than as a route in the app.
+
+     The importmap is the same mechanism as index.html's, with ../../ paths because
+     this page is two levels down. It must stay in step with index.html's — SAME KEYS,
+     re-rooted values — and `test/tools-port.test.mjs` now asserts exactly that,
+     because keeping it in step by hand failed the first time it mattered: the "src/"
+     prefix was missing here, so `import { UiElement } from 'src/components/base.js'`
+     — the bare form CONVENTIONS.md documents four times, which resolves in the app
+     and in the Gate A harness — THREW in the gallery. Gate B takes its whole subject
+     list from this page, so the first Wave 1 component written as instructed would
+     have passed Gate A and been unphotographable by Gate B. (The Gate A harness does
+     not have this problem — it parses index.html's importmap at serve time.) -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "../../vendor/lit.js",
+    "uplot": "../../vendor/uPlot.esm.js",
+    "iro": "../../vendor/iro.js",
+    "reconnecting-websocket": "../../vendor/reconnecting-websocket.js",
+    "easymde": "../../vendor/easymde.min.js",
+    "src/": "../../src/"
+  }
+}
+</script>
+
+<!-- The same three global sheets the app links, so a component in the gallery sees
+     exactly the tokens it will see in the app. -->
+<link rel="stylesheet" href="../../styles/tokens.css">
+<link rel="stylesheet" href="../../styles/chart-channels.css">
+<link rel="stylesheet" href="../../styles/document.css">
+
+<style>
+    /* The gallery's own chrome. Written entirely in --ui-* tokens, and Gate C now
+       reads this block: a tool whose chrome drifts from the palette is a tool that
+       lies about what it is showing. (tools/ was outside the scan roots until the
+       scanner learned to read <style> elements — "passes because it is clean" and
+       "passes because nobody opened it" are different facts.) */
+    body {
+        margin: 0;
+        display: grid;
+        grid-template-columns: minmax(200px, 260px) 1fr;
+        block-size: 100vh;
+        color: var(--ui-text);
+        background-color: var(--ui-canvas);
+    }
+
+    #nav {
+        overflow-y: auto;
+        padding: var(--ui-space-3);
+        border-inline-end: var(--ui-hairline) solid var(--ui-line);
+        background-color: var(--ui-surface);
+    }
+
+    #nav h1 {
+        margin: 0 0 var(--ui-space-3);
+        font-size: var(--ui-text-lg);
+        font-weight: 600;
+    }
+
+    #nav h2 {
+        margin: var(--ui-space-4) 0 var(--ui-space-2);
+        font-size: var(--ui-text-sm);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--ui-text-2);
+    }
+
+    #nav button {
+        display: block;
+        inline-size: 100%;
+        min-block-size: var(--ui-hit-min);
+        margin-block-end: var(--ui-space-1);
+        padding-inline: var(--ui-space-3);
+        text-align: start;
+        font: inherit;
+        font-size: var(--ui-text-note);
+        color: var(--ui-text);
+        background-color: var(--ui-key);
+        border: var(--ui-border-w) solid var(--ui-line);
+        border-radius: var(--ui-radius);
+        cursor: pointer;
+    }
+
+    #nav button[aria-current="true"] {
+        background-color: var(--ui-selected-face);
+        color: var(--ui-selected-ink);
+    }
+
+    #nav button:focus-visible {
+        outline: var(--ui-focus-w) solid var(--ui-steel);
+        outline-offset: var(--ui-focus-offset);
+    }
+
+    main {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-inline-size: 0;
+        overflow: hidden;
+    }
+
+    header {
+        display: flex;
+        align-items: center;
+        gap: var(--ui-space-3);
+        padding: var(--ui-space-3);
+        border-block-end: var(--ui-hairline) solid var(--ui-line);
+    }
+
+    #state-label {
+        font-size: var(--ui-text-lg);
+        font-weight: 600;
+    }
+
+    #readout {
+        margin-inline-start: auto;
+        font-size: var(--ui-text-2xs);
+        color: var(--ui-text-2);
+        font-variant-numeric: tabular-nums;
+    }
+
+    header button {
+        min-block-size: var(--ui-hit-min);
+        padding-inline: var(--ui-space-3);
+        font: inherit;
+        color: var(--ui-text);
+        background-color: var(--ui-key);
+        border: var(--ui-border-w) solid var(--ui-line);
+        border-radius: var(--ui-radius);
+        cursor: pointer;
+    }
+
+    header button[aria-current="true"] {
+        background-color: var(--ui-selected-face);
+        color: var(--ui-selected-ink);
+    }
+
+    #stage {
+        overflow: auto;
+        padding: var(--ui-space-4);
+    }
+
+    #state-notes {
+        margin: 0 var(--ui-space-4);
+        padding-block: var(--ui-space-2);
+        max-inline-size: 70ch;
+        font-size: var(--ui-text-note);
+        color: var(--ui-text-2);
+    }
+
+    /* The stage host carries a state's hostStyle, so a state can say "at a 380px
+       container" — the only honest way to show a component that reads its own
+       container rather than the viewport. */
+    #stage-host {
+        display: block;
+    }
+</style>
+</head>
+<body>
+<nav id="nav">
+    <h1>Decal gallery</h1>
+</nav>
+<main>
+    <header>
+        <span id="state-label">—</span>
+        <span id="readout"></span>
+        <button type="button" data-theme="light">Light</button>
+        <button type="button" data-theme="dark">Dark</button>
+    </header>
+    <div id="stage">
+        <p id="state-notes" hidden></p>
+        <div id="stage-host"></div>
+    </div>
+</main>
+<script type="module" src="./gallery.js"></script>
+</body>
+</html>

@@ -1,0 +1,3325 @@
+{
+  "$schema": "CONTRACTS.md documents every column. Hand-checked, never generated.",
+  "version": 1,
+  "wave": "5.6",
+  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — the one place the pin is written; scripts/gate-d.js asserts this field equals it and that every row's checkedCommit does too.",
+  "reaRoot": "/home/ben/bengle/_port/worktrees/rea-reanchor-v3",
+  "authority": "The handler body AS WRITTEN at the pinned commit. Not rest_v1.yml, not doc/Api.md, not the old skin's JSDoc. Where the spec and the handler disagree the handler wins; see rea-routes.generated.js REA_ROUTE_EXCEPTIONS.",
+  "statusMeanings": {
+    "consumed": "the client addresses this route today — a caller exists in src/",
+    "declared": "the client declares knowledge of this route (conditional registry, cache register, socket table) without calling it yet",
+    "recorded": "no caller and no declaration; the row exists because a handler-body gate or a retired contract bug attaches to it, and tonight's tests assert something about it"
+  },
+  "rowRule": "A row exists for exactly one of the three reasons above and says which. A row is never added because a route might be useful — inventing surface is how a table stops being evidence.",
+  "absentRoutes": [
+    {
+      "wanted": "R2 — a machine limits endpoint (from B2, resolving B3)",
+      "wantedBy": "wave 5.5, item one-ranges-table. Every numeric input in the profile editor, plus the numpad hints and the settings fields, take their bounds from it once it exists.",
+      "servedAt": null,
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "basis": "mechanical sweep of lib/src/services/webserver at the pin, RE-COUNTED 21 Aug: 140 app.get|put|post|delete('/api/v1/…') registrations — 58 GET, 44 POST, 22 PUT, 16 DELETE over 99 distinct paths (141 counting the one OPTIONS; 13 more on /ws/v1) — ZERO whose path matches limit / range / bound / envelope / constraint. The recorded 149 reproduced at no counting scope: the flat glob (31 files) and the recursive one (46) both give 140. Only the sweep number was wrong; R2's absence re-verified TRUE on its own.",
+      "interim": "B2's decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
+      "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint (Part 10 §9) and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (Part 10 §7's ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
+    },
+    {
+      "wanted": "R5 — per-shot outcome scalars on the shot SUMMARY: duration, peak pressure, average flow (and average pressure, peak flow after first drop, time to first drop)",
+      "wantedBy": "wave 5.6, items hist-shot-list-derivation / hist-b5-scalars-q17. The History list wants to print '28 s' in a row cell without downloading the shot the row names.",
+      "servedAt": null,
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "basis": "NOT A MISSING ROUTE — A MISSING FIELD, verified by reading both serializers at the pin rather than by sweeping paths. `ShotRecord.toJsonWithoutMeasurements` (lib/src/models/data/shot_record.dart:49-59) emits exactly id, timestamp, workflow, annotations, stopReason and the two legacy aliases shotNotes/metadata; `ShotRecord.toJson` (:36-47) adds only `measurements`. Neither carries duration in any spelling, and `ShotAnnotations` (shot_annotations.dart:5-14) models six fields plus a free `extras` map with not one computed metric among them. The shots list maps every row through toJsonWithoutMeasurements (shots_handler.dart:131), so the gap is on the payload as well as in the model. CORRECTION THIS WAVE'S CHECK MAKES TO ITS OWN SCOPING NOTE: `annotations.actualYield` and `annotations.enjoyment` DO ride on the list payload when the shot carries them — they are annotations, not computed metrics — so the R5 gap is duration, peak pressure and average flow, and yield is only dashed because no fixture on the capture mock records one.",
+      "interim": "B5, decided: the scalars are computed IN THE SKIN from gate 6's single walk (src/lib/shot-derivation.js `scalars`, twelve keys, each null when absent), for the shots that have actually been downloaded because they are on the chart. Every other row shows a DASH. Q17 (DECISIONS.md, 16 Aug) settled the open half: the list does NOT download a ~221 KB record to fill a list cell, so `fillMissingOutcomes` and the whole fetch-per-row machinery are not built and there is no code path to them.",
+      "policy": "NO STUB, NO SENTINEL, NO FETCH. The absence is the recorded finding. The reading shape is src/lib/shot-summary.js SUMMARY_SCALAR_KEYS: each scalar names the summary field that carries it, or null for 'nothing serves this yet'. R5 lands as a STRING in that table — one field per scalar — and the dash fills in with nothing to delete, because nothing was built. Pinned by test/shot-summary.test.mjs (the dash truth table, and the per-row fetch count asserted at exactly 0) and declared on the wave manifest."
+    }
+  ],
+  "constructedRouteBuilders": [
+    {
+      "file": "src/data/rea-kv-backend.js",
+      "builds": [
+        "getStoreByNamespace",
+        "getStoreByNamespaceByKey",
+        "postStoreByNamespaceByKey",
+        "deleteStoreByNamespaceByKey"
+      ],
+      "why": "Gate 2's storage backend predates the transport and composes `${base}/store/${ns}/${key}` against an injected fetch. It encodes both segments, so it is correct, but it does not go through rea-transport.js — recorded by Gate 3 CORE as a converge-later item. Until it converges, its four paths cannot be found by the literal scan, so it is declared here.",
+      "convergeTo": "callRoute(transport, 'getStoreByNamespaceByKey', {params}) once the KV backend takes the transport; the KV list route is one of the six conditional ones and would then win a 304 it does not ask for today."
+    },
+    {
+      "file": "src/data/rea-ws-channels.js",
+      "builds": [
+        "sensorSnapshot",
+        "pluginEndpoint"
+      ],
+      "why": "The two TEMPLATED socket channels take their id from the caller, so `sensorSnapshotPath()` and `pluginEndpointPath()` compose `${WS_PREFIX}/sensors/${id}/snapshot` and `${WS_PREFIX}/plugins/${id}/${endpoint}`. Both interpolate through encodeURIComponent and both templates are socket rows in this table.",
+      "convergeTo": null
+    },
+    {
+      "file": "src/data/rea-transport.js",
+      "builds": [],
+      "why": "reaPath/reaQuery/socketUrl compose the base URL with a path handed to them. It builds no route of its own — the path always arrives from the caller or from the generated table — so it declares no rows.",
+      "convergeTo": null
+    },
+    {
+      "file": "src/data/rea-routes.js",
+      "builds": [],
+      "why": "buildPath fills `<param>` placeholders from the generated table's own template. The template is the row; nothing is invented at the call site.",
+      "convergeTo": null
+    }
+  ],
+  "rest": [
+    {
+      "requestFields": {
+        "query": [
+          {
+            "name": "host",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "body": null
+      },
+      "gates": [
+        {
+          "kind": "body-or-query",
+          "meaning": "`_extractHost` reads the request body FIRST and falls back to `?host=`, so both spellings reach the handler — but the spec declares only the query parameter on DELETE",
+          "action": "send the query. A DELETE body is the one place a fetch stack or an intermediary may drop what it was given, and `buildQuery` checks the query spelling against the contract"
+        }
+      ],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js"
+      ],
+      "id": "deleteDevicesWifi",
+      "path": "/api/v1/devices/wifi",
+      "route": "/devices/wifi",
+      "verb": "DELETE",
+      "responseShape": "200 {endpoints}; 400 {error}",
+      "handlerSymbol": "WifiScaleHandler._remove",
+      "handlerFile": "lib/src/services/webserver/wifi_scale_handler.dart"
+    },
+    {
+      "id": "deleteMachineFirmware",
+      "path": "/api/v1/machine/firmware",
+      "route": "/machine/firmware",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "202 {operation:{state}} — always 202, whatever happened; the handler swallows every throw and reports the state it could read",
+      "handlerSymbol": "FirmwareHandler._cancelUpdate",
+      "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/firmware-store.js cancel"
+      ],
+      "gates": [
+        {
+          "kind": "a-202-is-not-a-cancellation",
+          "meaning": "The handler catches everything — a machine that is not connected answers 202 with `idle` — so the status says only that the ASK was received.",
+          "action": "Let the open progress stream say what happened. Reporting 'cancelled' off this 202 would claim an outcome nobody observed."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Rowed with the two install routes because abandoning a flash with no way to stop it is worse than not offering one."
+      ]
+    },
+    {
+      "id": "deleteMachineSettingsReset",
+      "path": "/api/v1/machine/settings/reset",
+      "route": "/machine/settings/reset",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "202 Accepted, no body; 503 {error, message} when the machine is unavailable; 500 {error} when it is not connected",
+      "handlerSymbol": "De1Handler.addRoutes (DELETE /api/v1/machine/settings/reset) -> De1Controller.applySettingsDefaults",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-de1-settings.js"
+      ],
+      "gates": [
+        {
+          "kind": "narrower-than-its-name",
+          "meaning": "the route is called `reset` and is NOT a factory reset. `applySettingsDefaults` (de1_controller.defaults.dart:110-122) writes exactly seven values — fanThreshold 55, heaterIdleTemp 95, heaterPh1Flow 2.0, heaterPh2Flow 4.0, heaterPh2Timeout 4.0, refillKitSetting auto, flowEstimation 1.0, steamPurgeMode 0 — and touches no profile, no calibration latch and no shot history",
+          "action": "name the seven in the confirmation rather than warning vaguely. A dialog that implied a factory reset would be describing a different route"
+        },
+        {
+          "kind": "invalidates-two-caches",
+          "meaning": "the seven are spread over GET /machine/settings, GET /machine/settings/advanced and GET /machine/calibration, so a reset makes both TTL caches wrong at once",
+          "action": "invalidate on success, in the client. The old skin's own words for the bug: 'Reset-to-defaults repainted the PRE-reset values under a toast that said it had worked'"
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "F3/Q1 excluded this route on 'no work of any kind on reset-to-default'. Reversed 24 Aug 2026: the rule was written when the seven values were mostly invisible in this skin, and on that day every one of them became a control on a page."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [
+        {
+          "kind": "irreversible-from-here",
+          "meaning": "`POST /api/v1/plugins/install` answers 501 Not Implemented at this pin ('Plugin install from URL not yet implemented'), so nothing in this skin can put a removed plugin back",
+          "action": "confirm before calling, and say in the confirmation that it cannot be undone from here"
+        }
+      ],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js"
+      ],
+      "id": "deletePluginsById",
+      "path": "/api/v1/plugins/{id}",
+      "route": "/plugins/<id>",
+      "verb": "DELETE",
+      "responseShape": "200 {message, id}; 404 {error}",
+      "handlerSymbol": "PluginsHandler.addRoutes (inline)",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/presence-store.js"
+      ],
+      "id": "deletePresenceSchedulesById",
+      "path": "/api/v1/presence/schedules/{id}",
+      "route": "/presence/schedules/<id>",
+      "verb": "DELETE",
+      "responseShape": "200 {deleted:id}; 404 {error, id} when the list is empty or the id is not in it",
+      "handlerSymbol": "PresenceHandler._deleteScheduleHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart"
+    },
+    {
+      "id": "deleteProfilesById",
+      "path": "/api/v1/profiles/{id}",
+      "route": "/profiles/<id>",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — percent-decoded by the handler"
+        ]
+      },
+      "responseShape": "200 {success:true, message:'Profile deleted', id}; 404 {error:'Not found', message} on ArgumentError (unknown id); 500",
+      "handlerSymbol": "ProfileHandler._handleDelete -> ProfileController.delete",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "delete-is-not-deletion",
+          "meaning": "DELETE here is a SOFT delete and its effect depends on the record: ProfileController.delete (profile_controller.dart:247-264) sets Visibility.hidden on an isDefault record and Visibility.deleted on a user one. Nothing is removed — the only route that removes a record is deleteProfilesByIdPurge, which v1 does not call.",
+          "action": "Call it 'Hide', which is the old skin's own word for the same control (profile_selector.js:624 doHide), and never 'Delete'. The record stays; a bundled one comes back through postProfilesRestoreByFilename. The LISTING is what hides it: `?includeHidden=true` returns it and profile-rules.js filters visibility client-side, so the answer to 'did it work' is the re-read, never the 200."
+        },
+        {
+          "kind": "a-404-is-an-answer",
+          "meaning": "An id the store does not know is a 404 with {error:'Not found'}, not a 500 — _handleDelete has an `on ArgumentError` clause that _handleGetLineage does not.",
+          "action": "Treat a 404 as \"it is already gone\" rather than as a fault: re-read the listing and say nothing. A profile hidden by another client while this one held a stale list is the ordinary way to reach it."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED IN WAVE 5.8 because the app could not hide a profile at all. The whole loop around this route was already built — the listing filters hidden records, `restorable` lists the bundled ones that are hidden, and postProfilesRestoreByFilename brings them back — and the one missing piece was the action that hides. The old skin has it in the profile context menu (profile_selector.js:624, label 'Hide')."
+      ]
+    },
+    {
+      "id": "putProfilesByIdVisibility",
+      "path": "/api/v1/profiles/{id}/visibility",
+      "route": "/profiles/<id>/visibility",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": "{visibility} — REQUIRED; `!json.containsKey('visibility')` answers 400 {error:'Missing required field', message:'Request must contain \"visibility\" field'} (profile_handler.dart:184-189). The value is one of 'visible' | 'hidden' | 'deleted' (VisibilityExtension.fromString, profile_record.dart:20-30); anything else throws ArgumentError and the handler's `on ArgumentError` clause answers 400 {error:'Invalid request', message}. The body is NOT wrapped in a 'profile' key — unlike postProfiles and putProfilesById, this one takes the bare field.",
+        "path": [
+          "id — percent-decoded by the handler"
+        ]
+      },
+      "responseShape": "200 the whole updated ProfileRecord.toJson (jsonOk, profile_handler.dart:196) — ten keys, `visibility` among them, so the answer states the new state rather than acknowledging the request; 400 {error:'Invalid request', message:'Invalid argument(s): Profile not found: <id>'} for an unknown id AND for the refusals below, because both arrive as ArgumentError through the same clause (:197-198); 500 {error:'Internal server error', message}.",
+      "handlerSymbol": "ProfileHandler._handleSetVisibility -> ProfileController.setVisibility",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (Ben, 27 August 2026)"
+      ],
+      "gates": [
+        {
+          "kind": "no-404-here-a-missing-id-is-400",
+          "meaning": "ProfileController.setVisibility throws ArgumentError('Profile not found: $id') when storage has no such record (profile_controller.dart:283-285), and _handleSetVisibility catches ArgumentError as a 400 (profile_handler.dart:197-198). There is no jsonNotFound in this handler at all — unlike _handleDelete, whose ArgumentError clause answers 404 for the same condition. The two neighbouring routes disagree about the status for one condition.",
+          "action": "Never write a 404 branch for this route — nothing can take it (A7). A 400 here means EITHER an unknown id OR one of the two refusals below, and the status alone cannot separate them, so do not word a 400 as 'not found'. Treat a failed visibility change as advisory: the save it follows has already succeeded and the record is safe either way."
+        },
+        {
+          "kind": "a-default-cannot-be-deleted-only-hidden",
+          "meaning": "`existing.isDefault && visibility == Visibility.deleted` throws ArgumentError('Cannot delete default profiles, only hide them') (profile_controller.dart:287-289). `hidden` on a default is ALLOWED, and is exactly what ProfileController.delete does to one (:253-256).",
+          "action": "Never send 'deleted' for a bundled record. This build never sends 'deleted' at all — the only values it writes are 'hidden' (a superseded version) and 'visible' (a restored one)."
+        },
+        {
+          "kind": "hidden-does-not-leave-the-lineage",
+          "meaning": "ProfileController.getLineage walks children through _storage.getByParentId, and that query filters on parentId ALONE — profile_dao.dart:48-52, `(select(profileRecords)..where((p) => p.parentId.equals(parentId))).get()`, with no visibility clause. A record hidden through this route is still returned by getProfilesByIdLineage.",
+          "action": "This is what makes 'one row in the list, every version still reachable' possible, and it is the fact the whole version design rests on. If ReaPrime ever adds a visibility filter to getByParentId, hiding a superseded parent starts DESTROYING history and the save path must stop doing it."
+        },
+        {
+          "kind": "the-answer-is-the-re-read",
+          "meaning": "The record's visibility changed on the server, and a write clears the conditional store's ETag for /profiles, so the listing re-read that follows is a real 200 rather than a 304 of the pre-change body.",
+          "action": "Judge the change by the re-read, never by the 200 — the same rule deleteProfilesById and postProfilesRestoreByFilename carry."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADOPTED 27 AUGUST 2026, having been in the generated route table and called by nothing since the table was generated. Ben: \"After each save there should still only be one profie, but we should be able to go back to a previous version\". A content save was already POST /profiles with parentId — a real version chain, correctly written — and nothing ever hid the record it superseded, so both stayed visible and the list grew by one on every save. This route is the missing move.",
+        "IT IS NOT A DELETE AND MUST NOT BE WORDED AS ONE. Hiding a superseded version takes it off the LIST; getProfilesByIdLineage still returns it, the editor's Previous versions dialog still shows it, and restoring it is a save like any other. Nothing in this build removes a profile record except deleteProfilesByIdPurge.",
+        "WHY THE SAVE PATH NEVER SENDS 'hidden' FOR AN isDefault RECORD: D6's restore-to-factory offer list is `hidden AND isDefault` (profile-rules.js restorableProfiles), which means 'bundled profiles you removed'. Hiding a bundled parent because the user derived from it would put a factory profile in that list without the user having removed anything. The full argument is in src/lib/profile-lineage.js."
+      ]
+    },
+    {
+      "id": "deleteProfilesByIdPurge",
+      "path": "/api/v1/profiles/{id}/purge",
+      "route": "/profiles/<id>/purge",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — percent-decoded by the handler"
+        ]
+      },
+      "responseShape": "200 {success:true, message:'Profile permanently deleted', id}; 400 {error:'Invalid request', message} on ArgumentError; 500",
+      "handlerSymbol": "ProfileHandler._handlePurge",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "d6-second-half-deferred",
+          "meaning": "this is the ONLY route that actually removes a profile record — DELETE /profiles/<id> is a soft delete (Visibility.deleted / .hidden), which is why the listing has to filter client-side",
+          "action": "v1 does not call it. D6 ships restore-to-factory and defers the purge (Part 1 deferred table, 'Purging deleted profiles | D6 (second half)'). src/stores/profile-library-store.js names it in D6_PURGE_IS_DEFERRED so the boundary is greppable, and test/profile-library-store.test.mjs asserts no call site exists."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Rowed because tonight's tests assert something about it: that nothing in src/ calls it. The row is the boundary, not an intention to use the route."
+      ],
+      "action": "D6's second half, landed 25 Aug 2026 on Ben's decision (\"build it behind a confirm that says plainly it cannot be undone\"). src/stores/profile-library-store.js purge() is the caller and D6_PURGE_IS_LANDED records the crossing. It is the only route that actually removes a profile record, which is what the confirm in front of it says."
+    },
+    {
+      "id": "deleteStoreByNamespaceByKey",
+      "path": "/api/v1/store/{namespace}/{key}",
+      "route": "/store/<namespace>/<key>",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "namespace",
+          "key"
+        ]
+      },
+      "responseShape": "200 {}",
+      "handlerSymbol": "KvStoreHandler.addRoutes (inline DELETE /api/v1/store/<namespace>/<key>)",
+      "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-kv-backend.js remove()"
+      ],
+      "gates": [],
+      "retires": [
+        "CB-11"
+      ],
+      "notes": [
+        "CB-11: deleting a shot does NOT cascade to its KV rating key — shots_handler._deleteShot touches no store. Whoever builds shot deletion deletes the rating key here in the same change, or it is orphaned for ever."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "THE ONLY ACCOUNT ROUTE THAT ESTABLISHES NOTHING. There is no sign-in route on the web API — `DecentAccountService` owns the credentials and ReaPrime signs in through its own Flutter UI, while `/account/proxy/<rest>` forwards an already authenticated request. The leaf reports and does not ask."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/decent-account-store.js"
+      ],
+      "id": "getAccountDecent",
+      "path": "/api/v1/account/decent",
+      "route": "/account/decent",
+      "verb": "GET",
+      "responseShape": "200 {loggedIn:bool}",
+      "handlerSymbol": "AccountHandler._handleStatus",
+      "handlerFile": "lib/src/services/webserver/account_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [
+          "subject",
+          "body"
+        ],
+        "body": null
+      },
+      "gates": [
+        {
+          "kind": "verbatim-relay",
+          "meaning": "the handler relays the upstream status and body UNCHANGED and the spec types the success body application/octet-stream, format: binary — so there is no documented response shape and no promise of JSON. Two upstream endpoints are addressed and neither is JSON this client can assume: `email` answers a bare token ('0' means refused, compared as a STRING by ReaPrime's own emailSerialMismatch), and `emails` answers JSON that is sometimes malformed.",
+          "action": "read the body as text (`expect: 'text'` on the transport) and let the caller decide what it means. decent-support-store.js repairs the one malformed shape Slate documents and reports anything else as UNREADABLE rather than as an empty thread."
+        },
+        {
+          "kind": "read-scope-only",
+          "meaning": "proxy_auth_middleware demands `account:proxy:write` for POST and PUT, and the token ReaPrime injects into a served skin page is registered with `scopes: {scopeAccountProxy}` — the read scope — in ProxyTokenService's constructor. A skin gets 403 on a write.",
+          "action": "GET only, with the message on the query string. The POST and PUT rows on this path are deliberately not tabled: nothing in this skin can call them."
+        },
+        {
+          "kind": "origin-restricted",
+          "meaning": "accountProxyCorsMiddleware REMOVES the webserver's general `Access-Control-Allow-Origin: *` for /api/v1/account/proxy/ and re-adds it only for the skin server's own origins (localhost/127.0.0.1/[::1]/deviceIp at webUIService.port). A page served from anywhere else — the dev harness, the capture battery — has its proxy response dropped by the browser.",
+          "action": "this surface can only be exercised on a real ReaPrime-served skin. Every refusal is a stated sentence rather than a silence, so an unservable page says why."
+        },
+        {
+          "kind": "bearer-required",
+          "meaning": "the bearer arrives in the page, not from a route: webui_service.dart injects <meta name=\"reaprime-proxy-token\"> plus a script that publishes window.__REA_PROXY_TOKEN__. It is absent on any page ReaPrime did not serve, and on a ReaPrime started with --no-account (which builds no proxy service at all, so the route is not registered either).",
+          "action": "bootFromWindow reads the global ONCE and hands it down as boot.proxyToken; the store answers hasToken === false with no bearer and the leaf says why instead of drawing a form that would 401."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "THE ROUTE THE 'no sign-in route' BLOCKER WAS HIDING. help-talk-to-decent stood as a read-only status for three days on the reasoning that the web API has no sign-in route. True — and an argument against a sign-in FORM, which nobody wanted. Sending a support message needs an ALREADY authenticated request, which is what this proxy forwards, with the account's credentials attached server-side by DecentProxyService.",
+        "TWO UPSTREAM ENDPOINTS, UNEQUALLY EVIDENCED. `support/api/email?subject&body` is corroborated inside ReaPrime — DecentAccountService.emailSerialMismatch builds exactly that URL with exactly those names. `support/api/emails` is NOT: no Dart file names it, and the only evidence it exists is Slate's own talkDecentFetchEmails. The proxy allows it because the allowlist is a PREFIX ('support/api/'), not a list of endpoints. That asymmetry is why the thread reports its own failure rather than rendering an empty conversation.",
+        "NO `since`. Slate passes it and keeps the thread in IndexedDB to compute it. This client asks for the whole thread every time — no second copy, no retention rule, and no query parameter with no evidence behind it. See the route table's account-proxy-query-passthrough exception, which adds subject and body for that reason and deliberately does not add since."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/decent-support-store.js"
+      ],
+      "id": "getAccountProxySupportApiByEndpoint",
+      "path": "/api/v1/account/proxy/support/api/{endpoint}",
+      "route": "/account/proxy/support/api/<endpoint>",
+      "verb": "GET",
+      "responseShape": "the upstream status and body, verbatim — undocumented content, read as text",
+      "handlerSymbol": "AccountProxyHandler._handleGet",
+      "handlerFile": "lib/src/services/webserver/account_proxy_handler.dart"
+    },
+    {
+      "id": "getBeans",
+      "path": "/api/v1/beans",
+      "route": "/beans",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "includeArchived"
+        ],
+        "body": null
+      },
+      "responseShape": "200 array of Bean.toJson; 500 {error:<Dart exception>} (beans_handler.dart:36-38)",
+      "handlerSymbol": "BeansHandler._getBeans",
+      "handlerFile": "lib/src/services/webserver/beans_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES"
+      ],
+      "gates": [
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional; includeArchived participates in the body and therefore in the ETag",
+          "action": "send If-None-Match."
+        },
+        {
+          "kind": "string-compared-boolean",
+          "meaning": "`queryParameters['includeArchived'] == 'true'`",
+          "action": "send the literal string 'true'."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Real route, no caller: the fifteen hand-written beans/grinders wrappers are excluded (EXCLUDED.md), not the routes."
+      ]
+    },
+    {
+      "id": "getBeansByBeanIdBatches",
+      "path": "/api/v1/beans/{beanId}/batches",
+      "route": "/beans/<beanId>/batches",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "includeArchived"
+        ],
+        "body": null,
+        "path": [
+          "beanId"
+        ]
+      },
+      "responseShape": "200 array of BeanBatch.toJson; 500 {error:<Dart exception>} (beans_handler.dart:140-142)",
+      "handlerSymbol": "BeansHandler._getBatches",
+      "handlerFile": "lib/src/services/webserver/beans_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES"
+      ],
+      "gates": [
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional (beans_handler.dart:139); includeArchived participates in the body and therefore in the ETag, exactly as it does on getBeans",
+          "action": "send If-None-Match, and expect a different ETag for the two values of includeArchived."
+        },
+        {
+          "kind": "string-compared-boolean",
+          "meaning": "`req.url.queryParameters['includeArchived'] == 'true'` (beans_handler.dart:133-134), passed to getBatchesForBean(includeArchived:) at :137",
+          "action": "send the literal string 'true'. OMITTING IT IS NOT 'NO OPINION' — it is includeArchived:false, and every archived batch is then invisible. getShots expands its beanId filter to batch ids with includeArchived:TRUE server-side (shots_handler.dart:149-152), so a batches reader built from the old `query: []` would disagree with the shots list about which batches exist for the same bean."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "THE ROW DECLARED `query: []` UNTIL 21 AUG and the handler has read includeArchived since it was written — an omission on one of the four desk-checked columns, with no note claiming it was deliberate (contrast getShots's `$notRead`, which names what the handler ignores). rea-routes.generated.js already carried the parameter from rest_v1.yml, so the table was the only place that denied it.",
+        "Still `declared`: no caller. grep for a callRoute site naming this id in src/ returns none, which is why the omission cost nothing at runtime and everything to the next reader."
+      ]
+    },
+    {
+      "id": "getDevices",
+      "path": "/api/v1/devices",
+      "route": "/devices",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 array of {name:string, id:string, state:ConnectionState, type:DeviceType, available:bool}; 500 {e, st}",
+      "handlerSymbol": "DevicesHandler.addRoutes (inline) -> DevicesHandler._deviceList -> buildAvailabilityDeviceList",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js loadDevices"
+      ],
+      "gates": [
+        {
+          "kind": "error-shaped-like-success",
+          "meaning": "the handler catch answers {e, st} through jsonError (500) — a JSON object, not the array a caller is reading for",
+          "action": "read the STATUS. A device list is only in a 200 body; the 500 body is a diagnostic and a caller must never take a shorter list out of it."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "`available:false` is a REMEMBERED device — known but not visible now. A real third state, not an error.",
+        "No caller since w0b's fix pass: rea-devices.js deleted its literal path table and the connection state arrives on /ws/v1/devices instead. The row stays for the gate above and because DeviceListEntry's shape is what readDevice/readDeviceList parse — test/rea-devices.test.mjs asserts the `available:false` third state."
+      ]
+    },
+    {
+      "id": "getDevicesScan",
+      "path": "/api/v1/devices/scan",
+      "route": "/devices/scan",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "quick",
+          "connect"
+        ],
+        "body": null
+      },
+      "responseShape": "200 array (the same device list); [] immediately when quick=true",
+      "handlerSymbol": "DevicesHandler.addRoutes (inline scan closure)",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "string-compared-boolean",
+          "meaning": "the handler tests `quick == \"true\"` and `connect != \"false\"` on the RAW query string",
+          "action": "send the literal strings 'true'/'false'. `connect` defaults to TRUE — omitting it connects. `quick=true` returns [] before the scan finishes, so an empty array here is not 'no devices'."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "No caller. The row stays for its handler-body gate (the string-compared booleans), which is knowledge a future caller needs and would otherwise re-derive."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js"
+      ],
+      "id": "getDevicesWifi",
+      "path": "/api/v1/devices/wifi",
+      "route": "/devices/wifi",
+      "verb": "GET",
+      "responseShape": "200 {endpoints:string[]} — the MANUALLY added hosts, not a scan result",
+      "handlerSymbol": "WifiScaleHandler._list",
+      "handlerFile": "lib/src/services/webserver/wifi_scale_handler.dart"
+    },
+    {
+      "id": "getGrinders",
+      "path": "/api/v1/grinders",
+      "route": "/grinders",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "includeArchived"
+        ],
+        "body": null
+      },
+      "responseShape": "200 array of Grinder.toJson; 500 {error:<Dart exception>} (grinders_handler.dart:31-33)",
+      "handlerSymbol": "GrindersHandler._getGrinders",
+      "handlerFile": "lib/src/services/webserver/grinders_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES"
+      ],
+      "gates": [
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional",
+          "action": "send If-None-Match."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "getMachineCalibration",
+      "path": "/api/v1/machine/calibration",
+      "route": "/machine/calibration",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {flowMultiplier: number} — the handler builds the map itself from de1.getFlowEstimation(); no 404 branch, and withDe1 answers 500 when no machine is connected",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/calibration)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/calibration-store.js readFlow() — reaches the settings row `calibration-flow-multiplier-factor` through src/stores/machine-fields-port.js"
+      ],
+      "gates": [
+        {
+          "kind": "one-key-map-built-by-hand",
+          "meaning": "the body is assembled at :466-467 as a fresh map with a single `flowMultiplier` key (the GET registers at :464 and returns it at :468); there is no model class and therefore no toJson to diff against",
+          "action": "read the key by name and treat a non-finite value as ABSENT, never as 0 — an uncalibrated machine reports 1.0, and 0 would be a real (wrong) multiplier."
+        },
+        {
+          "kind": "no-feature-gate-here",
+          "meaning": "unlike ledStrip and scaleCalibration this pair carries NO _bengleFirmwareGate; getFlowEstimation is on De1Interface, not BengleInterface",
+          "action": "do not gate the flow-multiplier row on a capability. It is a plain machine field on every machine class."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED THIS WAVE (5.4, D9). The pair was in rea-routes.generated.js with no contract row because nothing addressed it; this store is the consumer that earns it one.",
+        "CORRECTION RECORDED: settings-leaves.js's pending row for `calibration-flow-multiplier` named GET/PUT /api/v1/machine/scaleCalibration as its owner. That is the LOAD-CELL route. The flow multiplier is this pair."
+      ]
+    },
+    {
+      "id": "getMachineCapabilities",
+      "path": "/api/v1/machine/capabilities",
+      "route": "/machine/capabilities",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {capabilities: string[]} — exactly ['cupWarmer','integratedScale','stopAtWeight','ledStrip','scaleCalibration','preheat','wakeSchedule'] when the machine is a BengleInterface, [] otherwise",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/capabilities)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-routes.js capabilities helper"
+      ],
+      "gates": [
+        {
+          "kind": "upstream-gap",
+          "meaning": "the seven entries are a fixed list; there is no estimator entry, and no entry for most of the 22 isBengleMachine() gates the old skin carried",
+          "action": "R3. A gate the list cannot answer goes through the ONE R3-tagged adapter module, never a machine-name sniff and never a local recomputation."
+        },
+        {
+          "kind": "no-machine-is-500-not-503",
+          "meaning": "the route body runs inside withDe1 (de1handler.dart:504-516), whose only mapped exception is MachineReplacementTimeoutException. With no machine connected _controller.connectedDe1() throws DeviceNotConnectedException.machine() (de1_controller.dart:328-333), which falls to the generic `catch (e, st)` and returns jsonError — 500, with the Dart exception AND a stack trace in the body. There is no error middleware to reshape it. The pipeline at webserver_service.dart:460-485 is accountProxyCorsMiddleware -> logRequests -> corsHeaders -> (proxyTokenService == null ? identity : proxyAuthMiddleware) — four, not the two this gate named until 21 Aug — and the only one that answers for itself, proxyAuthMiddleware, returns inner(request) untouched for any path not starting /api/v1/account/proxy/ (proxy_auth_middleware.dart:14, :20-22). None of the four reshapes a machine-route 500, so the Dart stack reaches the client.",
+          "action": "A3 fail-closed. 500 maps to UNKNOWN, never to []. capabilities-store.js:279-283 already refuses to turn a 500 into an empty array; wave 5.4 depends on that, because UNKNOWN must hide a surface exactly as ABSENT does."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "[] is ReaPrime's own answer for a non-Bengle machine, not a failure and not a reason to guess from a model string (A3).",
+        "Wave 5.4: this array is what replaces the old skin's three `bengleOnly` settings leaves (settings.js:549 cupwarmer, :550 ledstrip, :572 calib_loadcell), each gated on isBengleModel(model) = String(model).toLowerCase().includes('bengle') (machine.js:18-20). That module's header says 'no capability endpoint the skin consults' — false at this pin, and the three capability names it needs (cupWarmer, ledStrip, scaleCalibration) are all in the served seven.",
+        "Wave 5.4: the mock has no fixture for this route and answers 503 by design, so against the mock `entries` stays null and every gate reads UNKNOWN. A screen that renders its machine pages anyway is a finding, not a nicety."
+      ]
+    },
+    {
+      "id": "getMachineCupWarmer",
+      "path": "/api/v1/machine/cupWarmer",
+      "route": "/machine/cupWarmer",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {temperature:int, enabled:bool, currentTemperature:num} — THREE keys, and no prewarm* key of any kind",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/cupWarmer)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-routes.js cupWarmer helper"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate answers 404 {error:'cupWarmer not supported'} on a non-Bengle machine",
+          "action": "404 here means the feature is absent — hide the control. It is not 'route missing' and not an error to show."
+        }
+      ],
+      "retires": [
+        "CB-19",
+        "CB-20"
+      ],
+      "notes": [
+        "CB-20: `enabled` is served. On/off is READ from it, never inferred from the setpoint.",
+        "CB-19: prewarm state is NOT here. It is GET /machine/cupWarmer/preheat, its own route."
+      ]
+    },
+    {
+      "id": "getMachineCupWarmerPreheat",
+      "path": "/api/v1/machine/cupWarmer/preheat",
+      "route": "/machine/cupWarmer/preheat",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 CupWarmerPreheatState.toJson {enabled:bool, leadMinutes:int, active:bool}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/cupWarmer/preheat)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-routes.js cupWarmerPreheat helper"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'cupWarmer/preheat')",
+          "action": "hide the pre-warm control."
+        }
+      ],
+      "retires": [
+        "CB-09",
+        "CB-19"
+      ],
+      "notes": [
+        "This route is the whole of CB-09: the old skin read and wrote pre-warm on /machine/cupWarmer, where it does not live, so the feature was dead in both directions."
+      ]
+    },
+    {
+      "id": "getMachineFirmware",
+      "path": "/api/v1/machine/firmware",
+      "route": "/machine/firmware",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {artifacts:[artifact + eligibility], machine:{model, build:int|null}|null, recommendedArtifactId:string|null, updateAvailable:bool|null, operation:{state}}",
+      "handlerSymbol": "FirmwareHandler._getCatalog",
+      "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/firmware-store.js load"
+      ],
+      "gates": [
+        {
+          "kind": "update-available-is-a-tri-state",
+          "meaning": "`updateAvailable` is `null` — not false — when no machine is connected OR any artifact's eligibility came back `unknown`. The handler computes it as `connectedModel == null || hasUnknownEligibility ? null : recommended != null`.",
+          "action": "Render null as 'not known', never as 'up to date'. A leaf that flattened the three into a boolean would tell a person their firmware is current on the one machine nobody checked."
+        },
+        {
+          "kind": "latest-is-the-servers-answer",
+          "meaning": "`recommendedArtifactId` is the highest BUILD whose eligibility this machine's model and installed build make `applicable`, decided by ReaPrime's own FirmwareValidator.",
+          "action": "Install that id and nothing else. Sorting the artifact list here would be a second, blinder copy of a model-compatibility rule — and would offer a person a firmware their machine refuses."
+        },
+        {
+          "kind": "bundled-not-downloaded",
+          "meaning": "The catalog is ReaPrime's own bundle (`assets/firmware/de1/de1-*.bin` + `assets/firmware/manifest.json`). Nothing fetches from the internet.",
+          "action": "Say 'the newest image this machine already carries', not 'check for updates'. There is no route that would download one."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED IN WAVE 5.8. D4 removed Decal's firmware surface entirely; Ben reversed it on 24 Aug 2026 — \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\""
+      ]
+    },
+    {
+      "id": "getMachineInfo",
+      "path": "/api/v1/machine/info",
+      "route": "/machine/info",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 MachineInfo.toJson: {version:string, model:string, serialNumber:string, GHC:bool, extra:map}; 500 {error:<Dart exception>, st:<stack trace>} via withDe1 when no machine is connected (de1handler.dart:513-514). NO OTHER STATUS: withDe1's 503 branch (:508-512) cannot fire here, because MachineReplacementTimeoutException is thrown only by the device WRITE queue (de1_controller.dart:366) and this body is a property read",
+      "handlerSymbol": "De1Handler._infoHandler",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled). Wave 5.1, live-capability-gates-ghc: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
+      ],
+      "gates": [
+        {
+          "kind": "key-presence-is-the-answer",
+          "meaning": "`GHC` is written unconditionally by MachineInfo.toJson, so an ABSENT key means an older or different server — not `false`",
+          "action": "r3GroupHeadControllerCapability returns known:false for an absent or non-boolean GHC. Never coerce it."
+        },
+        {
+          "kind": "nested-optional",
+          "meaning": "`extra` is a free map; `extra.profileModeCaps` exists only on firmware carrying the register, and ReaPrime serves 0 rather than omitting on stock firmware",
+          "action": "r3ProfileModeCapabilities reports unknown on an absent key and fail-closes to no modes on bits outside PROFILE_MODE_MASK, as unified_de1.dart does."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The capability store does not fetch it (one store, one route) — capabilities-store.applyMachineInfo takes the BODY from whoever owns that feed, and as of wave 5.1 that owner is src/stores/machine-info-store.js. The row was 'recorded' until then because nothing called it; the two fields this wave reads out of it (`GHC`, `extra.profileModeCaps`) and their handling are the gates below.",
+        "Neither adapters-r.js nor capabilities-store.js spells this path in code (test/capabilities-store.test.mjs asserts as much), so Gate D's COVERAGE half cannot see the dependency. That is why the row has to be added by hand — and why its absence was invisible.",
+        "THE 500 BODY IS KEYED `error`, NOT `e`, AND THIS ROW SAID `e` UNTIL 21 AUG. withDe1's generic catch is `jsonError({'error': e.toString(), 'st': st.toString()})` — the Dart catch VARIABLE is named `e` and the JSON key is not (de1handler.dart:513-514). The `{e, st}` spelling on getDevices IS literal (devices_handler.dart:210-211 writes `{'e': ..., 'st': ...}`), which is exactly how the wrong spelling arrived here: two handlers, two shapes, one of them copied. Do not re-unify them. No consumer reads either key today — machine-info-store.js reads the STATUS only — so the cost was entirely to the next caller built from this row, which is what a contract table is for."
+      ]
+    },
+    {
+      "id": "getMachineLedStrip",
+      "path": "/api/v1/machine/ledStrip",
+      "route": "/machine/ledStrip",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 LedStripState.toJson; 503 {error:'ledStrip state unavailable (hydration failed or not yet complete)'}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/ledStrip)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js load() (callRoute(transport,'getMachineLedStrip'))"
+      ],
+      "gates": [
+        {
+          "kind": "503-is-not-yet",
+          "meaning": "hydration incomplete answers 503, which is transient here — unlike feedback's 503",
+          "action": "retry or wait; do not conclude the feature is absent. 404 is the absence answer on this route."
+        },
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'ledStrip')",
+          "action": "hide the LED controls. 404 is the absence answer on this route; the 503 above is transient."
+        }
+      ],
+      "retires": [
+        "CB-16"
+      ],
+      "notes": [
+        "D7: these four ledStrip routes EXIST and work. Two passes of static analysis got this wrong in both directions; the real defect was a trailing-edge debounce in the skin and belongs to the LED component, not to this layer.",
+        "Wave 5.4 (D7): adopted. 404 is the feature gate and hides the Lighting leaf's controls; the 503 is hydration and is transient, so the store keeps them as two different statuses and smooths neither into the other."
+      ]
+    },
+    {
+      "id": "getMachineScaleCalibration",
+      "path": "/api/v1/machine/scaleCalibration",
+      "route": "/machine/scaleCalibration",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 ScaleCalibrationState.toJson; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/scaleCalibration)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/calibration-store.js read() — also the countdown poll, which is armed ONLY while the machine reports zeroing or calLatch and disarmed by any terminal step"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'scaleCalibration')",
+          "action": "hide the wizard."
+        }
+      ],
+      "retires": [
+        "CB-15"
+      ],
+      "notes": [
+        "Wave 5.4 (D9): adopted. 404 hides the wizard; the wizard is ALSO gated on the served `scaleCalibration` capability (A3), so an unknown capability hides it before this route is ever called."
+      ]
+    },
+    {
+      "id": "getMachineSettings",
+      "path": "/api/v1/machine/settings",
+      "route": "/machine/settings",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {fan, usb:bool, flushTemp, flushTimeout, flushFlow, hotWaterFlow, steamFlow, tankTemp, steamPurgeMode} — nine keys, one serialized MMR read each",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/settings)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-de1-settings.js DE1_SETTINGS_PATH",
+        "src/data/rea-cache.js DE1_CACHE_SPECS[machineSettings]"
+      ],
+      "gates": [
+        {
+          "kind": "no-etag-no-push",
+          "meaning": "plain jsonOk, no jsonOkConditional, no socket carrying these values",
+          "action": "the 60 s TTL cache is the only economy available. Fresh entries only — never answer a failed request from an expired one (A7)."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "`usb` READS as a bool here and WRITES as the string 'enable'. The asymmetry is real; see postMachineSettings."
+      ]
+    },
+    {
+      "id": "getMachineSettingsAdvanced",
+      "path": "/api/v1/machine/settings/advanced",
+      "route": "/machine/settings/advanced",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {heaterPh1Flow, heaterPh2Flow, heaterIdleTemp, heaterPh2Timeout, heaterVoltage:int, refillKitSetting:int} — six keys, six MMR reads",
+      "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/settings/advanced)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-de1-settings.js DE1_ADVANCED_SETTINGS_PATH",
+        "src/data/rea-cache.js DE1_CACHE_SPECS[machineSettingsAdvanced]"
+      ],
+      "gates": [
+        {
+          "kind": "no-etag-no-push",
+          "meaning": "plain jsonOk",
+          "action": "40 s TTL cache; fresh entries only."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "heaterVoltage is served as `.voltage` and refillKitSetting as `.hex` — both already scalars on the wire."
+      ]
+    },
+    {
+      "id": "getPlugins",
+      "path": "/api/v1/plugins",
+      "route": "/plugins",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 array of the plugin manifest's own JSON plus two fields the handler adds: `loaded` (bool, is it running now) and `autoLoad` (bool)",
+      "handlerSymbol": "PluginsHandler.addRoutes (inline) -> PluginService.availablePlugins",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js",
+        "src/stores/profile-library-store.js generatorUrl"
+      ],
+      "gates": [
+        {
+          "kind": "installed-is-not-running",
+          "meaning": "`availablePlugins` is what is INSTALLED. `loaded` is what is RUNNING, and it is added per entry by this handler — a plugin can be present and not loaded, in which case its endpoints answer 404 'plugin with <id> not loaded'.",
+          "action": "Gate an affordance on `loaded === true`, never on the entry existing. The old skin does the same and says why: a link to a plugin that is not there is a dead affordance (profile_selector.js:1770-1775)."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED IN WAVE 5.8 for the profile generator's own gate. Ben asked for the three add-a-profile doors the old skin has; two of them live behind plugins, and this row is how the app finds out whether they are there."
+      ]
+    },
+    {
+      "id": "getPluginsByIdByEndpoint",
+      "path": "/api/v1/plugins/{id}/{endpoint}",
+      "route": "/plugins/<id>/<endpoint>",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — the plugin id",
+          "endpoint — the endpoint id from the plugin manifest"
+        ]
+      },
+      "responseShape": "200 object — the PLUGIN's own answer, forwarded verbatim, so the KEYS are that plugin's contract and not this route's; enumerating them from one recording would turn one plugin's fields into a promise about every plugin. The one GET this app addresses is the generator plugin's `ui` endpoint, which answers a page rather than JSON and is navigated to rather than fetched. 400 {error} for a missing id/endpoint or a non-http endpoint type; 404 {error} for a plugin that is not loaded or an endpoint that does not exist; 403 {error} when the manifest lacks the `api` permission.",
+      "handlerSymbol": "PluginsHandler._handlePluginApiEndpoint (registered as app.all)",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js generatorUrl — for the PATH only, never fetched",
+        "src/stores/plugins-store.js pageUrl (a NAVIGATION — the URL is handed to the browser, not fetched)"
+      ],
+      "gates": [
+        {
+          "kind": "addressed-for-its-path",
+          "meaning": "This app never FETCHES this route. The profile generator is a plugin UI a person leaves the app for, so what is taken from the table is the path — the row exists because a path is an address whether it is fetched or navigated to.",
+          "action": "Build it with `buildPath`, never by joining strings, and put the transport's own base in front of it. A link pointed at localhost sends the plugin's own upload to a different server than the skin lists from (the old skin's own note, profile_selector.js:1782-1786)."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED IN WAVE 5.8 with the three add-a-profile doors. It is the same passthrough its POST twin is, and the endpoint it addresses (`ui`) is the plugin's page rather than an API."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [
+        {
+          "kind": "value-replaced-by-state",
+          "meaning": "a setting the manifest marks `secure: true` comes back as an object with exactly one boolean key, `{isSet}` — the stored value is never served",
+          "action": "read the shape with `secureState()`; render the field empty with a set/not-set note, never a placeholder that looks like a value"
+        }
+      ],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js"
+      ],
+      "id": "getPluginsByIdSettings",
+      "path": "/api/v1/plugins/{id}/settings",
+      "route": "/plugins/<id>/settings",
+      "verb": "GET",
+      "responseShape": "200 object of setting key -> value; a SECURE setting is `{isSet:bool}` and never the value",
+      "handlerSymbol": "PluginsHandler._handlePluginSettingsGet",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "DECLARED AND DELIBERATELY NOT CALLED: `GET /presence/settings` returns the same list in its own body, and this store reads that one. The row exists because the schedule SHAPE is what `presence-store.js` parses."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [],
+      "id": "getPresenceSchedules",
+      "path": "/api/v1/presence/schedules",
+      "route": "/presence/schedules",
+      "verb": "GET",
+      "responseShape": "200 array of WakeSchedule.toJson {id:string, time:\"HH:MM\", daysOfWeek:int[], enabled:bool, keepAwakeFor?:int}",
+      "handlerSymbol": "PresenceHandler._getSchedulesHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "ONE READ SERVES BOTH CARDS: this body carries the schedules as well, so `GET /presence/schedules` is never called — two reads for one answer is two chances to show a list that disagrees with the switch above it."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/presence-store.js"
+      ],
+      "id": "getPresenceSettings",
+      "path": "/api/v1/presence/settings",
+      "route": "/presence/settings",
+      "verb": "GET",
+      "responseShape": "200 {userPresenceEnabled:bool, sleepTimeoutMinutes:int, keepAwakeUntil:string|null, schedules:WakeSchedule[]}",
+      "handlerSymbol": "PresenceHandler._getSettingsHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart"
+    },
+    {
+      "id": "getProfiles",
+      "path": "/api/v1/profiles",
+      "route": "/profiles",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "visibility",
+          "includeHidden",
+          "parentId"
+        ],
+        "body": null
+      },
+      "responseShape": "200 array of ProfileRecord.toJson; 400 {error:'Invalid visibility value', message:'Valid values: visible, hidden, deleted'} (profile_handler.dart:46-49) — the `message` key was omitted here while postProfiles and putProfilesById both spell theirs; 500 {error:'Internal server error', message} (:69-71)",
+      "handlerSymbol": "ProfileHandler._handleGetAll",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES",
+        "src/lib/profile-rules.js readProfileListing (callRoute(transport, 'getProfiles', {query:{includeHidden:true}}) — wave 5.3, the five transcribed profileManager.js rules; rule 1 filters the answer)",
+        "src/stores/profile-library-store.js (readProfileListing via profile-rules.js — wave 5.3, the selector's core loop; the ETag/304 count is published in the store's `reads`)"
+      ],
+      "gates": [
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional covers every query form",
+          "action": "send If-None-Match on all of them."
+        },
+        {
+          "kind": "query-precedence",
+          "meaning": "`parentId` wins: when it is present the handler reads ALL profiles with includeHidden:true and filters, ignoring `visibility` and `includeHidden`",
+          "action": "do not send parentId together with a visibility filter and expect both to apply."
+        },
+        {
+          "kind": "soft-delete-is-served",
+          "meaning": "DELETE never removes a record: ProfileController.delete sets Visibility.deleted on a user profile and Visibility.hidden on an isDefault one (profile_controller.dart:247-264 — :246 is blank at the pin), and includeHidden=true serves both back",
+          "action": "filter `deleted` and `hidden` CLIENT-side or every soft-deleted profile and every superseded editor draft reappears on reload (profileManager.js:136-141, transcribed as rule 1). Keep the hidden bucket: it is what D6 restore-to-factory offers back."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ONE query form is addressed, `includeHidden=true`, and the filter is client-side. Two reasons, both structural: the recorded fixture set answers exactly that path (tools/mock_rea.py _resolve matches path+query and the endpoint fallback is deleted — A7, so a second query form is a 503 naming the path), and one read then serves the list, restore-to-factory and the editor's revert history instead of three.",
+        "MEASURED on tools/rea-fixtures/api__v1__profiles~includeHidden=true.json: 147 records, 78 visible / 69 hidden / 0 deleted. Pinned in test/profile-rules.test.mjs."
+      ]
+    },
+    {
+      "id": "getProfilesById",
+      "path": "/api/v1/profiles/{id}",
+      "route": "/profiles/<id>",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — percent-decoded by the handler (`id = Uri.decodeComponent(id)` is the first line)"
+        ]
+      },
+      "responseShape": "200 ProfileRecord.toJson — the WHOLE record, not the inner Profile; 404 {error:'Profile not found', id} when the controller has no record for the id; 500 {error:'Internal server error', message}",
+      "handlerSymbol": "ProfileHandler._handleGetById",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-editor-store.js loadById (wave 5.5, contract-check-editor — the DEEP-LINK open, where the editor has an id and no listing in hand)"
+      ],
+      "gates": [
+        {
+          "kind": "404-means-missing-here",
+          "meaning": "this 404 is reachable and really does mean 'no such record' — `_controller.get(id)` returned null and the handler says so with the id echoed back (profile_handler.dart:90-92). The controller does not throw here, so there is no ArgumentError to lose.",
+          "action": "publish it as MISSING and offer to go back, not as a fault. THIS IS THE ONLY PROFILE ROUTE THAT CAN ANSWER 404 FOR A MISSING ID — the lineage route's 404 is dead code and answers 500 for the same id (see getProfilesByIdLineage), so 'a profile 404' does not generalise across the two and a shared not-found reader would be wrong on one of them."
+        },
+        {
+          "kind": "whole-record-not-profile",
+          "meaning": "`jsonOk(profile.toJson())` where `profile` is the ProfileRecord — the ten keys, with the authored Profile nested under `profile`",
+          "action": "read the draft off `record.profile`; `record` itself is what B11's parentId and the two hashes ride on."
+        },
+        {
+          "kind": "no-etag",
+          "meaning": "plain jsonOk, and the path is not in CONDITIONAL_ROUTES (only `/profiles` is)",
+          "action": "send no If-None-Match; expect no 304."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "THE EDITOR PREFERS NOT TO CALL IT. `open(record)` seats a record the caller already holds — the selector has the whole listing from `getProfiles` — and touches no route; re-reading a record somebody just handed over is a request nobody needed. `loadById` exists for the deep link, where `PLANNED_ROUTE_IDS` reserves `editor` and no listing is in hand.",
+        "OFFLINE GAP, recorded rather than fixed by inventing a recording: `tools/mock_rea.py` `_resolve` matches the EXACT path and its endpoint fallback is deleted (A7), so with no `api__v1__profiles~<id>.json` fixture this route answers 503 naming the path against the capture mock. The battery opens the editor through `open(record)`, which is also the app's ordinary path."
+      ]
+    },
+    {
+      "id": "getProfilesByIdLineage",
+      "path": "/api/v1/profiles/{id}/lineage",
+      "route": "/profiles/<id>/lineage",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — percent-decoded by the handler"
+        ]
+      },
+      "responseShape": "200 array of ProfileRecord.toJson, NEVER EMPTY — getLineage adds the profile itself (profile_controller.dart:308) before it walks parents and children, so a profile with no other versions answers 200 with exactly ONE entry; 500 {error:'Internal server error', message:'Invalid argument(s): Profile not found: <id>'} for an id storage does not hold; 500 {error:'Internal server error', message} for anything else. THERE IS NO REACHABLE 404 — the handler's own jsonNotFound at :210-211 is dead code.",
+      "handlerSymbol": "ProfileHandler._handleGetLineage",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js versionsOf (wave 5.3, B11's entry point — Q7 puts it in the detail pane's overflow menu)"
+      ],
+      "gates": [
+        {
+          "kind": "missing-id-is-500-not-404",
+          "meaning": "ProfileController.getLineage CHECKS the id FIRST — `_storage.get(id)` returning null throws ArgumentError('Profile not found: $id') (profile_controller.dart:299-303) — and then ALWAYS adds the profile itself (:308), so the list it returns can never be empty. _handleGetLineage (profile_handler.dart:205-219) carries no `on ArgumentError` clause, so that throw falls into the generic catch and answers 500 (:215-217), not 404; the handler's `if (lineage.isEmpty)` 404 at :210-211 is unreachable in every case.",
+          "action": "NONE COMES FROM THE DATA, NOT FROM A STATUS: a lineage of length 1 is 'this profile has no other versions', because the one entry IS the profile. A 500 is a fault and stays a fault — it is also what a deleted or unknown id looks like, and the status alone cannot separate the two, so do not word a 500 here as 'not found' either. NEVER write a 404 branch for this route: nothing can take it, and a fallback for a status the handler cannot produce is the A7 defect. The reachable profile 404 is getProfilesById's."
+        },
+        {
+          "kind": "no-etag",
+          "meaning": "plain jsonOk, and the path is not in CONDITIONAL_ROUTES",
+          "action": "send no If-None-Match; expect no 304."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "B11 (accepted): editing keeps the old version. ReaPrime already stores parentId and content hashes; this route is how the selector makes the previous version findable.",
+        "WAVE 5.5 ADDS NO SECOND CALLER, deliberately. The editor's B11 job is a SENTENCE, and the sentence's inputs — `parentId` plus the two hashes — ride on every ProfileRecord the editor already holds (the record it opened from, and the record a save returns). `profile-lineage.js` reads them and computes nothing. Q7 puts the versions ENTRY POINT on the selector's detail-pane overflow menu and wave 5.3 built it there; a second one in the editor would be the same surface twice with two states to keep in step. `test/editor-save-semantics.test.mjs` asserts the editor store's transport never sees `/lineage`.",
+        "UPSTREAM ASK, RECORDED RATHER THAN WORKED AROUND (21 Aug): _handleGetLineage should carry `on ArgumentError catch (e) { return jsonNotFound(...); }` the way its siblings do. Four of them already map ArgumentError — _handleDelete (profile_handler.dart:170-171) and _handleRestoreDefault (:275-276) to 404, _handleUpdate (:154-155) and _handlePurge (:293-294) to 400 — and this one maps it to nothing, which is why a missing id reads as a server fault. The skin does NOT pre-check the id to manufacture the 404 upstream owes: that would be a second copy of the server's answer, and it would go stale the day the clause lands. Until then getProfilesById is the only route that can say 'no such profile'.",
+        "THE ROW SAID THE OPPOSITE UNTIL 21 AUG, in both directions: a 404 on an EMPTY lineage (unreachable) and no mention that a missing id is a 500. The consumer transcribed it — profile-library-store.js versionsOf carried a dead 404 -> NONE branch while the real missing-id 500 fell through to FAILED, so the one outcome that could not happen had a sentence and the one that could was logged as a fault. Text entered at 025811b (wave 5.3); retired here."
+      ]
+    },
+    {
+      "id": "getSensors",
+      "path": "/api/v1/sensors",
+      "route": "/sensors",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 array of {id: sensor.deviceId, info: SensorInfo.toJson{name, vendor, data:[{key,type,unit}], commands}}",
+      "handlerSymbol": "SensorsHandler.addRoutes (inline GET /api/v1/sensors)",
+      "handlerFile": "lib/src/services/webserver/sensors_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-sensors.js SENSORS_ROUTE (routeById('getSensors'))"
+      ],
+      "gates": [
+        {
+          "kind": "spec-disagrees-with-handler",
+          "meaning": "rest_v1.yml documents the item key as `name`; the handler emits `id`",
+          "action": "read `id`. Carried as generator exception sensors-list-key-is-id and going upstream; a spec-faithful client reads undefined and reports 'no estimator' on a machine that has one."
+        }
+      ],
+      "retires": [
+        "CB-07"
+      ],
+      "notes": [
+        "`info.data` is DESCRIPTIVE. A channel the firmware has not observed is omitted from the frame regardless of what info advertises — validity is key-presence on the frame (Gate 2), never this list.",
+        "The only discovery signal: bridge-registered sensors never appear on /ws/v1/devices, so presence is a poll, re-run on socket close (rea-sensors.js)."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [
+        {
+          "kind": "conditional-key",
+          "meaning": "`chargingState` is added only when `_batteryController?.currentChargingState != null` — a tablet that does not report a battery has NO key, which is a state and not an error",
+          "action": "render the status block on key presence; never default a battery percentage"
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "REAPRIME'S OWN preferences — a third owner beside the skin's storage and the machine's MMRs. ReaPrime ACTS on some of them itself: `blockOnNoScale` is read in `_requestStateHandler` before a state request is allowed through."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-app-settings.js",
+        "src/stores/app-settings-store.js",
+        "src/stores/scale-connect-store.js loadPreferred"
+      ],
+      "id": "getSettings",
+      "path": "/api/v1/settings",
+      "route": "/settings",
+      "verb": "GET",
+      "responseShape": "200 {gatewayMode:string, webUiPath:string, logLevel:string, weightFlowMultiplier:num, volumeFlowMultiplier:num, hotWaterFlowMultiplier:num, scalePowerMode:string, blockOnNoScale:bool, blockTareDuringShot:bool, stopHotWaterAtWeight:bool, preferredMachineId:string|null, preferredScaleId:string|null, defaultSkinId:string, automaticUpdateCheck:bool, chargingMode:string, nightModeEnabled:bool, nightModeSleepTime:int, nightModeMorningTime:int, lowBatteryBrightnessLimit:bool, keepAwake:bool, simulatedDevices:string[], themeMode:string, chargingState?:object}",
+      "handlerSymbol": "SettingsHandler.addRoutes (inline)",
+      "handlerFile": "lib/src/services/webserver/settings_handler.dart"
+    },
+    {
+      "id": "getShots",
+      "path": "/api/v1/shots",
+      "route": "/shots",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "limit",
+          "offset",
+          "order",
+          "ids",
+          "grinderId",
+          "grinderModel",
+          "beanId",
+          "beanBatchId",
+          "coffeeName",
+          "coffeeRoaster",
+          "profileTitle",
+          "search"
+        ],
+        "body": null,
+        "$notRead": [
+          "orderBy — documented in rest_v1.yml, read by no handler; sending it produces exactly nothing and looks like a working sort"
+        ]
+      },
+      "responseShape": "200 {items:[ShotRecord.toJsonWithoutMeasurements], total:int, limit:int, offset:int} — the paginated branch. The `ids=`-without-filters branch returns a BARE ARRAY of full ShotRecord.toJson instead. NEVER {shots:[...]}. 400 {error:'Invalid order value. Supported: asc, desc'} on the ids= branch only (:74-78); 400 {error:'beanId filtering requires bean storage'} when beanId is sent to a server with no bean storage configured (:92-96); 500 {error:<Dart exception>} (:139-141).",
+      "handlerSymbol": "ShotsHandler._getShots",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES + shotsListIsConditional",
+        "src/stores/shots-store.js readPage() — callRoute(transport,'getShots',{query:{limit,offset,order}}) (wave 5.6, hist-shot-list-derivation: the shots reader the retired `shots` helper was waiting for)"
+      ],
+      "gates": [
+        {
+          "kind": "order-validated-on-one-branch-only",
+          "meaning": "the ids= branch checks `order` and answers 400 {error:'Invalid order value. Supported: asc, desc'} (_getShots :73-78); the PAGINATED branch is `final ascending = order == 'asc'` (:89-90) with no check at all, so any other spelling is silently descending",
+          "action": "send only asc or desc. shots-store.js refuses an unknown order locally rather than sending one — the same rule buildQuery applies to `orderBy`: a sort that silently does nothing looks like a working sort. ADDED BY WAVE 5.6's contract check; not previously on this row."
+        },
+        {
+          "kind": "silent-clamp-with-lying-echo",
+          "meaning": "the query runs at `limit.clamp(1,100)` while the response body echoes the UNCLAMPED `limit` you asked for",
+          "action": "ask for at most 100. Never trust the echoed `limit`; page on `total` and `items.length`. Asking for 200 returns 100 items and reports `limit: 200` (CB-23)."
+        },
+        {
+          "kind": "shape-switches-on-query",
+          "meaning": "`ids=` with no filter returns a bare array of FULL records (measurements included); with a filter it falls through to the paginated object",
+          "action": "read the shape the query you sent produces. The conditional-ETag answer switches with it (rea-conditional.js shotsListIsConditional)."
+        },
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional on the paginated branch only, two call sites (the empty-bean-batch early return and the main return)",
+          "action": "send If-None-Match on the paginated form; the ids= branch is plain jsonOk and has no ETag to send."
+        }
+      ],
+      "retires": [
+        "CB-21",
+        "CB-23",
+        "CB-25"
+      ],
+      "notes": [
+        "CB-21: items, not shots. The old skin's numpad read `response.shots`, so its history chips were empty on every machine ever built, silently.",
+        "CB-25: items are toJsonWithoutMeasurements. Writing them into a store keyed by shot id OVERWRITES a full record with a meta-only one; the IDB mirror must merge, not put (Gate 4).",
+        "`offset` is clamped 0..2^30 and echoed the same way as `limit`.",
+        "The rea-routes.js `shots` helper was deleted in w0b's fix pass: it had zero consumers, and a wrapper with no caller is unverified surface. callRoute(transport,'getShots') is the spelling when a shots reader exists.",
+        "WAVE 5.6 re-read _getShots at the pin while writing the first caller. Path, verb, query set and paginated response shape unchanged. Two things the row did not say and now does: the order-validation asymmetry above, and that the ids= branch SILENTLY SKIPS an id that does not resolve (`if (shot != null)` :70), so a short array cannot say which id was missing. History therefore takes two getShotsById calls rather than one batch — recorded as reversible, see the store header.",
+        "THE R5 GAP IS ON THIS ROW'S RESPONSE. items are `toJsonWithoutMeasurements`, which emits id/timestamp/workflow/annotations/stopReason plus the two legacy aliases and NO duration in any spelling (shot_record.dart:49-59; toJson :36-47 has none either). `annotations.actualYield` and `annotations.enjoyment` DO ride on the list payload when the shot carries them — the absence is duration, peak pressure and average flow, not yield. See absentRoutes 'R5'."
+      ]
+    },
+    {
+      "id": "getShotsById",
+      "path": "/api/v1/shots/{id}",
+      "route": "/shots/<id>",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — percent-decoded by the handler, so percent-ENCODE it on the way out"
+        ]
+      },
+      "responseShape": "200 ShotRecord.toJson including measurements (~221 KB); 404 {error:'Shot not found'} (:180-182); 500 {error:<Dart exception>} (:184-186)",
+      "handlerSymbol": "ShotsHandler._getShot",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS",
+        "src/stores/shots-store.js loadShot(id) — callRoute(transport,'getShotsById',{params:{id}}), memoised by id so one pick is one fetch and one gate-6 walk (wave 5.6, hist-shot-list-derivation)"
+      ],
+      "gates": [
+        {
+          "kind": "not-conditional",
+          "meaning": "plain jsonOk on the one route where a 304 would be worth the most",
+          "action": "this absence is the entire justification for keeping ONE IDB mirror of the latest shot (Part 3 §4)."
+        },
+        {
+          "kind": "the-expensive-read-is-the-picked-one",
+          "meaning": "~221 KB per record, and the list has no duration or peak on it, so a list that wanted those numbers would call this once PER ROW",
+          "action": "Q17: never per row. shots-store.js calls it only for a shot a person picked, and test/shot-summary.test.mjs asserts the per-row fetch count is exactly 0 while twenty rows paint. ADDED BY WAVE 5.6's contract check."
+        }
+      ],
+      "retires": [
+        "CB-01"
+      ],
+      "notes": [
+        "CB-01: a stored shot recorded before this commit carries NO estimator data in any form — MachineSnapshot.fromJson reads TWELVE named keys (machine.dart:187-209 — the same twelve toJson writes, re-counted 21 Aug; the row and this note both said eleven, the twelve minus `timestamp`) and has no unknown-key bag, so anything else in a legacy blob was dropped the first time ReaPrime read the row. `sensors` absent on a stored shot means the channel is unavailable for that shot, PERMANENTLY. There is no legacy passthrough to fall back to and nothing to recompute.",
+        "The rea-routes.js `shot` helper was deleted in w0b's fix pass (zero consumers).",
+        "WAVE 5.6 re-read _getShot at the pin while writing the first caller: `id = Uri.decodeComponent(id)` (:177) then a null check answering 404 (:181), then jsonOk(shot.toJson()) (:183). Unchanged. buildPath percent-encodes every path parameter, which is what that decode requires."
+      ]
+    },
+    {
+      "id": "getShotsIds",
+      "path": "/api/v1/shots/ids",
+      "route": "/shots/ids",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 array of id strings; 500 {error:<Dart exception>} (:160-162)",
+      "handlerSymbol": "ShotsHandler._getIds",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS"
+      ],
+      "gates": [
+        {
+          "kind": "not-conditional",
+          "meaning": "plain jsonOk",
+          "action": "no If-None-Match."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Declared, not called: the conditional registry has to state that this one is NOT conditional, which is a claim about a route and therefore a row.",
+        "WAVE 5.6 re-read _getIds at the pin and again did not call it. `/shots/ids` is registered at :27, BEFORE `/shots/<id>` at :29, so shelf_plus picks the literal and this path is not read as a shot whose id is 'ids'. It answers a bare array of every id — 321 on the capture fixture — to answer a question the list's own `total` answers in the same response as the page. History pages on `total`."
+      ]
+    },
+    {
+      "id": "getShotsLatest",
+      "path": "/api/v1/shots/latest",
+      "route": "/shots/latest",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 ShotRecord.toJsonWithoutMeasurements, or 200 with a body of literal `null` when nothing has ever been stored; 500 {error:<Dart exception>} (:170-172)",
+      "handlerSymbol": "ShotsHandler._getLatestShot",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS"
+      ],
+      "gates": [
+        {
+          "kind": "null-is-the-answer",
+          "meaning": "`jsonOk(shot?.toJsonWithoutMeasurements())` — a 200 carrying null",
+          "action": "null means 'no shot has ever been stored'. It is not a failure and it is never replaced with {} or a stand-in (A7)."
+        }
+      ],
+      "retires": [
+        "CB-26"
+      ],
+      "notes": [
+        "Meta-only and cheap: this is the poll for 'has a new shot landed', after which ONE getShotsById fetches the record (CB-26 replaced a loop that re-listed six times per shot).",
+        "Plain jsonOk — no ETag.",
+        "The rea-routes.js `latestShot` helper was deleted in w0b's fix pass (zero consumers).",
+        "WAVE 5.6 re-read _getLatestShot at the pin and DELIBERATELY DID NOT CALL IT. History reads a PAGE with order=desc, so the newest shot is items[0] of a response it already holds; calling this as well would be a second request for a row in hand. The row stays `declared` — a route the client knows about and does not call — rather than being flipped on the strength of a nearby caller. test/history-contract.test.mjs asserts the shots store never reaches it."
+      ]
+    },
+    {
+      "id": "getStoreByNamespace",
+      "path": "/api/v1/store/{namespace}",
+      "route": "/store/<namespace>",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "full"
+        ],
+        "body": null,
+        "path": [
+          "namespace"
+        ]
+      },
+      "responseShape": "200 array of key strings; with ?full=1, 200 object of {key: value} AND conditional (jsonOkConditional); 400 {error:'Missing namespace'}",
+      "handlerSymbol": "KvStoreHandler.addRoutes (inline GET /api/v1/store/<namespace>)",
+      "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-kv-backend.js keys()"
+      ],
+      "gates": [
+        {
+          "kind": "conditional-only-with-a-parameter",
+          "meaning": "jsonOkConditional runs ONLY on the ?full=1 branch; the key-list branch is plain jsonOk",
+          "action": "send If-None-Match only when full=1 (rea-conditional.js isConditionalRoute encodes exactly this)."
+        },
+        {
+          "kind": "upstream-defect-not-worked-around",
+          "meaning": "HiveStoreService.namespaces only reports boxes opened since boot, so an export can omit a namespace that exists on disk (CB-12)",
+          "action": "ReaPrime-side. Not compensated for here."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "getStoreByNamespaceByKey",
+      "path": "/api/v1/store/{namespace}/{key}",
+      "route": "/store/<namespace>/<key>",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "namespace",
+          "key"
+        ]
+      },
+      "responseShape": "200 carrying the stored JSON value; 200 carrying null when the key was never written; 400 {error} only when a path segment is missing",
+      "handlerSymbol": "KvStoreHandler.addRoutes (inline GET /api/v1/store/<namespace>/<key>)",
+      "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-kv-backend.js get()"
+      ],
+      "gates": [
+        {
+          "kind": "settled-by-this-table",
+          "meaning": "THIS ROUTE NEVER RETURNS 404. `jsonOk(await store.get(...))` is unconditional; a missing key is a 200 with null.",
+          "action": "absent == a null body. The `status === 404` branch rea-kv-backend.js inherited from the old client HAS BEEN DELETED (A7 — a fallback for a status the handler cannot produce): get() now throws on any non-ok status and maps a null body to undefined, and the comment standing where the branch was records why. The recorded one-line follow-up is DONE; this gate described the pre-deletion tree as current until 21 Aug. test/gate-d.test.mjs re-asserts that the handler still spells no jsonNotFound, so the day it grows one this gate fails rather than quietly outliving its evidence."
+        }
+      ],
+      "retires": [
+        "CB-31"
+      ],
+      "notes": [
+        "CB-31: this route is the single home for a setting like the temperature unit. The old skin wrote it to localStorage AND IndexedDB; B7 gives one owner per setting, chosen by scope."
+      ]
+    },
+    {
+      "id": "getWebuiSkins",
+      "path": "/api/v1/webui/skins",
+      "route": "/webui/skins",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 array of WebUISkin.toJson {id, name, path, description, version, isBundled, reaMetadata}; 500 {error} on any throw",
+      "handlerSymbol": "WebUIHandler._handleListSkins",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js load() — the display-skin 2-up card grid and the updates-skin-app update list, which are ONE list read once"
+      ],
+      "gates": [
+        {
+          "kind": "array-not-object",
+          "meaning": "jsonOk(skins.map((s) => s.toJson()).toList()) — the top level is a list, and an empty list is a REAL answer (a server with nothing installed)",
+          "action": "readSkins() returns null for a non-array and an empty frozen array for an empty one, so 'unreadable' and 'none installed' stay different states."
+        },
+        {
+          "kind": "no-update-verdict-is-served",
+          "meaning": "a record carries `version` and `reaMetadata.lastChecked` (a timestamp) and NOTHING that says a newer version exists; Slate's 'Update available' badge comes from POST /api/v1/webui/skins/update, which is not adopted",
+          "action": "do not synthesise a badge. The leaf shows the version it has and says that starting a check is not built."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADOPTED THIS WAVE (5.4). It was recorded (fixture api__v1__webui__skins.json) and handler-checked but unadopted; writing the consumer is what earns the row.",
+        "The four WRITE routes on this handler — PUT /webui/skins/default, POST /webui/skins/install/*, POST /webui/skins/update, DELETE /webui/skins/{id} — are deliberately NOT adopted. They change which skin the machine serves; that is not in wave 5.4's brief and D8 already owns the one sanctioned way out of the skin."
+      ]
+    },
+    {
+      "id": "getWebuiSkinsDefault",
+      "path": "/api/v1/webui/skins/default",
+      "route": "/webui/skins/default",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 WebUISkin.toJson {id, name, path, description, version, isBundled, reaMetadata}; 404 {error:'No default skin available'}; 500 {error}",
+      "handlerSymbol": "WebUIHandler._handleGetDefaultSkin",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js load() — marks which card is Active"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-none-set-not-absent",
+          "meaning": "the 404 is returned when the storage service holds no default at all — a real state of a working server, unlike ledStrip's 404, which is a firmware feature gate",
+          "action": "treat it as defaultId:null with defaultLoaded:true. Never as an error, and never as 'this feature does not exist'."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADOPTED THIS WAVE (5.4), alongside getWebuiSkins.",
+        "settings-screen.js's D8 note offers this route as the alternative landing place for 'leave this skin'; that remains a deferred question and is not what adopts it here."
+      ]
+    },
+    {
+      "id": "putWebuiSkinsDefault",
+      "path": "/api/v1/webui/skins/default",
+      "route": "/webui/skins/default",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$keys": [
+            "skinId"
+          ],
+          "$note": "required; a missing or empty skinId is a typed 400"
+        }
+      },
+      "responseShape": "200 {success, message, skinId}; 400 {error} for a missing skinId; 404 {error} when the id is not installed; 500 {error}",
+      "handlerSymbol": "WebUIHandler._handleSetDefaultSkin",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js switchTo"
+      ],
+      "gates": [
+        {
+          "kind": "records-only",
+          "meaning": "WebUIStorage.setDefaultSkin (webui_storage.dart:243-250) writes the preference and stops. It does NOT re-point the running web server: POST /webui/server/start is what reads _storage.defaultSkin and calls serveFolderAtPath on it.",
+          "action": "switchTo sends this, then stops and starts the server. Sending it alone changes nothing a reload would show."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "postWebuiServerStop",
+      "path": "/api/v1/webui/server/stop",
+      "route": "/webui/server/stop",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {message}",
+      "handlerSymbol": "WebUIHandler._handleServerStop",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js switchTo"
+      ],
+      "gates": [
+        {
+          "kind": "self-inflicted",
+          "meaning": "this stops the server that is serving the page making the call. The page survives in memory; a reload after a failed start would not.",
+          "action": "switchTo ignores a failed stop (the server may already be down) and REPORTS a failed start, so the page never offers a reload that would land on nothing."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "postWebuiServerStart",
+      "path": "/api/v1/webui/server/start",
+      "route": "/webui/server/start",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {message} — including 'Already serving' when it is already up; 400 {error} when no default skin is set; 500 {error}",
+      "handlerSymbol": "WebUIHandler._handleServerStart",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js switchTo"
+      ],
+      "gates": [
+        {
+          "kind": "reads-the-default",
+          "meaning": "it serves _storage.defaultSkin.path, so THIS call is what makes a skin switch take effect.",
+          "action": "always sent after PUT /webui/skins/default, and its failure is the one that is reported."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "postWebuiSkinsUpdate",
+      "path": "/api/v1/webui/skins/update",
+      "route": "/webui/skins/update",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {message}; 500 {error}",
+      "handlerSymbol": "WebUIHandler._handleUpdateSkins",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js updateAll"
+      ],
+      "gates": [
+        {
+          "kind": "not-a-check",
+          "meaning": "updateAllSkins (webui_storage.dart:478-520) DOWNLOADS the remote-bundled skins and re-installs every user skin whose sourceUrl names a newer release. It does not report what it found.",
+          "action": "the control says what happens rather than 'check for updates', and the list is re-read afterwards."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "deleteWebuiSkinsById",
+      "path": "/api/v1/webui/skins/{id}",
+      "route": "/webui/skins/<id>",
+      "verb": "DELETE",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "id — the installed skin id"
+        ]
+      },
+      "responseShape": "200 {message}; 404 {error} for an id that is not installed; 500 {error}",
+      "handlerSymbol": "WebUIHandler._handleRemoveSkin",
+      "handlerFile": "lib/src/services/webserver/webui_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/skins-store.js remove"
+      ],
+      "gates": [
+        {
+          "kind": "unguarded-self-removal",
+          "meaning": "the handler does not refuse the skin that is currently being served. Removing that folder leaves the tablet with a web UI that cannot be reloaded.",
+          "action": "skins-store.remove refuses the active id before the request is made."
+        }
+      ],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "getWorkflow",
+      "path": "/api/v1/workflow",
+      "route": "/workflow",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 Workflow.toJson: {id, name, description, profile:Profile.toJson, context?, steamSettings, hotWaterData, rinseData, machine?}. Plain jsonOk — no ETag.",
+      "handlerSymbol": "WorkflowHandler._getWorkflow",
+      "handlerFile": "lib/src/services/webserver/workflow_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js readLoaded (callRoute(transport,'getWorkflow'); the body is handed to adapters-r.js r1LoadedProfileId WHOLE and no field of it is read here)"
+      ],
+      "gates": [
+        {
+          "kind": "ambiguous-identity",
+          "meaning": "the TOP-LEVEL `id` is the WORKFLOW's uuid, not the profile's, and `profile` (Profile.toJson) carries a title but NO id at this commit",
+          "action": "r1LoadedProfileId must never read the top-level id. It matches `profile.title` against GET /profiles rows and REPORTS ambiguity rather than picking the first — and if `profile.id` ever appears, that is R1 landing and the adapter is deleted."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Wave 5.3 gave it its first caller. The selector reads the report to resolve the loaded profile's id (R1) and NEVER reads the top-level `id` — see the ambiguous-identity gate.",
+        "The PUT on the same path invalidates the DE1 settings caches; nothing in this build issues one."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": "{host:string}"
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "All three WiFi routes answer with the WHOLE list, so a write needs no re-read."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js"
+      ],
+      "id": "postDevicesWifi",
+      "path": "/api/v1/devices/wifi",
+      "route": "/devices/wifi",
+      "verb": "POST",
+      "responseShape": "200 {endpoints} — the whole list after the add; 400 {error} carrying the discovery service own message",
+      "handlerSymbol": "WifiScaleHandler._add",
+      "handlerFile": "lib/src/services/webserver/wifi_scale_handler.dart"
+    },
+    {
+      "id": "postFeedback",
+      "path": "/api/v1/feedback",
+      "route": "/feedback",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "description": "string, required, non-empty after trim",
+          "type": "string",
+          "includeLogs": "bool",
+          "includeSystemInfo": "bool",
+          "timestamp": "string",
+          "$dropped": "screenshots — FeedbackRequest.fromJson never reads it, so it always takes the const [] default (CB-14, ReaPrime-side)"
+        }
+      },
+      "responseShape": "201 FeedbackResult.toJson on success; 503 {error:'Service unavailable', message:'Feedback service is not configured…'}; 400 {error:'Missing required field'}; 500 on submit failure",
+      "handlerSymbol": "FeedbackHandler._handleSubmitFeedback",
+      "handlerFile": "lib/src/services/webserver/feedback_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/feedback-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "503-is-feature-absent",
+          "meaning": "the FIRST thing the handler does is `if (!_service.isConfigured) return 503` — a build without --dart-define=GITHUB_FEEDBACK_TOKEN cannot accept feedback at all",
+          "action": "HIDE THE FORM. A 503 here is 'this build has no feedback service', not a transient failure and never a retry. The route is registered, so a reachability check that only asks 'does the route exist' says yes and the form ships dead (CB-10)."
+        },
+        {
+          "kind": "upstream-defect-not-worked-around",
+          "meaning": "screenshots are dropped at fromJson, so the whole screenshot pipeline in FeedbackService is unreachable from any skin (CB-14)",
+          "action": "ReaPrime-side. Do not build a screenshot capture against it."
+        }
+      ],
+      "retires": [
+        "CB-10"
+      ],
+      "notes": [
+        "Recorded with no caller: the gate has to exist before the first feedback screen, because the screen is the thing that must not ship until it can hide itself."
+      ]
+    },
+    {
+      "id": "postMachineCalibration",
+      "path": "/api/v1/machine/calibration",
+      "route": "/machine/calibration",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "flowMultiplier": "number — parsed with parseDouble; a null or absent key is a SUCCESSFUL NO-OP, not a 400"
+        }
+      },
+      "responseShape": "202 with a NULL body (jsonAccepted() with no data) and Content-Type: application/json; 400 {error:'Invalid JSON body'|'Request body must be a JSON object'}",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/calibration)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/calibration-store.js writeFlow()"
+      ],
+      "gates": [
+        {
+          "kind": "absent-key-is-a-silent-no-op",
+          "meaning": ":472-491 — the POST registration, re-anchored 21 Aug (:471 is blank at the pin) — `flowMultiplier == null ? null : parseDouble(...)` at :482-484, then `if (flowMultiplier != null) await setFlowEstimation(...)`. A body with no key, or a key that parses to null, returns 202 having written NOTHING.",
+          "action": "never send a patch that might omit the key and read the 202 as success. writeFlow() refuses a non-finite value before it calls, and re-reads afterwards rather than assuming."
+        },
+        {
+          "kind": "null-body-202",
+          "meaning": "jsonAccepted() (json_response.dart:26) sends `body: data != null ? jsonEncode(data) : null` with a JSON content type, so response.json() on this reply throws",
+          "action": "rea-transport.js reads the body as text and maps an empty one to data:null on an ok status. Nothing above it may reach for .json()."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED THIS WAVE (5.4, D9).",
+        "NO RANGE IS DECLARED ON EITHER SIDE — no min, no max, no step — so the settings row is UNBOUNDED and machine-limits.js gains no row for it. defaults.dart:120 resets it to 1.0, which is a default and not a bound."
+      ]
+    },
+    {
+      "id": "postMachineFirmware",
+      "path": "/api/v1/machine/firmware",
+      "route": "/machine/firmware",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$binary": "the raw firmware image as request bytes; an empty body is 400 {error:'invalid_request'}"
+        }
+      },
+      "responseShape": "200 with Content-Type application/x-ndjson — a STREAM of newline-delimited objects {status:'erasing'|'uploading'|'done'|'error', progress:num, error?:string}; 409 {error:'firmware_update_in_progress'}; 503 machine unavailable",
+      "handlerSymbol": "FirmwareHandler._uploadRaw -> FirmwareHandler._streamFirmwareUpload",
+      "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/firmware-store.js installFile"
+      ],
+      "gates": [
+        {
+          "kind": "ndjson-not-json",
+          "meaning": "the body is a progress STREAM, not a document. The final frame is {status:'done', progress:1.0}.",
+          "action": "CB-17: read it line by line. Calling response.json() on it throws, which is why a SUCCESSFUL flash reported as a failure in the old skin. Cancelling the read cancels the upload server-side (progressController.onCancel)."
+        },
+        {
+          "kind": "the-body-is-not-json",
+          "meaning": "The handler reads the request body as BYTES. JSON.stringify of a Uint8Array is an object of numbered keys, which this route would accept and flash.",
+          "action": "Send it through the transport's `raw` option with an explicit octet-stream content type. Nothing else on this client sends a non-JSON body."
+        },
+        {
+          "kind": "no-deadline-on-a-flash",
+          "meaning": "A flash runs for minutes, and abandoning the response cancels the update on the machine (`progressController.onCancel` calls `de1.cancelFirmwareUpload()`).",
+          "action": "Pass `timeoutMs: 0`. The transport's default deadline would abort mid-write, which on this route is the one failure that can leave a machine unbootable."
+        }
+      ],
+      "retires": [
+        "CB-17"
+      ],
+      "notes": [
+        "Recorded with no caller so the first firmware screen cannot re-import the defect. Nothing in wave 0b flashes anything.",
+        "CONSUMED SINCE WAVE 5.8. The note above said \"Recorded with no caller so the first firmware screen cannot re-import the defect\" — this is that screen. Ben reversed D4 on 24 Aug 2026: \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\" CB-17 is retired by `rea-transport.js`'s `onLine`, which reads the stream a line at a time in the one place every request passes through."
+      ]
+    },
+    {
+      "id": "postMachineFirmwareApply",
+      "path": "/api/v1/machine/firmware/apply",
+      "route": "/machine/firmware/apply",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": "{artifactId: string (required), force?: bool}"
+      },
+      "responseShape": "200 application/x-ndjson, the same progress lines as postMachineFirmware; 400 {error:'invalid_request'}; 404 {error:'artifact_not_found'}; 422 {error:'artifact_validation_failed'|'artifact_not_applicable', reasons}; 409; 503",
+      "handlerSymbol": "FirmwareHandler._applyManaged -> _streamFirmwareUpload",
+      "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/firmware-store.js installLatest"
+      ],
+      "gates": [
+        {
+          "kind": "force-is-never-sent",
+          "meaning": "`force: true` flashes an artifact the validator called INAPPLICABLE. A wrong MODEL is refused even with force (`modelInvalid` is checked first), but a wrong build is not.",
+          "action": "Do not send it. A control labelled 'Latest' that quietly overrode the eligibility check is the exact shape of the thing D4 refused to build."
+        },
+        {
+          "kind": "a-422-is-an-answer",
+          "meaning": "422 carries `reasons` — the eligibility codes the validator produced — and is the machine saying this image is not for it.",
+          "action": "Report it as a refusal with the server's own reasons, never as a failure to retry."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The 'latest' half of Ben's 24 Aug ask. The artifact id comes from getMachineFirmware's `recommendedArtifactId` and from nowhere else."
+      ]
+    },
+    {
+      "id": "postMachineLedStripCommit",
+      "path": "/api/v1/machine/ledStrip/commit",
+      "route": "/machine/ledStrip/commit",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "202, no body; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/ledStrip/commit)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js commit()"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'ledStrip') inside the write queue",
+          "action": "hide the LED controls."
+        }
+      ],
+      "retires": [
+        "CB-16"
+      ],
+      "notes": [
+        "Wave 5.4: adopted. The generated table declares a required JSON body; the handler takes `Request _` and reads none. The caller sends {} — satisfying the declared contract costs nothing and does not depend on the handler staying lenient."
+      ]
+    },
+    {
+      "id": "postMachineLedStripReset",
+      "path": "/api/v1/machine/ledStrip/reset",
+      "route": "/machine/ledStrip/reset",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 LedStripState.toJson (the reloaded NVM state); 503 {error:'ledStrip state unavailable (firmware read failed)'}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/ledStrip/reset)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js reset()"
+      ],
+      "gates": [
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'ledStrip') inside the write queue",
+          "action": "hide the LED controls."
+        }
+      ],
+      "retires": [
+        "CB-16"
+      ],
+      "notes": [
+        "Reset RETURNS the new state — the client never has to re-GET to find out what it now is.",
+        "Wave 5.4: adopted. The reply IS the new state, so reset() never re-GETs."
+      ]
+    },
+    {
+      "id": "postMachineProfile",
+      "path": "/api/v1/machine/profile",
+      "route": "/machine/profile",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$raw": "the bare Profile object — NOT wrapped. Profile.fromJson(jsonDecode(payload)) reads the whole body."
+        }
+      },
+      "responseShape": "200 with a body of null on success; 400 {error:'Unsupported profile', message} on the capability refusal; 400 {error:'Invalid profile', message} on a parse failure; 500 for any other fault",
+      "handlerSymbol": "De1Handler._profileHandler",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-profile.js profileArmBody + profileRefusal (bodies and refusal reading)",
+        "src/stores/profile-arm-store.js (callRoute(transport, 'postMachineProfile') — wave 5.1, live-refusal-surface: the call the row was waiting for, and B9's v1 half)",
+        "src/stores/profile-library-store.js arm() -> profile-arm-store.arm(profile,{profileId}) (wave 5.3, sel-core-loop confirm + sel-refusal-surfacing: B9's END-TO-END trigger, which had no caller in src/ until this wave)"
+      ],
+      "gates": [
+        {
+          "kind": "arm-time-refusal",
+          "meaning": "setProfile is called OUTSIDE runDeviceWrite specifically so a ProfileModeUnsupportedException maps to a clean 400 instead of the catch-all 500; the machine cannot run a Power or Lever step, or a HOLD transition",
+          "action": "B9 — SEND the profile and surface the server's `message` verbatim. Never pre-strip a step to avoid the refusal: a silently altered profile is the worst failure shape in the register, because the shot looks like it followed the profile and did not."
+        },
+        {
+          "kind": "shape-asymmetry",
+          "meaning": "this route takes the BARE profile; POST /profiles takes it WRAPPED in {profile:…}",
+          "action": "one sanitizer, two body builders (rea-profile.js). The old skin had two sanitizers and they had drifted."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Any other StateError escaping setProfile stays a 500 by design — a 400 here always means the machine refused, never that ReaPrime broke.",
+        "REACHABILITY IN v1, said on the row itself: the END-TO-END TRIGGER LANDED IN WAVE 5.3. `consumed` was true by the letter before it — profile-arm-store.js calls this route — and nothing under src/ called `arm()`, so the shipping app could not reach it. profile-library-store.js `arm()` now does, in one line (`arm.arm(record.profile, {profileId})`), so picking a profile in the selector and pressing Confirm reaches this route and a typed 400 renders at the point of picking (B9). It is the ONLY caller in src/: the profile BODY belongs to the store that owns the listing, and a second call site would be a second sanitiser (see the shape-asymmetry gate). Pinned by \"B9's trigger\" in test/live-connection-gates.test.mjs, which walks src/ and fails if that caller disappears or a second one appears — the previous spelling enumerated five files by hand and went on passing when the trigger arrived in a sixth. STILL NOT A TRIGGER: <live-screen> dispatches `favourite-select` with no listener and `favourites` is never populated, so B9 is reachable from the selector, not from Live."
+      ]
+    },
+    {
+      "id": "postMachineSettings",
+      "path": "/api/v1/machine/settings",
+      "route": "/machine/settings",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$keys": [
+            "usb",
+            "fan",
+            "flushTemp",
+            "flushFlow",
+            "flushTimeout",
+            "hotWaterFlow",
+            "steamFlow",
+            "tankTemp",
+            "steamPurgeMode"
+          ],
+          "$note": "any subset; anything else in the body is ignored"
+        }
+      },
+      "responseShape": "202, no body",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/settings)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-de1-settings.js writeSettings"
+      ],
+      "gates": [
+        {
+          "kind": "encoded-boolean",
+          "meaning": "the handler's test is `json['usb'] == 'enable'` — the string. `true` means DISABLE.",
+          "action": "encode at this boundary (rea-de1-settings.js does); nothing above the data layer ever spells 'enable'."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "A successful write invalidates BOTH DE1 settings caches; a failed one invalidates neither."
+      ]
+    },
+    {
+      "id": "postMachineSettingsAdvanced",
+      "path": "/api/v1/machine/settings/advanced",
+      "route": "/machine/settings/advanced",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$keys": [
+            "heaterPh1Flow",
+            "heaterPh2Flow",
+            "heaterIdleTemp",
+            "heaterPh2Timeout",
+            "heaterVoltage",
+            "refillKitSetting"
+          ],
+          "$note": "any subset"
+        }
+      },
+      "responseShape": "202, no body",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/settings/advanced)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-de1-settings.js writeAdvancedSettings"
+      ],
+      "gates": [],
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "postMachineShotSettings",
+      "path": "/api/v1/machine/shotSettings",
+      "route": "/machine/shotSettings",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$settings": "De1ShotSettings.fromJson over the whole body. The handler does `Map<String, dynamic> json = jsonDecode(payload)` inside its try, so a body that is valid JSON but not an object (a list, a number, a bare null) fails the implicit cast and returns 400 like malformed JSON does."
+        }
+      },
+      "responseShape": "200 with the body `null` — jsonOk(null), Content-Type application/json. Not 204, and not {}. A caller that treats an empty-ish body as failure is reading a success as an error; a caller that calls response.json() gets null, which is correct. 400 {error:'Invalid JSON body'} on a body that is not a JSON object; 500 with a Dart stack when no machine is connected (withDe1, see getMachineCapabilities' no-machine-is-500-not-503 gate).",
+      "handlerSymbol": "De1Handler._shotSettingsHandler",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "recorded",
+      "consumedBy": [],
+      "gates": [
+        {
+          "kind": "write-only-route",
+          "meaning": "there is no GET /api/v1/machine/shotSettings. The handler registers POST only (de1handler.dart:36); the READ-BACK is the websocket /ws/v1/machine/shotSettings (:176), which already has a row and is `consumed`.",
+          "action": "read shot settings from the socket, write them here. A settings leaf that expects to GET its own value back over REST gets a 404 from the router, not a value."
+        },
+        {
+          "kind": "no-echo",
+          "meaning": "the response carries no state at all, so a write tells you nothing about what the machine now holds.",
+          "action": "drive the leaf from the socket's re-emission, never from the write's return. This is the same rule as scaleCalibration's state-in-every-response gate, arrived at from the opposite direction."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED BY WAVE 5.4's contract check. The websocket half had a row and the REST half did not, which is the gap the check exists to find: the wave's own item text names /machine/shotSettings as a route to verify, and the table could not answer for the write direction.",
+        "The mock has no REST fixture for this route and answers 503; the websocket half IS recorded (ws__v1__machine__shotSettings.json, a frame log in the ledger's nonJson section)."
+      ]
+    },
+    {
+      "id": "postPluginsByIdByEndpoint",
+      "path": "/api/v1/plugins/{id}/{endpoint}",
+      "route": "/plugins/<id>/<endpoint>",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": "whatever the plugin's endpoint takes — the handler forwards the body verbatim. For visualizer.reaplugin/import that is {shareCode: string}.",
+        "path": [
+          "id — the plugin id",
+          "endpoint — the endpoint id from the plugin manifest"
+        ]
+      },
+      "responseShape": "200 object — the PLUGIN's own answer, forwarded verbatim, so the KEYS are that plugin's contract and not this route's. For visualizer.reaplugin/import the plugin answers {success, profileTitle, profileId, shotId}. 400 {error} for a missing id/endpoint or a non-http endpoint type; 404 {error} for a plugin that is not loaded or an endpoint that does not exist; 403 {error} when the manifest lacks the `api` permission. For visualizer/import the plugin's own pair: 401 with no Visualizer credentials, 400 for a bad code.",
+      "handlerSymbol": "PluginsHandler._handlePluginApiEndpoint (registered as app.all)",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js importShareCode"
+      ],
+      "gates": [
+        {
+          "kind": "the-status-is-the-plugins",
+          "meaning": "This route is a passthrough. Every status above 403 is the PLUGIN's, not ReaPrime's, so the same status means different things behind different plugins.",
+          "action": "Read the status against the PLUGIN's contract, named at the call site. `importShareCode` reads 401 as 'not signed in to Visualizer' and everything else as 'that code did not work' — which is the visualizer plugin's own pair (plugin.js:1364, `error.message.includes('credentials') ? 401 : 400`), not a general rule about this route."
+        },
+        {
+          "kind": "a-404-may-mean-not-installed",
+          "meaning": "A plugin that is installed but not LOADED answers 404 here, with the same status as an endpoint that does not exist.",
+          "action": "Gate the affordance on `getPlugins`'s `loaded` flag rather than discovering it from a 404, so the control is absent instead of failing."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "ADDED IN WAVE 5.8. The share-code import is the Visualizer plugin's feature and ReaPrime's own profile routes know nothing about it; this passthrough is where it lives, and the old skin calls the same endpoint with the same body (profile_selector.js handleShareCodeImport)."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js"
+      ],
+      "id": "postPluginsByIdDisable",
+      "path": "/api/v1/plugins/{id}/disable",
+      "route": "/plugins/<id>/disable",
+      "verb": "POST",
+      "responseShape": "200 {message, id}; 404 {error}",
+      "handlerSymbol": "PluginsHandler.addRoutes (inline)",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "ONE CALL DOES TWO THINGS: it sets auto-load AND loads the plugin now. So the list switch is one request, and `loaded`/`autoLoad` move together."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js"
+      ],
+      "id": "postPluginsByIdEnable",
+      "path": "/api/v1/plugins/{id}/enable",
+      "route": "/plugins/<id>/enable",
+      "verb": "POST",
+      "responseShape": "200 {message, id}; 404 {error} for an unknown plugin id",
+      "handlerSymbol": "PluginsHandler.addRoutes (inline)",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": "any subset of the keys the plugin MANIFEST declares"
+      },
+      "gates": [
+        {
+          "kind": "manifest-validated",
+          "meaning": "`_validateSettings` throws `PluginSettingsValidationException` for any key not in `manifest.settings`, which becomes a 400 — so a hand-written form goes stale into a refusal the day a plugin adds a field",
+          "action": "GENERATE the form from the served manifest; never type a plugin field list"
+        },
+        {
+          "kind": "echo-ignored",
+          "meaning": "`savePluginSettings` SKIPS an incoming value of the `{isSet}` shape (`_isSecureState`), so re-posting a whole form does not blank a stored secret",
+          "action": "send the form back whole without special-casing secure fields; send an explicit null to clear one"
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The reply is the new truth, so there is no re-read: the handler answers with `pluginSettings(id)` AFTER reloading the plugin."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/plugins-store.js"
+      ],
+      "id": "postPluginsByIdSettings",
+      "path": "/api/v1/plugins/{id}/settings",
+      "route": "/plugins/<id>/settings",
+      "verb": "POST",
+      "responseShape": "200 the settled settings object (the handler saves, RELOADS the plugin, then re-reads); 400 {error} for a key the manifest does not declare",
+      "handlerSymbol": "PluginsHandler._handlePluginSettingsPost",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": "{time:\"HH:MM\" (or hour+minute), daysOfWeek?:int[], enabled?:bool, keepAwakeFor?:int|null}"
+      },
+      "gates": [
+        {
+          "kind": "empty-set-means-all",
+          "meaning": "`daysOfWeek` is ISO 1..7 and an EMPTY set is legal — `WakeSchedule.matchesTime` filters by day only when the set is non-empty, so no days chosen means EVERY day",
+          "action": "label an empty set \"Every day\"; never \"no days\" and never refuse it"
+        }
+      ],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/presence-store.js"
+      ],
+      "id": "postPresenceSchedules",
+      "path": "/api/v1/presence/schedules",
+      "route": "/presence/schedules",
+      "verb": "POST",
+      "responseShape": "201 the created WakeSchedule, id minted by the server; 400 {error} for a bad time, a weekday outside 1..7, or keepAwakeFor outside 0..720",
+      "handlerSymbol": "PresenceHandler._addScheduleHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart"
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": "{userPresenceEnabled?:bool, sleepTimeoutMinutes?:int}"
+      },
+      "gates": [
+        {
+          "kind": "clamps-silently",
+          "meaning": "`sleepTimeoutMinutes` is passed through `normalizeSleepTimeoutPreferenceMinutes`, which CLAMPS to 0..240 rather than refusing — so an out-of-band number comes back as a different number",
+          "action": "re-read after every write; never show the value that was asked for"
+        },
+        {
+          "kind": "dart-int-only",
+          "meaning": "the test is `v is! int`, and a Dart int is not a JS float that happens to be whole",
+          "action": "round at the boundary before sending"
+        }
+      ],
+      "retires": [],
+      "notes": [],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/presence-store.js"
+      ],
+      "id": "postPresenceSettings",
+      "path": "/api/v1/presence/settings",
+      "route": "/presence/settings",
+      "verb": "POST",
+      "responseShape": "200 {userPresenceEnabled, sleepTimeoutMinutes}; 400 {error} for a wrong type",
+      "handlerSymbol": "PresenceHandler._updateSettingsHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart"
+    },
+    {
+      "id": "postProfiles",
+      "path": "/api/v1/profiles",
+      "route": "/profiles",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "profile": "Profile — REQUIRED; a body without it is 400 {error:'Missing required field'}",
+          "parentId": "string — optional",
+          "metadata": "object — optional"
+        }
+      },
+      "responseShape": "201 ProfileRecord.toJson; 400 {error:'Invalid request', message} on ArgumentError/FormatException; 500 {error:'Internal server error'}",
+      "handlerSymbol": "ProfileHandler._handleCreate",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-profile.js profileCreateBody",
+        "src/stores/profile-editor-store.js saveAsNewVersion (wave 5.5, save-semantics/profile-versions — B11's path: POST with parentId set to the record the editor opened from)"
+      ],
+      "gates": [
+        {
+          "kind": "wrapped-body",
+          "meaning": "`json['profile']`, not the bare profile",
+          "action": "profileCreateBody wraps; profileArmBody does not."
+        },
+        {
+          "kind": "parent-must-exist",
+          "meaning": "`ProfileController.create` looks the `parentId` up FIRST and throws `ArgumentError('Parent profile not found: $parentId')` when it is absent, which `_handleCreate` maps to 400 {error:'Invalid request'}",
+          "action": "a stale parent id is a typed refusal carrying the id, not a silent unparented save. Surface the server's message; do not retry without the parent."
+        },
+        {
+          "kind": "content-addressed-idempotent-create",
+          "meaning": "`create` computes the record id from the profile, calls `_storage.get(record.id)`, and RETURNS THE EXISTING RECORD when one is stored — without storing anything and WITHOUT applying the `parentId` that was sent. `_handleCreate` answers `jsonCreated` either way",
+          "action": "A 201 DOES NOT MEAN CREATED, and the returned record's parentId may not be the one you sent. B10: report the record, and answer 'was anything stored?' with null rather than reading it off the status code. `editor-commit.js saveReportFrom` returns `stored: null` for exactly this."
+        },
+        {
+          "kind": "id-covers-content-only",
+          "meaning": "the record id is `ProfileHash.calculateProfileHash`, whose input set is version, beverage_type, steps, tank_temperature, target_weight, target_volume, target_volume_count_start. Title, author and notes are in `metadataHash` instead",
+          "action": "recorded as a FACT about the server, never transcribed into the client — duplicating this split is the B10 defect. The consequence a caller must know: a POST whose only change is a title resolves to the SAME id and therefore to the existing-record branch above, so the new title is not stored. A label edit belongs on putProfilesById. Which of the two a given save is, is R8's to say."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "R8 is the open upstream ask here: the server already knows whether an edit was a content change or a label change, and the skin should stop predicting it. `ProfileRecord` carries no outcome field at the pin — the ten keys are id, profile, metadataHash, compoundHash, parentId, visibility, isDefault, createdAt, updatedAt, metadata — so the editor reports the record and names the absence (`outcomeSource: 'absent'`). The reader is injected, so R8's richer body lands as one function with no second code path.",
+        "B11 IS SERVED BY THIS ROUTE AND NOT BY PUT. `create` stores a NEW record whose parentId is the old id and leaves the previous record untouched, which is the whole of 'editing keeps the old version'. `ProfileController.update` does the opposite when the hash moves — see the `hash-change-deletes-the-old-record` gate on putProfilesById."
+      ]
+    },
+    {
+      "id": "postProfilesRestoreByFilename",
+      "path": "/api/v1/profiles/restore/{filename}",
+      "route": "/profiles/restore/<filename>",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null,
+        "path": [
+          "filename — the BUNDLE filename under assets/defaultProfiles/, not a profile id"
+        ]
+      },
+      "responseShape": "200 ProfileRecord.toJson; 404 {error:'Not found', message} on any ArgumentError (a filename that is not bundled); 500 {error:'Internal server error', message}",
+      "handlerSymbol": "ProfileHandler._handleRestoreDefault",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/profile-library-store.js restoreToFactory (wave 5.3, D6 first half)"
+      ],
+      "gates": [
+        {
+          "kind": "filename-not-id",
+          "meaning": "the path parameter is a BUNDLE FILENAME loaded with rootBundle.loadString('assets/defaultProfiles/$filename') (profile_controller.dart:392) — the record id is derived from the bundled profile's own content afterwards",
+          "action": "take it from the record's own metadata.filename, which the same controller wrote ({'source':'bundled','filename':…}). A record with no filename is not a bundled profile and must not be offered the action."
+        },
+        {
+          "kind": "restore-is-two-branches",
+          "meaning": "ProfileController.restoreDefault (profile_controller.dart:390-421) builds ProfileRecord.create from the bundle, then: if a record with that id ALREADY EXISTS it does NOT rewrite it — it stores existing.copyWith(visibility: Visibility.visible) and returns that; only an ABSENT id causes the bundled content to be stored",
+          "action": "D6 offers ONE action because the server has one: un-hide the factory record where it survives, re-create it where it does not. A user's edit of a bundled profile is a DIFFERENT record with a different id and is untouched — the confirm dialog must not say otherwise."
+        },
+        {
+          "kind": "not-synthesizable-by-the-mock",
+          "meaning": "the success body is a typed document (ProfileRecord.toJson), so tools/mock_rea.py write_response answers 501 with an explicit refusal rather than inventing a server",
+          "action": "drive the restore round-trip from a scripted transport whose body is a REAL fixture record with visibility flipped, as test/render/selector-core-loop.render.test.mjs does. Never teach the mock to invent one."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "D6's SECOND half — purging deleted profiles — is deferred (Part 1 deferred table) and has no caller; see the deleteProfilesByIdPurge row."
+      ]
+    },
+    {
+      "requestFields": {
+        "query": [],
+        "body": "any subset of the GET keys; every one is guarded by `if (json.containsKey(...))`"
+      },
+      "gates": [
+        {
+          "kind": "validates-then-400",
+          "meaning": "the handler REFUSES rather than clamping: an unknown enum, a wrong type, or a night-mode time outside 0..1439 each answer 400 with a sentence naming the key",
+          "action": "offer only the Dart enums own `.name` values, send ints as ints, and report the refusal — a failed write leaves the staged intent staged"
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "`APP_SETTINGS_WRITE_KEYS` is NINE of the twenty-two keys the handler reads. The handler ACTS on every key it recognises, so an accidental extra in the body is applied and not ignored — `webUiPath`, `gatewayMode`, `defaultSkinId` and `simulatedDevices` are deliberately unreachable from this skin."
+      ],
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-app-settings.js",
+        "src/stores/app-settings-store.js",
+        "src/stores/scale-connect-store.js setPreferred"
+      ],
+      "id": "postSettings",
+      "path": "/api/v1/settings",
+      "route": "/settings",
+      "verb": "POST",
+      "responseShape": "200; 400 {message} naming the key that was refused",
+      "handlerSymbol": "SettingsHandler.addRoutes (inline)",
+      "handlerFile": "lib/src/services/webserver/settings_handler.dart"
+    },
+    {
+      "id": "postStoreByNamespaceByKey",
+      "path": "/api/v1/store/{namespace}/{key}",
+      "route": "/store/<namespace>/<key>",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$raw": "the request body IS the value; the handler does jsonDecode(body) and stores `maybeJson ?? body`"
+        },
+        "path": [
+          "namespace",
+          "key"
+        ]
+      },
+      "responseShape": "200 {} — a body, not a 204",
+      "handlerSymbol": "KvStoreHandler.addRoutes (inline POST /api/v1/store/<namespace>/<key>)",
+      "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-kv-backend.js set()"
+      ],
+      "gates": [
+        {
+          "kind": "null-body-hole",
+          "meaning": "`jsonDecode('null')` is null, so `maybeJson ?? value` falls through to the RAW BODY STRING and the store ends up holding the four characters 'null'",
+          "action": "refuse to send a null value; DELETE the key instead. rea-kv-backend.js throws rather than sends."
+        },
+        {
+          "kind": "undecodable-body-is-500",
+          "meaning": "kv_store_handler.dart:41 calls `jsonDecode(value)` OUTSIDE any try and BEFORE the namespace/key null-check at :42, and there is no error middleware (webserver_service.dart:460-485 is CORS + logRequests). A body that is not valid JSON therefore escapes as a FormatException and shelf answers 500 — it is not stored raw. Compare the three de1handler write routes (ledStrip :204-208, scaleCalibration :255-259, shotSettings :721-725), which all wrap jsonDecode and return 400; the KV handler is the one that does not.",
+          "action": "always send JSON.stringify(value), which rea-kv-backend.js:92 does. Consequence for the row above: `maybeJson ?? value` can only ever reach the raw-body branch for the exact body `null`, so the 'opaque passthrough' fallback is unreachable by anything except the null hole itself."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "'Opaque passthrough' holds in the read direction only. The write direction has this one hole and it is in the handler, not in us.",
+        "Wave 5.4 re-read this handler at the pin for the settings contract check and confirms path, verb, body and response shape unchanged. Two spec-vs-handler divergences stand and the handler wins: rea-routes.generated.js:2579-2583 declares this route `statuses:['204'], successStatus:'204', json:false`, but the handler returns jsonOk({}) — 200 with a JSON body. The generated GET-by-key and DELETE rows likewise declare a 404 the handler has no path to spell."
+      ]
+    },
+    {
+      "id": "putDevicesConnect",
+      "path": "/api/v1/devices/connect",
+      "route": "/devices/connect",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [
+          "deviceId"
+        ],
+        "body": {
+          "deviceId": "string — JSON body preferred; the query parameter is the fallback the handler itself reads when the body is empty or unparseable"
+        }
+      },
+      "responseShape": "200 DeviceConnectResult (connected | alreadyConnected); 409 conflict; 503 failed; 504 timedOut; 400 {error:'Missing deviceId'}; 404 {error:'Device not found: <id>'}",
+      "handlerSymbol": "DevicesHandler._handleConnect (id via _extractDeviceId, body via _connectResultBody)",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-devices.js DEVICES_ROUTES.connect (routeById('putDevicesConnect') — the path is read out of the generated table, not spelled)",
+        "src/stores/scale-connect-store.js connectDevice"
+      ],
+      "gates": [
+        {
+          "kind": "outcome-in-status",
+          "meaning": "every outcome is a definite HTTP status carrying the same body shape",
+          "action": "read the outcome from the status, never infer a connect result from a later socket state change (B8)."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The verb is PUT. A POST 404s."
+      ]
+    },
+    {
+      "id": "putDevicesDisconnect",
+      "path": "/api/v1/devices/disconnect",
+      "route": "/devices/disconnect",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [
+          "deviceId"
+        ],
+        "body": {
+          "deviceId": "string"
+        }
+      },
+      "responseShape": "200 with a body of null; 400 {error}; 404 {error}",
+      "handlerSymbol": "DevicesHandler._handleDisconnect",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-devices.js DEVICES_ROUTES.disconnect (routeById('putDevicesDisconnect'))",
+        "src/stores/scale-connect-store.js disconnectDevice"
+      ],
+      "gates": [],
+      "retires": [],
+      "notes": [
+        "Marks the disconnect as expected server-side (markExpectingDisconnect) so recovery does not fight it."
+      ]
+    },
+    {
+      "id": "putDevicesForget",
+      "path": "/api/v1/devices/forget",
+      "route": "/devices/forget",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [
+          "deviceId"
+        ],
+        "body": {
+          "deviceId": "string"
+        }
+      },
+      "responseShape": "200 with a body of null; 400 {error:'Missing deviceId'}; 503 {error:'remembered devices not available'}",
+      "handlerSymbol": "DevicesHandler._handleForget",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-connect-store.js forgetDevice"
+      ],
+      "gates": [
+        {
+          "kind": "503-is-feature-absent",
+          "meaning": "no RememberedDevicesController on this build -> 503, not an error condition",
+          "action": "treat 503 here as 'this build cannot remember devices' and hide the control, exactly as POST /feedback's 503 is handled."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "No caller. Kept as checked knowledge; reach it with callRoute(transport, 'putDevicesForget')."
+      ]
+    },
+    {
+      "id": "putMachineCupWarmer",
+      "path": "/api/v1/machine/cupWarmer",
+      "route": "/machine/cupWarmer",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "temperature": "int 0..80 inclusive, whole degrees — optional",
+          "enabled": "bool — optional",
+          "$atLeastOne": "temperature and/or enabled; a body with neither is 400"
+        }
+      },
+      "responseShape": "200 {status:'accepted'}; 400 {error} for bad JSON, non-object, neither key, out-of-range temperature, non-bool enabled; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/cupWarmer)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-routes.js setCupWarmer helper"
+      ],
+      "gates": [
+        {
+          "kind": "implicit-enable",
+          "meaning": "when `temperature` is sent and `enabled` is NOT, the handler calls setCupWarmerEnabled(true)",
+          "action": "turning the warmer off is {enabled:false} — never {temperature:0}, which ENABLES the warmer at a 0 C setpoint (CB-27)."
+        },
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'cupWarmer') — checked ONCE, at :105, INSIDE the withQueuedDe1 closure. The route registers at :70 and validates the whole body first (:71-103); between validation and the queue there is no gate call at all. (:58 is the GET's gate, not this one.)",
+          "action": "hide the control on a machine that is not a BengleInterface. And do not read the 404 as an EARLY refusal: the request is already IN the device write queue when the gate runs, so on a busy machine it waits behind the writes ahead of it, and if the machine is swapped out mid-wait _mapDe1WriteErrors answers 503 {error:'Machine unavailable'} (de1handler.dart:521-525) instead of the 404 this row's shape implies. A caller that treats 503 as 'feature missing' or 404 as 'always immediate' has the wrong picture of both."
+        }
+      ],
+      "retires": [
+        "CB-18",
+        "CB-27"
+      ],
+      "notes": [
+        "CB-18: prewarm fields are REJECTED here — a body carrying only {prewarmEnabled, prewarmLeadMinutes} has neither `temperature` nor `enabled` and is a 400.",
+        "The 400s are the server's to make (B9): send the body and surface the refusal; do not pre-validate a second copy of the range."
+      ]
+    },
+    {
+      "id": "putMachineCupWarmerPreheat",
+      "path": "/api/v1/machine/cupWarmer/preheat",
+      "route": "/machine/cupWarmer/preheat",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "enabled": "bool — optional",
+          "leadMinutes": "int 0..120 inclusive, whole minutes — optional",
+          "$atLeastOne": "enabled and/or leadMinutes; neither is 400"
+        }
+      },
+      "responseShape": "200 {status:'accepted'}; 400 {error}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/cupWarmer/preheat)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-routes.js setCupWarmerPreheat helper"
+      ],
+      "gates": [
+        {
+          "kind": "read-modify-write-server-side",
+          "meaning": "the handler reads the current state and fills the key you omit — a partial body is a genuine partial update, not a reset",
+          "action": "send only what changed."
+        },
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'cupWarmer/preheat') — checked ONCE, at :162, INSIDE the withQueuedDe1 closure. The route registers at :129 and does all of its body validation first (:130-160); nothing gates ahead of the queue. (:122 is the GET's gate.)",
+          "action": "hide the pre-warm control. The queue consequence is putMachineCupWarmer's, unchanged: a non-Bengle PUT is QUEUED before it is refused, so 503-under-contention is reachable on the path a caller expects to 404 immediately."
+        }
+      ],
+      "retires": [
+        "CB-09"
+      ],
+      "notes": []
+    },
+    {
+      "id": "putMachineLedStrip",
+      "path": "/api/v1/machine/ledStrip",
+      "route": "/machine/ledStrip",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$state": "LedStripState.fromJson over the whole body"
+        }
+      },
+      "responseShape": "200 {status:'accepted'}; 400 {error:'Invalid JSON body'|'invalid JSON body'}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/ledStrip)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js preview() — D7's decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
+      ],
+      "gates": [
+        {
+          "kind": "live-not-persisted",
+          "meaning": "PUT pushes live and does not write NVM; commit persists; reset reloads NVM",
+          "action": "the live-preview path is this route, at whatever rate the write chain sustains — latest-wins on an idle chain, never a trailing-edge timer (D7)."
+        },
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate(de1, 'ledStrip')",
+          "action": "hide the LED controls. 404 is the absence answer on this route; the 503 above is transient."
+        }
+      ],
+      "retires": [
+        "CB-16"
+      ],
+      "notes": [
+        "POST /machine/ledStrip/preview and .../preview/clear DO NOT EXIST at this commit and are excluded (EXCLUDED.md); adding them is an upstream ask, not skin work.",
+        "Wave 5.4 (D7): adopted. Re-verified at the pin on the day the caller was written — POST /machine/ledStrip/preview and .../preview/clear still do not exist anywhere in lib/ (0 hits against 30 for ledStrip), so Q5 is answered with the existing PUT and zero upstream work."
+      ]
+    },
+    {
+      "id": "putMachineScaleCalibration",
+      "path": "/api/v1/machine/scaleCalibration",
+      "route": "/machine/scaleCalibration",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "command": "'abort' | 'zero' | 'latch' — REQUIRED; anything else is 400 {error:'command must be one of abort, zero, latch'}",
+          "weightGrams": "num 1..10000 — REQUIRED when command=='latch', ignored otherwise"
+        }
+      },
+      "responseShape": "202 {status:'accepted', state:ScaleCalibrationState.toJson}; 409 {status:'rejected', reason:'machine busy or shot in progress', state:…}; 400 {error}; 404 feature gate",
+      "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/scaleCalibration)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/calibration-store.js command() / zero() / latch() / abort()"
+      ],
+      "gates": [
+        {
+          "kind": "state-in-every-response",
+          "meaning": "both the 202 and the 409 carry the full calibration state",
+          "action": "drive the wizard from `state`; never keep a second copy of the phase in the client."
+        },
+        {
+          "kind": "404-is-feature-absent",
+          "meaning": "_bengleFirmwareGate",
+          "action": "hide the wizard."
+        }
+      ],
+      "retires": [
+        "CB-15"
+      ],
+      "notes": [
+        "CB-15, the five-way mismatch and the reason this table exists: the old skin POSTed /machine/scale/calibrate with {command: zero|left|right, grams} and read a flat reply. Wrong path, wrong verb, wrong command vocabulary, wrong body key, wrong response shape — five independent errors in one wizard a user can press, and the path has NEVER existed in ReaPrime's history.",
+        "F3/Q1 (calibration RESET semantics) is blocked on Ben: no work of any kind, and nothing here implies one.",
+        "Wave 5.4 (D9): adopted. The 409's state is absorbed exactly as the 202's is — a refusal describes the machine and moves the wizard. F3/Q1 remains untouched: the three commands sent are abort, zero and latch, which are the three the handler declares."
+      ]
+    },
+    {
+      "id": "putMachineStateByNewState",
+      "path": "/api/v1/machine/state/{newState}",
+      "route": "/machine/state/<newState>",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 jsonOk(null) once de1.requestState(newState) resolves; 400 {details:'No scale detected, blocking espresso request', type:'block_no_scale'} for ESPRESSO only, and only when settings.blockOnNoScale is on, no scale is connected and the loaded profile's beverageType is not cleaning; 500 from withDe1's catch-all, which is also where an unknown state name lands because MachineState.values.byName throws ArgumentError",
+      "handlerSymbol": "De1Handler._requestStateHandler (PUT /api/v1/machine/state/<newState>)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). Ben, 23 Aug 2026: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
+      ],
+      "gates": [
+        {
+          "kind": "a-200-is-not-a-state",
+          "meaning": "de1.requestState is a BLE write and the handler answers as soon as it resolves. The machine's own state arrives on the snapshot feed, later and independently. A client that treated the 200 as the new state would be raising and dropping a full-screen blank on its own say-so, which is exactly the defect screensaver-policy.js was ported to close (one tap slept the machine and woke it 46 ms later).",
+          "action": "Publish what was ASKED for, never what the machine now is. The screensaver drops the blank on the confirmed state off the machine feed."
+        },
+        {
+          "kind": "the-state-name-is-generated",
+          "meaning": "MachineState.values.byName(newState) throws ArgumentError on an unknown name, and withDe1's catch-all turns that into a 500 rather than a typed 400. A hand-spelled state name is therefore an opaque server error, not a validation message.",
+          "action": "Pass a MACHINE_STATE member from src/data/machine-state.generated.js. Never a literal."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The route has been in the generated table since wave 2 with no caller at all: the app could read that the machine was asleep and had no way to wake it, which is why <ui-screensaver> (#57) was written, tested and mounted nowhere.",
+        "ONLY `idle` IS SENT TODAY. Sleeping the machine from the skin, and every other state, is a separate surface; this row is consumed by the wake alone."
+      ]
+    },
+    {
+      "id": "postMachineWaterLevels",
+      "path": "/api/v1/machine/waterLevels",
+      "route": "/machine/waterLevels",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$keys": [
+            "refillLevel"
+          ],
+          "$note": "the handler reads refillLevel and nothing else; currentLevel is in the schema and is ignored"
+        }
+      },
+      "responseShape": "202, no body; 400 {error} on a non-object body",
+      "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/waterLevels)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/screens/settings-model.js (waterLevelsDoorFor's post)"
+      ],
+      "gates": [
+        {
+          "kind": "write-only",
+          "meaning": "there is NO GET for this path. The handler serves the value on the /ws/v1/machine/waterLevels socket only, so a client that writes it must read it back off the feed.",
+          "action": "waterLevelsDoorFor takes the FEED.WATER feed as its read side and this route as its write side."
+        },
+        {
+          "kind": "coerced-number",
+          "meaning": "the handler runs `(json['refillLevel'] as num).toInt()`, which THROWS on a non-numeric value rather than answering 400.",
+          "action": "the door sends only a finite number and refuses anything else before the request is made."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The low-water alert height in millimetres. Slate's own band is 0-30 in steps of 5 (settings.js:4661-4663), carried in machine-limits.js as waterAlertLevel."
+      ]
+    },
+    {
+      "id": "putPresenceSchedulesById",
+      "path": "/api/v1/presence/schedules/{id}",
+      "route": "/presence/schedules/<id>",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "time": "'HH:MM' — optional; parsed into hour/minute",
+          "hour": "int 0..23 — optional, overrides time",
+          "minute": "int 0..59 — optional, overrides time",
+          "daysOfWeek": "int[] 1..7 — optional",
+          "enabled": "bool — optional",
+          "keepAwakeFor": "int 1..720, or 0/null TO CLEAR — the key must be PRESENT to have any effect"
+        },
+        "path": [
+          "id"
+        ]
+      },
+      "responseShape": "200 WakeSchedule.toJson; 400 {error} for out-of-range time/day/keepAwakeFor; 404 {error:'Schedule not found', id}",
+      "handlerSymbol": "PresenceHandler._updateScheduleHandler",
+      "handlerFile": "lib/src/services/webserver/presence_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/presence-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "presence-is-the-signal",
+          "meaning": "`if (json.containsKey('keepAwakeFor'))` — the handler only clears when the key is THERE carrying 0 or null. Omitting it keeps the old value.",
+          "action": "CB-22: send keepAwakeFor EXPLICITLY as 0 (or null) to clear it. A body builder that drops falsy values makes the duration unclearable for ever, which is exactly what the old skin did."
+        }
+      ],
+      "retires": [
+        "CB-22"
+      ],
+      "notes": [
+        "The same shape of trap applies to every other optional key here: absence means unchanged, not cleared."
+      ]
+    },
+    {
+      "id": "putProfilesById",
+      "path": "/api/v1/profiles/{id}",
+      "route": "/profiles/<id>",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "profile": "Profile — OPTIONAL; only parsed `if (json.containsKey('profile'))`",
+          "metadata": "object — optional"
+        },
+        "path": [
+          "id — percent-decoded by the handler"
+        ]
+      },
+      "responseShape": "200 ProfileRecord.toJson; 400 {error:'Invalid request', message}; 500",
+      "handlerSymbol": "ProfileHandler._handleUpdate",
+      "handlerFile": "lib/src/services/webserver/profile_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-profile.js profileUpdateBody",
+        "src/lib/profile-rules.js createMetadataWriteChain().mutate (callRoute(transport, 'putProfilesById') — wave 5.3, transcribed rule 3: metadata writes serialize through one chain)",
+        "src/stores/profile-editor-store.js saveMetadata (metadata-only, id-stable — the editor's label path) and saveInPlace (carries `profile`; see the hash-change gate)"
+      ],
+      "gates": [
+        {
+          "kind": "partial-update",
+          "meaning": "a metadata-only body is a legal request that touches no steps",
+          "action": "do not resend the whole profile to change a label."
+        },
+        {
+          "kind": "wholesale-metadata",
+          "meaning": "ProfileController.update calls existing.copyWith(metadata: metadata) and ProfileRecord.copyWith ends `metadata: metadata ?? this.metadata` (profile_record.dart) — a supplied map REPLACES the stored one entirely and there is no server-side merge",
+          "action": "serialize read-modify-write through one chain per record (profileManager.js:306-332, transcribed rule 3), or two writers read the same base and the last PUT to resolve silently drops the other's values. `metadata: null` does NOT clear — the Dart `??` keeps the stored map; the spelling for clear is `{}`."
+        },
+        {
+          "kind": "id-stable-on-metadata",
+          "meaning": "copyWith recomputes the hashes from `profile ?? this.profile`, so a body with no `profile` key hashes to the same id",
+          "action": "a metadata-only PUT needs no favourite remap. A body that DOES carry `profile` can change the id, and the handler then deletes the old record and stores the new one."
+        },
+        {
+          "kind": "default-content-locked",
+          "meaning": "`if (existing.isDefault && profile != null) throw ArgumentError('Cannot modify default profile content')` — mapped to 400 {error:'Invalid request'}",
+          "action": "a metadata-only PUT on a BUNDLED profile is legal and is how a bundled profile carries a user's dose/yield/grind; sending `profile` for one is a refusal, not a bug."
+        },
+        {
+          "kind": "hash-change-deletes-the-old-record",
+          "meaning": "`ProfileController.update` compares `updated.id != existing.id` and, when it moved, runs `_storage.delete(existing.id)` and then `_storage.store(updated)`. Its own log line reads 'Profile hash changed from X to Y. This creates a new profile. Consider using parentId for versioning.'",
+          "action": "B11 — A CONTENT EDIT PUSHED THROUGH PUT DOES NOT KEEP THE OLD VERSION; it destroys it, and no lineage entry is created. The path that keeps it is POST /profiles with parentId. `profile-lineage.js versionKeptBy()` answers NOT_LINKED for this case so the editor cannot word a keep it did not get. The id-stable gate above states the same mechanism from the metadata side; this states what it costs."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The four gates were re-read at the pin while rule 3 was written, not after (DECISIONS.md:144-157). test/profile-rules.test.mjs asserts the handler text for `wholesale-metadata` and `default-content-locked`.",
+        "The fifth gate was read at the same pin during wave 5.5's contract check, in `lib/src/controllers/profile_controller.dart` `update` — the delete/store branch is in the controller, not in the handler, which is why a reader who stops at `_handleUpdate` sees only a 200 and concludes the previous version survives."
+      ]
+    },
+    {
+      "id": "putScaleTare",
+      "path": "/api/v1/scale/tare",
+      "route": "/scale/tare",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 jsonOk(null) once ScaleController.tare() resolves; 400 {details:'Tare blocked: a shot is in progress', type:'block_tare_during_shot'} when settings.blockTareDuringShot is on, a shot is active and gatewayMode is not full; 500 {error:<Dart exception>} if the controller throws; 404 {error:'Unknown command: <command>'} for any other command on this path",
+      "handlerSymbol": "ScaleHandler.addRoutes (PUT /api/v1/scale/<command>, case 'tare')",
+      "handlerFile": "lib/src/services/webserver/scale_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). Ben, 23 Aug 2026: \"with slate, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
+      ],
+      "gates": [
+        {
+          "kind": "a-200-is-not-a-tare",
+          "meaning": "TWO refusals sit behind this route and only one of them answers. ReaPrime refuses with a 400 carrying type:'block_tare_during_shot' — visible, and reported as a refusal. The FIRMWARE also refuses, silently: doLCTare() returns early while a shot runs, because a mid-pour re-zero moves the mass reference under the running shot and stop-at-weight would over-deliver. The MMR write still succeeds, so a 200 says nothing about whether the scale actually tared.",
+          "action": "Confirm by watching the weight settle near zero, which is what reaprime's own integrated_scale_capability doc advises: 'a tare must be confirmed by watching the weight, not the flag'. On timeout, name the likely cause rather than reporting a bare failure. Slate learned this the same way (f813dea) — it had been toasting 'Scale tared' over a refusal."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The write half of the scale surface. Decal had never called it: the route sits in the generated table and nothing addressed it, so Gate D never asked for a row.",
+        "THE DART REGISTERS `PUT /api/v1/scale/<command>` AND SWITCHES ON THE COMMAND, while the OpenAPI table enumerates the concrete `/scale/tare`. The row carries the concrete path because the generated table is what the client addresses; Gate D's source half resolves the parameterised parent and then requires the handler to name this command — see its own note on the fallback."
+      ]
+    },
+    {
+      "id": "putShotsById",
+      "path": "/api/v1/shots/{id}",
+      "route": "/shots/<id>",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$patch": "a PARTIAL ShotRecord. The handler deep-merges the body over `existingShot.toJson()` (_updateShot :207), so the smallest honest patch is the right body. History sends exactly {annotations:{enjoyment:number|null}}.",
+          "annotations.enjoyment": "nullable double — ReaPrime's own per-shot rating, its own DB column. `null` CLEARS it: parseOptionalDouble(null) is null and ShotAnnotations.toJson then omits the key. ReaPrime does not bound the number; the 0..100 scale is the rating control's, not the wire's.",
+          "id": "OPTIONAL and best omitted. The only 400 on this route is `json['id'] != null && json['id'] != id` (:196). An omitted id cannot disagree with the path.",
+          "$aliased": "shotNotes and metadata are NOT body fields to write. _normalizeLegacyAnnotationPatch (:244) folds them into annotations.espressoNotes / annotations.extras and deletes them from the patch; _synchronizeLegacyAnnotationAliases (:276) then rewrites the top-level pair FROM the merged annotations on every PUT, removing them when the annotation is null. The annotations object is authoritative and the two top-level fields are its shadow."
+        },
+        "path": [
+          "id — percent-decoded by the handler (:191), so percent-ENCODE it on the way out"
+        ]
+      },
+      "responseShape": "200 ShotRecord.toJson including measurements — the WHOLE updated record, ~221 KB, for a one-number write; 400 {error:'ID in path does not match ID in body'}; 404 {error:'Shot not found'}; 500 {error:<Dart exception>}",
+      "handlerSymbol": "ShotsHandler._updateShot",
+      "handlerFile": "lib/src/services/webserver/shots_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/shots-store.js setEnjoyment(id, value) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{enjoyment}}}) (wave 5.6, hist-b5-scalars-q17)",
+        "src/stores/shots-store.js setNotes(id, text) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{espressoNotes}}}) (fix campaign round 2, Ben's decision D14: the Live shot-notes sheet gained its writing half). Obeys this row's legacy-aliases-rewritten-on-every-put gate: the annotation is written and the top-level shotNotes never is."
+      ],
+      "gates": [
+        {
+          "kind": "deep-merge-over-the-full-record",
+          "meaning": "the merge BASE is `existingShot.toJson()` — measurements included (:207) — and _deepMerge recurses into nested maps (:309), so a partial {annotations:{enjoyment}} patch preserves every other annotation and every sample",
+          "action": "send the smallest patch. Sending a whole record back is the risky spelling here, not the safe one: it puts every field at the mercy of a round trip it did not need."
+        },
+        {
+          "kind": "the-echo-is-the-whole-record",
+          "meaning": "`jsonOk(updatedShot.toJson())` (:223) returns ~221 KB for a one-number write — the most expensive success in the shots API",
+          "action": "do not read the echo, and do not re-derive from it: annotations are not measurements, so a walk over it would be a second walk for a number the client chose. shots-store.js updates its held item from what it SENT, and only after `ok`."
+        },
+        {
+          "kind": "malformed-body-is-500-not-400",
+          "meaning": "`jsonDecode(body) as Map<String,dynamic>` (:194) sits INSIDE the try, so a body that is valid JSON but not an object fails the implicit cast and lands in the catch-all jsonError (:226). The only 400 is the id-mismatch check",
+          "action": "a 500 here can mean 'my body was the wrong shape'. Do not report it to a user as a server fault, and do not retry it. Compare postMachineShotSettings, whose handler returns 400 for the same mistake — the two shots-adjacent write routes disagree, and the handler wins on each."
+        },
+        {
+          "kind": "legacy-aliases-rewritten-on-every-put",
+          "meaning": "_synchronizeLegacyAnnotationAliases (:211, :276) sets top-level shotNotes from annotations.espressoNotes and REMOVES it when that is null — likewise metadata/extras — so an unrelated partial PUT normalises the pair",
+          "action": "never write shotNotes or metadata directly; write annotations.espressoNotes / annotations.extras. A client holding a record with a top-level shotNotes and no espressoNotes will see it disappear after any PUT, and that is the handler correcting an inconsistency rather than losing data."
+        },
+        {
+          "kind": "not-stateable-on-the-mock",
+          "meaning": "the success body is a typed document (ShotRecord.toJson), so tools/mock_rea.py write_response refuses with 501 rather than inventing one — 'a mock that invents one teaches the client a server that does not exist'",
+          "action": "against the mock, assert the REQUEST SHAPE. A set-then-re-read assertion is not available and its absence is correct; test/history-contract.test.mjs asserts the refusal itself so a canned success cannot appear later."
+        }
+      ],
+      "retires": [
+        "CB-11"
+      ],
+      "notes": [
+        "ADDED BY WAVE 5.6's contract check. The route had NO ROW at all while three GET rows for the same handler did — the gap the check exists to find, and the same shape as wave 5.4's postMachineShotSettings finding. putShotsById had zero consumers anywhere under src/ or test/ before this wave.",
+        "CB-11 is the neighbouring hazard and is NOT this route's: deleting a shot does not cascade to its KV rating key. `enjoyment` moving to ReaPrime's own column is what makes that bug unreachable for new ratings — a rating on the record is deleted with the record.",
+        "deleteShotsById is registered at :31 and is NOT rowed here: no caller, no declaration, and no handler-body gate attaches to it from this wave. A row for a route nothing addresses would be inventing surface (rowRule)."
+      ]
+    },
+    {
+      "id": "putWorkflow",
+      "path": "/api/v1/workflow",
+      "route": "/workflow",
+      "verb": "PUT",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "$merge": "a PARTIAL workflow object; the handler deep-merges it into the current workflow (deepMergeJson) and re-reads on a revision race"
+        }
+      },
+      "responseShape": "200 the merged Workflow.toJson; 400 {error:'Invalid request'|'Request body must be a JSON object'}; 408 request timeout; 413 payload too large (>1 MiB); 429 {error:'Workflow request queue is full'} at 8 pending; 503 queue timed out (30 s) or {error:'Machine unavailable'}",
+      "handlerSymbol": "WorkflowHandler._updateWorkflow -> _applyPayload -> _applyUpdate",
+      "handlerFile": "lib/src/services/webserver/workflow_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/data/rea-profile.js profileUpdateBody/sanitizeProfileForRea (the arm-by-workflow path)",
+        "src/data/rea-de1-settings.js DE1_SETTINGS_INVALIDATING_WRITES — a successful write here invalidates both DE1 settings caches",
+        "src/stores/workflow-store.js setTarget — the Live rail writes one target back through it (DQ-707: the rail’s ten values live on the workflow, not /machine/settings)"
+      ],
+      "gates": [
+        {
+          "kind": "deep-merge-not-replace",
+          "meaning": "the body is merged into the current workflow, so an omitted key is UNCHANGED, not cleared",
+          "action": "send only what changed; clearing a value needs the server's own null semantics, not omission."
+        },
+        {
+          "kind": "no-hang",
+          "meaning": "ArgumentError and FormatException both answer 400, with a 30 s queue timeout answering 503 behind them",
+          "action": "the old inline sanitizer's fear of a hang on a bad profile is fixed upstream. A workaround for a fixed server bug is a fallback path with a long fuse (A7) and does not come along."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The read half is GET /api/v1/workflow (WorkflowHandler._getWorkflow, plain jsonOk of Workflow.toJson) AND IT IS A ROW — `getWorkflow`, status consumed, carrying the ambiguous-identity gate that keeps R1 off the top-level `id`. This note claimed the opposite until 21 Aug: it was written before wave 5.3 gave the read half its first caller and its gate, and the rowRule it invoked is now satisfied by exactly that gate. Read the two rows together; neither is the other's note.",
+        "A WRITE HERE CHANGES FIVE OF THE NINE VALUES GET /machine/settings RETURNS. _applyUpdate calls De1Controller.updateWorkflowSettings, which dispatches _writeFlushSettings (setFlushTimeout/setFlushFlow/setFlushTemperature), _writeSteamSettings (setSteamFlow) and _writeHotWaterSettings (setHotWaterFlow). Missing that is how the 60 s de1SettingsCache would have reproduced the staleness defect reatsettingscache was deleted for.",
+        "FIRST REAL CALLER, 21 Aug: the Live rail. `<live-screen>` declared `targets` and nothing ever set them, so every stepper, every preset cell and the keypad’s Confirm rendered DISABLED on any machine — and the one handler that writes `targets` sat behind those very controls. `workflow-store.js` reads the document for the values and writes ONE BLOCK back per press, which is what the $merge body above is for: sending the whole document would make every rail press a rewrite of the profile and both other blocks, so two presses a second apart would each undo the other."
+      ]
+    },
+    {
+      "id": "getInfo",
+      "path": "/api/v1/info",
+      "route": "/info",
+      "verb": "GET",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "200 {commit, commitShort, branch, buildTime, version, buildNumber, appStore:bool, fullVersion, localIp} — every field written unconditionally by _infoHandler. NO OTHER STATUS: the handler reads nine compile-time constants and one IP lookup that is itself inside a try answering '' on a throw, so it has no branch that can fail.",
+      "handlerSymbol": "InfoHandler._infoHandler",
+      "handlerFile": "lib/src/services/webserver/info_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/app-info-store.js (callRoute(transport, 'getInfo') — the path is read out of the generated table, not spelled). Adopted 27 August 2026: the route had sat in the generated table with NO caller anywhere in src/, while Updates › Skin / App promised an 'App' half it did not have and Send Feedback told the user it appends an app version the skin could not show."
+      ],
+      "gates": [
+        {
+          "kind": "sentinel-is-absence",
+          "meaning": "build_info.dart is nine String.fromEnvironment reads with DEFAULTS: commit, commitShort, branch and buildTime default to the literal string 'unknown', version to '0.0.0-dev' and buildNumber to '0'. _localIp answers '' when there is no WiFi address or the lookup throws. So a PRESENT key is not the same as a READ value.",
+          "action": "app-info-store.readAppInfo maps '' and the literal 'unknown' to null, and the leaf draws the em dash for null (A7). Never print the word 'unknown' as though it were a reading, and never substitute the SKIN's own version for the APP's."
+        },
+        {
+          "kind": "boolean-default-is-an-answer",
+          "meaning": "appStore comes from bool.fromEnvironment('APP_STORE'), whose default is false — which is a real statement ('this build did not come from an app store') rather than an absence.",
+          "action": "Carried as true/false. It is the one field on this route that is never mapped to absence."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "localIp is served and NOT rendered. It is the tablet's WiFi address, which answers a networking question no settings page in this skin asks, and an IP on a page headed 'Decaid' invites being read as the machine's. The field is shaped by the store so the day a page needs it there is one reader rather than a second parse.",
+        "THE MOCK'S OWN PARITY PROBE rides on this route: tools/mock_rea.py start_or_reuse asks for /api/v1/info to decide whether a running mock is serving the fixture set in this tree. That was the whole reason it had to keep answering while nothing in src/ called it, and it is recorded here because the ledger entry that used to carry the sentence was deleted when this row was added — two records of one route drift."
+      ]
+    }
+  ],
+  "sockets": [
+    {
+      "id": "machineSnapshot",
+      "path": "/ws/v1/machine/snapshot",
+      "handlerSymbol": "De1Handler._handleSnapshot (via _withDe1Ws)",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "MachineSnapshot.toJson — TWELVE unconditional keys (timestamp, state, flow, pressure, targetFlow, targetPressure, mixTemperature, groupTemperature, targetMixTemperature, targetGroupTemperature, profileFrame, steamTemperature; machine.dart:163-174) plus the three conditional *Derived channels (:178-183). The row said eleven until 21 Aug, which is the twelve minus `timestamp` — the key the staleness clock reads. Derived channels are OMITTED, not null, and `state` is itself the nested pair {state, substate}.",
+      "commands": null,
+      "retires": [
+        "CB-03",
+        "CB-08"
+      ],
+      "notes": [
+        "CB-03: `milkTemperature` was DELETED from this frame (633f6f68). Milk temperature is the milk-probe sensor's own `temperature` on /ws/v1/sensors/<id>/snapshot.",
+        "CB-08: `weightFlow` was deleted from this frame too. The gravimetric source is /ws/v1/scale/snapshot.",
+        "Survives a machine swap — _withDe1Ws re-attaches (ReaPrime 31ea7c1a), which is why socket-slot.js does not port."
+      ]
+    },
+    {
+      "id": "scaleSnapshot",
+      "path": "/ws/v1/scale/snapshot",
+      "handlerSymbol": "ScaleHandler._handleSnapshot",
+      "handlerFile": "lib/src/services/webserver/scale_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "WeightSnapshot — the ONE gravimetric source, including weightFlow",
+      "commands": null,
+      "retires": [
+        "CB-08"
+      ],
+      "notes": [
+        "Interleaves {\"status\":\"connected\"|\"disconnected\"}. A `disconnected` status is a SIGNAL, never a reason to close the channel."
+      ]
+    },
+    {
+      "id": "shotSettings",
+      "path": "/ws/v1/machine/shotSettings",
+      "handlerSymbol": "De1Handler._handleShotSettings",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "De1ShotSettings, re-emitted on change",
+      "commands": null,
+      "retires": [],
+      "notes": [
+        "Read-back channel for POST /api/v1/machine/shotSettings."
+      ]
+    },
+    {
+      "id": "shotState",
+      "path": "/ws/v1/machine/shotState",
+      "handlerSymbol": "De1Handler._handleShotState",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "shot phase and decision frames",
+      "commands": null,
+      "retires": [],
+      "notes": []
+    },
+    {
+      "id": "waterLevels",
+      "path": "/ws/v1/machine/waterLevels",
+      "handlerSymbol": "De1Handler._handleWaterLevels",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "{currentLevel, refillLevel} in MILLIMETRES",
+      "commands": null,
+      "retires": [
+        "CB-28"
+      ],
+      "notes": [
+        "CB-28: refillLevel is live here. The old skin mirrored it into localStorage and then rejected its own value against a snap list. The write half is POST /api/v1/machine/waterLevels {refillLevel:int}, not tabled as a row because nothing in this wave writes it.",
+        "mm -> mL is skin-side; the 68-entry tank table has no ReaPrime counterpart."
+      ]
+    },
+    {
+      "id": "devices",
+      "path": "/ws/v1/devices",
+      "handlerSymbol": "DevicesHandler._handleDevicesSocket",
+      "handlerFile": "lib/src/services/webserver/devices_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "devices[], scanning, charging?, connectionStatus{}",
+      "commands": [
+        "scan",
+        "connect",
+        "disconnect"
+      ],
+      "retires": [],
+      "notes": [
+        "B8: while connectionStatus.pendingAmbiguity is set ReaPrime parks in a selection session and suppresses recovery until the ANSWER arrives. Consuming the state without sending the answer is half the contract.",
+        "Bridge-registered sensors never appear here — that is why sensor presence is a poll (GET /api/v1/sensors)."
+      ]
+    },
+    {
+      "id": "display",
+      "path": "/ws/v1/display",
+      "handlerSymbol": "DisplayHandler._handleWebSocket",
+      "handlerFile": "lib/src/services/webserver/display_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "DisplayState frames (brightness / dim state)",
+      "commands": [
+        "setBrightness",
+        "requestWakeLock",
+        "releaseWakeLock"
+      ],
+      "retires": [],
+      "notes": [
+        "setBrightness takes an INT 0..100 and the handler DROPS anything else with a log line and NO reply — silence is indistinguishable from success, so the shape is validated before sending (rea-ws-channels.js validateCommand)."
+      ]
+    },
+    {
+      "id": "update",
+      "path": "/ws/v1/update",
+      "handlerSymbol": "UpdateHandler._handleSocket",
+      "handlerFile": "lib/src/services/webserver/update_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "UpdateState frames (check/download/install progress)",
+      "commands": [
+        "check",
+        "install"
+      ],
+      "retires": [],
+      "notes": [
+        "`install` on an unsupported platform replies {error, url} — an error envelope carrying a fallback URL, i.e. a signal with a payload, not a frame."
+      ]
+    },
+    {
+      "id": "sensorSnapshot",
+      "path": "/ws/v1/sensors/<id>/snapshot",
+      "handlerSymbol": "SensorsHandler._handleSensorSnapshot",
+      "handlerFile": "lib/src/services/webserver/sensors_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "one sensor's channel map — read through rea-address.js by key-presence",
+      "commands": null,
+      "retires": [
+        "CB-03",
+        "CB-07"
+      ],
+      "notes": [
+        "An unknown id is answered {\"error\":\"not found\"} AND THE SOCKET CLOSES. That close is the re-discovery trigger (CB-07): the id derives from the machine's deviceId, so a machine swap mints a new one and the old id is dead for good.",
+        "CB-03: this is where milk temperature lives, as the probe's own `temperature` key."
+      ]
+    },
+    {
+      "id": "pluginEndpoint",
+      "path": "/ws/v1/plugins/<id>/<endpoint>",
+      "handlerSymbol": "PluginsHandler._handlePluginSocketEndpoint",
+      "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
+      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "status": "consumed",
+      "carries": "the plugin event payload verbatim (data['payload'])",
+      "commands": null,
+      "retires": [],
+      "notes": [
+        "A missing plugin or a non-websocket endpoint is answered 404/400 BEFORE the upgrade, so the socket never opens and a reconnecting client would dial it for ever. Plugin absence degrades to feature-absent, never to an error banner."
+      ]
+    }
+  ],
+  "forbiddenSpellings": [
+    {
+      "bug": "CB-21",
+      "pattern": "\\.shots\\b",
+      "why": "the shots list is {items,total,limit,offset}. `response.shots` is undefined on every machine ever built, and the old skin's numpad history chips fell through to an empty array behind a debug-level log.",
+      "truth": "getShots"
+    },
+    {
+      "bug": "CB-15",
+      "pattern": "scale/calibrate",
+      "why": "a path that has never existed in ReaPrime's history. The route is PUT /api/v1/machine/scaleCalibration.",
+      "truth": "putMachineScaleCalibration"
+    },
+    {
+      "bug": "CB-15",
+      "pattern": "weightGrams|weight_grams",
+      "invert": true,
+      "why": "recorded as the CORRECT spelling, not a forbidden one — kept here so the pair reads together. Gate D does not scan for it.",
+      "truth": "putMachineScaleCalibration"
+    },
+    {
+      "bug": "CB-18",
+      "pattern": "prewarmEnabled|prewarmLeadMinutes",
+      "why": "PUT /machine/cupWarmer rejects a body without temperature or enabled. Pre-warm is its own route with {enabled, leadMinutes}.",
+      "truth": "putMachineCupWarmerPreheat"
+    },
+    {
+      "bug": "CB-19",
+      "pattern": "resolvePrewarm",
+      "why": "it read prewarm* off GET /machine/cupWarmer, which never serves them, so it permanently reported the firmware as lacking pre-warm.",
+      "truth": "getMachineCupWarmerPreheat"
+    }
+  ],
+  "reaPrimeSide": [
+    {
+      "bug": "CB-05",
+      "what": "POST /api/v1/sensors/<id>/execute answers 500 with a Dart stack on a malformed body — `jsonBody['commandId'] as String` throws before the try block",
+      "where": "lib/src/services/webserver/sensors_handler.dart",
+      "policy": "upstream, clean upstream-cut branch (A2). Never worked around in the skin."
+    },
+    {
+      "bug": "CB-06",
+      "what": "SteamSequencer binds milk temperature to `sensors.entries.first`, i.e. whichever sensor registered first — on a Bengle running the observer that is almost certainly the puck estimator, and milkTemperature comes back null",
+      "where": "lib/src/controllers/steam_sequencer.dart _trackFirstSensor",
+      "policy": "upstream. CB-13 is the same defect filed twice."
+    },
+    {
+      "bug": "CB-12",
+      "what": "HiveStoreService.namespaces reports only boxes opened since boot, so GET /api/v1/data/export silently omits skin KV namespaces untouched this run",
+      "where": "lib/src/services/storage/hive_store_service.dart",
+      "policy": "upstream. rea-kv-backend.js records the caveat and does not compensate."
+    },
+    {
+      "bug": "CB-14",
+      "what": "FeedbackRequest.fromJson never reads `screenshots`, so the whole screenshot pipeline in FeedbackService is unreachable from any skin",
+      "where": "lib/src/models/feedback/feedback_request.dart",
+      "policy": "upstream. Do not build a screenshot capture against it."
+    }
+  ]
+}
