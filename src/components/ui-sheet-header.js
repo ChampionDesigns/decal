@@ -1,5 +1,5 @@
 /**
- * The one header a.
+ * A sheet's heading, with its close affordance.
  */
 
 import { css, html, nothing } from 'lit';

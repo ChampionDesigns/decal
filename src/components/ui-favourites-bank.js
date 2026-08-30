@@ -1,5 +1,5 @@
 /**
- * Ui-favourites-bank.
+ * The bank of profile shortcuts, and the hold gesture that assigns one.
  */
 
 import { css, html, nothing } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * The alert banner.
+ * A banner that states a condition and, when it can be acted on, offers the action beside it.
  */
 
 import { css, html } from 'lit';

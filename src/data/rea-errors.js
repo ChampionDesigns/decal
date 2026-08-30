@@ -1,6 +1,8 @@
 
 
-/** The closed set of failure kinds. */
+/**
+ * The error shapes ReaPrime answers with, and what each means to a caller.
+ */
 export const REA_ERROR = Object.freeze({
     NETWORK: 'network',
     TIMEOUT: 'timeout',

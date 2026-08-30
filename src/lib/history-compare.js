@@ -1,5 +1,5 @@
 /**
- * Two shots on one clock.
+ * Two shots aligned for comparison — the channels they share and the offset between them.
  */
 
 import { bridgeUnspoken } from './chart-align.js';

@@ -1,5 +1,5 @@
 /**
- * What.
+ * The weather corner's model: which state it is in, when a reading goes stale, and what each surface shows.
  */
 
 export function rangeOf(reading) {

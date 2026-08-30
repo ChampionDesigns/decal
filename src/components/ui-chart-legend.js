@@ -1,5 +1,5 @@
 /**
- * The chart key.
+ * The chart's key: one entry per channel, each able to turn its trace off.
  */
 
 import { css, html, nothing } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * The abort target.
+ * The press that stops whatever the machine is doing.
  */
 
 import { css, html, nothing } from 'lit';

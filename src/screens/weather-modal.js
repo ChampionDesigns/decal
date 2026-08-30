@@ -1,5 +1,5 @@
 /**
- * The.
+ * The weather detail the corner opens: three periods, the conditions grid, and the location field.
  */
 
 import { css, html, nothing } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * The square profile shortcut.
+ * One square in the favourites bank: a profile shortcut, or an empty slot waiting to be filled.
  */
 
 import { css, html, nothing } from 'lit';

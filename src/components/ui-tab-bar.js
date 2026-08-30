@@ -1,5 +1,5 @@
 /**
- * Ui-tab-bar.
+ * A bar of tabs, one of them selected.
  */
 
 import { css, html } from 'lit';

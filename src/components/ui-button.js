@@ -1,5 +1,5 @@
 /**
- * The one press control.
+ * The one press control. Variants and sizes are attributes; there is no second button.
  */
 
 import { css, html, nothing } from 'lit';

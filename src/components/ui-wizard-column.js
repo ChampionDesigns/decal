@@ -1,5 +1,5 @@
 /**
- * Ui-wizard-column.
+ * The column of steps down the side of a wizard, showing where you are in it.
  */
 
 import { css, html, nothing } from 'lit';

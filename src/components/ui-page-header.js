@@ -1,5 +1,5 @@
 /**
- * The screen band.
+ * A screen's heading, with the actions that belong to the page rather than to a row in it.
  */
 
 import { css, html, nothing } from 'lit';

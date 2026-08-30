@@ -1,5 +1,5 @@
 /**
- * Ui-text-field.
+ * A single-line text field.
  */
 
 import { css, html, nothing } from 'lit';

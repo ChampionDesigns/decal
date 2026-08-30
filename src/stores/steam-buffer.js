@@ -1,5 +1,5 @@
 /**
- * THE STEAM SESSION.
+ * The steam session's sample buffer.
  */
 
 import { createStore } from './store.js';

@@ -1,5 +1,5 @@
 /**
- * The time key.
+ * One key of the time picker.
  */
 
 import { css, html } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * Ui-stepper.
+ * A number with a control either side of it, a label, and an optional caption beneath.
  */
 
 import { css, html, nothing, svg } from 'lit';

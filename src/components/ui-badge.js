@@ -1,5 +1,5 @@
 /**
- * The small status marker.
+ * A small status marker: a word and a tone.
  */
 
 import { css, html, nothing } from 'lit';

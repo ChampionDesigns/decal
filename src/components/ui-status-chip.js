@@ -1,5 +1,5 @@
 /**
- * The machine-state.
+ * The machine's state, as one word.
  */
 
 import { css, html, nothing } from 'lit';

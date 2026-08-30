@@ -1,5 +1,5 @@
 /**
- * The profile editor's.
+ * The bounds for every editable field, derived from the machine's own limits.
  */
 
 import { authoringRange, modeRanges, getModeConfig, PUMP_MODE_CYCLE } from './profile-modes.js';

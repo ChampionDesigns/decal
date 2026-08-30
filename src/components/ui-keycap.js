@@ -1,5 +1,5 @@
 /**
- * The key face.
+ * One key face, for a keypad or a shortcut hint.
  */
 
 import { css, html, nothing } from 'lit';

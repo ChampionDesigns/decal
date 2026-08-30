@@ -1,5 +1,5 @@
 /**
- * When.
+ * The rate the live readings may repaint at, and what counts as a change worth painting.
  */
 
 /**

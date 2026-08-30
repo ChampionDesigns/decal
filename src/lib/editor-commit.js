@@ -1,5 +1,5 @@
 /**
- * Save.
+ * What the profile editor sends when a draft is saved, and what it refuses to send.
  */
 
 export const OUTCOME_SOURCE = Object.freeze({

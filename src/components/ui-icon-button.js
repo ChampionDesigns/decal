@@ -1,5 +1,5 @@
 /**
- * Ui-icon-button.
+ * An icon-only press. It carries no text, so it must be given a label.
  */
 
 import { css, html, nothing } from 'lit';

@@ -3,7 +3,9 @@
 import { callRoute } from '../data/rea-routes.js';
 import { createStore } from './store.js';
 
-/** Where a state request got to. */
+/**
+ * The machine's state and substate, and how stale the last frame is.
+ */
 export const REQUEST_STATUS = Object.freeze({
     IDLE: 'idle',
     SENDING: 'sending',

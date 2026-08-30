@@ -4,7 +4,9 @@ import { callRoute } from '../data/rea-routes.js';
 import { profileArmBody, profileRefusal } from '../data/rea-profile.js';
 import { createStore } from './store.js';
 
-/** Where an arm attempt got to. */
+/**
+ * Which profile is armed on the machine, and the write that arms another.
+ */
 export const ARM_STATUS = Object.freeze({
     IDLE: 'idle',
     ARMING: 'arming',

@@ -1,5 +1,5 @@
 /**
- * Ui-rating-control.
+ * The shot rating: a row of presses, one of them chosen.
  */
 
 import { css, html, nothing } from 'lit';

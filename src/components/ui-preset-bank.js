@@ -1,5 +1,5 @@
 /**
- * Ui-preset-bank.
+ * A row of preset values for one target, and the gesture that re-cuts one.
  */
 
 import { css, html } from 'lit';

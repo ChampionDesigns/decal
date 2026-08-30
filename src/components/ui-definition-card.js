@@ -1,5 +1,5 @@
 /**
- * The label/value info card.
+ * A card of label and value pairs.
  */
 
 import { css, html, nothing } from 'lit';

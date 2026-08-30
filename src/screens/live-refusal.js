@@ -1,5 +1,5 @@
 /**
- * <live-refusal>, B9's surface.
+ * What the Live screen says when the machine refuses an action, and how long it says it for.
  */
 
 import { css, html, nothing, svg } from 'lit';

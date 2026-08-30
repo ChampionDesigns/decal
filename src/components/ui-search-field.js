@@ -1,5 +1,5 @@
 /**
- * Ui-search-field.
+ * A search field with its clear affordance.
  */
 
 import { css, html, nothing } from 'lit';

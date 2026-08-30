@@ -1,5 +1,5 @@
 /**
- * Ui-colour-swatch-row.
+ * A row of colour swatches, one of them chosen.
  */
 
 import { css, html, nothing } from 'lit';

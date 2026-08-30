@@ -1,5 +1,5 @@
 /**
- *.
+ * A row of action keys for one item — move, delete, insert, duplicate.
  */
 
 import { css, html, svg } from 'lit';

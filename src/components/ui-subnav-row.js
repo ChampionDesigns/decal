@@ -1,5 +1,5 @@
 /**
- * The settings sub-category row.
+ * A row of sub-navigation tabs within a screen.
  */
 
 import { css, html, nothing } from 'lit';

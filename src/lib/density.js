@@ -1,5 +1,5 @@
 /**
- * C6, the preference half.
+ * The density scale: how much room a control gives its inset, named once.
  */
 
 /** The LOGICAL storage key. The router owns the layer and the prefix (B7). */

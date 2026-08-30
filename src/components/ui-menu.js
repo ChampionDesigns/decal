@@ -1,5 +1,5 @@
 /**
- * Ui-menu.
+ * A menu of actions, opened from a control and closed by choosing or by leaving.
  */
 
 import { css, html, nothing } from 'lit';

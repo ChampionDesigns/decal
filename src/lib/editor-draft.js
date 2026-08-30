@@ -1,5 +1,5 @@
 /**
- * The draft writer.
+ * The profile draft: the working copy a screen edits, and the rules that keep it valid.
  */
 
 import { newStep, seedStepForPump, limiterOnClear } from './profile-modes.js';

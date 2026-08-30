@@ -1,5 +1,5 @@
 /**
- * The exit chip.
+ * A profile step's exit condition as a row of chips, each one editable.
  */
 
 import { css, html, nothing } from 'lit';

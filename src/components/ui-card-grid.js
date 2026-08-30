@@ -1,5 +1,5 @@
 /**
- * The card grid.
+ * A responsive grid of cards that reads its own width rather than a breakpoint.
  */
 
 import { css, html, nothing } from 'lit';

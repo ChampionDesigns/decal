@@ -1,5 +1,5 @@
 /**
- * The one dialog.
+ * The one dialog: a native <dialog> with header, body and actions slots.
  */
 
 import { css, html, nothing } from 'lit';

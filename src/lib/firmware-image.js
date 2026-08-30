@@ -1,5 +1,5 @@
 /**
- * Which.
+ * A firmware image: its version, its size, and whether the machine will take it.
  */
 
 import { MACHINE_CLASSES } from './machine-limits.js';

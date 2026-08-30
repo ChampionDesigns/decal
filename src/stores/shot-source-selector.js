@@ -1,5 +1,5 @@
 /**
- * B6 — THE DUPLICATED CHANNELS.
+ * Which shot the history screens are showing, live or stored.
  */
 
 import { hasReading, noReading, ABSENCE } from '../data/reading.js';

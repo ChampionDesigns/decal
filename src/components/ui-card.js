@@ -1,5 +1,5 @@
 /**
- * The plain surface.
+ * A plain surface with a border and a radius. It has no header and no actions of its own.
  */
 
 import { css, html, nothing } from 'lit';

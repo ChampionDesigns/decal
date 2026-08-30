@@ -1,5 +1,5 @@
 /**
- *.
+ * The blank the screen falls to when the machine sleeps, and what wakes it.
  */
 
 import { css, html, nothing } from 'lit';

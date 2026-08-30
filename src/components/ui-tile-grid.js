@@ -1,5 +1,5 @@
 /**
- * The auto-fill tile grid.
+ * A grid of equal tiles.
  */
 
 import { css, html } from 'lit';

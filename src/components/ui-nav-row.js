@@ -1,5 +1,5 @@
 /**
- * The nav row.
+ * A navigation row: a label, an optional value, and the affordance that says it leads somewhere.
  */
 
 import { css, html, nothing } from 'lit';

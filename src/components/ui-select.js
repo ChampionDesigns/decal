@@ -1,5 +1,5 @@
 /**
- * Ui-select.
+ * A native select, dressed to match the other controls.
  */
 
 import { css, html, nothing } from 'lit';

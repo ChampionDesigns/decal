@@ -1,5 +1,5 @@
 /**
- * Which.
+ * The app's own version and update state.
  */
 
 import { callRoute } from '../data/rea-routes.js';

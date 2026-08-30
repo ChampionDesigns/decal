@@ -1,5 +1,5 @@
 /**
- * The.
+ * The per-machine limits table the ranges door reads.
  */
 
 /** The two machine classes the steam envelope is decided for (`doc/Skins.md:573`). */

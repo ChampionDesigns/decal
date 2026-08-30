@@ -1,5 +1,5 @@
 /**
- * Ui-progress-track.
+ * A determinate progress track.
  */
 
 import { css, html } from 'lit';

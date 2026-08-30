@@ -1,5 +1,5 @@
 /**
- * The sheet body.
+ * A panel that slides in over a screen and takes focus while it is open.
  */
 
 import { css, html, nothing } from 'lit';

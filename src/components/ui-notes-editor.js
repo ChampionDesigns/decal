@@ -1,5 +1,5 @@
 /**
- * The notes editor host.
+ * A markdown notes field with its preview.
  */
 
 import 'easymde';

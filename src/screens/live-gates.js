@@ -1,5 +1,5 @@
 /**
- * Live's capability gates.
+ * The capability gates for the Live screen: which controls this machine may be offered.
  */
 
 import { CAPABILITY } from '../stores/capabilities-store.js';

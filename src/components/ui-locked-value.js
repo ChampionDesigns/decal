@@ -1,5 +1,5 @@
 /**
- * The locked value box.
+ * A value with no control: the number a step holds while the machine, not the person, decides it.
  */
 
 import { css, html, nothing } from 'lit';

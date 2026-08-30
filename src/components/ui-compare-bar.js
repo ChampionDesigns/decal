@@ -1,5 +1,5 @@
 /**
- *.
+ * The bar that names the two shots being compared and offers the way out of the comparison.
  */
 
 import { html, css, nothing } from 'lit';

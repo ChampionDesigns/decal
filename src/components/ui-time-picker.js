@@ -1,5 +1,5 @@
 /**
- * Ui-time-picker.
+ * A time of day, entered by keypad rather than by scrolling.
  */
 
 import { css, html, nothing } from 'lit';

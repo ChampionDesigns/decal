@@ -1,5 +1,5 @@
 /**
- * The chart card.
+ * The chart surface: an uPlot canvas with its legend, scrubber and axis, fed by the chart feed.
  */
 
 import { css, html, nothing } from 'lit';

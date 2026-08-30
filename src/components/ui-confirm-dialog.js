@@ -1,5 +1,5 @@
 /**
- * The confirm.
+ * A dialog that asks one question and offers two answers.
  */
 
 import { css, html, nothing } from 'lit';

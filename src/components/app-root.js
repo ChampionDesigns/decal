@@ -1,5 +1,5 @@
 /**
- * App-root — THE APPLICATION SHELL.
+ * The application shell: the router, the theme, and the one mount point every screen renders into.
  */
 
 import { css, html } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * Ui-switch.
+ * A two-state switch, with a pending state for a write the machine has not confirmed.
  */
 
 import { css, html } from 'lit';

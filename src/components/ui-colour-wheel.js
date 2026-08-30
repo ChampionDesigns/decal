@@ -1,5 +1,5 @@
 /**
- * A.
+ * A hue wheel with a saturation field, reporting a colour as the caller's own format.
  */
 
 import { html, css } from 'lit';

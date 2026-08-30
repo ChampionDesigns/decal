@@ -1,5 +1,5 @@
 /**
- * What.
+ * The steam session's own chart series, which are not the espresso ones.
  */
 
 import { MACHINE_STATE, MACHINE_SUBSTATE } from '../data/machine-state.js';

@@ -1,5 +1,5 @@
 /**
- * The.
+ * A heading inside a page, above a group of rows.
  */
 
 import { css, html, nothing } from 'lit';

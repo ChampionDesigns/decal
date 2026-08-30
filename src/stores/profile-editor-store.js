@@ -1,5 +1,5 @@
 /**
- * THE PROFILE EDITOR'S.
+ * The one draft the editor is working on, and whether it has unsaved changes.
  */
 
 import { callRoute } from '../data/rea-routes.js';

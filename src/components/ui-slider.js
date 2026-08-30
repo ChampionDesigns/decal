@@ -1,5 +1,5 @@
 /**
- * Ui-slider.
+ * A range control: a value chosen along a track.
  */
 
 import { html, css, nothing } from 'lit';

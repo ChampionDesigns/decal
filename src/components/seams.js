@@ -1,5 +1,5 @@
 /**
- * The seam utility.
+ * The shared seam fragments — the hairlines that divide a grid without adding to a cell's height.
  */
 
 import { css } from 'lit';

@@ -1,5 +1,5 @@
 /**
- *.
+ * The type roles: the named text treatments every component draws from, so a size is chosen once.
  */
 
 import { css } from 'lit';

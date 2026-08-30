@@ -1,5 +1,5 @@
 /**
- * A.
+ * A press that opens the file picker and reports what was chosen.
  */
 
 import { html, css, nothing } from 'lit';

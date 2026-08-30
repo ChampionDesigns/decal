@@ -1,5 +1,5 @@
 /**
- * The "nothing here" block.
+ * What a region shows when it holds nothing, and the way out of that state.
  */
 
 import { css, html, nothing } from 'lit';

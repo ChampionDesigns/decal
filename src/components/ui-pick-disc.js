@@ -1,5 +1,5 @@
 /**
- * Ui-pick-disc.
+ * A circular picker: a value chosen by angle.
  */
 
 import { css, html, nothing } from 'lit';

@@ -1,5 +1,5 @@
 /**
- * B11.
+ * A profile's ancestry: which profile it was cut from, and what changed since.
  */
 
 import { changeGroupsOf } from './editor-commit.js';
