@@ -44,8 +44,6 @@ export function alignChannels(channels, keys) {
     for (const key of list) {
         const rec = channels?.[key];
         const col = new Array(x.length).fill(null);
-        // Which slots the channel actually SPOKE ABOUT — including the ones it spoke
-        // about by pushing an explicit null.
         const spoken = new Array(x.length).fill(false);
         if (rec) {
             for (let i = 0; i < rec.x.length; i += 1) {

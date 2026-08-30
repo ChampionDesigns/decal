@@ -16,8 +16,6 @@ export function ghcStripGate(answer) {
     const capability = answer && typeof answer === 'object' ? answer.capability : CAPABILITY.UNKNOWN;
     const known = capability === CAPABILITY.PRESENT || capability === CAPABILITY.ABSENT;
     return Object.freeze({
-        // FAIL-CLOSED: an UNKNOWN never renders, whichever polarity is in force, because
-        // `known` is false and the comparison below can only be reached through it.
         render: known && capability === GHC_STRIP_SHOWS_WHEN,
         capability,
         known,

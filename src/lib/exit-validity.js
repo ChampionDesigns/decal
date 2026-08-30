@@ -1,15 +1,4 @@
-// O5 — an exit condition that can never fire, rendered identically to a valid
-// one. "Flow falls below 0.0 mL/s" is not a strict setting, it is a step with
-// one fewer exit than it appears to have.
-//
-// Deliberately conservative: only what is provably unsatisfiable from the
-// CHANNEL'S DOMAIN is flagged. Pressure, flow and power are all non-negative,
-// so nothing can fall below zero and everything is already past zero on entry.
-// Anything that merely looks unlikely is left alone — a warning that fires on
-// legitimate profiles is worse than no warning.
-//
-// Explicitly NOT flagged: a TARGET of 0.0 mL/s. That is a zero-flow bloom, a
-// real technique, and it is a different field from an exit threshold.
+
 
 /** Channels whose value cannot go below zero, so a zero threshold is degenerate. */
 const NON_NEGATIVE = new Set(['pressure', 'flow', 'power']);

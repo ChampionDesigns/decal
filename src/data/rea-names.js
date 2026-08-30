@@ -1,24 +1,6 @@
-// The names ReaPrime uses TODAY, and the names it used to use.
-//
-// This file is DATA and it is the ONE place in Decal where a dead server key may be
-// written down. Everything else reads through `rea-address.js`, which reads through this.
-//
-// WHY THIS FILE EXISTS (SCOPE Part 6, "The number that shapes the whole plan"): of the old
-// skin's 4,188 lines of DOM-free logic only 8.7% copied unchanged, and the reason was not
-// architecture — it was ADDRESSING. ReaPrime renamed or moved seven snapshot keys and six
-// modules still read the old names, EACH BEHIND A LOCAL FALLBACK that silently absorbed
-// the miss and produced a plausible number on a live bench frame. Seven silent
-// misreadings shipped that way.
-//
-// A7, the single most important instruction in Part 6: NEVER PORT A FALLBACK PATH. Delete
-// it, so absence becomes visible. Consequently nothing here maps a dead name to a live
-// one at read time. `RENAMES` is a diagnostic and documentation table: it lets the reader
-// say "this frame carries a name ReaPrime deleted" out loud, and it lets a test prove no
-// module reads one. It is never consulted to PRODUCE a value.
-//
-// Every entry was re-read at ReaPrime commit 2b047d02 (the pinned reference worktree) on
-// 17 Aug 2026, from the sources named on each row. Line numbers are deliberately absent:
-// re-anchor by symbol.
+/**
+ * The names ReaPrime uses TODAY, and the names it used to use.
+ */
 
 export const SNAPSHOT_KEYS = Object.freeze([
     'timestamp',

@@ -1,49 +1,6 @@
-// THE ESTIMATOR LINK — the puck estimator's live frames, as a store.
-//
-// The estimator moved: `MachineSnapshot` is pure machine telemetry, and observer output —
-// which the machine never reads back — lives on the sensor abstraction beside the milk
-// probe, at `/ws/v1/sensors/<id>/snapshot`. This store owns that stream's latest frame and
-// the identity of the sensor it came from. It is genuinely current work; what it replaces
-// is `estimator-link.js`, whose channel map was right and whose four surrounding behaviours
-// were not.
-//
-// ── THE FOUR DEFECTS, AND WHAT REPLACES EACH ─────────────────────────────────────────
-//
-//  1. IT NEVER RE-DISCOVERS. `if (stopped || socket) return;` — once a socket existed,
-//     discovery stopped for good. The sensor id derives from the MACHINE's deviceId
-//     (`'${machineDeviceId}-puckestimator'`), so swapping the machine mints a NEW id and
-//     the old link dialled the dead one for ever, while `sensors_handler.dart` answered
-//     `{"error":"not found"}` and closed. Re-discovery on close is `rea-sensors.js`'s job
-//     (Gate 3) and this store consumes it: the CLOSE and the ERROR ENVELOPE are both
-//     signals here, and both clear the held frame immediately. A held frame from a sensor
-//     that is gone is the stale-value defect wearing the estimator's colour.
-//  2. THE LEGACY BACK-TRANSLATION. The old link mapped every channel back to the snapshot
-//     key names the skin already used, so nothing downstream had to change. A rewrite has
-//     no old consumers, so there is nothing to translate for, and translating would
-//     re-bake seven dead names behind a shim. Channels keep ReaPrime's names, read through
-//     the address layer.
-//  3. THE POLL RAN FOR EVER on a machine with no estimator, at 15 s, against a route with
-//     no ETag (`sensors_handler.dart` answers `jsonOk`, not `jsonOkConditional`). The poll
-//     is now gated on capabilities — through the R3-tagged adapter, because no capability
-//     entry for the estimator exists upstream yet — and `rea-sensors.js` requires that
-//     gate rather than defaulting it.
-//  4. IT STARTED ITS INTERVAL AT CONSTRUCTION, so it could be polling before anything
-//     wanted an answer. `start()` here is explicit and idempotent.
-//
-// AND ONE SHAPE CHANGE: `apply` RETURNS NEW STATE. The old `apply(snapshot)` mutated the
-// snapshot in place, which is why nothing could observe it and two consumers could see
-// different objects for the same frame. Gate 4's rule — in-place mutation becomes
-// return-new-state, because the store is what makes it observable.
-//
-// ABSENT CHANNELS STAY ABSENT. `encodeSample` OMITS a channel the firmware has not
-// observed; a zero would misrepresent "not observed" as a real measurement of zero
-// resistance. The address layer turns an omitted key into an absence with a reason, and
-// this store passes that through untouched. Nothing here nulls, zeroes or interpolates.
-//
-// ReaPrime read AS WRITTEN at 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3:
-// `bengle_puck_estimator.dart` (the class doc, `info.dataChannels`, `encodeSample`,
-// `_machineDeviceId`) and `sensors_handler.dart`. The store issues no request itself — the
-// listing GET and the socket both belong to `rea-sensors.js` — so it declares no route.
+/**
+ * THE ESTIMATOR LINK — the puck estimator's live frames, as a store.
+ */
 
 import { createStore } from './store.js';
 import { readEstimatorFrame, presentChannels } from '../data/rea-address.js';
@@ -104,9 +61,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
         throw new Error('createEstimatorLinkStore: sensor discovery must be injected (see createSensorDiscovery)');
     }
     const log = logger && logger.scope ? logger.scope('estimator') : logger;
-    // Gate 4's ONE store primitive — frozen state, return-new-state enforced, replay to a
-    // late subscriber. `set()` throws if handed the object it already holds, which is the
-    // in-place mutation this module's `apply` used to be.
     const store = createStore({ ...EMPTY }, { label: 'estimator-link', logger: log });
     let offFrames = null;
     let offSignals = null;
@@ -120,9 +74,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
     function onFrame(frame) {
         const reading = readEstimatorFrame(frame);
         if (!reading.ok) {
-            // An error envelope reaching the frame path at all would be a Gate 3 bug; it is
-            // handled here as what it is rather than stored as an empty frame, which is
-            // exactly how the old link made a dead sensor look like a quiet one.
             publish({
                 ...state(),
                 lastError: reading.error,
@@ -150,8 +101,6 @@ export function createEstimatorLinkStore({ discovery, logger = null, now = () =>
     function onSignal(signal) {
         if (!signal) return;
         if (signal.kind === WS_SIGNAL.OPEN) {
-            // The attach itself is observable — a screen can say "waiting for the first
-            // frame" rather than "no estimator", which are different states.
             publish({ ...state(), status: LINK_STATE.ATTACHED, sensorId: attachedId() });
             return;
         }

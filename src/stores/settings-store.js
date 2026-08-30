@@ -1,57 +1,6 @@
-// The settings store — B7 at volume, and the spine every settings leaf reads and writes
-// through.
-//
-// SCOPE Part 5 §4: "**B7 (accepted): one store per setting, never two.** Machine-scoped
-// settings (steam stop mode, tank units, experimental channels…) live in ReaPrime's KV
-// store; only genuinely device-scoped preferences stay local."
-//
-// This module is the volume answer to the same problem `units.js` solves for one key. It
-// adds NO storage policy of its own: the layer for every key is looked up in
-// `../lib/storage-routes.js` through `../lib/storage-router.js`, and this file never names
-// a backend, a namespace, a prefix or an endpoint. That is deliberate and it is the whole
-// design — 37 leaves each choosing a store at their own call site is precisely the shape
-// the dual-write bug grew in.
-//
-// WHAT THIS FILE GUARANTEES, AND HOW
-//
-//  1. ONE STORE PER SETTING. Not by convention — by construction. A row carries exactly one
-//     `layer`, the router talks to exactly one backend, and there is no path here that
-//     writes twice or reads two places and picks. The dual-write drill in
-//     `test/settings-store.test.mjs` instruments BOTH backends and asserts a machine-scoped
-//     write touches one and only one; it fails if anyone ever adds a mirror.
-//
-//  2. A FAILED WRITE SURFACES. This is the units.js defect (`units.js:52-58,:106-115`: two
-//     stores, a swallowed `.catch(() => {})`, and a boot-time read of the OTHER one first,
-//     so a rejected put lost the preference silently and then overwrote the good copy on
-//     the next boot). Here a failed write does three things and hides none of them: it
-//     leaves the in-memory value UNCHANGED, it returns an outcome saying so, and it fires
-//     `onWriteFailure`. A settings row that shows a value it did not persist is the same
-//     silent revert wearing a new coat, so the store refuses to show one.
-//
-//  3. AN UNKNOWN KEY IS REFUSED, NEVER DEFAULTED. The router throws StorageRouterError
-//     UNKNOWN_KEY for a key with no row and this file does not catch it. A leaf that
-//     invents a key fails loudly on its first call rather than persisting into a namespace
-//     nobody will ever read back. (Two real keys — `helpHidden`, `helpLaunches` — were
-//     found exactly this way while enumerating the 37 leaves.)
-//
-//  4. CAPABILITY GATING IS A3 AND FAILS CLOSED. `gate()` renders a surface only on
-//     CAPABILITY.PRESENT. Both ABSENT and UNKNOWN hide it, and UNKNOWN is the one that
-//     matters here: the mock answers /api/v1/machine/capabilities with 503 by design (wave
-//     5.1 REPORT), so `entries` stays null and every gate reads UNKNOWN rather than ABSENT.
-//     A gate that only checked for ABSENT would render every machine page against the mock
-//     — a finding, not a nicety. The old skin gated the same three leaves on
-//     `String(model).toLowerCase().includes('bengle')` (machine.js:18-20); the served array
-//     replaces the sniff, and no model string is read anywhere in this file.
-//
-//  5. A HIDDEN SURFACE DOES NOT WRITE. Fail-closed has to cover the write direction too,
-//     or a stale control left on screen can still post to a machine that never advertised
-//     the feature. `set()` on a gated key whose capability is not PRESENT refuses, with the
-//     capability verdict in the outcome — and so does `remove()`, because a DELETE is a
-//     write too and it is the one write path that used to run the backend ungated.
-//
-// DOM-free: no `document`, no `window`, no `localStorage`, no `fetch`. Everything is
-// injected. NO TIMERS: there is no debounce, throttle or setTimeout in this module, and
-// none belongs here (D7's write pattern is the LED path's, and it is a timer-free one).
+/**
+ * The settings store — B7 at volume, and the spine every settings leaf reads and writes through.
+ */
 
 import { createStore } from './store.js';
 import { defaultFor } from '../lib/settings-defaults.js';
@@ -227,8 +176,6 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
             const row = rowFor(key, 'set()');
             const verdict = gate(key);
             if (verdict.surface === SURFACE.HIDDEN) {
-                // Fail-closed covers writes too: a control that should not be on screen
-                // must not be able to post to a machine that never advertised the feature.
                 const refusal = Object.freeze({
                     ok: false,
                     key,
@@ -264,9 +211,6 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
             const row = rowFor(key, 'remove()');
             const verdict = gate(key);
             if (verdict.surface === SURFACE.HIDDEN) {
-                // "Same contract as set" includes claim 5: a delete IS a write. A DELETE to
-                // a machine that never advertised the feature is the same fail-closed breach
-                // as a PUT, so it takes the same refusal rather than a quieter one.
                 const refusal = Object.freeze({
                     ok: false,
                     key,

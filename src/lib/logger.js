@@ -1,26 +1,4 @@
-// The logger. One surface for every diagnostic line in the skin; no component calls
-// console.* directly.
-//
-// THE DECISION THAT CARRIES ACROSS (CARRY_FORWARD, `logger.js` — "a rewrite, not a port…
-// the value carried is the decision, not the code"): log through `console.*`, because
-// ReaPrime captures the WebView's console (`skin_view.dart:684-692`), persists it with a
-// 1 MB truncating cap and replays it at `GET /api/v1/webview/logs?order=asc|desc`. That
-// makes every line recoverable from the machine, for free, with no skin-side transport.
-//
-// THE BUG THAT DOES NOT (verified at source): the old module was
-// `export const logger = { debug: noop, … }` and `setDebug` REASSIGNED `logger.debug` in
-// place, so any consumer that destructured (`const { debug } = logger`) captured the
-// no-op permanently and never saw `setDebug(true)`. Here every method is a stable
-// function for the lifetime of the logger and reads the level at call time.
-//
-// The one trade-off, stated because it is a real loss: the old module used
-// `console.info.bind(console, '[INFO]')`, so devtools attributed each line to its call
-// site. A level-checking wrapper cannot preserve that. It is paid for level gating and
-// for sinks, and the console sink still calls the matching `console` method so devtools
-// filtering and ReaPrime's capture both behave.
-//
-// DOM-free: `console` is injected, never reached for. That is what lets levels and sinks
-// be tested under node:test with a recording double.
+
 
 export const LEVELS = Object.freeze({
     debug: 10,
@@ -61,8 +39,6 @@ export function createLogger({
     sinks,
     now = () => Date.now(),
 } = {}) {
-    // One shared state object: child scopes see level changes made on the parent, which is
-    // what a single `setLevel` at boot has to mean.
     const state = {
         threshold: normaliseLevel(level),
         sinks: new Set(sinks || (consoleTarget ? [createConsoleSink(consoleTarget)] : [])),
@@ -79,8 +55,6 @@ function makeLogger(state, tag) {
             try {
                 sink(record);
             } catch {
-                // A broken sink must never take down the caller, and must never recurse
-                // back into logging. Swallowed here and only here.
             }
         }
     }

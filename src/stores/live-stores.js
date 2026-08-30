@@ -1,26 +1,6 @@
-// THE LIVE LAYER, ASSEMBLED — one store per feed, and the wiring that fills them.
-//
-// SCOPE Part 3 §4 names the seven: machine snapshot, scale, shot state, connection (the
-// FULL B8 state), display, update, sensors. This module builds exactly those, over Gate 3's
-// sockets and Gate 2's readers, and adds the shot-so-far buffer they feed.
-//
-// WHY AN ASSEMBLY FUNCTION AND NOT SEVEN MODULE-LEVEL INSTANCES: because seven module-level
-// instances IS pattern C — the sharing would again depend on ES-module singleton semantics,
-// and nothing could be built twice in one process, which is the property every test in this
-// tree relies on. The app shell calls this once and passes the result down; a test calls it
-// with fakes. `src/lib/i18n.js` keeps a module-level instance because translation is
-// genuinely document-scoped and has no source to inject; machine state has both.
-//
-// EVERY DEPENDENCY IS INJECTED, INCLUDING TIME. No `window`, no `fetch`, no `Date.now` that
-// a test cannot move, no timer that starts itself. `estimator-link.js:120-121` started an
-// interval at construction and polled for ever whether anything wanted an answer; nothing
-// in this layer starts until `attachAll()`.
-//
-// THE ANSWER PATH (B8) IS NOT A STORE. `/ws/v1/devices` is consumed as the connection feed,
-// but the reply — `PUT /api/v1/devices/connect {deviceId}` — is `rea-devices.js`'s
-// `createDevicesLink`, which is passed in and re-exposed here. Reading the connection state
-// without being able to answer it is the old skin's failure: ReaPrime parks in a selection
-// session while `pendingAmbiguity` is set and suppresses recovery until the choice arrives.
+/**
+ * THE LIVE LAYER, ASSEMBLED — one store per feed, and the wiring that fills them.
+ */
 
 import { createFeedStore, DEFAULT_STALE_AFTER_MS, FEED_STATUS } from './feed-store.js';
 import { readShotStateFrame, readDisplayFrame, readUpdateFrame } from './feed-readers.js';
@@ -118,8 +98,6 @@ export function createLiveStores({
     };
 
     if (sourceSelector && (chooseSources || releaseSources)) {
-        // Two B6 wirings at once is two decisions per shot. Refused at construction rather
-        // than resolved by precedence, which would make the loser invisible.
         throw new Error('createLiveStores: pass sourceSelector OR chooseSources/releaseSources, not both');
     }
     const b6 = sourceSelector ? sourceSelectorHooks(sourceSelector) : { chooseSources, releaseSources };
@@ -167,8 +145,6 @@ export function createLiveStores({
                 feeds[FEED.MACHINE].attach(channelFor(WS_CHANNELS.machineSnapshot)),
                 feeds[FEED.SCALE].attach(channelFor(WS_CHANNELS.scaleSnapshot)),
                 feeds[FEED.SHOT_STATE].attach(channelFor(WS_CHANNELS.shotState)),
-                // The devices link owns this channel when one was injected, so the answer
-                // path and the state feed are the same socket — not two.
                 feeds[FEED.CONNECTION].attach(devicesLink ? devicesLink.channel : channelFor(WS_CHANNELS.devices)),
                 (() => {
                     displayChannel = channelFor(WS_CHANNELS.display);

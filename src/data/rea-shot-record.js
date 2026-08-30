@@ -1,37 +1,4 @@
-// THE STORED SHOT RECORD, ADDRESSED — the non-frame half of `GET /api/v1/shots/<id>`.
-//
-// `rea-address.js` is the reader for FRAMES: a machine snapshot, a scale snapshot, a sensor
-// frame, one `measurements[]` row. A stored shot carries three things that are not frames and
-// that Gate 6's derivation needs anyway:
-//
-//   * the record SHELL — `id`, `timestamp`, `measurements`, `workflow`, `annotations`,
-//     `stopReason` (the `ShotRecord` schema, generated into `rea-routes.generated.js`);
-//   * `ShotAnnotations` — where the dose actually used, the settled yield and ReaPrime's own
-//     `enjoyment` rating live;
-//   * the two things the shot's WORKFLOW says about it that a chart needs: the target dose,
-//     and the profile's step names for the phase marks.
-//
-// They live here rather than in `rea-address.js` for one reason: that module is a pure frame
-// reader, imported per SAMPLE at 10 Hz, and a record shell is read once per shot. Same rules,
-// same primitives (`reading.js`), separate file — and, crucially, THE SAME PROHIBITION. Gate
-// 6's derivation contains no server key string at all; every name ReaPrime chose for a stored
-// shot is written down here, once, beside the frame names.
-//
-// A7 APPLIES UNCHANGED. Nothing here substitutes, integrates or guesses:
-//
-//   * `actualYield` absent is an ABSENCE. The derivation may prefer the settled scale weight
-//     it OBSERVED, and it says which one it used — it does not silently swap them.
-//   * `targetDoseWeight` is the dose that was ASKED FOR and `actualDoseWeight` is the dose
-//     that went in. Two different quantities, both real, and the preference between them is
-//     the caller's stated policy, not a fallback.
-//   * `dose_weight` on the profile IS NOT READ. The old skin's third dose fallback reads a
-//     field `Profile.toJson` does not emit, so it could only ever have produced `undefined`
-//     — the fallback rule in its purest form, and it is deleted rather than ported.
-//
-// Shapes read AS WRITTEN at ReaPrime 2b047d02: `shot_record.dart` (ShotRecord.toJson),
-// `shot_annotations.dart` (:5-14, :45-54), `workflow.dart` (WorkflowContext), `profile.dart`
-// (Profile.toJson — `steps`, each with `name`). This module makes no request of its own and
-// declares no route; `getShotsById` is Gate 3's contract entry.
+
 
 import { ABSENCE, noReading, readNumber, readValue, readChannels, hasKey } from './reading.js';
 

@@ -132,9 +132,6 @@ export class UiEmptyState extends UiElement {
     }
 
     render() {
-        // An empty part is dropped rather than hidden-but-present, because a
-        // zero-height grid item still contributes its share of the gap: an absent
-        // text pair would put 36px between the disc and the actions instead of 18.
         const hasProse = Boolean(this.body) || this._hasBody;
         const hasText = Boolean(this.heading) || hasProse;
         return html`<div id="empty" class="empty">

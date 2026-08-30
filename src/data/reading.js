@@ -1,27 +1,4 @@
-// Readings: a value that is present, or an absence with a reason.
-//
-// This is the substrate under the address layer, and it exists because of one rule
-// (SCOPE Part 6, "Two contract facts" and "The rule that follows"):
-//
-//   * KEY PRESENCE IS THE VALIDITY SIGNAL. `MachineSnapshot.toJson` OMITS a derived
-//     channel rather than nulling it, and its own comment says consumers can rely on
-//     that. So `Object.hasOwn(data, 'puckResistanceDerived')` is the whole test. The gate
-//     that decides it lives in ReaPrime. NEVER re-implement it, never copy its constants —
-//     a second copy of a threshold is a second thing to drift.
-//
-//   * A7: NEVER PORT A FALLBACK PATH. A missing channel renders as a gap or a dash, never
-//     as a locally-recomputed ratio, a delta-plus-EMA flow, or a zero that reads as a
-//     measurement. Those three are exactly how seven renames hid for months on a live
-//     bench: every one of them produced a plausible number.
-//
-// Hence: absence is a VALUE here, carrying a REASON, and it is not a number. It cannot be
-// added, averaged or plotted by accident — `Number(NO_READING)` is NaN and arithmetic on
-// it is loud rather than plausible. Turning one into something a renderer can draw is a
-// deliberate call to `toPlot`, which yields `null` — uPlot's gap.
-//
-// `Object.hasOwn` rather than the `in` operator: identical for a JSON.parse result (no
-// prototype chain of its own) and immune to a polluted `Object.prototype`, which `in`
-// is not. The spec's `'key' in data` is the same test stated informally.
+
 
 /** Why a reading is absent. Ordered from "the server is fine" to "this can never arrive". */
 export const ABSENCE = Object.freeze({

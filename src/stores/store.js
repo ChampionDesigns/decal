@@ -1,42 +1,4 @@
-// THE STORE PRIMITIVE — one owner per piece of state, observable by construction.
-//
-// Gate 4 (SCOPE Part 3 §4; CARRY_FORWARD.md §6 patterns C, E, F). Every reactive value
-// above this line is one of these. Nothing above this gate keeps a module-scope `let`.
-//
-// WHAT IT REPLACES, and why the replacement is not "the same thing in a different file":
-//
-//  * PATTERN C — ~13 module-scope singletons (`currentMachineState`, `machineModel`,
-//    `currentShot`, `cupWarmerState`, `currentTempUnit`, the chart's 43 module-level
-//    `let`s). Sharing worked because ES modules are singletons AND the router swapped
-//    pages with `innerHTML` without reloading modules — a mechanism, not a design. The
-//    need was real: three copies of "is the warmer on" once drifted and froze a page at a
-//    twenty-minute-old temperature. A store keeps the sharing and drops the mechanism.
-//
-//  * PATTERN E — no document-level `CustomEvent` buses. `streamline:unitchange` is
-//    dispatched on `document` (`units.js:57`) and a `document` listener does not reach a
-//    component that never mounted one; a `querySelectorAll` cannot cross a shadow
-//    boundary either. And the prefix names a different skin. Subscription here is a
-//    direct function call on an imported instance: shadow roots are irrelevant to it.
-//
-//  * PATTERN F — in-place mutation invisible to Lit. `foldSnapshot`, `estimatorLink.apply`
-//    and `normalizeStep` all mutate and return a boolean or the same object. That is
-//    right for a datarevision counter and wrong for a renderer that compares references.
-//    So this module makes the wrong thing LOUD rather than silent:
-//      1. state objects are frozen on the way in, so mutating one throws (modules are
-//         strict-mode by definition), and
-//      2. `set(sameObjectReference)` throws with pattern F named in the message.
-//    A fold that legitimately has nothing to change says so — `update()` returns
-//    UNCHANGED — instead of returning the object it was given.
-//
-// REPLAY IS THE POINT (SCOPE Part 3 §4, "replaying it to late subscribers"). A component
-// that mounts between frames must paint immediately, so `subscribe` delivers the current
-// state synchronously before returning. This mirrors `rea-fanout.js`, which mirrors
-// ReaPrime's own `shareReplay(1)` — one mechanism, stated three times because it crosses
-// three layers, never two mechanisms.
-//
-// NO DOM, NO TIMERS, NO NETWORK. Everything time-shaped is injected (`clock`), so the
-// whole layer runs under `node:test` with no harness. That is the same rule the transport
-// applies to `fetch` and the sockets apply to their factory.
+
 
 /** Returned by an `update` function that decided there is nothing to change. */
 export const UNCHANGED = Symbol('store: unchanged');
@@ -57,14 +19,10 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
     };
 
     const publish = () => {
-        // Snapshot the set: a subscriber may unsubscribe itself (or another) during
-        // delivery, and the delivery in flight must be unaffected either way.
         for (const listener of [...listeners]) {
             try {
                 listener(state);
             } catch (err) {
-                // One broken subscriber must not stop the state reaching the others, and
-                // must not take down the socket that delivered the frame.
                 report(err);
             }
         }
@@ -167,8 +125,6 @@ export class StoreController {
     }
 
     hostConnected() {
-        // The first delivery is the replay, which happens inside subscribe() — so the
-        // host has the current state before its first update, not after it.
         this.unsubscribe ??= this.store.subscribe(() => this.host.requestUpdate());
     }
 

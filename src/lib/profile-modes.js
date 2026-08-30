@@ -1,6 +1,4 @@
-/**
- * The pump-mode tables and every PURE decision the profile editor makes about a step (Gate 7 port of slate app/src/modules/profile_modes.js, 579 lines; CARRY_FORWARD.md §3d).
- */
+
 
 import { REA_EXIT_TYPES } from '../data/rea-profile.js';
 import { MACHINE_CLASSES } from './machine-limits.js';
@@ -272,34 +270,18 @@ export function seedStepForPump(step, newPump) {
     }
 
     if (newPump === 'lever') {
-        // A mode SWITCH seeds a fresh lever step: P0 = the lever seed and the
-        // CLASSIC feel. (A preset PICK later never re-touches P0 — the preset
-        // invariant — but the switch itself is a reset, so it seeds P0.)
         step.pressure = cfg.seed;
         step.leverSpring = LEVER_PRESETS.CLASSIC.leverSpring;
         step.leverGive = LEVER_PRESETS.CLASSIC.leverGive;
-        // LEVER defines its own P0 − spring·V − give·F trajectory, so the
-        // frame-spanning JUMP/RAMP/HOLD transition does not apply: force JUMP at
-        // switch time. Lever is the ONLY mode that seeds a forced transition.
         step.transition = 'fast';
     } else {
         // Seed the target if absent or zero (preserve a shared key's prior value).
         if (!num(step[keep])) step[keep] = cfg.seed;
         if (newPump === 'power') {
-            // The transition is deliberately NOT forced: the firmware honours a
-            // watts-domain ramp, so an authored Ramp must survive a switch into
-            // Power exactly like flow/pressure.
-            //
-            // The pressure cap is soft-mandatory. Force the default when unset OR
-            // zeroed — the same value>0 test `normalizeImportedStep` uses, not a
-            // truthy guard that would let a carried-over {value: 0} limiter through.
             const cap = authoringRange('powerPressureCap');
             if (!step.limiter || !(num(step.limiter.value) > 0)) {
                 step.limiter = powerCapDefault();
             } else {
-                // A carried-over limiter (a flow step's mL/s soft-knee, say) must not
-                // survive as a sub-min or over-ceiling bar cap, so a 0.5 mL/s flow
-                // limit cannot become a 0.5 bar pressure cap.
                 step.limiter.value = clamp(num(step.limiter.value), cap.min, cap.max);
             }
         }
@@ -314,11 +296,6 @@ export function limiterOnClear(pump) {
 
 export function normalizeImportedStep(step) {
     if (!step || typeof step !== 'object') return step;
-    // THE ONE SITE where an unrecognised pump becomes a known one, and it is a
-    // WRITE on the step so the coercion is visible in the record afterwards. The
-    // source did this implicitly on every read instead (`MODE_TABLE[pump] ||
-    // MODE_TABLE.flow`), which re-typed the step differently on different surfaces
-    // and left nothing behind to see. A7: coerce at the boundary, once, or not at all.
     if (!MODE_TABLE[step.pump]) step.pump = DEFAULT_IMPORTED_PUMP;
     const cfg = MODE_TABLE[step.pump];
     {
@@ -339,8 +316,6 @@ export function normalizeImportedStep(step) {
     } else if (step.limiter && step.limiter.value === 0) {
         step.limiter = null;
     }
-    // A power exit ROUND-TRIPS on load, so a profile authored on a capable machine
-    // stays full-fidelity everywhere: degrade visibly, never silently.
     if (step.exit && !REA_EXIT_TYPES.includes(step.exit.type)) {
         step.exit = null;
     }
@@ -376,8 +351,6 @@ export function describeModeParts(step) {
         let main;
         if (preset === 'CUSTOM') {
             main = [
-                // No leading "to " — the review prepends "Engage" (lever carries no
-                // transition verb): "Engage a custom spring-lever source…".
                 { t: 'text', text: 'a custom spring-lever source: start at' },
                 { t: 'num', field: 'pressure', value: num(step.pressure), step: p0.step, unit: p0.unit, min: p0.min, max: p0.max },
                 { t: 'text', text: ', dropping' },
@@ -470,17 +443,11 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
     }
 
     const lines = [];
-    // A7: the mode is taken as given or REFUSED — never re-typed. The source
-    // defaulted to flow here and then worded an unrecognised step as a PRESSURE
-    // step below, so the same unknown mode read as two different steps. The branches
-    // that follow are exhaustive because this throws for anything outside the table.
     const pump = getModeConfig(step && step.pump).pump;
     const isRamp = step.transition === 'smooth';
     const isHold = step.transition === 'hold';
     const probe = step.sensor === 'water' ? 'water' : 'coffee';
 
-    // Line 1 — temperature. The step is the machine range's own, so integers read
-    // clean ("93") while a 92.5 stays accurate.
     lines.push([
         ['t', 'Set '],
         ['tog', 'probe', probe],
@@ -488,8 +455,6 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
         ['num', 'temperature', num(step.temperature), temperature.step, '°C', temperature.min, temperature.max],
     ]);
 
-    // Exit mapping: TIME folds into the rate line and the pressure/flow condition
-    // plus volume/weight combine into one "Move on if…" line.
     const secondsRange = authoringRange('seconds');
     const seconds = num(step.seconds);
     const volume = num(step.volume);
@@ -501,14 +466,9 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
            ['num', 'seconds', seconds, secondsRange.step, secondsRange.unit, secondsRange.min, secondsRange.max]]
         : [];
 
-    // Line 2 — the rate, with time and limiter appended as one string so
-    // punctuation attaches with no gap.
     const rate = [];
     const lim = num(step.limiter && step.limiter.value);
     if (isHold) {
-        // DEVIATION (documented): the base template's held word is
-        // flow ? 'flow rate' : 'pressure'; a HOLD-power step says "power" because
-        // the firmware latches watts for it.
         const what = pump === 'flow' ? 'flow rate' : pump === 'power' ? 'power' : 'pressure';
         rate.push(['tog', 'trans', 'Hold'], ['t', ' the previous '], ['tog', 'pumpword', what], ...timeClause);
     } else if (pump === 'power') {
@@ -537,8 +497,6 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
                 ['t', ' and easing as the shot pours'], ...timeClause);
         }
     } else {
-        // flow or pressure — the only modes left, because getModeConfig refused
-        // anything outside the table above. One rule for the word, the unit and the bound.
         const target = authoringRange(pump === 'flow' ? 'flowTarget' : 'pressureTarget', machineClass);
         const pumpWord = pump === 'flow' ? 'flow rate' : 'pressure';
         const field = pump === 'flow' ? 'flow' : 'pressure';
@@ -548,8 +506,6 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
             ['num', field, num(step[field]), target.step, target.unit, target.min, target.max], ...timeClause);
     }
     if (lim > 0) {
-        // Every limiter slot reads the SAME entry its stepper does — this is where
-        // the Review path used to carry its own, larger ceilings (16 bar / 15 mL/s).
         const limiter = authoringRange(MODE_TABLE[pump].limiterRange, machineClass);
         if (pump === 'power') {
             rate.push(['t', '. Never exceed '],

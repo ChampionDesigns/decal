@@ -1,27 +1,4 @@
-// The B7 routing table — one owner per persisted key, chosen by scope.
-//
-// SCOPE Part 3 §5 (Storage ownership, B7), verbatim:
-//   "The rule: one owner per setting, chosen by scope. Machine-scoped settings live in
-//    ReaPrime's KV store. Device-scoped preferences live locally. Never two stores for
-//    one value."
-//   "The rewrite's storage module is a routing table — key -> layer — so every key has
-//    exactly one home and the layer is looked up, not chosen at each call site."
-//
-// This file is DATA. It contains no branching policy, no I/O and no DOM. The router
-// (`storage-router.js`) is the only thing that reads it, and it is the ONE owner of every
-// persisted key in Decal.
-//
-// Dual-write is structurally impossible here: a row carries exactly one `layer`, and the
-// router never falls back from one layer to another. That is the cure for the proven
-// silent-revert bug (`units.js:52-58,:106-115` writes localStorage then IDB with a
-// swallowed catch and reads IDB first — a rejected put loses the preference and then
-// overwrites the good copy on next boot).
-//
-// A10 / A9: the local prefix and the KV namespace derive from the skin id `decal`, and
-// NOTHING MIGRATES. The old `slate` / `slate.numpad` namespaces stay the old skin's
-// property. Two skins side by side must not share a settings namespace.
-//
-// Adding a key means adding a row here. There is no other way to persist anything.
+
 
 /** Physical prefix for every browser-storage key. Pinned to the manifest id by test. */
 export const STORAGE_PREFIX = 'decal.';
@@ -30,11 +7,6 @@ export const STORAGE_PREFIX = 'decal.';
 export const KV_NAMESPACE = 'decal';
 export const KV_NUMPAD_NAMESPACE = 'decal.numpad';
 
-// The IndexedDB database name, renamed with the id (A10). No SETTING routes to IDB in v1
-// — the fourth layer existed with no policy and is what the temperature-unit dual-write
-// rode on. Shot-history data is not a setting; its module (the `idb.js` successor) is
-// Gate 6 work and only ships if its payoff measures out ("KEEP caching only where it
-// measurably pays… so measure it, do not assume it").
 export const IDB_DATABASE_NAME = 'decal.shot_history';
 
 export const LAYERS = Object.freeze({
@@ -59,53 +31,7 @@ export const STATUSES = Object.freeze({
     retired: 'retired',
 });
 
-// ---------------------------------------------------------------------------------------
-// The table.
-//
-// Row shape:
-//   layer     one of LAYERS — the single home
-//   scope     one of SCOPES — why that home
-//   status    one of STATUSES
-//   why       one line, in English
-//   trace     where the decision comes from (document, or old-skin source line)
-//   owner     REQUIRED when layer === 'none' — who owns this value instead
-//   template  optional, for a family of keys: `{param}` placeholders, e.g. numpad recents
-//   was       the old skin's physical key, for reviewers comparing the two trees.
-//             Informational only: NOTHING MIGRATES (A10).
-//
-// TWO FIELDS ADDED BY WAVE 5.4, AND WHY THEY ARE ON THIS ROW RATHER THAN IN A SECOND TABLE
-// -----------------------------------------------------------------------------------------
-// Settings is where B7 meets 37 leaves, and the wave law is "one store per setting, never
-// two — every leaf's read/write path resolves through the routing table". To TEST that at
-// volume you need the enumeration the law quantifies over: which keys are settings keys.
-// That enumeration had nowhere to live. It could have gone in a settings-side inventory
-// module — and that is exactly how a second table starts: two files listing the same keys,
-// drifting, with no rule about which wins. So the table carries it, and a settings
-// inventory is a DERIVED VIEW (`settingsKeys()` below), not a parallel list.
-//
-//   leaf        optional. The settings leaf whose control owns this key, named with the
-//               audit's own leaf id (a `prov-baseline/settings-<leaf>.json` state, and the
-//               rows of `layout/settings.md` §4). Present ⇒ this is a settings key and
-//               `settingsKeys()` returns it. ABSENT MEANS "not a settings key", never
-//               "unknown": a key whose leaf could not be established from the old skin's
-//               own leaf registry (`settings.js:526-640`, the `settingsCategory` rows) is
-//               left without one rather than guessed into the enumeration.
-//   capability  optional. The A3 capability name that must be PRESENT before the surface
-//               renders. This replaces the model-name sniff: the old skin gated its three
-//               `bengleOnly` leaves on `isBengleModel(model)` =
-//               `String(model).toLowerCase().includes('bengle')` (machine.js:18-20), whose
-//               own header says "no capability endpoint the skin consults" — false at the
-//               pin, where GET /api/v1/machine/capabilities serves the seven names
-//               (de1handler.dart:38-54). The name here is one of those seven, verbatim.
-//               Gating is FAIL-CLOSED and the gate lives in the settings store, not here:
-//               this file stays data.
-// ---------------------------------------------------------------------------------------
-
 export const STORAGE_ROUTES = deepFreeze({
-
-    // --- localStorage — device-scoped. "Genuinely device-scoped things — theme, display
-    // density, the pre-paint theme hint — stay local to the device they describe."
-    // (SCOPE Part 3 §5.)
 
     theme: {
         layer: LAYERS.local, scope: SCOPES.device, status: STATUSES.v1,
@@ -237,10 +163,6 @@ export const STORAGE_ROUTES = deepFreeze({
         trace: 'old skin profile_editor.js:3322,:3404',
         was: 'slate.lastEditedProfileKey',
     },
-
-    // --- ReaPrime KV (`/api/v1/store/decal/<key>`) — machine-scoped.
-    // "It survives a skin reinstall and a tablet swap and is shared across clients — which
-    // is the definition of machine-scoped." (SCOPE Part 3 §5.)
 
     steamStopMode: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
@@ -425,11 +347,6 @@ export const STORAGE_ROUTES = deepFreeze({
         trace: 'old skin numpad-modal.js:33,:45 with NUMPAD_REA_STORE_NAMESPACE',
         was: 'previous-values-<fieldType> (KV namespace `slate.numpad`)',
     },
-
-    // --- layer: none. Decal does NOT persist these. Each names its owner, and the
-    // router throws with that owner in the message if anyone tries. This half of the table
-    // is the enforcement: "never two stores for one value" needs somewhere to say who the
-    // one store is when it is not us.
 
     shotRating: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,

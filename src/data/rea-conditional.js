@@ -1,46 +1,6 @@
-// Conditional GETs: If-None-Match / ETag / 304.
-//
-// THE FREE WIN THE COUNT FOUND (scope/e2-api.md, "Caching: keep two, delete three"):
-// ReaPrime already serves an ETag and honours If-None-Match on every LIST route the skin
-// reads, and **the old skin never sent If-None-Match anywhere** — 95 fetch call sites,
-// zero conditional requests. The server side has been ready the whole time.
-//
-// The server implementation is one function, `jsonOkConditional` (`json_response.dart`),
-// read at ReaPrime 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3:
-//
-//     final body   = jsonEncode(data);
-//     final digest = sha256.convert(utf8.encode(body)).toString().substring(0, 16);
-//     final etag   = '"$digest"';
-//     if (ifNoneMatch == '*' || ifNoneMatch == etag) return Response.notModified(...);
-//     return Response.ok(body, headers: {..., 'ETag': etag});
-//
-// Three things follow from reading it rather than assuming it:
-//
-//  1. The ETag is a CONTENT hash of the exact serialized body. It is strong (no `W/`
-//     prefix) and quoted. Send back exactly what was received, quotes included.
-//  2. The server compares the header VERBATIM against the one ETag. No list parsing, no
-//     weak comparison. Sending `"a", "b"` matches nothing; sending `*` always matches, so
-//     never send `*` — it would report "unchanged" against a body we do not hold.
-//  3. The saving is only the body. The handler still does all of its work — the shots
-//     list still runs its query and its count — so this buys bandwidth and parse time on
-//     a tablet, not server load. Claiming otherwise would be folklore, which is the thing
-//     DECISIONS.md's caching rule forbids.
-//
-// A 304 has no body, so revalidation is only useful if the last body is held. That store
-// is below, and it is the one cache in this module: its named payoff is that it is what
-// makes 304 legible at all, and it is bounded so it cannot become the old skin's
-// `getAllShots` (a full-store deserialize of every shot ever mirrored, on every boot,
-// with nothing evicting).
-//
-// THE ASYMMETRY, and it is the reason the IDB latest-shot mirror survives elsewhere:
-// of the shots reads, ONLY the paginated list is conditional. `GET /shots/<id>` (~221 KB),
-// `/shots/latest`, `/shots/ids` and the `ids=` batch form all return plain `jsonOk`
-// (`shots_handler.dart`, `_getShot` / `_getLatestShot` / `_getIds` / the ids branch of
-// `_getShots`). Sending If-None-Match to those is not wrong, it is inert — the response
-// carries no ETag, so nothing is ever stored and nothing is ever revalidated. The
-// registry below is therefore an executable statement of where the win exists, checked
-// against the handler set by test/rea-conditional.test.mjs so an upstream change to
-// `jsonOkConditional`'s call sites fails a test instead of silently costing bandwidth.
+/**
+ * Conditional GETs: If-None-Match / ETag / 304.
+ */
 
 import { freezeDeep } from './rea-cache.js';
 
@@ -134,10 +94,6 @@ export function isConditionalRoute(path, query = {}) {
 
 export function createEtagStore({ max = 32 } = {}) {
     const entries = new Map();
-    // The stored body IS what a 304 means. Frozen deeply on the way in, for the reason
-    // written out in rea-cache.js: it is handed to every later reader by reference, and a
-    // caller that adapted it in place made the next 304 replay a body ReaPrime never sent.
-
     const touch = (key, value) => {
         entries.delete(key);
         entries.set(key, value);

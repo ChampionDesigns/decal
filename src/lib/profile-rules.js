@@ -1,53 +1,6 @@
-// THE FIVE `profileManager.js` RULES — TRANSCRIBED, NOT PORTED.
-//
-// `CARRY_FORWARD.md` Gate 7, verbatim: "Domain modules — now plain copies. Everything in
-// §2 and §3a–§3c, plus the five `profileManager.js` rules transcribed rather than ported:
-// (1) filter `visibility === 'deleted' || 'hidden'` from `GET /profiles?includeHidden` …
-// (2) the title-prefix stripping ladder … (3) `metadataWriteChain` … (4)
-// `FALLBACK_PROFILE_TITLES` and the two-stage fallback … (5)
-// `saveAssignments({markUserInitialized})`".
-//
-// The source is `slate/app/src/modules/profileManager.js` (1,065 lines) — a god module:
-// profile CRUD, favourite slots, workflow→UI application and Tailwind class painting in
-// one file, importing `ui.js`, `router.js` and `context-menu.js`, with no executing test.
-// TRANSCRIBED means the five behaviours arrive; the module does not. What is left behind:
-//
-//   * THE DOM. Nothing in this file touches a document, and that is what makes every rule
-//     below assertable under `node:test` — which is the whole reason the two live bugs
-//     lasted as long as they did (`CARRY_FORWARD.md`: "both the kind any executing test
-//     would have caught").
-//   * MODULE-SCOPE MUTABLE STATE. The source keeps `availableProfiles`,
-//     `favoriteAssignments`, `activeProfileId` and `metadataWriteChain` as file globals.
-//     Gate 4: "Nothing above this gate may keep module-scope mutable state." The write
-//     chain here is created, owned and disposed by its caller.
-//   * THE TWO LIVE BUGS, neither of which is a rule:
-//       - `updateButtonUI` (`:450`) reads `index` in a loop that declares `i`, so a
-//         `ReferenceError` on the FIRST empty favourite slot aborts the repaint and every
-//         later slot keeps a stale label. There is no per-slot painting here at all, and
-//         `emptyAssignments()` makes the empty slot the ordinary case rather than a branch.
-//       - `renameProfile` (`:21`) hands a whole ProfileRecord where a Profile belongs and
-//         has 400'd on every call it has ever made. Bodies are built in one place
-//         (`rea-profile.js`), and `PUT /profiles/<id>` is reached from here only through
-//         `profileUpdateBody`, which cannot express that shape.
-//   * THE IDB PROFILE MIRROR (`PROFILES_CACHE_KEY`) — ~70 full records written after
-//     every load and five more sites, read only inside an API catch block that cannot
-//     happen while ReaPrime serves both the skin and the API from one origin. A7: a
-//     fallback path with a long fuse does not come along.
-//   * THE DUAL WRITE. Favourites were written to KV *and* IDB in every branch. B7 gives
-//     each key one owner; `favouriteProfiles` is a `kv` row in `storage-routes.js` and
-//     the router will not write it anywhere else.
-//
-// WHERE THE SOURCE AND THE TRANSCRIPTION DIFFER, THE TRANSCRIPTION IS THE SPEC. Both were
-// read side by side; the three places they part company are marked `TRANSCRIPTION:` below.
-//
-// EVERY SERVER READ GOES THROUGH THE ADDRESS LAYER and every route through the generated
-// client: record fields are read with `rea-profile.js`'s readers, requests are made with
-// `callRoute(transport, '<id>')` against `rea-routes.generated.js`, and both routes this
-// module addresses — `getProfiles`, `putProfilesById` — are `consumed` rows in
-// `CONTRACTS.json` naming this file. `getProfiles` is a conditional route
-// (`rea-conditional.js:63`), so `If-None-Match` and the 304-with-stored-body are the
-// transport's, not this module's: a 304 arrives here as an ordinary `{ok:true}` result
-// carrying `notModified: true`.
+/**
+ * THE FIVE profileManager.js RULES — TRANSCRIBED, NOT PORTED.
+ */
 
 import { splitProfileTitle } from './profile-folders.js';
 import { callRoute } from '../data/rea-routes.js';
@@ -188,9 +141,6 @@ export function createMetadataWriteChain({ transport, logger = null } = {}) {
 
     function queue(task) {
         queued += 1;
-        // `.then(task, task)` — the next task runs whether or not the previous one
-        // settled happily. The source's shape, and the reason a failed write cannot
-        // wedge the queue.
         const run = chain.then(task, task);
         chain = run.then(() => { queued -= 1; }, () => { queued -= 1; });
         return run;
@@ -297,8 +247,6 @@ export function seedFavouriteSlots(records, { count = FAVOURITE_SLOT_COUNT, rank
         }
     }
 
-    // Stage 1 — the named titles, BY POSITION. A title that does not resolve leaves its
-    // own slot empty; it does not shuffle the others up.
     for (let slot = 0; slot < count; slot += 1) {
         const title = FALLBACK_PROFILE_TITLES[slot];
         assignments[slot] = title ? profileRecordIdOf(findByTitle(listing, title)) : null;
@@ -307,8 +255,6 @@ export function seedFavouriteSlots(records, { count = FAVOURITE_SLOT_COUNT, rank
         return { assignments, stage: 'named', filled: Object.values(assignments).filter(Boolean).length };
     }
 
-    // Stage 2 — not one named title is on this machine. First N alphabetically, so the
-    // rail is populated with something a person recognises rather than nothing.
     const sorted = listing
         .filter((record) => profileTitleOf(record) && profileRecordIdOf(record))
         .sort((a, b) => profileTitleOf(a).localeCompare(profileTitleOf(b)));
@@ -393,9 +339,6 @@ export async function autoPopulateFavourites({
     const listable = partitionProfiles(records).listable;
     const { assignments, stage, filled } = seedFavouriteSlots(listable, { count, rank });
     if (stage === 'empty') {
-        // Nothing to seed FROM — a listing that failed, or a machine with no profiles.
-        // Writing an empty rail here would persist "seeded to nothing" and, with the
-        // marker deliberately unwritten, buy nothing at all.
         log.warn('auto-populate found no profile to seed from — nothing written, the next launch retries');
         return { ran: false, stage, assignments, save: null, retryable: true };
     }

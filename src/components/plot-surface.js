@@ -264,11 +264,6 @@ export class PlotSurfaceElement extends UiElement {
         if (this.#themeObserver || typeof MutationObserver === 'undefined') return;
         const root = globalThis.document?.documentElement;
         if (!root) return;
-        // `data-theme` is the theme stamp. `style` and `class` are watched with it
-        // because a runtime retheme — and the token drill that proves A6 in the
-        // rendering suite — lands on the root's inline style, and a palette that only
-        // notices one of the three ways a token can move is a palette that goes stale
-        // in the one case nobody tested.
         this.#themeObserver = new MutationObserver(() => this.refreshPalette());
         this.#themeObserver.observe(root, { attributes: true, attributeFilter: [...THEME_ATTRIBUTES] });
     }
@@ -293,9 +288,6 @@ export class PlotSurfaceElement extends UiElement {
 
     rebuildPlot() {
         if (!this.#tokens || !this.plotHost) return;
-        // The waiver is the subclass's declaration, never "the sheet happens to be
-        // missing" — see `plotStyleSheetOptional`. A surface that mounted with the sheet
-        // and has since lost it gets `createPlot`'s refusal, which is the guard working.
         const waived = !this.sheetAdopted && this.plotStyleSheetOptional;
         this.#destroyPlot();
         this.#buildPlot({ allowMissingStyles: waived });
@@ -461,8 +453,6 @@ export class PlotSurfaceElement extends UiElement {
         const data = alignChannels(this.#records, keys);
         this.#applyFactors(data);
 
-        // The damped ceiling by default; `null` from a fixed-range subclass leaves the
-        // axis where `yScaleSpec()` put it rather than overwriting it every frame.
         const yRange = this.yRangeFor(data);
 
         const xs = data[0] ?? [];

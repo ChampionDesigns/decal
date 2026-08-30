@@ -271,8 +271,6 @@ export function createEditorRanges({ machineLimits, machineClass = null } = {}) 
                 max: range.max,
                 step: range.step,
                 unit: range.unit ?? null,
-                // The steam-style hole is carried through verbatim where a row has one, so
-                // the typed path knows what the clamp knows. No editor field has one today.
                 ...(range.floor === undefined ? {} : { floor: range.floor }),
             });
         },

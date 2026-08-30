@@ -1,35 +1,4 @@
-// The typed error surface of the transport.
-//
-// SCOPE Part 3 §1: the client "never touches the DOM and never imports UI". The old
-// module did both from inside its error paths — `api.js:1` imports `ui.js`, and an upload
-// failure raised a toast (`uploadProfile`, `uploadProfileWithParent`) before rethrowing.
-// So a transport failure could only ever be told one way, and every caller inherited that
-// decision. Here a failure is DATA: a value with a kind, a status and the server's own
-// message. Nothing in this file can reach a screen.
-//
-// THE DEFECT THIS FILE EXISTS TO KILL (E2 bug 10, five instances, verified at source):
-// `getReaSettings` -> null (:1306), `getPlugins` -> null (:1905), `getPluginSettings`
-// -> {} (:1924), `verifyVisualizerCredentials` -> false (:1989), `getScaleDeviceId`
-// -> null (:621). Every one MANUFACTURES AN ANSWER from a transport failure. The fourth
-// is the clearest: an unreachable server becomes indistinguishable from a wrong password.
-// That is A7 in its purest form — a fallback path that turns an absence into a plausible
-// value — and there is no such path here. A failed request yields a failure. It cannot
-// yield `null`, `{}`, `false`, or a stale cached copy.
-//
-// Kinds are closed and few, because a caller has to be able to branch on them:
-//
-//   network   the fetch itself rejected — nothing was answered. No status.
-//   timeout   we aborted it ourselves. No status.
-//   http      the server answered with a non-2xx. `status` and `problem` are real.
-//   decode    the server answered 2xx but the body was not the JSON we asked for.
-//   conditional  we sent If-None-Match and got 304 with nothing stored to return.
-//
-// `http` carries ReaPrime's own error envelope. Every handler in the pinned tree answers
-// a client error as `{"error": ..., "message"?: ...}` (`json_response.dart`), and the
-// arm-time refusal this whole design is built around is one of them:
-// `POST /api/v1/machine/profile` -> 400 `{"error":"Unsupported profile","message":...}`
-// (`de1handler.dart` `_profileHandler`, the `ProfileModeUnsupportedException` arm). B9 is
-// only meaningful if that message survives the trip to the screen intact, so it does.
+
 
 /** The closed set of failure kinds. */
 export const REA_ERROR = Object.freeze({

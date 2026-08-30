@@ -1,60 +1,4 @@
-// The IDB latest-shot mirror, rebuilt — meta and full records can no longer poison
-// each other.
-//
-// PROVISIONAL BY DECISION. This module ships ONLY if its payoff measures out on the bench:
-// M11 in SCOPE's open-questions table, and Ben's standing rule in DECISIONS.md — "keep
-// caching only where it measurably pays… so measure it, do not assume it". The claim to
-// time is narrow and stated so it can be falsified: `GET /api/v1/shots/<id>` is NOT
-// ETag-conditional (of the shots reads only the paginated list is —
-// `shots_handler.dart` `_getShots` uses `jsonOkConditional`, every other shots route uses
-// plain `jsonOk`), so the ~221 KB latest record re-downloads on every boot, and
-// `latestFull()` through the by-time index paints the chart before the network answers. If
-// the bench says the paint is not visibly earlier, this file is DELETED rather than kept
-// "just in case" — a cache with no measured payoff is exactly what the rewrite is shedding.
-//
-// FIVE DEFECTS OF THE MODULE IT REPLACES (`idb.js`, 352 lines), each rebuilt against:
-//
-//  1. POISONING. `addShots()` blind-`put`s the paginated list's records into the SAME store
-//     as full ones. Those records are `toJsonWithoutMeasurements()` — no `measurements` key
-//     at all — so every list load STRIPPED the cache for the 20 newest shots, and the
-//     post-shot refresh re-ran the stripping loop up to six times. The instant paint the
-//     mirror exists for was the first thing the mirror broke. Here meta and full live in
-//     TWO OBJECT STORES: a list load physically cannot reach the full one, and `putFull`
-//     REFUSES a record with no measurements rather than silently degrading it.
-//
-//  2. A "LATEST TIMESTAMP" THAT WALKED THE PRIMARY KEY. The primary key is a UUID, so
-//     `openCursor(null, 'prev')` on the store returned the lexicographically largest UUID's
-//     timestamp — a number that is correct only by accident. Here every row carries `ts`, a
-//     NUMBER (epoch ms parsed from the server's ISO stamp at write time), and the index is
-//     on that. A record whose stamp does not parse is REFUSED, because an unindexed row is
-//     invisible to the only read that matters.
-//
-//  3. A FULL-STORE DESERIALIZE ON EVERY BOOT. `getAllShots()` read and deserialized every
-//     shot ever mirrored, with nothing evicting. There is no unbounded read in this file:
-//     `recentMeta(limit)` requires a limit and walks a bounded cursor, and both stores are
-//     capped, oldest-first, on write.
-//
-//  4. A VERSION BUMP THAT SILENTLY WIPED. The upgrade path dropped and recreated a store on
-//     every bump. The migration here is ADDITIVE ONLY — it creates what is missing and
-//     deletes nothing — and a test opens at v1, writes, reopens at v2 and asserts the rows
-//     are still there.
-//
-//  5. A VERSION BUMP THAT SILENTLY HUNG. `onblocked` logged a warning and the open promise
-//     never settled, so boot stopped with no console error; and `onversionchange` called
-//     `alert()`. Here `blocked` is a bounded wait that ends in a typed failure, the open has
-//     a deadline, and another connection's upgrade is answered by CLOSING, never by a modal.
-//
-// A7 runs through the read API: a read answers `hit`, `miss` or `unavailable`, and those are
-// three different things. "The database is broken" must never arrive at a caller wearing
-// "there is no cached shot", because that is how a dead cache becomes invisible.
-//
-// NOT REBUILT: the profiles-to-IDB cache. Its only read sits inside an API catch block that
-// cannot fire — ReaPrime serves the skin and the API from one origin, so if the API is down
-// nothing served the skin. The settings and email stores do not come across either: settings
-// are the storage router's business (B7), and no Decal feature reads emails.
-//
-// DOM-free: `indexedDB` is injected, so the whole module runs under node:test against the
-// fake in `test/fixtures/fake-indexeddb.js`.
+
 
 import { IDB_DATABASE_NAME } from '../lib/storage-routes.js';
 
@@ -153,14 +97,6 @@ export function createShotMirror({
             return Promise.resolve({ ok: false, reason: MIRROR_ERROR.UNSUPPORTED });
         }
 
-        // THE SYNCHRONOUS THROW IS HANDLED OUTSIDE THE PROMISE, and that placement is the
-        // whole fix. It used to sit inside the executor, where `finish` runs BEFORE
-        // `opening = new Promise(...)` has completed: its `opening = null` cleared the
-        // previous value and the assignment then cached the FAILED promise for the life of
-        // the process, so `open()` never retried. Every other failure path — timeout,
-        // blocked, onerror — clears `opening` after the assignment and does retry, which is
-        // exactly the asymmetry that makes this one hard to see. A synchronous throw needs
-        // no deadline: it cannot hang.
         let request;
         try {
             request = indexedDB.open(databaseName, version);
@@ -185,8 +121,6 @@ export function createShotMirror({
             const deadline = setTimer(() => finish({ ok: false, reason: MIRROR_ERROR.TIMEOUT }), openTimeoutMs);
 
             request.onblocked = () => {
-                // Another connection holds an older version. Give it a bounded moment to
-                // close, then FAIL — visibly. Waiting forever is the silent hang.
                 log.warn('an older connection is blocking the shot mirror upgrade');
                 if (blockedTimer) return;
                 blockedTimer = setTimer(
@@ -209,8 +143,6 @@ export function createShotMirror({
 
             request.onerror = () => {
                 const error = request.error;
-                // A stored version NEWER than ours is a downgrade: IndexedDB answers it with
-                // a VersionError, and it is a different fact from "the database broke".
                 const isVersionError = !!error && /version/i.test(String(error.name || error.message || ''));
                 finish({
                     ok: false,
@@ -221,8 +153,6 @@ export function createShotMirror({
 
             request.onsuccess = () => {
                 const db = request.result;
-                // Another tab wants a newer schema: close, so we do not become the blocker.
-                // The old module opened a modal here, from a storage module.
                 db.onversionchange = () => {
                     log.info('another connection needs a newer shot-mirror schema — closing');
                     connection = null;
@@ -319,8 +249,6 @@ export function createShotMirror({
             }
             const row = toRow(record, savedAt);
             if (row.ts === null) {
-                // Defect 2: an unindexed row is invisible to the only read that matters, so
-                // it is refused loudly rather than stored where nothing will find it.
                 log.error(`shot ${record.id} has no parseable timestamp — not mirrored`);
                 return Promise.resolve({ ok: false, reason: MIRROR_ERROR.REJECTED, why: 'timestamp does not parse' });
             }

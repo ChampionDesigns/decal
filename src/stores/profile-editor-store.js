@@ -1,111 +1,6 @@
-// THE PROFILE EDITOR'S ONE DOOR TO THE PROFILE ROUTES — save (B10/R8) and versions (B11).
-//
-// Wave 5.5, items `save-semantics`, `profile-versions`, `contract-check-editor`.
-//
-// ============================================================================
-// WHAT THIS FILE IS FOR, AND WHAT IT DELIBERATELY IS NOT
-// ============================================================================
-//
-// The standing order is "endpoints via the generated client + stores ONLY", and the
-// mechanism for it is that this is the one file in the editor cluster that imports
-// `callRoute`. `<editor-screen>` and every panel under it hold a DRAFT and dispatch
-// events; none of them names a path, a route id or a fetch.
-//
-// It does NOT hold the draft. The draft belongs to the screen — the same rule
-// `ui-exit-sentence.js` states for the step it is handed ("editor draft state, NEVER
-// mutated; every change leaves as an event and the screen owns the draft"). What this
-// store holds is what the SERVER said: the record the editor opened from, the report from
-// the last save, and the lineage facts read off both.
-//
-// It does NOT own the arm route. `postMachineProfile` has exactly one caller in src/
-// (`profile-arm-store.js`, reached through `profile-library-store.js arm()`), pinned by
-// "B9's trigger" in `test/live-connection-gates.test.mjs`, which walks src/ and fails if a
-// SECOND one appears. Arming from the editor goes through that store or not at all.
-//
-// It does NOT call the lineage route. `getProfilesByIdLineage` belongs to
-// `profile-library-store.js versionsOf()` and its entry point is the selector's overflow
-// menu (Q7, wave 5.3). B11's job here is a SENTENCE, and the sentence's inputs — parentId
-// and the two hashes — ride on every ProfileRecord this store already has.
-//
-// ============================================================================
-// THE ROUTES, EACH CHECKED AGAINST THE HANDLER BODY AS WRITTEN AT 2b047d02
-// ============================================================================
-//
-//   getProfilesById       GET /api/v1/profiles/{id}
-//        `ProfileHandler._handleGetById`. The id is `Uri.decodeComponent`d, the controller
-//        `get`s it, and a null record is 404 {'error':'Profile not found','id'}. Success is
-//        `jsonOk(profile.toJson())` — the whole ProfileRecord, not the inner Profile.
-//        Used for the DEEP-LINK open, where the editor has an id and no listing in hand.
-//        When the caller already holds the record (the selector handed it over), `open()`
-//        takes it directly and this route is not touched: a re-read that returns what the
-//        caller just gave us is a request nobody needed.
-//        OFFLINE GAP, recorded rather than papered over: `tools/mock_rea.py` resolves
-//        fixtures by EXACT path and its endpoint fallback is deleted (A7), so with no
-//        `api__v1__profiles~<id>.json` recording this route answers 503 naming the path
-//        against the mock. The battery opens the editor through `open(record)`.
-//
-//   postProfiles          POST /api/v1/profiles
-//        `ProfileHandler._handleCreate`. Body is WRAPPED: `json['profile']` (required, else
-//        400 {'error':'Missing required field'}), `json['parentId']`, `json['metadata']`.
-//        201 `jsonCreated(record.toJson())`.
-//        THIS IS B11's PATH. `ProfileController.create` validates the parent exists first
-//        (ArgumentError -> 400 "Parent profile not found: <id>"), then stores a NEW record
-//        carrying `parentId`. The previous record is untouched — which is the whole of
-//        "editing keeps the old version", implemented by the server and merely reported here.
-//        TWO GATES WORTH KNOWING, both read off the controller body:
-//          * CONTENT-ADDRESSED AND IDEMPOTENT. `create` computes the record id from the
-//            profile, looks it up, and RETURNS THE EXISTING RECORD if it is already stored,
-//            without storing anything and without applying the `parentId` that was sent.
-//            The handler answers 201 either way, so a 201 does not mean "created" and this
-//            store never says it did (`saveReportFrom` answers `stored: null`).
-//          * THE ID'S INPUT SET IS CONTENT ONLY. A change that leaves the content identical
-//            resolves to the same id and therefore to that same existing-record branch.
-//            Which changes those are is `profile_hash.dart`'s rule, this store does not
-//            hold it (B10), and the consequence is recorded as a deferred question rather
-//            than worked around with a local hash.
-//
-//   putProfilesById       PUT /api/v1/profiles/{id}
-//        `ProfileHandler._handleUpdate`. Body wrapped, `profile` OPTIONAL — parsed only
-//        `if (json.containsKey('profile'))`, so a metadata-only update is a legal request
-//        that touches no steps and is id-stable. 200 `jsonOk(record.toJson())`.
-//        `saveMetadata()` is that path and it is the one this store offers by default for a
-//        label edit. `saveInPlace()` is the other and it carries a WARNING in its own
-//        doc: when the content hash moves, `ProfileController.update` DELETES the previous
-//        record before storing the new one. The old version is not kept on that path.
-//        Also live here, from the existing row: `existing.isDefault && profile != null`
-//        throws -> 400, so a bundled profile takes metadata edits and refuses content ones.
-//
-//   putProfilesByIdVisibility   PUT /api/v1/profiles/{id}/visibility
-//        `ProfileHandler._handleSetVisibility` (`profile_handler.dart:23` registers it,
-//        `:178-203` is the body, at the pin `2b047d02`). The body is the BARE field —
-//        `{visibility}`, not wrapped in `profile` — and a missing key is 400 {'error':
-//        'Missing required field'}. The value is one of visible | hidden | deleted;
-//        anything else is an ArgumentError and therefore a 400. 200 returns the whole
-//        updated ProfileRecord, so THE ANSWER STATES THE NEW STATE.
-//        TWO CALLERS, TWO READINGS. The supersede path (`settleToOneRow`) treats a failure
-//        as advisory — the save it follows already succeeded. D20's `setVisibility()` is
-//        a person pressing a switch, so its ending becomes published state instead.
-//        `existing.isDefault && visibility == deleted` is refused; `hidden` on a bundled
-//        record is ALLOWED and is exactly what `ProfileController.delete` does to one.
-//
-//   NOT HERE, AND THE ABSENCE IS THE FINDING: `isDefault` HAS NO ROUTE.
-//        D20 asked for a "Machine default" switch alongside the visibility one. At the pin
-//        NOTHING in `lib/src/services/webserver/` so much as names `isDefault` (grepped:
-//        zero hits), it is absent from `assets/api/rest_v1.yml`, and `_handleUpdate` takes
-//        only `profile` and `metadata`. The flag is written in exactly two places, both
-//        server-internal: `_loadDefaultProfiles` and `restoreDefault`, each stamping a
-//        record built from `assets/defaultProfiles/` with `metadata: {'source':'bundled'}`.
-//        So `isDefault` does not mean "the profile the machine comes up on" — it means
-//        "this record is a BUNDLED profile" — and it is a GUARD: a record carrying it
-//        cannot have its content updated, cannot be purged, and cannot be soft-deleted.
-//        There is no writer to expose. See the fix log entry RB-2.
-//
-// ONE SANITIZER, ON EVERY WRITE PATH. Bodies are built by `profileCreateBody` /
-// `profileUpdateBody` in `rea-profile.js`, which are the only two wrappers in the tree and
-// both run `sanitizeProfileForRea`. The old skin's second, inline copy inside
-// `updateWorkflow` nulled a weight exit and wrote nothing, so the same profile kept its
-// stop-at-weight target when saved and silently lost it when armed. Nothing in this file
-// reshapes a profile, which is what makes that divergence inexpressible rather than fixed.
+/**
+ * THE PROFILE EDITOR'S.
+ */
 
 import { callRoute } from '../data/rea-routes.js';
 import {
@@ -290,9 +185,6 @@ export function createProfileEditorStore({
             route, status: result.status ?? null, before, ...outcomeReader,
         });
         const version = versionNoteFacts(report, { previous: before, intent, requestedParentId });
-        // The saved record becomes the new baseline: the server's answer is what the next
-        // dirty-state comparison is measured against, so an unsaved-changes count can never
-        // be carried over a save.
         return patch({
             load: EDITOR_LOAD_STATUS.READY,
             record,

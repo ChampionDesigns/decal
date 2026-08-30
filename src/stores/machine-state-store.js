@@ -1,33 +1,4 @@
-// machine-state-store.js — asking the machine to change state, and the one caller that does.
-//
-// WHY IT EXISTS. `putMachineStateByNewState` has been in the generated route table since
-// wave 2 and nothing in `src/` addressed it, so the app could read that the machine was
-// asleep and had no way to wake it. `<ui-screensaver>` is the surface that needs it: its
-// own header says "the screen performs the one PUT (`putMachineStateByNewState`, per the
-// port digest)", and the black blank it raises is a trap without a wake behind it.
-//
-// ONE OWNER, AND IT IS NOT A SCREEN. The screensaver reports a WAKE INTENT and never
-// commands (`screensaver-policy.js` rule 2: "nothing that is not a wake may emit a wake");
-// the shell hears the intent and asks this store. A screen that called `callRoute` itself
-// would be the second place deciding what a wake is.
-//
-// THE ROUTE, READ AT THE PIN 2b047d02 (`De1Handler._requestStateHandler`,
-// `lib/src/services/webserver/de1handler.dart:639-675`):
-//
-//   PUT /api/v1/machine/state/<newState>
-//     200 jsonOk(null)                            the request reached the machine
-//     400 {details:'No scale detected, blocking espresso request', type:'block_no_scale'}
-//                                                 ESPRESSO only, and only with the
-//                                                 blockOnNoScale setting on, no scale
-//                                                 connected and a non-cleaning profile
-//     500                                         `withDe1`'s catch-all — including an
-//                                                 unknown state name, which
-//                                                 `MachineState.values.byName` throws on
-//
-// A 200 IS NOT A STATE CHANGE. `de1.requestState` is a BLE write; the machine's own state
-// arrives on the snapshot feed like every other reading, and this store publishes only what
-// it ASKED for and what the route answered. Nothing here reports the machine as awake —
-// the screensaver drops on the confirmed state, which is the whole point of its policy.
+
 
 import { callRoute } from '../data/rea-routes.js';
 import { createStore } from './store.js';

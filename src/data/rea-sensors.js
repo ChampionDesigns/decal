@@ -1,43 +1,6 @@
-// SENSOR DISCOVERY — polled, capability-gated, and RE-RUN ON SOCKET CLOSE.
-//
-// SCOPE Part 3 §2 (sensors row) and Part 6, `estimator-link.js`. Sensor presence has NO
-// PUSH SIGNAL: bridge-registered sensors never appear on `/ws/v1/devices`, so polling
-// `GET /api/v1/sensors` is necessary, not lazy. ReaPrime registers the puck estimator
-// lazily, on the first decoded frame, so "not there yet" is the normal state at boot.
-//
-// THE LIVE DEFECT THIS MODULE EXISTS TO NOT REBUILD (`estimator-link.js`, discovery loop):
-// IT NEVER RE-DISCOVERS. `if (stopped || socket) return;` — once a socket exists, discovery
-// stops for good. The sensor id is derived from the MACHINE's deviceId, so swapping the
-// machine mints a new id; the old link dials the dead one for ever while
-// `sensors_handler.dart` answers `{"error":"not found"}` and closes the socket. The frame
-// mapper turns that envelope into an empty update, every consumer's "estimator absent"
-// branch takes over, and the derived channel is charted in the estimator's place with
-// NOTHING SURFACED. That is the fallback-path failure mode in miniature, and it is why
-// this module has none.
-//
-// THE THREE RULES:
-//
-//  1. GATE THE POLL ON CAPABILITIES (A3). A 15 s poll against a machine with no estimator
-//     runs for ever, on a route with no cache validation (`sensors_handler.dart` answers
-//     `jsonOk`, not `jsonOkConditional` — there is no ETag to save it).
-//  2. RE-RUN DISCOVERY ON SOCKET CLOSE. The close IS the signal. It costs one GET and it
-//     is the only thing that makes a machine swap visible.
-//  3. AN ERROR ENVELOPE IS A SIGNAL, NOT A FRAME. `{"error":"not found"}` means the id is
-//     dead — detach and re-discover — and never "the estimator read nothing this tick".
-//
-// ── R3: THE CAPABILITY GATE IS AN INJECTION POINT, ON PURPOSE ────────────────────────
-// `GET /api/v1/machine/capabilities` serves SEVEN entries at 2b047d02 (`de1handler.dart`
-// `addRoutes`: cupWarmer, integratedScale, stopAtWeight, ledStrip, scaleCalibration,
-// preheat, wakeSchedule) and NONE of them is the estimator. The entry has to be added
-// upstream — that is R3 — and upstream is out of the overnight run. So this module does
-// not read capabilities itself: it takes `capabilityGate` as a REQUIRED argument, whose
-// interim implementation is the one R3-tagged adapter module (Gate 4). One named seam,
-// tagged with its R-number, is the decided interim; a local guess at "does this machine
-// have an estimator" would be exactly the invented answer this wave exists to delete.
-//
-// There is deliberately NO default gate. A missing gate throws at construction rather than
-// defaulting to "poll anyway" (which reinstates the defect) or "never poll" (which hides
-// the estimator on a machine that has one).
+/**
+ * SENSOR DISCOVERY — polled, capability-gated, and RE-RUN ON SOCKET CLOSE.
+ */
 
 import { createFanout } from './rea-fanout.js';
 import { WS_CHANNELS, WS_MESSAGE, sensorSnapshotPath } from './rea-ws-channels.js';
@@ -164,8 +127,6 @@ export function createSensorDiscovery({
         state.unsubscribeSignals = null;
         state.channel = null;
         state.attachedId = null;
-        // The replay value goes with the socket: a frame from the PREVIOUS sensor id
-        // replayed to a new subscriber is the machine-swap defect wearing a disguise.
         state.fanout.clear();
         note('info', `sensor ${state.kind} detached (${reason})`);
     }
@@ -177,10 +138,6 @@ export function createSensorDiscovery({
             // Close-before-open, via the one lifecycle policy. Never a second socket.
             detach(state, 'retargeting');
         }
-        // One key per KIND, not per id: two ids for the same kind are the same channel
-        // moved, which is a retarget (close-before-open, replay dropped) and not a second
-        // socket. `sockets.channel` refuses to rebind a key silently, so the move is
-        // spelled out here.
         const key = `sensor:${state.kind}`;
         let channel = sockets.get(key);
         if (channel) {
@@ -203,8 +160,6 @@ export function createSensorDiscovery({
             }
         });
         state.unsubscribeChannel = channel.subscribe((frame) => {
-            // A FRAME is the only evidence the attachment worked, so it is the only thing
-            // that returns the next re-discovery to immediate.
             rediscoverDelayMs = REDISCOVERY_BACKOFF_MS.first;
             state.fanout.emit(frame);
         });
@@ -216,8 +171,6 @@ export function createSensorDiscovery({
             const allowed = await capabilityGate(state.kind);
             state.gateOpen = allowed === true;
         } catch (err) {
-            // A gate that failed to answer is NOT a yes and NOT a no. Recorded and
-            // retried; nothing is assumed on its behalf.
             state.gateOpen = null;
             state.lastError = String(err && err.message || err);
             note('warn', `capability gate for ${state.kind} failed: ${state.lastError}`);
@@ -241,8 +194,6 @@ export function createSensorDiscovery({
 
             const response = await transport.get(SENSORS_ROUTE);
             if (!response.ok) {
-                // No listing means no answer. It does not mean no sensors — nothing is
-                // detached here, and the next pass asks again.
                 note('warn', `GET ${SENSORS_ROUTE} failed: ${response.message}`);
                 return;
             }

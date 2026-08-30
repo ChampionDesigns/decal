@@ -1,36 +1,4 @@
-// /ws/v1/devices — READ THE WHOLE CONNECTION STATE, AND ANSWER IT (B8).
-//
-// SCOPE Part 3 §2, devices row; Part 6, `machine-link.js` DROP row. ReaPrime publishes a
-// complete connection state machine on this socket and the old skin reads ONE BOOLEAN off
-// it — `data.scanning` — so "connecting to the wrong machine", "failed to connect" and
-// "still trying" are the same picture. Everything below is already on the wire; reading it
-// is free.
-//
-// THE PART THAT IS NOT FREE, AND IS THE WHOLE OF B8: WHILE `pendingAmbiguity` IS SET,
-// ReaPrime IS WAITING FOR THE SKIN. `ConnectionManager` parks in a selection session and
-// actively suppresses scale recovery until the choice arrives ("Skipping scale recovery
-// while device selection is pending", `connection_manager.dart` `_connectImpl`). A skin
-// that only reads sees a machine that never connects and a phase that never advances, with
-// nothing anywhere saying it was asked a question. So this module SENDS the answer, over
-// the contract-checked route.
-//
-// Two rules carried from `machine-link.js`, both cheap and both load-bearing:
-//
-//  1. A MALFORMED FRAME MAPS TO null, DISTINCT FROM AN EMPTY LIST. `null` is "we do not
-//     know what is attached"; `[]` is "nothing is attached". Collapsing them reads a
-//     partial frame as "the machine went away" and tears down a live session.
-//  2. THE USB DEVICE ID IS BYTE-IDENTICAL ACROSS A POWER CYCLE (bench-proven). Any logic
-//     built on "the id changed" would silently never fire. Nothing here diffs ids: the
-//     phase, the connection state and the error field are the signals.
-//
-// AND ONE THIS SOCKET TEACHES BY ITSELF: it multiplexes COMMAND RESULTS with state frames.
-// `_sendConnectResult` writes `{deviceId, operation, outcome, state, connectionError}` down
-// the same wire as `_emitStateNow`'s snapshot. Read as a state frame, a command result has
-// no `devices` key and no `scanning` key — which, under rule 1, is exactly a malformed
-// frame and reads as null. rea-ws-channels.js classifies it as a COMMAND_RESULT first, so
-// it arrives as a signal and never as "we do not know what is attached".
-//
-// Checked against `devices_handler.dart` AS WRITTEN at 2b047d02.
+
 
 import { WS_CHANNELS, isFrameObject } from './rea-ws-channels.js';
 import { routeById } from './rea-routes.js';
@@ -102,8 +70,6 @@ function readDevice(entry) {
         name: typeof entry.name === 'string' ? entry.name : null,
         type: typeof entry.type === 'string' ? entry.type : null,
         state: typeof entry.state === 'string' ? entry.state : null,
-        // Present on the list route and the socket's `devices`, absent on the
-        // `foundMachines`/`foundScales` entries, which the handler builds by hand.
         available: typeof entry.available === 'boolean' ? entry.available : null,
     });
 }
@@ -111,8 +77,6 @@ function readDevice(entry) {
 function readDeviceList(value) {
     if (!Array.isArray(value)) return null;
     const read = value.map(readDevice);
-    // One unreadable entry makes the LIST unreadable. Silently dropping it would report a
-    // shorter list as fact, which is the "the machine went away" failure by another route.
     if (read.some((device) => device === null)) return null;
     return Object.freeze(read);
 }
@@ -129,8 +93,6 @@ export function readConnectionStatus(status) {
 
     return Object.freeze({
         phase: status.phase,
-        // An unrecognised phase means ReaPrime knows a state this build does not. Visible,
-        // never smoothed over — the same rule the address layer applies to MachineState.
         phaseKnown: PHASES.has(status.phase),
         foundMachines,
         foundScales,
@@ -151,12 +113,7 @@ export function readConnectionStatus(status) {
  * @returns {object|null} null for a malformed or partial frame — NEVER an empty list
  */
 export function readDevicesFrame(frame) {
-    // The tree's ONE frame predicate — the same one the classifier and the address layer
-    // ask. This guard was already right; it is imported rather than restated so there is
-    // one place to be right in.
     if (!isFrameObject(frame)) return null;
-    // A command result is not a state frame. It reaches here only if a caller bypassed the
-    // classifier; named explicitly so the null it returns has a reason.
     if (typeof frame.operation === 'string') return null;
 
     const devices = readDeviceList(frame.devices);
@@ -170,9 +127,6 @@ export function readDevicesFrame(frame) {
         timestamp: typeof frame.timestamp === 'string' ? frame.timestamp : null,
         devices,
         scanning: frame.scanning,
-        // Optional by construction: the handler omits it when there is no battery
-        // controller or no charging state. Absent is normal; null means "no such thing
-        // here", which is different from a charging state of false.
         charging: Object.hasOwn(frame, 'charging') && frame.charging && typeof frame.charging === 'object'
             ? Object.freeze({ ...frame.charging })
             : null,
@@ -251,8 +205,6 @@ export function createDevicesLink({ sockets, transport, logger = null } = {}) {
             if (response.ok) {
                 return { ok: true, result: readConnectResult(response.data), failure: null };
             }
-            // The refusal bodies ARE the answer here; keep them, do not translate them
-            // into a boolean (that translation is what B8 is undoing).
             return { ok: false, result: readConnectResult(response.problem), failure: response };
         },
 

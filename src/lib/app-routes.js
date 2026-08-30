@@ -88,8 +88,6 @@ export function resolveRoute(
     }
     const fallback = routeFor(defaultId, routes);
     if (!fallback) {
-        // A table with no default is a programming error, and a silent one would show as
-        // an empty screen with no message. Fail where the mistake is.
         throw new Error(`app-routes: the route table has no default route '${defaultId}'`);
     }
     return {

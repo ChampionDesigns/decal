@@ -142,9 +142,6 @@ class UiTextField extends UiElement {
         this.placeholder = '';
         this.label = '';
         this.hideLabel = false;
-        // `align` is deliberately left undefined rather than defaulted to 'start':
-        // a reflected property with a default writes align="start" onto every
-        // instance, which is noise in the DOM and in a capture diff.
         this.disabled = false;
         this.readonly = false;
         this.required = false;
@@ -198,9 +195,6 @@ class UiTextField extends UiElement {
 
     connectedCallback() {
         super.connectedCallback();
-        // The reset value is whatever the markup said, captured once. Read here
-        // rather than in the constructor so `createElement` + `setAttribute` and
-        // parser upgrade behave the same way.
         if (this.#defaultValue === null) this.#defaultValue = this.getAttribute('value') ?? '';
     }
 
@@ -218,14 +212,9 @@ class UiTextField extends UiElement {
     #onInput(event) {
         this.value = event.target.value;
         this.#syncForm();
-        // `input` is composed:true, so the native event already crosses the shadow
-        // boundary with the HOST as its retargeted target. Re-dispatching would
-        // deliver it twice.
     }
 
     #onChange() {
-        // `change` is bubbles:true but composed:FALSE, so it stops at the shadow
-        // boundary and a consumer listening on <ui-text-field> would never see it.
         this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
     }
 
@@ -245,8 +234,6 @@ class UiTextField extends UiElement {
         for (const flag of VALIDITY_FLAGS) {
             if (input.validity[flag]) flags[flag] = true;
         }
-        // The input is the validation ANCHOR, so reportValidity() points its bubble
-        // at the thing the user has to fix rather than at an opaque host box.
         internals.setValidity(flags, input.validationMessage, input);
     }
 

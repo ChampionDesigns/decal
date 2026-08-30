@@ -1,15 +1,4 @@
-// Storage backends — the dumb key/value ports the router writes through.
-//
-// A backend is `{ get(physicalKey), set(physicalKey, value), remove(physicalKey) }`,
-// sync or async, dealing in JSON-able values. It knows nothing about routing, prefixes or
-// scopes: the router owns all three. Keeping them this dumb is what makes "route by table"
-// testable — a fake backend is four lines.
-//
-// DOM-free by injection: `globalThis.localStorage` never appears; the caller passes the
-// store object in. That is what lets the whole set run under node:test with no browser.
-//
-// The ReaPrime KV backend lives in `src/data/rea-kv-backend.js` — it is the only piece
-// that knows an endpoint, and endpoints are the address layer's business.
+
 
 /** In-memory store. The private-mode fallback, and the tests' double. */
 export function createMemoryBackend(initial = {}) {
@@ -82,8 +71,6 @@ export function createWebStorageBackend({ storage, logger, label = 'webStorage' 
         set(key, value) {
             const s = store();
             if (!s) return fallback.set(key, value);
-            // Throws propagate to the router, which logs and reports false. A failed write
-            // must be visible; it must NOT be retried into a different layer.
             s.setItem(key, JSON.stringify(value));
             return undefined;
         },

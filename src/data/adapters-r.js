@@ -1,54 +1,7 @@
-// THE R-TAGGED ADAPTER MODULE — the one place in Decal where a server answer that
-// ReaPrime does not yet serve is written down.
-//
-// DECISIONS.md, "Upstream work stays out of the overnight run":
-//
-//   "R1–R8 and F1–F3 are NOT in scope for the unattended build. Where the skin needs a
-//    ReaPrime field that does not exist yet, it goes through ONE NAMED ADAPTER PER MISSING
-//    FIELD, in a single module, each marked with its R-number — so when the upstream item
-//    lands, the swap is a mechanical, greppable edit rather than a hunt."
-//
-// ── THE SWAP DISCIPLINE ──────────────────────────────────────────────────────────────
-//
-//  1. ONE FILE. Every interim answer lives here. A call site never hand-writes a server
-//     truth, never reads a machine name, and never recomputes a value the server owns.
-//  2. ONE ADAPTER PER MISSING FIELD, and its exported name begins with its R-number
-//     (`r1…`, `r2…`, `r3…`). An adapter with no R-number is a finding; so is a served
-//     field consumed directly where the spec says an adapter (SCOPE Part 10 §10).
-//  3. EVERY ADAPTER IS PURE. It takes a server answer the caller already holds and
-//     returns a decision. It performs no request, so it can never become a second,
-//     undeclared route.
-//  4. EVERY ANSWER IS MARKED. `{ known, provisional, basis, swapWhen }` travels with the
-//     value: a consumer can always tell an interim answer from a served one, and an
-//     "I cannot answer" from a "no". Nothing here returns a plausible default.
-//  5. THE SWAP IS DELETION. When the upstream item ships, the adapter body becomes a read
-//     of the served field and then the whole row goes. `R_ADAPTERS` below names, for each
-//     row, the exact field to read once it exists. Grep the R-number; there is one hit
-//     per consumer.
-//  6. NOT A WORKAROUND HATCH. This pattern is for UPSTREAM gaps only. Routing around a
-//     failure of this build is out of scope for it (SCOPE Part 10 §11).
-//
-// WHAT IT IS NOT: a place to sniff. A3 is absolute — the skin learns what a machine can do
-// from `GET /api/v1/machine/capabilities` and from nothing else, never from the model
-// string. Every adapter here reads a SERVED field (the capability list itself, `GHC` and
-// `extra.profileModeCaps` on `GET /api/v1/machine/info`, the workflow report, the profile
-// listing). `test/adapters-r.test.mjs` asserts this module's code contains no machine-name
-// read at all. The failure mode that argument comes from is on record: a Bengle that
-// advertised as a plain DE1 becomes a `UnifiedDe1`, so `model` reads "Bengle" while
-// capabilities returns `[]` and every Bengle route 404s — the sniffing skin then shows
-// three settings pages whose every call fails.
-//
-// ReaPrime read AS WRITTEN at 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3:
-// `de1handler.dart` (capabilities, `_infoHandler`, `_bengleFirmwareGate`),
-// `machine.dart` (`MachineInfo.toJson` — the key is `GHC`), `unified_de1.dart`
-// (`extra['profileModeCaps']`, `_readProfileModeCaps`, `_assertProfileModeSupported`),
-// `workflow.dart` / `profile.dart` / `profile_record.dart` (R1), `workflow_handler.dart`.
-// This module issues no request of its own and therefore declares no route.
-//
-// The ONE limits table (R2/B2) lives in `../lib/machine-limits.js` and is reached only
-// through `r2MachineLimits` below. The numbers live there and nowhere else — this module
-// carries no limit number at all, which `test/adapters-r.test.mjs` asserts against this
-// file's own source.
+/**
+ * THE R-TAGGED ADAPTER MODULE — the one place in Decal where a server answer that ReaPrime does not yet serve is written down.
+ */
+
 import { limitsFor } from '../lib/machine-limits.js';
 
 export const R_ADAPTERS = Object.freeze([
@@ -308,8 +261,6 @@ export function r1LoadedProfileId(workflowReport, profileRecords) {
     const title = profile && typeof profile.title === 'string' && profile.title !== '' ? profile.title : null;
     if (title === null) return unresolved(R1_UNRESOLVED.NO_TITLE, 'workflow report carries no profile title');
 
-    // If the report ever starts carrying the id, say so loudly rather than title-matching
-    // anyway: that is the swap signal, and it should be seen the first time it happens.
     if (hasOwn(profile, 'id')) {
         return answer(name, {
             value: Object.freeze({ id: profile.id, title, reason: null, source: R1_SOURCE.WORKFLOW_ID }),

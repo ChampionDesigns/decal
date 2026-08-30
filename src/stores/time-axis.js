@@ -1,41 +1,4 @@
-// THE TIME AXIS (B4) — the skin plots what ReaPrime stamps, and invents no correction.
-//
-// SCOPE Part 3 §4, "Time axis (B4)":
-//
-//     "The skin plots what ReaPrime stamps. Today that is arrival time — both wire formats
-//      carry a machine-side sample clock and ReaPrime discards both — so every chart
-//      carries transport jitter. R4 asks for the decoded machine clock as its own field.
-//      Until it lands the skin does not try to reconstruct it; deferral is PERMANENT for
-//      recorded shots, which is why R4 is sequenced early."
-//
-// VERIFIED AT THE PIN (`2b047d02`), because a rule this consequential should not rest on a
-// document alone:
-//
-//   * `unified_de1.parsing.dart:_parseStateAndShotSample` and
-//     `:_parseStateAndBengleShotSample` both build their `MachineSnapshot` with
-//     `timestamp: DateTime.now()` — the stamp is taken when ReaPrime DECODES the packet.
-//   * The Bengle wire format does carry a sample clock: `bengle_shot_sample.dart` decodes
-//     `sampleTime` (uint16, big-endian, offset 0) — and `_parseStateAndBengleShotSample`
-//     never passes it on. It is decoded and dropped. That is the field R4 asks for.
-//   * `WeightSnapshot`s are stamped `DateTime.now()` in each scale driver, at BLE notify.
-//
-// So the axis this module builds is an arrival axis, and it says so. What it must never do
-// is make that fact invisible:
-//
-//   * NO RESAMPLING onto a uniform grid. A grid would look like a machine clock and would
-//     be a fabrication — the exact defect class A7 names.
-//   * NO INTERPOLATION and no gap filling. A missing sample is a gap.
-//   * NO MONOTONIC CLAMP and no sorting. If stamps arrive out of order that is a fact
-//     about the transport; it is COUNTED (`nonMonotonic`) and rendered as it came, because
-//     a clamp would silently repair evidence of the thing R4 exists to fix.
-//   * NO LOCAL SUBSTITUTE. A sample with no readable stamp is not plottable and is
-//     dropped, counted, and reported. It is never given `Date.now()`: the store's own
-//     arrival stamp (`feed-store.js` `receivedAt`) exists for staleness and is not an axis.
-//
-// WHEN R4 LANDS, the change is one function: `stampOf` gains the machine-clock field where
-// present, and this file's diagnostics tell you immediately whether the shots you are
-// looking at have it. Recorded shots from before R4 keep the arrival axis for ever, which
-// is why the deferral is permanent and why the rule is worth writing down once, here.
+
 
 import { ABSENCE, noReading, hasKey } from '../data/reading.js';
 import { isPouring } from '../data/machine-state.js';
@@ -60,8 +23,6 @@ export function stampMs(source) {
     if (raw === null || raw === undefined) return noReading(ABSENCE.NULL);
     if (typeof raw !== 'string') return noReading(ABSENCE.NON_FINITE);
     const parsed = Date.parse(raw);
-    // `Date.parse` answers NaN for a string it cannot read. A frame whose stamp we cannot
-    // read is a frame we cannot place in time — say so, do not place it anyway.
     return Number.isFinite(parsed) ? parsed : noReading(ABSENCE.NON_FINITE);
 }
 
@@ -105,9 +66,6 @@ export function buildTimeAxis(samples, { originMs = undefined, originRule = unde
         ? chooseOrigin(list, { stampOf })
         : {
             originMs,
-            // Never `firstSample` by assumption. The caller's rule if it gave one, `none`
-            // when there is no origin at all, and otherwise `given` — which says exactly
-            // what is known: an origin arrived from outside and its rule was not stated.
             rule: originMs === null ? ORIGIN_RULE.NONE : (originRule ?? ORIGIN_RULE.GIVEN),
             index: -1,
         };

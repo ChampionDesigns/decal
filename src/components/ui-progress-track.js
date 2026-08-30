@@ -75,8 +75,6 @@ export class UiProgressTrack extends UiElement {
 
     get #reading() {
         const max = num(this.max);
-        // A non-positive or non-finite range is degenerate: report zero rather
-        // than dividing by it, and say the same thing to a screen reader.
         const top = max > 0 ? max : 0;
         const value = Math.min(Math.max(num(this.value), 0), top);
         return { top, value, fraction: top > 0 ? clamp01(value / top) : 0 };
@@ -101,9 +99,6 @@ export class UiProgressTrack extends UiElement {
         this.setAttribute('aria-valuenow', String(value));
         if (this.valueText) this.setAttribute('aria-valuetext', this.valueText);
         else this.removeAttribute('aria-valuetext');
-        // Only ever ADD a name: an author who wrote aria-label or aria-labelledby
-        // on the host keeps it, which is how the settings panel points this at its
-        // own "App Update" heading.
         if (this.label) this.setAttribute('aria-label', this.label);
     }
 

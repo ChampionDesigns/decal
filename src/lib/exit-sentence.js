@@ -1,5 +1,5 @@
 /**
- * The MODEL LAYER for.md:233; SCOPE.md:1653).
+ * A profile step's exit condition, as the sentence the editor shows and the slots it is composed from.
  */
 
 import {

@@ -1,48 +1,4 @@
-// THE TEN WEBSOCKET CHANNELS — the endpoint table, as data.
-//
-// SCOPE Part 3 §2. Every row below was read from the handler AS WRITTEN at ReaPrime
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3, and the table carries the handler file and
-// symbol so the next reader re-checks it in one open rather than re-deriving it. The paths
-// are also all nine documented URLs in `assets/api/websocket_v1.yml` (E2/M1: 9/9), plus the
-// sensor route's per-id form.
-//
-// Route knowledge lives HERE, not in the socket engine (rea-sockets.js) and not in the
-// consumers. rea-sockets.js knows how to own a socket; it does not know what a socket
-// carries. That split is why there is one lifecycle policy instead of four.
-//
-// ── THE ONE THING THIS TABLE EXISTS TO SAY ────────────────────────────────────────────
-//
-// NOT EVERY MESSAGE ON A ReaPrime SOCKET IS A FRAME. Three of these ten multiplex
-// something else onto the same wire, and reading that something else as a frame produces a
-// plausible, wrong value rather than an error:
-//
-//   * `/ws/v1/scale/snapshot` interleaves `{"status":"connected"|"disconnected"}` with
-//     `WeightSnapshot` (`scale_handler.dart` `_handleSnapshot` `sendStatus`). Read as a
-//     snapshot, a status envelope has no `weight` and no `weightFlow` — indistinguishable
-//     from a scale reporting nothing.
-//   * `/ws/v1/devices` interleaves connect/disconnect COMMAND RESULTS
-//     (`{deviceId, operation:'connect', outcome, state, connectionError}`) with the
-//     aggregator's state snapshots (`devices_handler.dart` `_sendConnectResult` vs
-//     `_emitStateNow`). The old skin reads `data.scanning` off whatever arrives; on a
-//     command result that key is absent, which reads as "not scanning".
-//   * The sensor socket answers an unknown id with `{"error":"not found"}` and closes
-//     (`sensors_handler.dart` `_handleSensorSnapshot`); the devices, display and update
-//     sockets answer a bad command with `{"error": ...}` on the frame channel.
-//
-// So classification is part of the contract, `classifyMessage` below is the one
-// implementation of it, and an ERROR ENVELOPE IS A SIGNAL, NOT A FRAME.
-//
-// Read once, worth keeping: the FOUR machine-bound channels below (snapshot, shotSettings,
-// shotState, waterLevels) ignore client messages ENTIRELY. `_withDe1Ws`'s stream listener
-// returns before anything else when no `onMessage` was supplied, and only
-// `/ws/v1/machine/raw` supplies one — so a command sent on those four gets no reply, not
-// even a refusal. `websocket_v1.yml` says the same thing from the other side: "no error or
-// status frame is emitted on this typed telemetry channel". Nothing here sends on them.
-//
-// ── DELIBERATELY ABSENT ───────────────────────────────────────────────────────────────
-// `/ws/v1/machine/raw`, `/ws/v1/logs`, `/ws/v1/webview/logs` are not consumed. They are
-// not in this table because a table of channels is a table of things we open. The reasons
-// are written down once, in `EXCLUDED_WS.md`.
+
 
 /** ReaPrime's WebSocket prefix. Every row's `path` begins with it. */
 export const WS_PREFIX = '/ws/v1';

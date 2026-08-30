@@ -1,5 +1,5 @@
 /**
- * The base-element conventions every Decal component inherits.
+ * The base element every ui-* component extends, with the shared style fragments: the focus ring, the visually-hidden treatment and the selection surface.
  */
 
 import { LitElement, css } from 'lit';
@@ -188,8 +188,6 @@ export function loadStyleSheet(url, { fetch: fetchImpl = globalThis.fetch } = {}
                 return sheet;
             })
             .catch((error) => {
-                // Do not cache a failure: a transient fetch error must not make the
-                // chart permanently uninteractive for the life of the page.
                 sheetCache.delete(href);
                 throw error;
             });

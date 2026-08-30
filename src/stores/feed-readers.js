@@ -1,42 +1,8 @@
-// READERS FOR THE THREE FEEDS THE ADDRESS LAYER DOES NOT COVER.
-//
-// Gate 2 (`src/data/rea-address.js`) reads the machine snapshot, the scale snapshot, the
-// sensor frames and stored measurements; `src/data/rea-devices.js` reads the devices
-// frame. Three of Gate 4's seven feeds — shot state, display, update — had no reader at
-// the pinned commit, so they get one here, built on the SAME primitives
-// (`src/data/reading.js`), obeying the same rules:
-//
-//   * key presence / null is the validity signal, decided per frame by how the HANDLER
-//     writes it, never by a threshold or a default invented here;
-//   * an unrecognised enum name is reported as unrecognised, never silently mapped to a
-//     neighbour;
-//   * A7 — no fallback path. A missing field is an absence, not a zero and not a guess.
-//
-// WHY THE SPLIT IS WHERE IT IS: these three frames are read by nothing but their stores,
-// and putting them in `rea-address.js` would mean two builders editing one file in the
-// same wave. If a second consumer appears, or Gate 2 grows these readers, this file's
-// contents move there and this file is DELETED — not left behind re-exporting, which is
-// how two readers of one wire format start to drift.
-//
-// THE SHAPES ARE READ FROM THE HANDLERS AT THE PIN, `2b047d02`:
-//   * shot state — `ShotStateEvent.toJson`, `lib/src/models/data/shot_state_event.dart`,
-//     published by `De1StateManager._publishShotStateFrame` / `_publishShotDecisionFrame`
-//     / `_publishIdleFrame`, served by `De1Handler._handleShotState`.
-//   * display    — `DisplayState.toJson`, `lib/src/controllers/display_controller.dart`,
-//     served by `DisplayHandler._handleWebSocket`.
-//   * update     — `AppUpdateState.toJson`, `lib/src/services/app_update_state.dart`,
-//     served by `UpdateHandler._handleSocket`.
-//
-// ALL THREE WRITE EVERY KEY UNCONDITIONALLY (each `toJson` is a map literal, not a
-// conditional build), so on these frames NULL is the absence signal and an ABSENT key
-// means a malformed frame — the opposite of the machine snapshot's rule, and true for the
-// same reason it is true of the devices frame. That difference is not a style choice; it
-// is read off the handler, per frame, and it is why `ok` is false rather than a shrug.
+/**
+ * The readers that turn one socket frame into the shape a store holds.
+ */
 
 import { ABSENCE, noReading, readNumber, readValue, hasKey } from '../data/reading.js';
-// THE frame predicate, not a fourth spelling of it. Four `is this a frame` guards existed
-// across the tree and they disagreed about a JSON array; there is one implementation now,
-// beside the classifier that routes a socket message, and every layer imports it.
 import { isFrameObject } from '../data/rea-ws-channels.js';
 import { isMachineState, isMachineSubstate } from '../data/machine-state.js';
 
@@ -109,8 +75,6 @@ export function readShotStateFrame(frame) {
         : null;
 
     return Object.freeze({
-        // A frame that does not carry a readable `state` is malformed. Told as "unknown",
-        // never as idle — an invented idle would end a live shot's accumulation.
         ok: present && typeof state.value === 'string',
         event: event.value,
         eventKnown: event.known,

@@ -63,10 +63,6 @@ export class LiveRefusal extends UiElement {
         if (!refusal || typeof refusal !== 'object') return nothing;
         const t = this.#i18n.t;
 
-        // THE SERVER'S OWN WORDS, both halves, in the order it wrote them: `error` is the
-        // typed headline ("Unsupported profile"), `message` is the detail. Neither is
-        // translated — translating a server's diagnostic would make the one sentence that
-        // says what went wrong un-searchable, and D2's mechanism is for OUR strings.
         const headline = typeof refusal.error === 'string' && refusal.error
             ? refusal.error
             : t('The machine refused the profile');

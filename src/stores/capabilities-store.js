@@ -1,55 +1,6 @@
-// THE CAPABILITY STORE — the single mechanism for machine differences (A3).
-//
-// SCOPE Part 3 §3, verbatim on the rule:
-//
-//   "The skin learns what the machine can do from GET /api/v1/machine/capabilities, and
-//    from NOTHING ELSE. Never from the model name, never from a raw feature byte, never
-//    from a fetch that happened to fail. If something the skin needs is not in the
-//    endpoint, the fix is to ADD IT TO THE ENDPOINT (A3, feeding R3) — not to sniff for
-//    it."
-//
-// This store replaces `machine.js`, whose whole content was a model-string sniff plus a
-// module-scope singleton with a comment-enforced boot order. THE SKIN HAS NEVER CALLED THE
-// CAPABILITY ENDPOINT. Now everything gates on it.
-//
-// WHY THE SNIFF FAILS, concretely, because it is the argument that carries the decision:
-// ReaPrime chooses the device CLASS at discovery from the advertised name, while `model`
-// is a byte read after connect. A Bengle that advertised as a plain DE1 becomes a
-// `UnifiedDe1` — `model` reads "Bengle", `GET /machine/capabilities` returns `[]`, and
-// every Bengle route 404s through `_bengleFirmwareGate`. The sniffing skin then shows
-// three settings pages whose every call fails. The capability check and the route gate
-// CANNOT disagree, because they are the same predicate: `de1 is BengleInterface`.
-//
-// ── THE FOUR RULES HERE ──────────────────────────────────────────────────────────────
-//
-//  1. THREE ANSWERS, NOT TWO. `present` / `absent` / `unknown`. `[]` is a REAL ANSWER
-//     (not a Bengle) and is never confused with a failed read: the handler runs inside
-//     `withDe1`, so with no machine connected `connectedDe1()` throws
-//     `DeviceNotConnectedException` and the route answers 500 — not `[]`. A store that
-//     collapsed those two would report every Bengle as a DE1 during a reconnect.
-//  2. OFFERING FAILS CLOSED, ABSENCE STAYS VISIBLE. `offers(name)` is true only for a
-//     `present`. But `capability(name)` returns the tri-state and `reason()` says why, so
-//     "we do not know yet" is renderable as itself rather than as a missing feature.
-//  3. ROUTE REGISTERED IS WEAKER THAN FEATURE AVAILABLE. `POST /api/v1/feedback` is always
-//     registered and answers 503 unless the build carries a GitHub token
-//     (`feedback_handler.dart`: `if (!_service.isConfigured) return jsonServiceUnavailable`).
-//     That 503 is FEATURE ABSENT — hide the form — not a transient error to retry.
-//     `readFeedbackAvailability` is the one place that judgement is written down.
-//  4. WHAT THE SEVEN DO NOT COVER GOES THROUGH THE ADAPTER, NEVER BACK TO THE NAME.
-//     `CAPABILITY_GAPS` enumerates the four, each pointing at its R-item. A call site that
-//     needs one of them calls the store method that wraps the R3 adapter; there is no
-//     other route, and no machine name is read anywhere in this file.
-//
-// The store performs exactly ONE request — `GET /api/v1/machine/capabilities`, through the
-// injected route helper. `GET /api/v1/machine/info` is NOT fetched here: its answer is fed
-// in with `applyMachineInfo`, by whoever owns that feed, so this store has one route and
-// one contract row. Until an info answer arrives, the GHC and profile-mode gates report
-// `unknown` — which is the honest state, not `false`.
-//
-// ReaPrime read AS WRITTEN at 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3:
-// `de1handler.dart` (`addRoutes` GET /api/v1/machine/capabilities, `withDe1`,
-// `_bengleFirmwareGate`, `_infoHandler`), `feedback_handler.dart`, `machine.dart`
-// (`MachineInfo.toJson`), `unified_de1.dart` (`_assertProfileModeSupported`).
+/**
+ * THE CAPABILITY STORE — the single mechanism for machine differences (A3).
+ */
 
 import { createStore } from './store.js';
 import {
@@ -98,15 +49,6 @@ export const CAPABILITY_GAPS = Object.freeze([
     Object.freeze({
         gap: "the profile editor's flow ranges",
         item: 'R2 (possibly F2 underneath)',
-        // Precise about WHERE, because the imprecise version read as a promise this
-        // store does not keep: machineLimits() carries no per-step authoring range
-        // today (its rows are the machine's own — steam, hot water, flush, brewTemp).
-        // What is missing is the MACHINE-DEPENDENT lift the old editor did by name
-        // (profile_editor.js:485-495, flow 15/8 -> 20 on a Bengle; A3 forbids the
-        // name test, so it is unported). That lift is an R2 answer, and it lands as a
-        // rewrite of the ONE authoring-range table — profile-modes.js AUTHORING_RANGES
-        // — never as a second copy. B2 holds per field: no key is in both tables, and
-        // the one field both touch (brew temperature) is injected from machine-limits.
         via: 'machineLimits() serves the machine\'s own rows behind r2MachineLimits; the'
             + " step-authoring ranges are AUTHORING_RANGES (profile-modes.js), the one table R2's"
             + ' per-machine answer overwrites — the two are disjoint by field, which is B2',
@@ -133,8 +75,6 @@ export function readFeedbackAvailability(result) {
         return Object.freeze({ available: CAPABILITY.UNKNOWN, reason: CAPABILITY_REASON.NOT_LOADED });
     }
     if (result.ok === true) return Object.freeze({ available: CAPABILITY.PRESENT, reason: null });
-    // 503 = the build carries no GitHub token. The feature is absent on this machine and
-    // the form is hidden; retrying is the wrong response and so is an error toast.
     if (result.status === 503) return Object.freeze({ available: CAPABILITY.ABSENT, reason: null });
     return Object.freeze({ available: CAPABILITY.UNKNOWN, reason: CAPABILITY_REASON.FAILED });
 }
@@ -168,9 +108,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
         throw new Error('createCapabilitiesStore: routes must be injected (see createReaRoutes)');
     }
     const log = logger && logger.scope ? logger.scope('capabilities') : logger;
-    // Gate 4's ONE store primitive, not a second mechanism beside it: frozen state,
-    // return-new-state enforced, replay to a late subscriber, and `StoreController` for
-    // free in every component that reads a capability.
     const store = createStore({ ...EMPTY_STATE }, { label: 'capabilities', logger: log });
     let inFlight = null;
     let epoch = 0;
@@ -199,8 +136,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
             return Object.freeze({
                 capability: CAPABILITY.UNKNOWN,
                 value: result.value,
-                // The capability read's own reason when that is what is missing;
-                // otherwise the missing input is the machine-info feed.
                 reason: state().entries === null ? state().reason : CAPABILITY_REASON.NOT_LOADED,
                 provisional: true,
                 tag: result.tag,
@@ -239,10 +174,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
             inFlight = (async () => {
                 const result = await routes.capabilities();
                 if (!result.ok) {
-                    // NOT `[]`. A failed read is not "this machine is a DE1" — 500 is what
-                    // `withDe1` answers when nothing is connected, and treating it as an
-                    // empty capability set would hide every Bengle feature on a reconnect
-                    // and call it a machine difference.
                     if (log && log.warn) log.warn(`capabilities read failed: ${result.message}`);
                     return publishIfCurrent(asOf, {
                         ...state(),
@@ -280,10 +211,6 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
 
         forget() {
             epoch += 1;
-            // And the in-flight read is released as well as invalidated: without this, a
-            // `load()` for the NEW machine would join the old machine's request, whose
-            // answer this epoch then discards — leaving nothing to re-read and a store that
-            // sits at `unknown` for ever.
             inFlight = null;
             return publish({ ...EMPTY_STATE });
         },

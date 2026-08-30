@@ -1,28 +1,6 @@
-// steam-buffer.js — THE STEAM SESSION, AS SOMETHING THE LIVE CHART CAN DRAW.
-//
-// WHY IT IS NOT THE SHOT BUFFER. `shot-buffer.js` opens and closes on
-// `/ws/v1/machine/shotState` — ReaPrime's SEQUENCER — and the sequencer runs for
-// ESPRESSO only (`de1_state_manager.dart` starts one in `_handleTrackingModeForEspresso`
-// and `_handleDisabledModeForEspresso`; `_handleSteamState` starts nothing). So there is
-// no shot around a steam, no shotState frames, and nothing for that buffer to hold. The
-// old skin does not use its shot path either: it plots a steam straight off the machine
-// snapshot.
-//
-// WHAT IT ACCUMULATES, and where each channel comes from:
-//   pressure, flow, targetFlow, steamTemperature   /ws/v1/machine/snapshot (SNAPSHOT_KEYS)
-//   milkTemperature                                the milk-probe sensor socket
-// Milk is on a different socket because ReaPrime removed `milkTemperature` from
-// MachineSnapshot in 633f6f68; reading it off the snapshot would read a field the machine
-// stopped sending.
-//
-// t = 0 IS THE FIRST POURING SAMPLE. The machine reports `steam` for the whole session,
-// the ramp-up and the wind-down included, and graphing all of it buries the steaming
-// between two irrelevant humps — `steam-chart.js` carries the reasoning and the rule.
-// Samples before the valve opens are DROPPED rather than kept at negative t: an espresso's
-// preinfusion is part of the shot and a steam's ramp is not part of the steaming.
-//
-// IT PUBLISHES A DERIVATION SHAPE, so `<ui-chart-card>` takes it with no second code path:
-// `{ok, axis:{t}, series:{key:{x,y}}}` is the whole of what that card reads.
+/**
+ * THE STEAM SESSION.
+ */
 
 import { createStore } from './store.js';
 import { CHART_MODE, STEAM_CHANNELS } from '../lib/steam-chart.js';

@@ -1,39 +1,4 @@
-// firmware-store.js — WHAT FIRMWARE THE MACHINE COULD RUN, AND SENDING IT ONE.
-//
-// WHY IT EXISTS. Decal shipped with no firmware surface at all: D4 removed the
-// hand-picked file upload on the grounds that "a control that flashes firmware from an
-// arbitrary file is worse than no control", and the Updates › Firmware Update leaf said
-// so in a sentence. Ben reversed it on 24 August 2026: "I should be able to pick a file,
-// but it should also have a 'latest' button that pulls it."
-//
-// WHAT THE MACHINE OFFERS, read at the pin 2b047d02 (`FirmwareHandler`,
-// `lib/src/services/webserver/firmware_handler.dart`):
-//
-//   GET    /api/v1/machine/firmware         the BUNDLED catalog + this machine's build
-//   POST   /api/v1/machine/firmware         raw bytes — a file somebody picked
-//   POST   /api/v1/machine/firmware/apply   {artifactId, force?} — one bundled artifact
-//   DELETE /api/v1/machine/firmware         cancel an upload in progress
-//
-// "LATEST" IS THE SERVER'S OWN ANSWER, NOT A SORT DONE HERE. The catalog carries
-// `recommendedArtifactId` — the highest build whose eligibility the server's own
-// validator calls `applicable` for THIS machine's model and installed build — and
-// `updateAvailable`, which is `null` when the machine is not connected or any artifact's
-// eligibility is unknown. Picking the newest artifact in the list instead would be this
-// file re-implementing a model-compatibility rule it cannot see, and offering a person a
-// firmware their machine will refuse.
-//
-// THE ARTIFACTS ARE BUNDLED WITH ReaPrime (`assets/firmware/de1/de1-*.bin`), so "pull the
-// latest" is not a download from the internet: it is the newest image the ReaPrime on
-// this machine already carries. Nothing here fetches from anywhere else, and there is no
-// route that would.
-//
-// BOTH INSTALL PATHS ANSWER `application/x-ndjson` — one JSON object per line, held open
-// for the whole flash: `erasing`, then `uploading` with a progress fraction, then `done`
-// or `error`. `rea-transport.js`'s `onLine` reads it; this store turns it into state.
-//
-// A CANCEL IS 202 AND NOT A PROMISE. `_cancelUpdate` asks the machine to stop and answers
-// with whatever state it is in; the stream this store is reading ends on its own shortly
-// afterwards. Nothing here reports "cancelled" until that stream says so.
+
 
 import { callRoute } from '../data/rea-routes.js';
 import { createStore } from './store.js';

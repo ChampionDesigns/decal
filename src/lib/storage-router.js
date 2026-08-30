@@ -1,28 +1,6 @@
-// The storage router (B7) — the ONE owner of every persisted key in Decal.
-//
-// Nothing else in the tree calls localStorage, sessionStorage or the ReaPrime KV routes.
-// A call site names a logical key; the router looks its layer up in `storage-routes.js`
-// and talks to exactly one backend. The layer is looked up, not chosen at the call site,
-// and there is no path on which a value reaches two layers.
-//
-// SCOPE Part 3 §5: "The rewrite's storage module is a routing table — key -> layer — so
-// every key has exactly one home and the layer is looked up, not chosen at each call
-// site." And: "two stores plus any read-priority rule equals a path where a failed write
-// wins" — so this module has no read-priority rule to have.
-//
-// Three corrections to the module it replaces (`storage-keys.js`, CARRY_FORWARD entry):
-//   1. it is a routing table, not a prefix helper;
-//   2. it never throws because a browser store is absent — a private-mode WebView gets an
-//      in-memory store and one warning, not an uncaught throw at first read;
-//   3. nothing bypasses it. (The one deliberate exception is the pre-paint theme stamp in
-//      index.html, which cannot import anything before first paint; a test pins its
-//      hand-written copy of the prefix to STORAGE_PREFIX.)
-//
-// DOM-free: browser globals never appear here. Backends are injected.
-//
-// Async everywhere, on purpose: the caller must not be able to tell from the shape of the
-// call whether a key lives locally or in ReaPrime's KV store. That is what lets a row move
-// between layers without touching a single call site.
+/**
+ * The storage router (B7) — the ONE owner of every persisted key in Decal.
+ */
 
 import {
     STORAGE_ROUTES,
@@ -69,8 +47,6 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
             );
         }
         if (key.startsWith(STORAGE_PREFIX)) {
-            // The router owns the prefix. A caller passing a physical key is how the old
-            // skin ended up with `slate.profileFoldersOpen` as a *logical* key.
             throw new StorageRouterError(
                 ERROR_CODES.PREFIXED_KEY,
                 `storage: '${key}' already carries the '${STORAGE_PREFIX}' prefix — pass the logical key ('${key.slice(STORAGE_PREFIX.length)}'); the router adds the prefix`,

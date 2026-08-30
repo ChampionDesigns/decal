@@ -1,7 +1,7 @@
-// Coalesce expensive chart paints without dropping telemetry. Callers keep
-// appending every real sample to their source arrays; this scheduler only
-// controls when the latest complete snapshot is painted. At most one draw may
-// be in flight, so a slower tablet cannot build an ever-growing draw queue.
+/**
+ * Coalesce expensive chart paints without dropping telemetry.
+ */
+
 export function createSingleFlightFrameScheduler(draw, {
     requestFrame = (callback) => requestAnimationFrame(callback),
     cancelFrame = (handle) => cancelAnimationFrame(handle),

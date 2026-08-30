@@ -1,62 +1,4 @@
-// THE HISTORY LIST'S ROW MODEL — B5 / Q17, and the dash.
-//
-// Wave 5.6, items `hist-shot-list-derivation` and `hist-b5-scalars-q17`. DOM-free: this
-// module answers "what does the History list say about this shot", in values, and every
-// surface on the screen — a list cell, a summary table, a picker option label — reads the
-// answer rather than computing its own.
-//
-// ============================================================================
-// ONE WALK. THIS FILE DOES NOT PARSE MEASUREMENTS AND CANNOT.
-// ============================================================================
-//
-// Gate 6's `shot-derivation.js` is the single parse of the measurements array, and its own
-// opening line says so: one walk serving the live chart, the Live foot band and everything
-// downstream. History adds no second parse. This module therefore imports NO derivation
-// entry point at all — it CONSUMES a derivation its caller already made, and where no
-// derivation exists it says so with an absence rather than going and making one.
-//
-// That is not fastidiousness. `chart-C13` is the same rule from the other end: the old
-// chart recovered numbers by parsing them back out of another module's rendered
-// `textContent`. A second walk and a DOM scrape are the same defect — a second source of
-// truth for a number that already exists — and the fix for both is that there is exactly
-// one place the number comes from.
-//
-// ============================================================================
-// Q17, RESOLVED 16 AUGUST: A DASH, NOT A DOWNLOAD
-// ============================================================================
-//
-// The list payload does not carry duration, peak pressure or average flow. Verified at the
-// handler, not assumed: `ShotRecord.toJsonWithoutMeasurements` (shot_record.dart:49-59)
-// emits id, timestamp, workflow, annotations, stopReason and the two legacy aliases, and
-// `ShotRecord.toJson` (:36-47) adds only `measurements`. There is no duration in either, in
-// any spelling.
-//
-// The old skin's answer was `fillMissingOutcomes`: for every row missing a number, download
-// the whole ~221 KB shot record, sequentially, to print "28 s" in a list cell. That is not
-// built here and there is no code path to it. B5 governs: the scalars are computed in the
-// skin from the one walk WHERE A WALK EXISTS — the shots actually on the chart — and where
-// no walk exists the cell shows a dash.
-//
-// R5 is the upstream ask that would serve these fields, and it is excluded from this run.
-// `SUMMARY_SCALAR_KEYS` below is what makes its landing a one-field change: each scalar
-// names the summary key that carries it, or `null` for "nothing serves this yet". R5 lands
-// as a string in that table. There is no machinery to delete because none was built.
-//
-// ============================================================================
-// ABSENCE IS ABSENCE
-// ============================================================================
-//
-// Every presence test here is `hasReading` — a finite number — never truthiness. The two
-// defects that rule exists for are both in the old Out column: a `0.0` that came from a
-// scale-less shot's total passed a truthiness guard and printed as a measurement, and the
-// absent value printed as the string `'0.0'` where the module's own docblock promised a
-// dash. Zero is a reading and prints as one; absent is absent and prints as the dash.
-//
-// The dash STRING is the caller's, defaulting to nothing: this module is i18n-free by
-// construction (D2), and the one mark on the page belongs to `units.js` `NO_READING_MARK`
-// and `ui-data-grid`'s `DEFAULT_DATA_GRID_DASH`, which are the same character. A profile
-// with no title reads `null` here and is named by whichever component renders it, in that
-// component's translated words.
+
 
 import { hasReading } from '../data/reading.js';
 import { readStoredShot, shotDose } from '../data/rea-shot-record.js';
@@ -206,9 +148,6 @@ export function summaryScalars(shot, { keys = SUMMARY_SCALAR_KEYS } = {}) {
     const scalars = { ...emptyScalars() };
     for (const [scalar, key] of Object.entries(keys)) {
         if (key === null || scalar === 'dose') continue;
-        // The shape is the derivation's twelve keys and a substituted table cannot widen
-        // it: a name that is not a scalar is a table typo, and a thirteenth key would be
-        // a column nothing paints.
         if (!Object.hasOwn(scalars, scalar)) continue;
         scalars[scalar] = readAnnotation(shot, key);
     }

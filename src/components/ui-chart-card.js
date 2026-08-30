@@ -448,8 +448,6 @@ export class UiChartCard extends PlotSurfaceElement {
         if (!this.#resizeObserver) {
             this.#resizeObserver = new ResizeObserver(() => this.#resized());
         }
-        // Both targets, and `observe` is idempotent per target. The HOST is what a screen
-        // sizes; the PLOT BOX is what the legend row moves (bug chart-C10's second half).
         this.#resizeObserver.observe(this);
         const host = this.plotHost;
         if (host) this.#resizeObserver.observe(host);
@@ -460,8 +458,6 @@ export class UiChartCard extends PlotSurfaceElement {
         const handle = this.plotHandle;
         const host = this.plotHost;
         if (!handle || !host) return;
-        // `resize` compares before it calls setSize, so an observation that changes
-        // nothing costs nothing — and cannot feed itself a new observation.
         handle.resize(host);
         this.#placeCursor();
         this.requestDraw();
@@ -479,8 +475,6 @@ export class UiChartCard extends PlotSurfaceElement {
         const well = this.renderRoot?.querySelector('.well');
         if (!well) return;
         this.#pointerBound = true;
-        // Pointer events unify mouse and touch, so the tablet's finger and the desk's
-        // mouse take one path with one set of maths (Part 8 §3's touch clause).
         well.addEventListener('pointermove', (event) => {
             if (this.activate) return;
             this.#readCursor(event);

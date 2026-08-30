@@ -1,22 +1,4 @@
-// The temperature CONVERSION — pure policy, no store, no DOM, no ambient state.
-//
-// WHY IT IS IN `lib/` AND THE STORE IS NOT. `live-targets.js` is a lib and its own suite
-// forbids it to import from `src/stores/` — "no endpoint, no store, no adapter and no
-// machine name" — which is the right rule and which this file was on the wrong side of.
-// The Live rail needs the CONVERSION; it has no business with the PREFERENCE, which is a
-// stored thing with a load, a write and a failure mode. So the two are split at exactly
-// that line: the arithmetic and the policy live here, and `stores/units.js` owns the key.
-//
-// It re-exports every name below, so nothing that already imported from there had to move.
-//
-// The four policies are unchanged in spirit and pure — the unit is an ARGUMENT, never read
-// from ambient state:
-//
-//   1. Convert at the input edge. Every writer sends Celsius.
-//   2. A step delta has no offset. (Qualified: see `displayRange`, which steps by the
-//      MACHINE's step so the hole-aware `step()` in `machine-limits.js` still governs.)
-//   3. Round BOUNDS to whole display units.
-//   4. One absent mark — the em dash, and never a zero.
+
 
 import { hasReading } from '../data/reading.js';
 import { bandHint } from './machine-limits.js';

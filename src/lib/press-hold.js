@@ -1,5 +1,5 @@
 /**
- * Slate's press-and-hold gesture, as a rule and a binder.
+ * A press-and-hold gesture, bound once to a root: it reports the element under the pointer at press time, not at release.
  */
 
 export const HOLD_MS = 600;

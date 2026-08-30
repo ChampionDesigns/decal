@@ -97,9 +97,6 @@ export function createThemeController({ root, storage = null, media = null, logg
                 try {
                     stored = normaliseTheme(await storage.get(THEME_KEY));
                 } catch (error) {
-                    // The router already swallows backend failures; this catches a
-                    // router that is missing its layer, which is a wiring mistake and
-                    // must not take the app down over a colour.
                     warn(`theme: could not read the stored choice — ${error && error.message}`);
                 }
             }

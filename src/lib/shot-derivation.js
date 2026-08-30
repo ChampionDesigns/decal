@@ -1,106 +1,6 @@
-// GATE 6 — ONE SHOT DERIVATION.
-//
-// A single parse of the measurements array, serving the live chart, the Live foot band and
-// the post-shot summary alike. It replaces THREE independent walks over the same array
-// (`chart.js:2308`, `shot-series.js:93`, `shotData.js scanShotRecord`) and, with them, the
-// single worst coupling in the old tree: the chart parsing numbers back out of another
-// module's rendered `textContent` (`chart.js:1664-1678`). That is chart-C13 — the chart never
-// reads another component's rendered DOM — and this module is the thing that makes it true,
-// because a chart fed from the model has no reason to scrape one.
-//
-// THE SAME WALK READS A LIVE SHOT AND A RECORDED ONE. The shot-so-far buffer accumulates
-// samples in ReaPrime's own persisted shape (`{machine, scale, volume?, sensors?}`), so
-// `deriveFromBuffer` and `deriveFromRecord` differ only in where the samples come from and
-// share every line of derivation. `test/shot-derivation.test.mjs` proves it — "THE ONE
-// DERIVATION: the buffer path and the record path agree" — by feeding one set of samples
-// through both and asserting the derived parts equal: the axis and its origin rule, every
-// channel's x AND y, the scalars, the phases and the step marks. Two things are deliberately
-// outside that equality and each has its own test beside it — `sourcesHeldBy`, because a
-// buffer HOLDS the B6 decision and a record has no live selector to hold one, and `volume`,
-// which the recorder persists and the snapshot socket does not carry, so the equality is fed
-// the live-shaped samples both paths can hold. If any of the derivation itself ever diverges,
-// that assertion is what says so.
-//
-// AND IT IS RUN OVER RECORDED SHOTS, NOT ONLY BUILT ONES. The suite's second arm walks the
-// three real bodies in `tools/rea-fixtures/api__v1__shots__*.json` — 266, 426 and 231 rows off
-// the bench, contract-checked by `tools/check_mock_contract.py` — because a hand-built sample
-// can only contain what its author already believed. Those recordings predate `633f6f68` and
-// carry `machine.weight` at 1033.9 g and `machine.weightFlow` on every row: a derivation that
-// took the deleted machine gravimetric branch would report a 1,033 g yield off a real file, and
-// the fixture arm is what asserts it reports nothing at all. That is the A7 rule proved by
-// behaviour rather than by reading this file's imports.
-//
-// ── WHAT IT PRODUCES ─────────────────────────────────────────────────────────────────────
-//   * `series`   — every plottable channel, on a shared time axis (`axis.t`).
-//   * `phases`   — the foot band's phase table: preinfusion / extraction / total, as NUMBERS.
-//   * `scalars`  — the per-shot scalars (B5), computed in the skin for v1 because ReaPrime
-//                  serves none of them; R5 is the upstream ask that would let this read a
-//                  field instead. Nothing working is displaced: the old metrics block renders
-//                  blank on screen and its unit test hides that.
-//   * `stepMarks`— the profile-frame boundaries, for the phase marks on the time charts.
-//
-// ── THE RULES CARRIED FORWARD, EACH FOR A NAMED REASON ───────────────────────────────────
-//
-//  1. THE VERTICAL-STEP ANCHOR. At a profile-frame boundary the OUTGOING target is repeated
-//     at the boundary's x before the incoming one is written, so a pump-mode swap renders as
-//     a vertical step rather than a diagonal ramp between two setpoints the machine never
-//     passed through. The two target channels are therefore the only ones with their own x.
-//
-//  2. X ADVANCES WHILE Y MAY BE NULL. Every measured channel gets one y per in-shot sample,
-//     aligned to `axis.t`; an absence is `null`, which is uPlot's gap. A gated stretch renders
-//     as a HOLE, not as a line drawn through it and not as a run of zeroes. `toPlot` is the
-//     one sanctioned absence-to-null conversion and it is the only one used here.
-//
-//  3. A REPORTED 0 °C TARGET IS REFUSED. Zero means "no target", not a setpoint of freezing;
-//     recorded, it drags the temperature band down by ninety degrees and squashes every real
-//     line into the top inch. Refusing it yields a gap — it does not substitute a value.
-//
-//  4. NEAREST, NOT FLOOR. `indexAtTime`'s binary search returns the closer of the two
-//     bracketing samples: a correspondence marker half a sample early reads as a
-//     misalignment, which is the exact thing the alignment control exists to show.
-//
-// ── AND THE FALLBACKS THAT DO NOT COME WITH THEM (A7) ────────────────────────────────────
-//
-//   * NO `?? computeW(pressure, flow)`. Hydraulic power is read through the B6 source choice
-//     and is absent when neither side reports it. The skin consumes these channels; it does
-//     not compute them (SCOPE Part 3, the derived/puck-channels row).
-//   * NO LOCAL SMOOTHING. The old builder ran a tau-0.5 s EMA over the estimator's R and Z.
-//     ReaPrime does no smoothing of any machine channel and the firmware's r1/r2 are already
-//     a fit; a second filter in the skin is a second thing to drift, and it makes a
-//     server-side value and a locally-massaged one indistinguishable on screen.
-//   * NO MACHINE-VS-SCALE GRAVIMETRIC BRANCH. `633f6f68` deleted `machine.weightFlow`; there
-//     is one gravimetric source for every machine and it is the scale's. The old
-//     `useMachineGFlow` branch, its delta-plus-EMA scale-flow resolver and the SECOND loop
-//     over the measurements array all go with it.
-//   * VOLUME IS THE SERVER'S WHERE THE SERVER SENDS ONE, AND INTEGRATED WHERE IT DOES NOT.
-//     This used to say "no local volume integration" and refuse the second half, on the
-//     grounds that a locally integrated volume would look like the server's and disagree
-//     with it. MEASURED, THE PREMISE IS WRONG IN BOTH DIRECTIONS. ReaPrime persists
-//     `volume` per stored measurement and its live `MachineSnapshot` carries no such field
-//     at all, so the refusal did not produce a cautious number — it produced NO VOLUME
-//     COLUMN ON A LIVE SHOT, ever, which is the reported bug. And the two numbers do not
-//     disagree: on the recorded shot the server's own last volume is 79.07 mL and the
-//     integral of the same recording's flow is 79.9 mL, which is one part in a hundred and
-//     invisible at the zero decimals the column shows. The old app integrates
-//     unconditionally, live and stored alike (`shotData.js:376-382,:305-311`), which is
-//     also why its live and history figures agree with each other.
-//     SERVED WINS, so a stored shot still reads what ReaPrime counted from the profile's
-//     own `target_volume_count_start`; the integral only fills a sample that carries none.
-//     `availability.volume` goes on reporting whether the SERVER sent one, so a reader can
-//     still tell the two apart.
-//   * NO DOSE FROM `profile.dose_weight`. That field does not exist; see `rea-shot-record.js`.
-//
-// ── ADDRESSING ───────────────────────────────────────────────────────────────────────────
-// There is not one ReaPrime key string in this file. Frames are read through
-// `rea-address.js`, the record shell through `rea-shot-record.js`, the three duplicated
-// quantities through `shot-source-selector.js` (B6: chosen at shot start, held for the shot),
-// and t=0 through `time-axis.js` (B4: the skin plots what ReaPrime stamps). Every one of the
-// old builder's reads was mis-addressed — `hydraulicPower`, the fused pair, the machine
-// gravimetric branch, the detector fold — and going through the layer is what stops that
-// class of defect recurring silently.
-//
-// DOM-free, module-state-free, and it returns rather than assigns: the History viewer draws
-// TWO shots at once and neither of them is the live one.
+/**
+ * The per-shot derivation: phases, totals and the four scalars the Live band shows, computed from a shot's samples.
+ */
 
 import {
     readStoredMeasurement,
@@ -335,9 +235,6 @@ export function createShotDerivationVisitor({ record = null } = {}) {
     return {
         start(context) {
             ctx = context;
-            // B6: the buffer's held decision wins where there is one. The derivation makes the
-            // decision itself ONLY when nothing else did — a recorded shot has no selector —
-            // and it uses the same `chooseSource`, held once, so there are not two rules.
             if (context && context.sources) {
                 held = { ...noSources(), ...context.sources };
                 heldBy = 'buffer';
@@ -402,9 +299,6 @@ export function createShotDerivationVisitor({ record = null } = {}) {
 
             for (let i = 0; i < stepped.length; i += 1) {
                 const slot = stepped[i];
-                // Rule 1: repeat the OUTGOING target at the boundary's x, then write the
-                // incoming one at the same x. Guarded per channel — the old builder gated both
-                // on the pressure target alone, so a flow-only step never stepped.
                 if (atBoundary && slot.last !== null) {
                     slot.out.x.push(seconds);
                     slot.out.y.push(slot.last);
@@ -467,10 +361,6 @@ export function createShotDerivationVisitor({ record = null } = {}) {
             const pressureY = series.pressure.y;
             const tempY = series.groupTemp.y;
 
-            // The preinfusion / extraction split. `piEnd` is the sample BEFORE the first
-            // pouring tick, so preinfusion metrics do not include it.
-            //   * no pouring sample at all  -> the whole shot is preinfusion (an aborted pour).
-            //   * pouring from sample zero  -> there was no preinfusion; extraction is the shot.
             const piEnd = firstPourIndex === -1 ? last : firstPourIndex - 1;
             const exStart = firstPourIndex === -1 ? -1 : firstPourIndex;
 
@@ -504,8 +394,6 @@ export function createShotDerivationVisitor({ record = null } = {}) {
             const totalVolume = cumulativeAt(volumeY, last);
             const piVolume = piRow ? piRow.volume : null;
 
-            // The settled-final-weight rule: attribute drip-down after pump stop to extraction,
-            // so preinfusion + extraction == total exactly.
             const piWeight = piRow ? piRow.weight : null;
 
             const peakFromLow = (ys, endIndex) => {
@@ -633,8 +521,6 @@ export function createShotDerivationVisitor({ record = null } = {}) {
                     timeToFirstDrop: firstDrop,
                     // Bounded to the part of the shot that was actually pouring.
                     averageFlow: meanOver(flowY, 0, last, (y, i) => afterFirstDrop(y, i) && y >= POURING_ML_S),
-                    // Peak flow AFTER first drop: the raw peak is usually the pump filling an
-                    // empty puck, which says nothing about the extraction.
                     peakFlowAfterFirstDrop: maxOver(flowY, 0, last, afterFirstDrop),
                     peakPressure: maxOver(pressureY, 0, last),
                     averagePressure: meanOver(pressureY, 0, last, afterFirstDrop),
@@ -686,8 +572,6 @@ export function deriveFromRecord(record, { visitors = [] } = {}) {
         phase: null,
         open: false,
         joinedLate: false,
-        // A recorded shot has no live selector; the derivation makes the B6 choice from the
-        // shot's own first evidence and holds it, which is the same rule the buffer applies.
         sources: null,
         sampleCount: samples.length,
         originMs: origin.originMs,

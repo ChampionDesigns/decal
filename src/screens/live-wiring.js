@@ -184,11 +184,6 @@ export class LiveWiring {
         const boot = this.host.boot ?? null;
         if (boot !== this.boot) this.#attach(boot);
 
-        // NO BOOT, NO OPINION. With no shell attached this controller has no stores to
-        // answer from, and writing `false`/`null` anyway would make it a SECOND owner of
-        // two properties it cannot answer — which is L11's shape, in the file that exists
-        // to kill L11. It also keeps the skeleton's own suite meaningful: that suite
-        // mounts `<live-screen>` bare and sets `ghc` by hand to measure the strip's row.
         if (!this.boot) return;
 
         this.host.ghc = this.ghcGate().render;
@@ -638,9 +633,6 @@ export class LiveWiring {
         const deviceId = event?.detail?.deviceId;
         const devices = this.boot?.devices;
         if (!deviceId || !devices || typeof devices.connect !== 'function') return;
-        // Fire and forget at THIS layer: the outcome arrives as the next state frame on
-        // the same socket, which is what the surface renders from. Awaiting it here would
-        // add a second source of truth for a state the feed already publishes.
         Promise.resolve(devices.connect(deviceId)).catch(() => {});
     };
 

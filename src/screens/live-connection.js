@@ -154,8 +154,6 @@ export class LiveConnection extends UiElement {
         const next = this.state;
         this.surface = next.id;
 
-        // AUTO-OPEN ON THE TRANSITION, not on the state. A park the user dismissed stays
-        // dismissed until the park itself changes; a new park opens the dialog again.
         if (next.actionable) {
             if (this.#autoOpenedFor !== next.id) {
                 this.#autoOpenedFor = next.id;
@@ -173,8 +171,6 @@ export class LiveConnection extends UiElement {
         if (state.quiet) return nothing;
 
         const words = WORDS[state.id];
-        // The server's own sentence, `ConnectionError`'s `message` and `suggestion` joined,
-        // written by the side that knows what failed. Never translated and never rewritten.
         const serverLine = state.error && typeof state.error === 'object'
             ? [state.error.message, state.error.suggestion].filter((s) => typeof s === 'string' && s).join(' ')
             : '';

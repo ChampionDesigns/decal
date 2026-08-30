@@ -1,35 +1,4 @@
-// A FEED STORE — one socket feed, held as last-known value plus staleness.
-//
-// SCOPE Part 3 §4: "One store per feed — machine snapshot, scale, shot state, connection
-// (the FULL B8 state), display, update, sensors — each holding the last frame, replaying
-// it to late subscribers … and exposing subscription to Lit components."
-//
-// And the rule that shapes every field below:
-//
-//     "Machine truth is never owned by the skin. The store's job is LAST-KNOWN VALUE PLUS
-//      STALENESS, never a second source of truth."
-//
-// So this module holds four facts and derives nothing else: what the server last said,
-// when it said it, whether the source is still there, and whether what we hold is old
-// enough that a screen should say so. It does not average, smooth, interpolate, re-derive
-// or substitute. A7: there is no fallback path here, and that is not an omission — a
-// locally-recomputed value behind a dead source is the whole defect class this wave exists
-// to kill, and it is exactly what the old skin did with gravimetric flow.
-//
-// THE DELETION RULE, stated because it is the one that is easy to get backwards: a source
-// that closes does NOT clear the value. Clearing would make a screen paint zeros or
-// blanks, which reads as "the machine says zero" — a fresh-looking lie. The value stays,
-// marked stale, and the screen decides how to show age. The layer BELOW does the opposite
-// on purpose: `rea-fanout.js` drops its replay value on close, because replaying a frame
-// from a socket that is gone would hand a NEW subscriber a stale value with no marker at
-// all. Two different jobs: the fan-out replays only what is current; the store remembers
-// with a date on it.
-//
-// TIME IS INJECTED AND NOTHING TICKS. There is no `setInterval` in this file. Staleness is
-// classified when a frame arrives and re-classified when someone calls `refreshStaleness`
-// — the render loop, a `requestAnimationFrame`, a test. A store that started its own timer
-// at construction is `estimator-link.js:120-121`, which polled forever whether anything
-// wanted an answer or not (CARRY_FORWARD.md §6 pattern A).
+
 
 import { createStore, UNCHANGED } from './store.js';
 
@@ -174,8 +143,6 @@ export function createFeedStore({
                         note('info', 'source reported unavailable');
                         break;
                     case 'error':
-                        // `{"error":"not found"}` and friends. Kept as a fact to render,
-                        // never folded into the value.
                         next.error = typeof signal.error === 'string' ? signal.error : String(signal.error ?? 'error');
                         if (state.receivedAt !== null) {
                             next.status = FEED_STATUS.STALE;
@@ -183,22 +150,13 @@ export function createFeedStore({
                         }
                         break;
                     case 'status':
-                        // The scale's connection envelope: the ONLY notice that the scale
-                        // left, because "no further frames" is indistinguishable from a
-                        // scale that is simply not changing.
                         next.deviceStatus = typeof signal.status === 'string' ? signal.status : null;
                         if (next.deviceStatus === 'disconnected' && state.receivedAt !== null) {
                             next.status = FEED_STATUS.STALE;
-                            // The scale socket stays OPEN across a scale disconnect — the
-                            // channel table says so and websocket_v1.yml tells clients not to
-                            // reconnect — so `sourceOpen` is still true and truthfully so.
-                            // The latch is what stops that truth reviving a dead reading.
                             next.staleLatched = true;
                         }
                         break;
                     default:
-                        // transportError, commandResult, malformed: recorded as the last
-                        // signal and nothing more. A malformed frame is NOT a value.
                         break;
                 }
                 return Object.freeze(next);
@@ -208,8 +166,6 @@ export function createFeedStore({
         refreshStaleness(now = clock()) {
             return store.update((state) => {
                 if (state.status === FEED_STATUS.UNAVAILABLE || state.receivedAt === null) return UNCHANGED;
-                // A source that told us it went stays stale however new the value. Age can
-                // only make a reading older; it can never make a departed source present.
                 const status = state.staleLatched ? FEED_STATUS.STALE : classify(state.receivedAt, now);
                 if (status === state.status) return UNCHANGED;
                 return Object.freeze({ ...state, status });

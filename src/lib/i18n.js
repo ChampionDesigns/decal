@@ -35,11 +35,7 @@ export class Translations {
     if (direct !== undefined && direct !== '') return interpolate(direct, params);
     const canonical = this.#index.get(String(key).toLowerCase());
     const hit = canonical === undefined ? undefined : this.#strings.get(canonical);
-    // A hit that differs only in case is the source language answering itself:
-    // return the CALLER's casing ("OFF" stays "OFF"), never the table's.
     if (hit && hit.toLowerCase() !== String(key).toLowerCase()) return interpolate(hit, params);
-    // Key-as-fallback. Keys are English text, so an untranslated string renders in
-    // English — never blank, never a bare identifier.
     return interpolate(key, params);
   };
 
@@ -107,8 +103,6 @@ export async function initI18n({
   try {
     strings = await loadLanguage(language, io);
   } catch (error) {
-    // A missing or unreachable file degrades to untranslated English (the keys),
-    // never to an empty UI — the failure mode the fallback rule exists to prevent.
     strings = {};
     globalThis.console?.warn?.(`i18n: falling back to keys — ${error.message}`);
   }

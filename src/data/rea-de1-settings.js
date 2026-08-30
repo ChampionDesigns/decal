@@ -1,58 +1,6 @@
-// The two DE1 settings reads — the only two cached routes in Decal.
-//
-// This is where `DE1_CACHE_SPECS` becomes behaviour: read through a TTL cache, write
-// straight through and invalidate BOTH caches on any successful write of any of the THREE
-// routes that change what they hold — see `DE1_SETTINGS_INVALIDATING_WRITES`, whose third
-// row is `PUT /api/v1/workflow` and is the one an earlier reading of this file missed.
-//
-// WHY BOTH ON EITHER WRITE. The old module's `invalidateDe1Caches` cleared both, and it
-// was right to: the two routes are two views of one device. `POST /machine/settings` runs
-// `updateMachineSettings`, `POST /machine/settings/advanced` runs six `setHeater*` writes,
-// and the machine — not the skin — decides what else moves as a consequence. Guessing
-// that a heater-voltage write cannot change a flush temperature is the kind of assumption
-// that costs a stale screen and buys one avoided round trip. Both, always.
-//
-// THE BUG THE INVALIDATION EXISTS FOR, in the old module's own words: "Without it,
-// Reset-to-defaults repainted the PRE-reset values under a toast that said it had
-// worked." Reset-to-default is now HERE (`resetSettings`, 24 Aug 2026) and it is the
-// caller `invalidate()` was left public for — "so that whoever builds it later has the
-// correct hook and does not invent a second one".
-//
-// WHY THE F3/Q1 EXCLUSION NO LONGER HOLDS, stated rather than quietly dropped. That rule
-// said "no work of any kind on reset-to-default", and it was written when the values a
-// reset moves were mostly invisible in this skin. Read at the pin,
-// `De1Controller.applySettingsDefaults` (`de1_controller.defaults.dart:110-122`) writes
-// SEVEN values and nothing else:
-//
-//   fanThreshold 55 · heaterIdleTemp 95 · heaterPh1Flow 2.0 · heaterPh2Flow 4.0
-//   heaterPh2Timeout 4.0 · refillKitSetting auto · flowEstimation 1.0 · steamPurgeMode 0
-//
-// Every one of those is a CONTROL on a page in this skin as of 24 August, and none of
-// them is a profile, a calibration latch or anything a user cannot simply set again. It
-// is not a factory reset of the machine; it is a reset of exactly the pages this pass
-// built, and it is recoverable by hand from those same pages.
-//
-// AND WHAT IS NOT PORTED: the old `getDe1Settings` answered a failed request with EXPIRED
-// cached data. A7 — that path does not exist here. A failed read returns the failure.
-//
-// CONTRACT, read at ReaPrime 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3
-// (`lib/src/services/webserver/de1handler.dart`, `De1Handler.addRoutes`):
-//
-//   GET  /api/v1/machine/settings           -> 200 {fan:int, usb:bool, flushTemp:double,
-//                                              flushTimeout:double, flushFlow:double,
-//                                              hotWaterFlow:double, steamFlow:double,
-//                                              tankTemp:int, steamPurgeMode:int}
-//   POST /api/v1/machine/settings           -> 202, no body. Any subset of the same keys.
-//   GET  /api/v1/machine/settings/advanced  -> 200 {heaterPh1Flow, heaterPh2Flow,
-//                                              heaterIdleTemp, heaterPh2Timeout,
-//                                              heaterVoltage:int, refillKitSetting:int}
-//   POST /api/v1/machine/settings/advanced  -> 202, no body. Any subset.
-//
-// ONE ASYMMETRY WORTH THE WORDS, because a schema-generated client gets it wrong: `usb`
-// READS as a bool (`Future<bool> getUsbChargerMode()`, `de1_interface.dart`) and WRITES
-// as the string 'enable' — the handler's test is `json['usb'] == 'enable'`, so any other
-// string, and `true` itself, mean disable. `writeSettings` below encodes it; nothing
-// above this module should ever spell 'enable'.
+/**
+ * The two DE1 settings reads — the only two cached routes in Decal.
+ */
 
 import { DE1_CACHE_SPECS, createTtlCache } from './rea-cache.js';
 
@@ -131,17 +79,12 @@ export function createDe1SettingsClient(transport, { now = Date.now } = {}) {
         for (const cache of Object.values(caches)) cache.invalidate();
     };
 
-    // Subscribed, not called from `write()` below, because the third invalidating route is
-    // not this module's to call: whoever builds the workflow screen writes PUT /workflow
-    // through the same transport and must not have to remember these caches exist.
     const unsubscribeWrites = transport && typeof transport.onWrite === 'function'
         ? transport.onWrite(({ method, path }) => {
             if (writeInvalidatesDe1Settings(method, path)) invalidate();
         })
         : null;
     if (unsubscribeWrites === null) {
-        // Not a soft degrade: without the announcement a workflow write leaves these caches
-        // stale for a minute and nothing says so. Refuse at construction instead.
         throw new Error(
             'createDe1SettingsClient: the transport must expose onWrite (see createReaTransport) — '
             + 'it is what invalidates these caches when PUT /workflow writes five of the nine '
@@ -154,9 +97,6 @@ export function createDe1SettingsClient(transport, { now = Date.now } = {}) {
         const hit = cache.read();
         // Fresh only. `fresh: false` never carries a value — see rea-cache.js.
         if (hit.fresh) {
-            // `fromCache` rather than `notModified`: 304 is a statement the SERVER made,
-            // and conflating the two would let a screen report "checked, unchanged" for a
-            // read that never left the tablet.
             return Object.freeze({
                 ok: true,
                 status: 200,
@@ -177,9 +117,6 @@ export function createDe1SettingsClient(transport, { now = Date.now } = {}) {
     async function write(path, body, keys) {
         const payload = pick(body, keys);
         const result = await transport.post(path, payload);
-        // Write-through: only a SUCCESSFUL write invalidates. A rejected write changed
-        // nothing on the machine, so dropping the cache would spend fifteen device reads
-        // to re-learn what we already know.
         if (result.ok) invalidate();
         return result;
     }

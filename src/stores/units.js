@@ -1,34 +1,6 @@
-// The temperature-unit PREFERENCE — one store, one home, no ambient singleton.
-//
-// THE CONVERSION MOVED TO `lib/temperature.js` on 26 August 2026, and the split is a layer
-// boundary rather than a tidy-up: `live-targets.js` is a lib whose own suite forbids it to
-// import from `src/stores/`, and the Live rail needs the arithmetic. What is left here is
-// the part that is genuinely a store — a key, a load, a write and a failure mode.
-//
-// EVERY NAME IS STILL EXPORTED FROM HERE, so no existing caller had to move.
-//
-// TWO DEFECTS THIS FILE IS SHAPED AGAINST, both verified in the module it replaces:
-//
-//  1. THE DUAL-WRITE SILENT REVERT. `setTempUnit` wrote localStorage AND the IDB settings
-//     store with a swallowed `.catch(() => {})`, and `initUnits` read IDB FIRST, then wrote
-//     the IDB answer back over localStorage. A rejected put therefore lost the preference
-//     with no error anywhere, and then overwrote the good copy on next boot. B7 kills the
-//     mechanism rather than the symptom: there is exactly ONE home for this key, chosen by
-//     the routing table (`storage-routes.js` row `tempUnit`, layer `kv`), and this module
-//     never names a backend. `set()` below writes once, reports the outcome, and — the part
-//     that matters — does NOT change the in-memory value when the write failed.
-//
-//  2. THE MODULE SINGLETON + DOCUMENT EVENT BUS. `let currentTempUnit` was shared by
-//     ES-module semantics, and changes were announced with a `document.dispatchEvent(...)`
-//     — which does not cross a shadow boundary, and is named for a different skin. Here the
-//     unit is a reactive value: subscribe, get the last frame immediately, unsubscribe when
-//     the component detaches.
-//
-// A7: there is no second source for this preference. A failed read yields the DEFAULT and
-// says so in the returned `source` field — it never falls through to another store, and it
-// never writes on boot (a boot-time write is what let the bad copy win).
-//
-// DOM-free: no `document`, no `localStorage`, no `window`. The storage router is injected.
+/**
+ * The temperature-unit PREFERENCE — one store, one home, no ambient singleton.
+ */
 
 import { createStore } from './store.js';
 
@@ -43,8 +15,6 @@ const NOOP_LOGGER = Object.freeze({ debug() {}, info() {}, warn() {}, error() {}
 
 export function createUnitsStore({ storage, logger = NOOP_LOGGER, key = TEMP_UNIT_KEY, initial = DEFAULT_TEMP_UNIT } = {}) {
     if (!storage || typeof storage.get !== 'function' || typeof storage.set !== 'function') {
-        // Fatal, not defaulted. A store that quietly persists nowhere is the failure this
-        // module exists to remove, and it must not be reachable by forgetting an argument.
         throw new Error('createUnitsStore: the storage router must be injected (see src/lib/storage-router.js)');
     }
     const log = logger.scope ? logger.scope('units') : logger;

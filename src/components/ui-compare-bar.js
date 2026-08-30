@@ -42,9 +42,6 @@ class UiCompareBar extends UiElement {
     };
 
     static styles = [
-        // Structural fragment FIRST (CONVENTIONS §4 usage rule 1). No selectionSurface:
-        // this component has a value and an enablement, never a selected state, so
-        // Appendix 15's aria-state contract has nothing to bind to here.
         typeRoles,
         css`
             :host {

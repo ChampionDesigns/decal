@@ -299,8 +299,6 @@ export function createAppBoot({
         machineInfo.forget();
         workflow.forget();
         cupWarmer.invalidate();
-        // Nothing to ask. Both stores now answer `unknown`, which is the honest state and
-        // the fail-closed one — never the departed machine's answer.
         if (id === null) return;
         askCapabilities();
         /* The rail's targets belong to the machine that is here now. A swap re-reads them

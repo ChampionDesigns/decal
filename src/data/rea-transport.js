@@ -1,41 +1,4 @@
-// THE TRANSPORT CORE — one client, injected, DOM-free, UI-free.
-//
-// SCOPE Part 3 §1 "The API client" / Part 6 gate 3. This is the skeleton the generated
-// client and the socket connectors are built on; it owns four things and nothing else:
-// where the server is, how a request is spelled, what a failure looks like, and when a
-// GET may be conditional. Route knowledge lives above it. Frame knowledge lives beside it
-// in rea-address.js. Painting lives nowhere near it.
-//
-// THREE DEFECTS IT IS SHAPED AGAINST, all verified at source in the old module:
-//
-//  1. THE CYCLE. `api.js:1` is `import * as ui from './ui.js'` and `ui.js:1` imports
-//     twenty names back. The transport painted the machine-status label itself
-//     (`api.js:273,:320,:330`) and raised toasts from inside upload failures. A transport
-//     that can reach a screen grows a screen dependency, and then cannot be tested,
-//     replaced or reasoned about. THIS MODULE IMPORTS NOTHING FROM src/components,
-//     src/screens OR src/stores, and never will — test/rea-transport.test.mjs asserts it
-//     over the source text of the whole src/data directory.
-//
-//  2. THE FROZEN BASE URL. `api.js:10-12` computed `API_BASE_URL` from
-//     `localStorage.getItem('reaHostname')` and `window.location.hostname` AT IMPORT
-//     TIME, into a module constant with no injection path. That is why the old API layer
-//     needed an ESM loader hook to be testable at all. Here the base URL is a constructor
-//     argument, the constructor throws without it, and `reaBaseUrl()` below is a pure
-//     function over values the caller read — it does not read them itself. There is no
-//     `window` and no `localStorage` in this file.
-//
-//  3. THE MANUFACTURED ANSWER. Five catch blocks in the old module turned a transport
-//     failure into a plausible value (rea-errors.js lists them). A7: NEVER PORT A
-//     FALLBACK PATH. There is no retry, no stale-cache-on-error, no `?? null`, no
-//     `catch { return {} }`. A failure is returned as a failure and the caller decides.
-//     A stale answer nobody asked for is exactly the defect class this wave exists to
-//     kill.
-//
-// Contract discipline: every route this file itself addresses is declared in the wave's
-// contract table, checked against the ReaPrime handler AS WRITTEN at
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3. This module hard-codes no route at all — the
-// only paths it knows are the conditional-route registry's, and that registry is
-// re-derived from the handlers by test.
+
 
 import { REA_ERROR, reaFailure, reaSuccess } from './rea-errors.js';
 import { createEtagStore, isConditionalRoute } from './rea-conditional.js';
@@ -99,8 +62,6 @@ export function createReaTransport({
         throw new Error('createReaTransport: a fetch implementation must be injected');
     }
     if (typeof baseUrl !== 'string' || !baseUrl) {
-        // Deliberately fatal. The old module's silent default — window.location.hostname
-        // at import time — is how the client became untestable.
         throw new Error('createReaTransport: baseUrl must be injected (see reaBaseUrl)');
     }
     const base = baseUrl.replace(/\/+$/, '');
@@ -144,8 +105,6 @@ export function createReaTransport({
 
         const sendsJson = body !== undefined && raw === undefined;
         const requestHeaders = { ...(sendsJson ? JSON_HEADERS : null), ...(headers || {}) };
-        // Never '*': the server matches '*' unconditionally and would report "unchanged"
-        // against a body we do not hold (json_response.dart).
         if (stored) requestHeaders['If-None-Match'] = stored.etag;
 
         const controller = new AbortController();
@@ -157,13 +116,6 @@ export function createReaTransport({
             else signal.addEventListener('abort', onOuterAbort, { once: true });
         }
 
-        // THE DEADLINE COVERS THE BODY, NOT JUST THE HEADERS. `fetch` resolves as soon as
-        // the response head arrives; the body is streamed afterwards. Disarming the timer in
-        // a `finally` on the fetch — which is what this did — left `await readBody(response)`
-        // running under no deadline at all, with the AbortController out of scope: a server
-        // that stalled after its headers hung the caller for ever despite `timeoutMs`. The
-        // read that matters most is the one this wave singles out, GET /shots/<id> at ~221 KB
-        // on tablet WiFi. So `disarm()` is called once, AFTER the body, on every path.
         let disarmed = false;
         const disarm = () => {
             if (disarmed) return;
@@ -179,10 +131,6 @@ export function createReaTransport({
                 headers: requestHeaders,
                 body: raw !== undefined ? raw : (body === undefined ? undefined : JSON.stringify(body)),
                 signal: controller.signal,
-                // Manual revalidation only works if our own If-None-Match reaches the
-                // wire and the 304 reaches us, rather than the browser HTTP cache
-                // answering from its own copy. BENCH ITEM: confirmed by reading the fetch
-                // spec, not yet observed on the tablet's WebView.
                 ...(wantsConditional ? { cache: 'no-store' } : null),
             });
         } catch (cause) {
@@ -200,10 +148,6 @@ export function createReaTransport({
             if (stored) {
                 return reaSuccess({ status: 304, data: stored.data, etag: stored.etag, notModified: true, method, url: target });
             }
-            // Cannot happen while we only send If-None-Match from a stored etag. If it
-            // does, something cleared the store mid-flight and the server has told us
-            // nothing. It is an error, not a silent refetch: a silent refetch here is a
-            // fallback path, and a fallback path is what hides the defect.
             return reaFailure(REA_ERROR.CONDITIONAL, {
                 status: 304,
                 message: '304 with no stored body for this URL',
@@ -235,13 +179,6 @@ export function createReaTransport({
         disarm();
 
         if (!read.ok) {
-            // A BODY THAT COULD NOT BE READ IS NOT AN EMPTY BODY. The old spelling here was
-            // `catch { return '' }`, which turned a socket that hung up mid-body into
-            // `{ok: true, status: 200, data: null}` — a manufactured answer, indistinguishable
-            // at the call site from the bodyless 202 the write routes really do return. It is
-            // reported as the transport failure it is, on a 2xx and on a 4xx/5xx alike: on a
-            // failed status the `problem` body is precisely what we do NOT have, and inventing
-            // a null one would lose the fact that the refusal's reason went unread.
             return reaFailure(timedOut ? REA_ERROR.TIMEOUT : REA_ERROR.NETWORK, {
                 status: response.status,
                 message: timedOut
@@ -285,10 +222,6 @@ export function createReaTransport({
         const etag = headerOf(response, 'etag');
         if (wantsConditional && etag) etagStore.set(cacheKey, etag, data);
 
-        // A write can change any list. Rather than guess which — guessing is how the old
-        // module ended up invalidating one cache in one code path and none anywhere else
-        // (E2 bug 4) — every successful write drops the whole revalidation store. It costs
-        // one full body on the next read of each list and cannot be wrong.
         if (method !== 'GET') {
             etagStore.clear();
             announceWrite({ method, path, status: response.status, target });

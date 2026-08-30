@@ -93,7 +93,6 @@ function machineIsUp(frame, status) {
 function errorIsAConnectionFailure(frame, status) {
     const error = status.error;
     if (!error) return false;
-    // 1. SCOPE. An adapter that is off is a scan problem, not a connection problem.
     if (errorScopeOf(error) === ERROR_SCOPE.SCAN) return false;
     // 2. SEVERITY. Upstream marks the ones it does not consider failures; believe it.
     if (error.severity === CONNECTION_ERROR_SEVERITY.WARNING) return false;
@@ -129,9 +128,6 @@ function noFrame(id, feedStatus) {
 
 export function connectionSurface(frame, { feedStatus = null } = {}) {
     if (!frame || typeof frame !== 'object') {
-        // THE THREE NULLS, kept apart. `never` is the boot state and is not a fault;
-        // `unavailable` is the source's own verdict; anything else with no value is a
-        // frame that arrived and could not be read.
         if (feedStatus === FEED_STATUS.UNAVAILABLE) {
             return noFrame(CONNECTION_SURFACE.UNAVAILABLE, feedStatus);
         }
@@ -142,16 +138,10 @@ export function connectionSurface(frame, { feedStatus = null } = {}) {
     }
 
     const status = frame.connectionStatus;
-    // `readDevicesFrame` returns null unless `connectionStatus` read cleanly, so this
-    // guard is unreachable through the address layer. It is here because the function
-    // takes a plain object and must not throw on one a test hands it by hand.
     if (!status || typeof status !== 'object') {
         return noFrame(CONNECTION_SURFACE.UNREADABLE, feedStatus);
     }
 
-    // THE STATUS FIRST. A frame that is still held says what the source LAST said, not that
-    // the source is there; `SOURCE_VERDICT` is the feed's own answer to that question and
-    // there is no arrangement of `connectionStatus` that can overrule it.
     const id = SOURCE_VERDICT[feedStatus] ?? surfaceId(frame, status);
     const choices = choicesFor(status, id);
 
@@ -179,18 +169,9 @@ function surfaceId(frame, status) {
     // 1. THE PARK WINS. See PRECEDENCE in the header for the argument and the reversal.
     if (status.awaitingChoice === true) {
         return AMBIGUITY_SURFACE[status.pendingAmbiguity]
-            // A park whose reason this build does not recognise is still a park: it is
-            // the SUPPRESSION that matters, and `ambiguityKnown: false` carries the rest.
             ?? CONNECTION_SURFACE.MACHINE_PICKER;
     }
-    // 2. A published error is "failed" — WHEN IT IS ONE — and is why a failure must not
-    //    look like "still trying". `status.error` alone is not that test: scope, severity
-    //    and a machine that is demonstrably up each demote it to a note under the state.
-    //    The whole argument, and Ben's frame, are in the header.
     if (errorIsAConnectionFailure(frame, status)) return CONNECTION_SURFACE.ERROR;
-    // 3. A phase this build has never heard of is shown as exactly that. The address
-    //    layer already marks it (`phaseKnown: false`); collapsing it to `idle` here would
-    //    be the smoothing rea-devices.js refuses one layer down.
     if (status.phaseKnown === false) return CONNECTION_SURFACE.PHASE_UNKNOWN;
     return PHASE_SURFACE[status.phase] ?? CONNECTION_SURFACE.PHASE_UNKNOWN;
 }

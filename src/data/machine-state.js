@@ -1,21 +1,6 @@
-// Machine state: the generated enum, plus the two classifications the skin makes from it.
-//
-// The enum itself is GENERATED from ReaPrime's `machine.dart` (see
-// scripts/generate-machine-state.js). Nothing in Decal may hand-write a state name;
-// every one below is checked against the generated list by test, so a name that stops
-// existing upstream turns a test red instead of quietly never matching.
-//
-// That is not a hypothetical. Three names in the old skin's state handling do not exist
-// on the wire:
-//   * `'ready'`   — invented in api.js's hand copy, then used as a rule in a live-state
-//                   fold (`state !== 'ready'`). Not a MachineState in either direction.
-//   * `'ending'`  — in the fold's pouring-substate set. Not a MachineSubstate: the enum
-//                   runs idle / preparingForShot / preinfusion / pouring / pouringDone /
-//                   cleaning* / error*. A pour has never once matched it.
-//   * and the omission that costs the most, `schedIdle` — a real state the copy LACKS,
-//     so a scheduled-idle machine classifies as busy.
-//
-// A name that cannot match is worse than a missing one: it reads like a considered rule.
+/**
+ * Machine state: the generated enum, plus the two classifications the skin makes from it.
+ */
 
 import {
     MACHINE_STATES,

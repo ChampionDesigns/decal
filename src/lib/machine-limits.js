@@ -117,11 +117,6 @@ export function clamp(limits, key, value) {
     if (!Number.isFinite(n)) return range.min;
     if (n <= range.min) return range.min;
     if (n >= range.max) return range.max;
-    // Inside the hole: snap to whichever end of it the value is nearer, so a
-    // typed 60 on steam temp becomes 0 (off) and a typed 100 becomes the band's
-    // floor — the coldest steam the machine will actually make. Silently
-    // accepting the in-between number would leave the tile showing a
-    // temperature the machine is not holding, which is the defect B3 names.
     if (range.floor !== undefined && n < range.floor) {
         return (n - range.min) < (range.floor - n) ? range.min : range.floor;
     }
@@ -150,8 +145,6 @@ export function bandHint(range, { format = (n) => String(n), unit, zeroMeans } =
     /* NO RANGE IS NO SENTENCE, not an empty band. A caller with nothing to describe gets
      * nothing to print, and A7 decides what it draws in that space instead. */
     if (!range) return '';
-    // Temperatures print their unit through the units store, which follows the
-    // °C/°F setting; appending ours as well would read "0-99 °C °C".
     const word = unit === undefined ? range.unit : unit;
     const suffix = word ? ` ${word}` : '';
     const means = zeroMeans === undefined ? range.zeroMeans : zeroMeans;

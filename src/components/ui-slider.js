@@ -25,8 +25,6 @@ class UiSlider extends UiElement {
     };
 
     static styles = [
-        // Structural fragment FIRST (CONVENTIONS §4 usage rule 1). There is no
-        // selectionSurface here: a slider has a value, not a selected state.
         hitArea,
         css`
             :host {
@@ -130,16 +128,11 @@ class UiSlider extends UiElement {
     }
 
     #onInput(event) {
-        // Set BEFORE the event continues past the input: the native `input` event is
-        // composed, so it reaches the outside retargeted to this host, and a listener
-        // reading `event.target.value` must see the new number.
         this.value = event.currentTarget.valueAsNumber;
     }
 
     #onChange(event) {
         this.value = event.currentTarget.valueAsNumber;
-        // `change` is composed: false - it dies at the shadow boundary. Re-dispatch,
-        // or a consumer that only listens for the commit never hears one.
         this.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
     }
 

@@ -79,12 +79,6 @@ function stepLabelPlugin(state) {
                     ctx.translate(x + 6 * dpr, u.bbox.top + 6 * dpr);
                     ctx.rotate(Math.PI / 2);
                     ctx.textAlign = 'left';
-                    // A PLATE UNDER THE NAME. There is 20px of top padding and a
-                    // rotated name needs about ninety, so the label has to live inside
-                    // the plot — where it was laid straight across whatever the traces
-                    // were doing at that second, and a busy first step is exactly where
-                    // the marks cluster. The plate is the plot's own surface, so the
-                    // name reads as sitting ON the chart rather than tangled in it.
                     if (state.labelPlate) {
                         const w = ctx.measureText(label.text).width;
                         ctx.fillStyle = state.labelPlate;
@@ -118,10 +112,6 @@ function bandsPlugin(state) {
                     const pts = spec.points;
                     if (!pts || pts.length < 2) continue;
                     ctx.lineWidth = (spec.width || state.strokeMinor) * dpr;
-                    // A dashed path is how the SECOND shot is told from the first. The
-                    // compare view draws two trajectories in the same time colours, and
-                    // without this they are one line: colour is already carrying time,
-                    // so it cannot also carry which shot this is.
                     ctx.setLineDash((spec.dash || []).map((v) => v * dpr));
                     ctx.globalAlpha = spec.alpha === undefined ? SERIES_ALPHA : spec.alpha;
                     for (let i = 1; i < pts.length; i += 1) {
@@ -203,8 +193,6 @@ function endLabelPlugin(state) {
                     let y = u.valToPos(label.y, label.scale || 'y', true);
                     const x = u.valToPos(label.x, 'x', true);
                     if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-                    // Push down off anything already placed, so two lines that finish
-                    // at the same value do not print over each other.
                     for (const taken of placed) {
                         if (Math.abs(y - taken) < minGap) y = taken + minGap;
                     }
@@ -271,10 +259,6 @@ export function assertPlotStyles(root) {
 
 export function createPlot(element, spec) {
     requireSpec(spec);
-    // `allowMissingStyles` exists for ONE caller: the Rule 1 canary, which has to build
-    // an unsheeted plot in order to measure that the mount-C signature still
-    // discriminates (Gate C's rule — every guard ships with a canary that fires). No
-    // production path may set it.
     if (spec.allowMissingStyles !== true) assertPlotStyles(element.getRootNode?.());
 
     const state = {
@@ -338,8 +322,6 @@ export function createPlot(element, spec) {
             label: spec.xLabel,
             labelSize: spec.xLabel ? 26 : 0,
             labelFont: tickFont,
-            // bbox is in CANVAS px; the ladder is chosen in CSS px, so it is divided by
-            // this plot's own ratio and never by the global (bug chart-C12).
             splits: (u, _i, min, max) => tickSplits(min, max, tickStepFor(max - min, u.bbox.width / dpr, minGap)),
             values: (u, splits) => splits.map((v) => String(v)),
         },
@@ -349,11 +331,6 @@ export function createPlot(element, spec) {
             size: spec.padding.left,
             side: 3,
             ...(spec.yScale.splits ? { splits: () => spec.yScale.splits } : null),
-            // The zero label is DROPPED unless the scale asks for it. It sits on the
-            // axis line at the plot's bottom edge, where the chart card's overflow takes
-            // its lower half — and the axis line is the zero. A scale that does not
-            // start at zero (temperature) never produces one, so this costs those plots
-            // nothing.
             values: (u, splits) => splits.map((v) => {
                 if (v === 0 && !spec.yScale.keepZeroLabel) return '';
                 return spec.yScale.format ? spec.yScale.format(v) : String(v);
@@ -377,11 +354,7 @@ export function createPlot(element, spec) {
         width,
         height,
         padding: [spec.padding.top, spec.y2Scale ? 8 : spec.padding.right, 0, 0],
-        // OFF. See the header: enabling it requires re-verifying uPlot's coordinate
-        // handling, which mixes getBoundingClientRect() with clientWidth.
         cursor: { show: spec.cursor?.show === true, drag: { x: false, y: false, setScale: false } },
-        // The legend is a component of its own (#10) and part of the layout, not a
-        // sibling inserted after the plot has measured its host (bug chart-C10).
         legend: { show: false },
         scales,
         axes,

@@ -1,62 +1,6 @@
-// ONE SOCKET LIFECYCLE POLICY, FOR ALL TEN CONNECTORS.
-//
-// SCOPE Part 6, `api.js` row: "the real port cost is the 813 port-with-changes lines,
-// overwhelmingly the ten socket connectors and the display/brightness policy tangled into
-// them, where FOUR DIFFERENT LIFECYCLE POLICIES COEXIST and must become one. That
-// unification, not the wrapper count, is where the time goes."
-//
-// The four, verified in the old tree, are the counter-example this module is written
-// against:
-//
-//   1. SLOT-MANAGED — `socket-slot.js`: close-before-open, silence-before-close, one
-//      socket per named slot. The right policy, applied to two channels.
-//   2. HAND-ROLLED close-then-reassign — `api.js`'s scale and devices connectors do the
-//      same thing again, inline, without the silencing half.
-//   3. DEDUPE-ON-SECOND-CALL — `if (estimatorLink) return;`: the second caller silently
-//      gets nothing back and believes it subscribed.
-//   4. NONE AT ALL — `shotState` and the `timeToReady` plugin feed. A second call opens a
-//      second socket and leaks the first: both stay connected, both deliver, and the
-//      symptom is a DOUBLED FRAME RATE, which looks like the machine got faster.
-//
-// THE POLICY, stated once, applied to all ten:
-//
-//   A. ONE LIVE SOCKET PER KEY. A second subscriber joins the existing socket. Nobody
-//      opens a second one, and nobody is silently refused. (Kills 1, 3 and 4.)
-//   B. CLOSE BEFORE OPEN. Re-targeting a channel — a new sensor id — closes the old socket
-//      first and only then opens the new one. Without this, every machine swap leaks a
-//      socket and double-delivers every frame.
-//   C. SILENCE THE SUPERSEDED. A socket being discarded has OUR listeners removed BEFORE
-//      it is closed, so it cannot deliver a late frame and cannot narrate its own funeral:
-//      the close is ours, not the machine's, and the user must not see a disconnect flash
-//      on every resync. (This module never assigns the `on*` properties at all, so
-//      removing our listeners is total — no no-op-handler dance required.)
-//   D. REPLAY DIES WITH THE SOCKET. `clear()` on close and on retarget. A frame replayed
-//      from a closed socket, or from the previous sensor id, is a stale value presented as
-//      current — the A7 defect class in miniature.
-//   E. REFCOUNTED. First subscriber opens, last unsubscribe closes. There is no idle
-//      socket kept alive "in case", because that is how the old tree ended up with sockets
-//      nobody could name. `retain: true` opts a channel out for its whole lifetime, which
-//      is an explicit choice at one call site rather than a default nobody chose.
-//   F. AN ERROR ENVELOPE IS A SIGNAL, NOT A FRAME. Classification is
-//      rea-ws-channels.js's `classifyMessage`; this module only routes the result.
-//   G. BOUNDED ATTEMPTS WHERE ABSENCE IS NORMAL. A plugin socket whose plugin is not
-//      loaded is refused before the upgrade, so it can never open; `maxAttempts` turns
-//      that into one `unavailable` signal — feature-absent — instead of a reconnect loop
-//      until the tablet is rebooted.
-//
-// A7: THERE IS NO FALLBACK PATH HERE. No send queue that replays on reconnect (a command
-// applied minutes after the user asked for it is worse than one that failed), no
-// last-good-frame served after a close, no synthesised "disconnected" frame. Absence is
-// visible: `status()` says what is true and `last()` returns null.
-//
-// RECONNECT ITSELF IS NOT THIS MODULE'S JOB — it belongs to the vendored
-// ReconnectingWebSocket and its two local patches (A11, vendor/README.md). This module
-// depends on exactly one thing from it: that `close()` is FINAL. Patch 1 is what makes
-// rule B true.
-//
-// DOM-free and injected, like the transport beside it: no `window`, no `document`, no
-// `globalThis.WebSocket`. The socket factory is a constructor argument, and the tests
-// drive the whole layer with a fake socket.
+/**
+ * The socket layer: one reconnecting channel per feed, opened by key and handed to a store as a subscription.
+ */
 
 import { createFanout } from './rea-fanout.js';
 import { WS_MESSAGE, classifyMessage, channelForPath } from './rea-ws-channels.js';
@@ -101,8 +45,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
         if (typeof path !== 'string' || !path) throw new Error('sockets.channel: path is required');
         const existing = channels.get(key);
         if (existing) {
-            // Rule A. A second caller with a different path for the same key is a
-            // programming error, not a retarget — retargeting is explicit and says so.
             if (existing.path !== path) {
                 throw new Error(
                     `sockets.channel: key "${key}" is already bound to ${existing.path}; `
@@ -147,9 +89,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
             try {
                 socket.close();
             } catch (err) {
-                // A socket that refuses to close must never block the re-open: being stuck
-                // with no live socket is the failure we are preventing, not the one we are
-                // risking.
                 note('warn', `close failed: ${err && err.message}`);
             }
         }
@@ -176,14 +115,7 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
 
         function open(force = false) {
             if (state.socket) return;
-            // Rule G's other half: once a channel is UNAVAILABLE it STAYS absent. A
-            // further subscriber must not silently restart the reconnect loop — absence
-            // that re-hides itself is how the old tree's dead plugin feed went unnoticed.
-            // Coming back is an explicit act: handle.open() or retarget().
             if (state.status === WS_STATE.UNAVAILABLE && !force) {
-                // And the new subscriber is TOLD. It arrived after the verdict, so the
-                // replay is empty and no signal would otherwise reach it: it would sit at
-                // "nothing yet" for ever, which is the absence re-hiding itself one level up.
                 fanout.signal({ kind: WS_SIGNAL.UNAVAILABLE, attempts: state.attempts, latched: true });
                 return;
             }
@@ -204,9 +136,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
                     state.status = WS_STATE.CONNECTING;
                     state.attempts += 1;
                     fanout.signal({ kind: WS_SIGNAL.CONNECTING, attempt: state.attempts });
-                    // Rule G. `maxAttempts` counts attempts that never reached OPEN, so a
-                    // socket that opened once and dropped reconnects for ever, as it must —
-                    // this cap is for the endpoint that CANNOT open, not for a flaky link.
                     if (maxAttempts !== null && state.opens === 0 && state.attempts >= maxAttempts) {
                         note('info', `unavailable after ${state.attempts} attempts`);
                         closeNow(WS_STATE.UNAVAILABLE);
@@ -214,22 +143,6 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
                     }
                 }],
                 ['close', () => {
-                    // Only a close we did NOT cause reaches here: rule C removed these
-                    // listeners before any close of ours.
-                    //
-                    // AND IT MOVES THE STATUS OFF `open`. It did not, so `status()` went on
-                    // reporting `open` for a socket the server had closed and `send()`
-                    // answered `{ok: true}` on it — the one place this module's own A7 line
-                    // ("status() says what is true") was untrue. It was masked in production
-                    // only by the vendored wrapper dispatching `connecting` BEFORE `close`
-                    // on a reconnect, which is another module's event order and no basis for
-                    // this one's correctness.
-                    //
-                    // ONLY from OPEN. A CONNECTING set by that same `connecting` event is
-                    // the truth during a reconnect — the wrapper does NOT re-raise it on
-                    // subsequent attempts (`open(reconnectAttempt=true)` skips the dispatch),
-                    // so overwriting it here would report a reconnecting channel as idle.
-                    // UNAVAILABLE is a verdict and outranks both.
                     if (state.status === WS_STATE.OPEN) state.status = WS_STATE.IDLE;
                     fanout.clear();
                     fanout.signal({ kind: WS_SIGNAL.CLOSE, url: state.url });
@@ -287,12 +200,8 @@ export function createReaSockets({ createSocket, socketBaseUrl, logger = null } 
                 if (row && row.commands && payload && typeof payload === 'object'
                     && typeof payload.command === 'string') {
                     if (!row.commands.includes(payload.command)) {
-                        // ReaPrime answers an unknown command with an error envelope;
-                        // catching it here names the mistake at the call site instead.
                         return { ok: false, reason: `unknown command "${payload.command}" for ${key}` };
                     }
-                    // And where the handler's failure mode is SILENCE rather than an
-                    // envelope, the table's own shape check runs (display's brightness).
                     const invalid = row.validateCommand ? row.validateCommand(payload) : null;
                     if (invalid) return { ok: false, reason: invalid };
                 }

@@ -1,63 +1,6 @@
-// B6 — THE DUPLICATED CHANNELS: CHOOSE AT SHOT START AND HOLD.
-//
-// Three quantities exist twice. The machine's fused estimator (Bengle only, the better
-// number) arrives on the puck-estimator sensor as `r1` / `r2` and — on rev >= 3 firmware —
-// `hydraulicPowerMeasured`. ReaPrime's computed ratios (every machine, every historical
-// shot, recomputed on read) arrive on the machine snapshot as the three `*Derived` keys.
-// `machine.dart`'s own doc comments name the measured twin for each derived getter and say
-// "PREFER THE MEASURED VALUE WHEN THE MACHINE OFFERS IT".
-//
-// ── THE DEFECT THIS MODULE EXISTS TO NOT REBUILD ─────────────────────────────────────
-//
-// `fused.js`'s `select*` functions re-pick their source PER SAMPLE, silently. The two
-// sources go absent at DIFFERENT MOMENTS and for different reasons:
-//
-//   * the derived channels gate on the CURRENT OPERATING POINT — ReaPrime returns null,
-//     and `toJson` omits the key, below its flow/pressure threshold. That threshold is
-//     ReaPrime's and appears NOWHERE in this skin: `test/shot-source-selector.test.mjs`
-//     asserts this file contains no copy of it. Two copies of a threshold is two things
-//     to drift.
-//   * the estimator's sentinel is NOT YET OBSERVED — a per-field wire sentinel that
-//     decodes to an omitted key and has nothing to do with the operating point.
-//
-// So a per-sample pick produces a trace whose gap lands somewhere different every shot,
-// which reads as a machine glitch rather than as a data state. `machine.dart` warns
-// exactly this: "Switching source mid-shot will look like a glitch unless the client
-// expects it."
-//
-// ── THE RULE (B6) ────────────────────────────────────────────────────────────────────
-//
-// Prefer the estimator when present, fall back to the derived channel, DECIDE ONCE FROM THE
-// FIRST EVIDENCE, HOLD THAT CHOICE FOR THE WHOLE SHOT, AND MARK WHICH SOURCE IS IN USE.
-//
-// "From the first evidence", not "from the first sample": at t=0 of an espresso ReaPrime has
-// gated every derived key away (flow and pressure are both under its 0.3 threshold) and the
-// estimator has observed nothing, so the first sample carries neither twin. Deciding there
-// decides nothing and freezes it — see `beginShot`.
-//
-// "Fall back" here is a decision made once, from evidence, and recorded — not a per-sample
-// `??`. Once the shot starts, a sample missing its chosen source renders a GAP. It never
-// silently borrows the other source: the two are computed from different flows (Q_puck vs
-// reported group flow Q_in), so they agree in steady state and diverge exactly during the
-// compliance transients a reader is looking at.
-//
-// PRESENCE IS KEY-PRESENCE. The readings this module consumes come from the address layer
-// (`readEstimatorFrame`, `readMachineSnapshot`), which has already applied that rule. A
-// channel reading 0 is PRESENT. `!= null` is not the test and does not appear here.
-//
-// D1 keeps these channels out of the v1 baseline entirely — they are capability-gated and
-// additive, so nothing is lost by waiting. The rule is built now because the source
-// selector is data-layer plumbing that gets built ONCE, and building it without the
-// hold-at-shot-start rule bakes the glitch in.
-//
-// NOT PORTED, deliberately: `derived-channels.js`'s computation half. The R/Z/W formulas
-// and their gate are byte-for-byte what ReaPrime computes on read, so a local copy is a
-// second implementation of a server truth. This module SELECTS; it never computes.
-//
-// ReaPrime read AS WRITTEN at 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3: `machine.dart`
-// (`_derivedOrNull`, the three `*Derived` getters and their doc comments, `toJson`'s
-// conditional keys) and `bengle_puck_estimator.dart` (`info.dataChannels`, `encodeSample`).
-// It reads frames only and declares no route.
+/**
+ * B6 — THE DUPLICATED CHANNELS.
+ */
 
 import { hasReading, noReading, ABSENCE } from '../data/reading.js';
 import { ESTIMATOR_CHANNELS, SNAPSHOT_DERIVED_KEYS } from '../data/rea-names.js';
@@ -164,9 +107,6 @@ export function createShotSourceSelector({ now = () => Date.now() } = {}) {
 
         beginShot(sample, { shotId = null } = {}) {
             const held = selection;
-            // Settled means every quantity has decided, and a decision never re-opens: the
-            // held object is returned by identity, so a repeated "shot started" signal is
-            // free and visibly a no-op.
             if (held && held.settled) return held;
             const sources = {};
             for (const row of DUPLICATED_QUANTITIES) {
