@@ -1,9 +1,4 @@
-// The store primitive — Gate 4's mechanism, pinned before anything is built on it.
-//
-// Four of these tests are about a DEFECT, not a feature: pattern A (a store that starts its
-// own timer), pattern C (module-scope singletons), pattern E (document CustomEvent buses)
-// and pattern F (in-place mutation). The last one is enforced rather than documented, so a
-// fold that mutates fails a test instead of rendering a stale screen.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -187,18 +182,6 @@ describe('watchAll', () => {
     });
 });
 
-/* ===========================================================================
- * The coupling patterns that must not come back — checked over the tree,
- * not asserted in prose.
- *
- * A NOTE ON LINE NUMBERS, which the pattern-A scan deliberately does not report:
- * `stripComments` preserves the newlines inside line comments but NOT the ones inside
- * block comments, so its line numbering drifts from the file's as soon as a doc block
- * sits above the hit — measured, not assumed: `shot-mirror.js`'s scheduling line is 173
- * in the file and 137 in the stripped text. So pattern A quotes the offending SOURCE
- * TEXT, which cannot be off by thirty-six lines the way a number can.
- * =========================================================================== */
-
 function jsFilesUnder(dir) {
     const out = [];
     for (const entry of readdirSync(dir)) {
@@ -243,70 +226,18 @@ describe('pattern E: no document-level CustomEvent buses', () => {
                 if (code.includes(forbidden)) offenders.push(`${file.slice(REPO.length)}: ${forbidden}`);
             }
         }
-        // Says only what it checks. Timers are pattern A below, on their own scan, because
-        // this list said "starts no timers" while checking for one spelling of one of them.
         assert.deepEqual(offenders, [], 'the store layer is DOM-free and network-free');
     });
 });
 
-/* --------------------------------------------------------------- pattern A: scheduling
- *
- * This scan exists because the one above it OVERCLAIMED. Its forbidden list named
- * `setInterval(` and stopped there, while `shot-mirror.js` schedules with `setTimeout` —
- * so the guard ran green while its own message asserted the layer "starts no timers",
- * which it had no way to see either way. A guard that claims more than it checks is worse
- * than no guard, because it is the reason nobody looks again.
- *
- * Both halves are repaired here. Every spelling of "schedule something later" is
- * forbidden, and the one real scheduling site is DECLARED verbatim rather than waved
- * through by a pattern: a second one fails, and deleting the first one ALSO fails until
- * this list is edited. An allowlist nobody has to maintain is how coverage dies.
- *
- * The declaration is only honest because the seam it names is exercised — see
- * `test/shot-mirror.test.mjs`, "the deadline is an injected seam": the mirror is built
- * with a `setTimer` of the caller's, the platform clock is never reached, and nothing is
- * left scheduled once the open settles. That is what makes this a bounded deadline rather
- * than the ticker pattern A is about (`estimator-link.js:120-121`, `setInterval` at
- * construction with no lazy start and no stop).
- */
 const SCHEDULING_CALLS = [
     'setInterval(', 'setTimeout(', 'setImmediate(',
     'requestAnimationFrame(', 'requestIdleCallback(', 'queueMicrotask(',
 ];
 
-/**
- * repo-relative file → the exact trimmed source lines permitted to schedule.
- *
- * THE SECOND ENTRY, WAVE 5.4 (D9). `calibration-store.js` polls
- * `GET /api/v1/machine/scaleCalibration` so the wizard's countdown is LIVE:
- * `secondsRemaining` counts down inside the machine and a client that only re-read on a
- * command would show a frozen number. It qualifies for a declaration on the same three
- * grounds `shot-mirror.js` does, and each one is checked by
- * `test/settings-bespoke.test.mjs`:
- *
- *   INJECTED     `setTimer`/`clearTimer` are constructor options; the suite builds the
- *                store with its own pair and the platform clock is never reached.
- *   ONE-SHOT     `setTimer`, never `setInterval`, and the read it schedules re-arms —
- *                so a slow read cannot stack requests behind itself.
- *   BOUNDED      it arms ONLY while the machine reports `zeroing` or `calLatch`
- *                (`isCalibrationInProgress`), and any terminal or idle step, `forget()`
- *                and `stop()` all disarm it. There is no ticker at construction.
- *
- * NOT THE LED PATH. D7's write pattern has NO clock at all —
- * `test/settings-bespoke.test.mjs` greps `led-strip-store.js`, `led-colour.js` and the
- * leaf for every spelling below, and the render suite greps the files the page actually
- * served. A timer there is a block; this is a read poll on a different route.
- */
 const DECLARED_SCHEDULERS = new Map([
     ['src/stores/shot-mirror.js', ['setTimer = (fn, ms) => setTimeout(fn, ms),']],
     ['src/stores/calibration-store.js', ['setTimer = (fn, ms) => setTimeout(fn, ms),']],
-    /* THE THIRD ENTRY, 23 Aug 2026. `scale-tare-store.js` watches the weight to find out
-     * whether a tare actually happened — a 200 does not say, because the firmware refuses
-     * a mid-shot tare silently while the MMR write still succeeds. That watch needs a
-     * deadline, or a scale that never answers leaves the surface stuck on WORKING. Its
-     * cancel is injected beside it and is NOT declared here: clearing is not scheduling,
-     * so the scan never sees that line and a declaration for it would be struck off as
-     * one that no longer exists — which is the other half of this test. */
     ['src/stores/scale-tare-store.js', ['setTimer = (fn, ms) => setTimeout(fn, ms),']],
 ]);
 
@@ -337,9 +268,6 @@ describe('pattern A: the store layer starts nothing on its own clock', () => {
     });
 
     test('the scan can actually see a setTimeout — the hole that let this through', () => {
-        // The guard this replaced was green against exactly this input. If someone trims
-        // SCHEDULING_CALLS back to `setInterval(`, this fails before the tree scan can go
-        // quietly green again.
         const sample = stripComments('const t = () => setTimeout(fn, ms); // schedules\n', { dropStrings: true });
         assert.ok(SCHEDULING_CALLS.some((call) => sample.includes(call)), 'setTimeout must be in the list');
         assert.ok(!SCHEDULING_CALLS.some((call) => 'clearTimeout(id); clearInterval(id);'.includes(call)),

@@ -1,25 +1,4 @@
-// DEFECT-DEFENDING SUITE 2, corrected (Risk 9) — the shot-metrics fixture shape.
-//
-// THE DEFECT, in one sentence: `shot-metrics.js` expected the FLAT channel map, the app
-// handed it the SERIES BUNDLE (`shot-rating.js:38-39`), and all four readouts under the
-// chart rendered a dash while the chart above them drew perfectly. It shipped that way
-// because the suite hand-built the flat shape at `test/shot-metrics.test.mjs:9-13` — the
-// shape the app never passed. Both halves were internally consistent; the only thing
-// neither of them was, was the caller.
-//
-// THE CORRECTION IS STRUCTURAL. Gate 6 replaced the module with ONE derivation over ONE
-// walk (`src/lib/shot-derivation.js`), reached by two entry points that take the two shapes
-// the app actually holds: `deriveFromBuffer(buffer)` for the live shot and
-// `deriveFromRecord(record)` for `GET /api/v1/shots/<id>`. There is no channel map to pass,
-// so there is no contract left to mismatch — and `shot-derivation.test.mjs` walks the three
-// real recordings in `tools/rea-fixtures/` rather than a payload of its own construction.
-//
-// WHAT THIS FILE ADDS is the assertion that closes the loop, and it is the one the old
-// suite could not have made: THE FLAT SHAPE FAILS. Identical numbers, two shapes — nested
-// derives the metrics, flat derives NOTHING and says why. The old defect was silent by
-// construction (a green suite, a blank block, and no error anywhere between them), so the
-// thing worth pinning is that the failure is now loud, refuses by name, and cannot be
-// mistaken for a shot with nothing in it.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -65,11 +44,6 @@ const nested = () => ({
     })),
 });
 
-/**
- * THE OLD FIXTURE. One flat row per tick, every channel at the top level — the shape
- * `shot-metrics.js` was written against and `test/shot-metrics.test.mjs:9-13` built by
- * hand. Same six ticks, same numbers, no `machine` and no `scale`.
- */
 const flat = () => ({
     id: SHOT,
     timestamp: at(0),
@@ -130,23 +104,17 @@ describe('THE FLAT FIXTURE FAILS — the old contract cannot go green again', ()
     });
 
     test('and it fails BY NAME, which is the half the old defect was missing', () => {
-        // The defect was silent: a green suite, four dashes on screen, and nothing anywhere
-        // in between that said a shape had been refused.
         assert.equal(got.reason, 'noPouringSample');
         assert.equal(got.counts.inShot, 0, 'not one flat row was read as a sample');
     });
 
     test('a refusal is not zero — nothing renders as a value that was never read', () => {
-        // A7. Had the old module returned 0 for a peak it could not find, the readouts
-        // would have shown a number instead of a dash and the defect would still be there.
         assert.notEqual(got.scalars.peakPressure, 0);
         assert.equal(got.scalars.peakPressure, null);
         assert.equal(got.scalars.yieldSource, null);
     });
 
     test('half-flat is refused too: a nested machine cannot rescue a flat scale', () => {
-        // The realistic regression is not a wholly flat payload, it is one caller passing
-        // one half in the old shape.
         const record = nested();
         record.measurements = record.measurements.map(({ machine }, i) => ({
             machine,
@@ -171,9 +139,6 @@ describe('there is no channel-map entry point left to mismatch', () => {
     });
 
     test('a series bundle handed in where a record goes is refused, not half-read', () => {
-        // `shot-rating.js:38-39` passed exactly this: the bundle, to something expecting the
-        // channels. Here the mismatch cannot half-work — the bundle carries no
-        // `measurements`, so it is refused on the way in and named for what is missing.
         const bundle = { series: { pressure: { x: [0, 1], y: [9, 8] } }, axis: { t: [0, 1] } };
         assert.equal(deriveFromRecord(bundle).ok, false);
         assert.equal(deriveFromRecord(bundle).reason, 'measurementsNotServed');

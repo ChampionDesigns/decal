@@ -1,41 +1,5 @@
 /**
- * ui-page-header.render.test.mjs — Gate A for component #31 (wave 2, item #31).
- *
- * Runs the whole rig at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench
- * truth) and the 1000×600 floor — asserting only on computed style, box geometry and
- * behaviour, never on source text (Part 8 §2).
- *
- * ONE THING TO KNOW BEFORE READING THE NUMBERS. The two Gate A geometries land on
- * OPPOSITE SIDES of the compact height band: `@media (height < 700px) { :root {
- * --ui-density: 0.875 } }` (styles/tokens.css:929-940), so --ui-band-h is 118px at
- * BENCH (801px tall) and 103.25px at FLOOR (600px tall). That is not a wrinkle to work
- * around — it is the density band doing its job, and this suite is the first place in
- * the tree where it is exercised at both ends. Every band-height assertion below is
- * therefore written against `bandH`, derived from the page's own --ui-density, and the
- * oracle's flat 118px is pinned separately with density forced to 1.
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. token drill — nine tokens, every one retargeted on :root with the rendered
- *      value asserted to move AND to land on the token. --ui-space-6 gets the loudest
- *      one, because the defect this component retires is a band whose inset was a
- *      literal;
- *   2. THE DERIVATION DRILL — --ui-control-lg, --ui-band-inset and --ui-density each
- *      moved separately, with the band height following. Appendix 12's "a size
- *      expressed as control + 2 × space, not a measured constant" as three numbers;
- *   3. focus geometry from --ui-focus-*, unclipped — on both commit buttons and on
- *      slotted controls in all three regions. A band of controls is bug L24's shape;
- *   4. container behaviour — the band reads its own container and never the viewport
- *      (a 640px container renders identically at 1281 and at 1000), keeps its floor
- *      when squeezed, and gives the title before it gives the actions;
- *   5. the bug, asserted dead: P17 (the 30px inset, off scale and disagreeing with
- *      itself by 2px) — one inset, on the scale, with no per-screen surface at all;
- *   6. the decision, asserted owned: D11 ("Save (3)"), including the half that makes
- *      it a decision — that no screen can express any other wording;
- *   7. WAVE LAW — this component paints no selection, and cannot. The four dials are
- *      retargeted on :root and nothing in this shadow tree moves.
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable. Every
- * literal below carries its CITE line.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -48,16 +12,8 @@ import {
     DRILL_COLOUR,
 } from '../harness/assertions.js';
 
-/* ui-button (#1) is a real dependency, not a stand-in: #31's dependsOn is "#1, #2,
- * band tokens" and the commit cluster COMPOSES the primitive rather than
- * re-implementing it. Wave 1 is closed (waves/1/DONE.json, result OK), so this is a
- * frozen dependency rather than a sibling builder's moving target. */
 const MODULE = ['/src/components/ui-page-header.js'];
 
-/* Slotted focusables with the base's own ring re-created in the LIGHT tree, so the L24
- * assertions have something to focus that this component did not build. Written here
- * rather than by slotting a second ui-* component, for the reason wave 1 gave: a suite
- * that leans on another entry goes red when that entry moves. */
 const FIXTURE_CSS = `
 <style>
     .child:focus-visible {
@@ -158,57 +114,25 @@ const MARKUP = `${FIXTURE_CSS}
 </div>
 `;
 
-/* The oracle's own numbers, named once.
- *   CITE settings-display-skin #subpage-header [i=2] height = 118px  <- slate-shell.css
- *        `#subpage-host #subpage-header` authored `var(--slate-header-height)`
- *        !important=no (token-driven)
- *   CITE settings-display-skin #subpage-header [i=2] background-color = rgb(17, 22, 26)
- *        <- the same rule, authored `(NOT CAPTURED — set via a CSS shorthand)`
- *        (token-driven)   [prov-light rgb(250, 250, 250)]
- *   CITE settings-display-skin #subpage-header [i=2] padding-left = 30px <- the same
- *        rule, authored `30px` !important=no (FROZEN/hardcoded)      ← BUG P17
- *   CITE editor-steps .slate-editor-header [i=2] padding-left = 30px <-
- *        profile-editor-v3.css `.slate-editor-header` authored `30px` (FROZEN)   ← P17
- *   CITE editor-steps .slate-editor-header [i=2] gap = normal 18px <- (no declaration)
- *   CITE settings-display-skin #page_title [i=3] font-size = 28px / font-weight = 500 /
- *        color = rgb(244, 247, 248)  <- slate-shell.css `#subpage-host #subpage-header
- *        #page_title` authored `var(--slate-text-xl)` / `500` / `var(--slate-text)`
- *   CITE settings-display-skin #save-settings-btn [i=4] height = 82px <- slate-shell.css
- *        `#subpage-host #subpage-header button:not(#fullscreen-toggle-btn), …`
- *        authored `var(--slate-control-lg)` !important=no (token-driven)
- *   CITE settings-display-skin #save-settings-btn [i=4] rect x=1722 y=18 w=168 h=82
- *        in a 1920×118 band → 18 + 82 + 18 = 118, Appendix 12's derivation.
- */
 const ORACLE = {
     bandH: 118,        // at --ui-density 1; the compact band is 103.25 (tokens.css:182)
     controlLg: 82,
     bandInset: 18,     // the derived block inset — never declared, always measured
     slateInset: 30,    // P17, the defect
-    inset: 28,         // --ui-space-6, the fix (spec §3.3 "30 → 28")
+    inset: 28,
     regionGap: 18,     // --ui-space-4, the editor header's own column-gap
-    clusterGap: 24,    // --ui-space-5, §3.3's snap of Slate's compiled 22.5px
+    clusterGap: 24,
     titleSize: 28,
     titleWeight: '500',
     dark: { bar: 'rgb(17, 22, 26)', text: 'rgb(244, 247, 248)' },
     light: { bar: 'rgb(250, 250, 250)', text: 'rgb(23, 26, 28)' },
 };
 
-/** At dsf 1.5 lengths snap to device pixels, so compare whole CSS px (CONVENTIONS §10). */
 const near = (got, want, what, tol = 0.6) => assert.ok(
     Math.abs(parseFloat(got) - want) <= tol,
     `${what}: expected ~${want}px, rendered ${got}`,
 );
 
-/**
- * THE COMPUTED ARIA ROLE of a host's #band, from Chrome's own accessibility tree.
- *
- * Review finding c3-2: the attribute is not the property departure 3 claims. A bare
- * <header> has the IMPLICIT role `banner` unless it descends from article/aside/main/
- * nav/section or role=article/complementary/main/navigation/region — role="dialog" is
- * on none of those lists — so `getAttribute('role') === null` cannot fail for the thing
- * being asserted. This reads what a screen reader would be told instead. Still computed
- * state and not source text (Part 8 §2); it is simply a different computed surface.
- */
 const axRoleOf = async (page, hostId) => {
     await page.send('Accessibility.enable');
     const handle = await page.send('Runtime.evaluate', {
@@ -275,23 +199,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the density band is the one this geometry sits in', () => mounted(async (page) => {
-            // styles/tokens.css:929-940 — "@media (height < 700px) { :root {
-            // --ui-density: 0.875 } }". BENCH is 801 tall and FLOOR is 600, so the two
-            // Gate A geometries are on opposite sides of the band. Stated here once so
-            // every band-height number below reads as derived rather than fudged.
             assert.equal(await densityOf(page), geometry.height < 700 ? 0.875 : 1);
         }));
 
-        /* ================================================================
-         * 0. THE BAND ITSELF — the one number three sheets already agree on
-         * ============================================================== */
-
         test('the band is --ui-band-h, and the host cannot be squashed below it', () => mounted(async (page) => {
-            // CITE settings-display-skin #subpage-header [i=2] height = 118px
-            // `find --cls slate-live-header` → 7 elements in 7 states, all 1920×118;
-            // `find --id subpage-header` → 39 in 39, all 1920×118;
-            // `find --cls slate-editor-header` → 3 in 3, all 1920×118.
-            // One height, three sheets — the agreement worth keeping.
             const bandH = ORACLE.bandH * await densityOf(page);
             for (const id of ['settings', 'clean', 'editor', 'live', 'fallback']) {
                 near((await page.box(`#${id}`)).height, bandH, `#${id} host`);
@@ -300,8 +211,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the ground is --ui-bar, and nothing else paints it', () => mounted(async (page) => {
-            // CITE settings-display-skin #subpage-header [i=2] background-color =
-            //      rgb(17, 22, 26)  [prov-light rgb(250, 250, 250)]  = --ui-bar
             await assertTokenDrill(page, {
                 token: '--ui-bar',
                 value: DRILL_COLOUR,
@@ -310,24 +219,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. P17 — THE 30px INSET, AND WHY IT CANNOT COME BACK
-         * ============================================================== */
-
         test('P17: the inline inset is 28px, on the scale, and identical on both edges', () => mounted(async (page) => {
-            // THE DEFECT, quoted (LAYOUT_SPEC_DRAFT.md:1146): "The page header's
-            // `padding: 0 30px` is off the spacing scale and disagrees with the 28px
-            // used by the History Viewer header and `#right-panel > *` on the same
-            // screens."
-            //   CITE settings-display-skin #subpage-header [i=2] padding-left = 30px <-
-            //        slate-shell.css `#subpage-host #subpage-header` authored `30px`
-            //        !important=no (FROZEN/hardcoded)
-            //   CITE editor-steps .slate-editor-header [i=2] padding-left = 30px <-
-            //        profile-editor-v3.css `.slate-editor-header` authored `30px`
-            //        !important=no (FROZEN/hardcoded)
-            // and the 28px it disagrees with, read read-only because the HV overlay is
-            // not a corpus state: slate-live.css:2210 `padding: 0 var(--slate-space-6)`.
-            // spec §3.3: "off-scale values snap to the nearest step. 30 → 28".
             for (const id of ['settings', 'clean', 'editor', 'live', 'fallback']) {
                 const pad = await page.computed(`#${id} >>> #band`,
                     ['padding-left', 'padding-right']);
@@ -360,15 +252,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P17: the one reachable path is the token channel, and it is not a per-band knob',
             () => mounted(async (page) => {
-                // REVIEW FINDING c3-1. The six-selector attack sheet below is real but it
-                // is not the whole attack surface: custom properties INHERIT through a
-                // shadow boundary — that is A6, the library's only theming channel — so a
-                // screen sheet CAN reach this inset by retargeting --ui-space-6 on an
-                // ancestor. The component cannot defend either: re-declaring --ui-space-6
-                // on :host is what scripts/guards.js `private-palette` forbids.
-                //
-                // So the honest claim is not "unreachable", it is "not private and not
-                // per-band", and both halves are asserted here.
                 const insetOf = async (id) =>
                     (await page.computed(`#${id} >>> #band`, ['padding-left']))['padding-left'];
 
@@ -383,16 +266,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         'the token channel must really reach the band — if this passes at 28 '
                         + 'the test is asserting the wrong mechanism');
 
-                    // THE BLAST RADIUS IS THE PRICE. The same declaration moved every
-                    // --ui-space-6 in that subtree, not just the band: a 2px header drift
-                    // cannot be bought without visibly paying for it everywhere on the
-                    // screen. That is what "on the scale" means.
                     near((await page.computed('#probe-a', ['padding-left']))['padding-left'],
                         ORACLE.slateInset,
                         'the retarget must move every reader of the token in that subtree');
 
-                    // AND IT IS SCOPED, so it is a screen author's deliberate act rather
-                    // than a leak: the editor band on another screen has not moved.
                     near(await insetOf('editor'), ORACLE.inset,
                         'a retarget on one screen must not reach another');
                     near((await page.computed('#probe-c', ['padding-left']))['padding-left'],
@@ -404,19 +281,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('P17 cannot express: no SELECTOR from outside reaches the inset', () => mounted(async (page) => {
-            // FIXTURE_CSS carries every selector Slate's three sheets use for a page
-            // header, plus `ui-page-header .band`, `ui-page-header *` and a ::part()
-            // attempt — six live rules, all authoring the defect's own `30px`. None can
-            // cross the boundary; the component exposes no ::part and puts no --_ui-*
-            // hook in front of the inset, so there is nothing to inherit into either.
-            // The TOKEN channel is the one path that does land, and it has its own test
-            // directly above — this one is about selectors.
             for (const id of ['settings', 'editor', 'live']) {
                 near((await page.computed(`#${id} >>> #band`, ['padding-left']))['padding-left'],
                     ORACLE.inset, `#${id}: a screen sheet moved the inset`);
             }
-            // The HOST's own padding is the consumer's box and stays theirs — but it
-            // does not become the band's inset, which is the distinction P17 lost.
             await page.setStyle('#settings', { 'padding-inline': '30px' });
             near((await page.computed('#settings >>> #band', ['padding-left']))['padding-left'],
                 ORACLE.inset, 'host padding must not leak into the band inset');
@@ -424,10 +292,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('P17 cannot express: three configurations are one implementation', () => mounted(async (page) => {
-            // "Three implementations across four screens today, disagreeing by 2px on
-            // inset within a single screen" (SCOPE.md:1551). Here the settings band, the
-            // editor band and the Live band are three USES of one element, so the
-            // measurement that differed is now one declaration read three times.
             const insets = [];
             for (const id of ['settings', 'editor', 'live']) {
                 const pad = await page.computed(`#${id} >>> #band`, ['padding-left', 'padding-right']);
@@ -437,17 +301,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 `six edges across three bands must be one value, measured ${insets.join(' / ')}`);
         }));
 
-        /* ================================================================
-         * 2. THE DERIVATION — Appendix 12, as four numbers
-         * ============================================================== */
-
         test('the 18px block inset is DERIVED, never declared', () => mounted(async (page) => {
-            // CITE settings-display-skin #save-settings-btn [i=4] rect x=1722 y=18
-            //      w=168 h=82, inside a 1920×118 band → 18 + 82 + 18 = 118.
-            // Appendix 12: "the derived header band — a size expressed as control +
-            // 2 × space, not a measured constant".
-            // Density is forced to 1 so the oracle's own arithmetic is checked at BOTH
-            // geometries rather than only at the one that happens to sit above 700px.
             await page.setToken('--ui-density', '1');
             const band = await page.box('#settings >>> #band');
             const save = await page.box('#settings >>> #save');
@@ -458,8 +312,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(save.top - band.top, ORACLE.bandInset, 'the top inset falls out of centring');
             near(band.bottom - save.bottom, ORACLE.bandInset, 'and so does the bottom one');
 
-            // The band declares no block padding at all, which is what makes the above a
-            // consequence rather than a coincidence.
             const pad = await page.computed('#settings >>> #band', ['padding-top', 'padding-bottom']);
             assert.equal(parseFloat(pad['padding-top']), 0, 'no declared block padding');
             assert.equal(parseFloat(pad['padding-bottom']), 0, 'no declared block padding');
@@ -493,11 +345,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('derivation drill: --ui-density shrinks the BAND and not the CONTROL', () => mounted(async (page) => {
-            // tokens.css:180-189 — density multiplies vertical rhythm only; "NOT
-            // multiplied, deliberately: --ui-control-h and --ui-hit-min (Rule 2 names
-            // both — ergonomics is physical)". That asymmetry is also why the band
-            // CENTRES rather than padding: a declared padding-block of --ui-band-inset
-            // would leave 67.25px of content box for an 82px control in the compact band.
             await page.setToken('--ui-density', '1');
             const regular = {
                 band: (await page.box('#settings >>> #band')).height,
@@ -522,14 +369,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the control centres inside the shorter band rather than overflowing it');
         }));
 
-        /* ================================================================
-         * 3. THE REST OF THE TOKEN DRILLS — consumed, not copied
-         * ============================================================== */
-
         test('drill: --ui-space-4 is the gap BETWEEN regions', () => mounted(async (page) => {
-            // CITE editor-steps .slate-editor-header [i=2] gap = normal 18px  <-  (no
-            //      declaration — inherited or initial value)  (FROZEN/hardcoded);
-            //      authored `column-gap: 18px` at profile-editor-v3.css:99.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-space-4',
                 value: '37px',
@@ -540,10 +380,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-space-5 is the gap WITHIN a region', () => mounted(async (page) => {
-            // Slate's cluster gap is `gap-[22.5px]` (settings.html:9), and it DOES
-            // compile — `app.css .gap-\[22\.5px\]{gap:22.5px}`, verified read-only; it
-            // is the 22.5px TYPE literal that never compiles, not this one. Off scale,
-            // so §3.3 snaps it to the nearest step: 22.5 → 24.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-space-5',
                 value: '37px',
@@ -551,22 +387,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'column-gap',
             });
             near(drill.before, ORACLE.clusterGap, 'the resting cluster gap is the snapped 24px');
-            // A cluster reads as a cluster: within > between, so the eye groups the two
-            // commit buttons before it groups them with the centre track.
             assert.ok(ORACLE.clusterGap > ORACLE.regionGap,
                 'the within-region gap must exceed the between-region gap');
         }));
 
         test('drill: the title is .ui-title, and all three of its values are tokens', () => mounted(async (page) => {
-            // CITE settings-display-skin #page_title [i=3] font-size = 28px <-
-            //      slate-shell.css `#subpage-host #subpage-header #page_title` authored
-            //      `var(--slate-text-xl)` !important=no (token-driven)
-            // CITE …[i=3] font-weight = 500  <- the same rule, authored `500`
-            //      !important=no (FROZEN/hardcoded)
-            // CITE …[i=3] color = rgb(244, 247, 248)  <- the same rule, authored
-            //      `var(--slate-text)`   [prov-light rgb(23, 26, 28)]
-            // All three are exactly `.ui-title` from type-roles.js, so the component
-            // writes the class and restates nothing (TYPE_ROLES.md rule 1).
             const cs = await page.computed('#settings >>> #title', ['font-size', 'font-weight']);
             near(cs['font-size'], ORACLE.titleSize, 'title font-size');
             assert.equal(cs['font-weight'], ORACLE.titleWeight, 'title font-weight');
@@ -586,19 +411,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the title carries the oracle\'s tracking, and it tracks the type size', () => mounted(async (page) => {
-            // REVIEW FINDING cross-5: this row was dropped in the first cut and the title
-            // rendered `normal`. The disqualification check runs first and does not fire —
-            // tracking is inside the corpus's 18-property surface, no decision touches
-            // title tracking, and #page_title is on neither §7's 140 nor the 31 contract
-            // bugs — so the oracle is QUALIFIED and this is carried, not departed from.
-            //   CITE settings-display-skin #page_title [i=3] letter-spacing = 0.28px  ←
-            //        slate-shell.css `#subpage-host #subpage-header #page_title` authored
-            //        `0.01em` !important=no (token-driven)
             near((await page.computed('#settings >>> #title', ['letter-spacing']))['letter-spacing'],
                 0.28, 'the oracle\'s 0.28px at 28px type', 0.02);
 
-            // Authored as the em, not the measured px: it has to follow the type size, or
-            // a retarget of --ui-text-xl leaves the tracking behind at a wrong ratio.
             await page.setToken('--ui-text-xl', '56px');
             try {
                 near((await page.computed('#settings >>> #title', ['letter-spacing']))['letter-spacing'],
@@ -607,8 +422,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.setToken('--ui-text-xl', null);
             }
 
-            // And the sibling really is the other value, so the pair is a deliberate
-            // difference rather than a drift: #16's sheet title is --ui-tracking-cap.
             assert.notEqual(
                 await page.resolveValue('var(--ui-tracking-cap)', 'letter-spacing'),
                 (await page.computed('#settings >>> #title', ['letter-spacing']))['letter-spacing'],
@@ -617,25 +430,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('#2\'s widening hook: the cluster is unreachable, the slotted action is not', () => mounted(async (page) => {
-            // REVIEW FINDING c3-4. The first cut documented
-            // `ui-page-header ui-button.header-action { inline-size: 96px }` as a
-            // consumer hook; #cancel/#save are rendered INSIDE this shadow root, so that
-            // rule can never match them, and nothing exercised it either way.
-            // Both of those rules are live in FIXTURE_CSS throughout.
             const save = await page.box('#settings >>> #save');
             assert.notEqual(Math.round(save.width), 96,
                 'a document rule reached inside the shadow root — that is not the hook');
             assert.ok(save.width > 96,
                 `the cluster is content-sized, measured ${save.width}px for "Save (3)"`);
 
-            // The half that IS the hook: a slotted control is the consumer's own light-DOM
-            // element, and the consumer's own sheet sizes it normally
-            // (ui-icon-button.js:104-117 documents exactly this rule).
             near((await page.box('#editor-wide')).width, 96,
                 'the consumer could not widen its own slotted action');
 
-            // …and ::slotted(.header-action) keeps the width it was given: the band must
-            // not shrink it away when the title needs room.
             await page.setStyle('#screen-c', { 'inline-size': '460px' });
             try {
                 near((await page.box('#editor-wide')).width, 96,
@@ -654,19 +457,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 4. D11 — "Save (3)", decided here and nowhere else
-         * ============================================================== */
-
         test('D11: a dirty header reads "Save (N)" and offers Cancel', () => mounted(async (page) => {
-            // D11 (accepted, SCOPE.md:2220): "the save button reads 'Save (3)', and the
-            // shared component decides the wording — never per screen."
             assert.equal(await textOf(page, '#settings >>> #save'), 'Save (3)');
             assert.ok(await page.exists('#settings >>> #cancel'),
                 'a dirty header offers a way back');
-            // CITE settings-display-skin #save-settings-btn [i=4] height = 82px  <-
-            //      slate-shell.css `#subpage-host #subpage-header button:not(
-            //      #fullscreen-toggle-btn), …` authored `var(--slate-control-lg)`
             near((await page.box('#settings >>> #save')).height, ORACLE.controlLg,
                 'the commit control is --ui-control-lg (ui-button `tall`)');
 
@@ -683,19 +477,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await textOf(page, '#settings >>> #save'), 'Save (12)');
         }));
 
-        /* A CLEAN HEADER READS "SAVE" AND KEEPS CANCEL (Ben, 25 August 2026).
-         *
-         * The old expectation was D11's, and its evidence was real: Slate's SETTINGS
-         * capture shows one neutral "Close" and no Cancel in all 38 states. What it missed
-         * is that Slate's other committing screen — the profile editor — shows Cancel and
-         * a filled Save whether or not anything has changed, and Ben chose that pair for
-         * both screens when the editor's header was built.
-         *
-         * SO ONE THING SURVIVES UNCHANGED AND IT IS THE ONE D11 IS ABOUT: the PRIMARY FILL
-         * is still spent only when there is something to affirm. Slate's own S10 note is
-         * the reason ("Save was full-primary on untouched pages, so the affirmative
-         * treatment said nothing about whether there was anything to affirm"), and it is
-         * asserted below exactly as before. */
         test('D11: a clean header spends no primary fill, and the count is what changes', () => mounted(async (page) => {
             assert.equal(await textOf(page, '#clean >>> #save'), 'Save',
                 'the word is Save at zero, with no count beside it');
@@ -710,8 +491,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('D11: "cannot tell" is clean — a bad count never shows a false-dirty Save', () => mounted(async (page) => {
-            // SCOPE.md:2682 carries the rule forward: "treat 'cannot tell' as clean,
-            // because a false-dirty Save is worse than no dirty state".
             /* "CANNOT TELL" IS STILL CLEAN, and clean is now "Save" with no count —
              * the claim is unchanged, the word at zero is not. */
             for (const [value, expected] of [[-3, 'Save'], [0, 'Save'], ['x', 'Save'], [2.7, 'Save (2)']]) {
@@ -725,9 +504,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('D11 cannot express: no screen can supply the wording', () => mounted(async (page) => {
-            // The decision is only a decision if the alternative is unreachable. There
-            // is no label property, no label attribute and no slot in the commit
-            // region — a screen supplies a NUMBER and gets a SENTENCE.
             await page.evalFn(() => {
                 const el = document.getElementById('settings');
                 for (const name of ['save-label', 'label', 'primary-label', 'commit-label',
@@ -745,15 +521,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D11: the wording is one translatable SENTENCE, not a word plus punctuation',
             () => mounted(async (page) => {
-                // REVIEW FINDING c3-5. The first cut built the label as
-                // `${t('Save')} (${n})`, which freezes the parentheses, the space and the
-                // word order in English — the same defect D11 names one level up, one
-                // level down. D2 (accepted, SCOPE.md:1771-1775) exists precisely so the
-                // whole sentence is the unit: src/lib/i18n.js:31-38 interpolates {count}
-                // on the catalogue string AND on the key-as-fallback path.
-                //
-                // The catalogue below moves the count to the FRONT and drops the
-                // parentheses, which is unreachable by concatenation and is the point.
                 const setLang = (lang, strings) => page.evalFn(async (l, s) => {
                     const m = await import('/src/lib/i18n.js');
                     m.translations.set(l, s);
@@ -765,9 +532,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 assert.equal(await setLang('xx', {
                     'Save ({count})': '{count} unsaved — commit',
-                    /* THE CLEAN KEY IS `Save` SINCE 25 AUGUST 2026, not `Close` — the word
-                     * at zero changed and the mechanism did not: it is still a whole
-                     * sentence looked up in the catalogue. */
                     Save: 'Done',
                     Cancel: 'Back',
                 }), 'xx');
@@ -778,8 +542,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await textOf(page, '#clean >>> #save'), 'Done',
                     'the clean label moves with the language too');
 
-                // The count is still the component's, so it re-renders through the
-                // catalogue rather than being baked at set() time.
                 await page.evalFn(() => {
                     document.getElementById('settings').changeCount = 7; return true;
                 });
@@ -795,10 +557,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D11 cannot express: a screen cannot reach the wording through the store either',
             () => mounted(async (page) => {
-                // The i18n store is a per-DOCUMENT module, so a catalogue is an
-                // application-wide decision — not a per-screen one. Two headers on one
-                // page therefore cannot say different things, which is the same property
-                // the label-attribute test asserts through the other door.
                 await page.evalFn(async () => {
                     const m = await import('/src/lib/i18n.js');
                     m.translations.set('xx', { 'Save ({count})': 'One wording' });
@@ -826,11 +584,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(events.length, 2, 'one event per press');
             assert.equal(events[0].type, 'commit');
             assert.equal(events[1].type, 'cancel');
-            // `dirty` in the detail is the same boolean that chose the label, so the two
-            // cannot drift — Appendix 15's argument, applied to wording.
             assert.deepEqual(events[0].detail, { changeCount: 3, dirty: true });
 
-            // One handler for both states, as Slate has one (settings.js:6773).
             await page.recordEvents('#clean', ['commit']);
             await page.click('#clean >>> #save >>> button');
             const clean = await page.recordedEvents();
@@ -838,16 +593,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(clean.at(-1).detail, { changeCount: 0, dirty: false });
         }));
 
-        /* ================================================================
-         * 5. WAVE LAW — this band paints no selection, and cannot
-         * ============================================================== */
-
         test('wave law: the four dials move nothing in this shadow tree', () => mounted(async (page) => {
-            // "NO private 'selected' look anywhere in this wave — a component expresses
-            // selection ONLY via the dial tokens" (wave brief; CONVENTIONS §4). This
-            // band HOSTS the things that select — the editor tablist, Live's favourites
-            // bank, the History Viewer's tab bank — through a SLOT, and they are
-            // #3/#32/#36. So the correct reading here is that all four dials are inert.
             const before = await shadowPaint(page, 'live');
             await page.setToken('--ui-selected-face', DRILL_COLOUR);
             await page.setToken('--ui-selected-ink', DRILL_COLOUR);
@@ -863,10 +609,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('wave law: a slotted [aria-selected] takes nothing from this component', () => mounted(async (page) => {
-            // The band must not paint its slotted tabs. Slate's Live header does exactly
-            // that — bug L8, "the favourites bank and #dye-strip are two hand-built
-            // copies of .slate-bank … bypassing all four --slate-selected-* dials" — and
-            // the fix is not a better copy in the band, it is NO copy in the band.
             for (const sel of ['#tab-1', '#fav-1']) {
                 const cs = await page.computed(sel, ['background-color', 'box-shadow', 'text-shadow']);
                 assert.equal(cs['background-color'], 'rgba(0, 0, 0, 0)',
@@ -876,20 +618,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         }));
 
-        /* ================================================================
-         * 6. FOCUS — L24's class, in a band made entirely of controls
-         * ============================================================== */
-
         test('the commit buttons take the one ring, unclipped', () => mounted(async (page) => {
             await assertFocusUnclipped(page, '#settings >>> #save >>> button');
             await assertFocusUnclipped(page, '#settings >>> #cancel >>> button');
         }));
 
         test('a slotted control in any region takes the one ring, unclipped', () => mounted(async (page) => {
-            // The band declares overflow on .title alone, and an <h1> cannot be focused.
-            // Every other box here is unclipped by construction, which is what keeps
-            // L24 — "focus rings clipped on all four sides by the components they sit
-            // inside" — off all three regions.
             for (const sel of ['#library', '#fav-1', '#sleep', '#editor-exit']) {
                 await assertFocusUnclipped(page, sel);
             }
@@ -905,13 +639,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 7. CONTAINER BEHAVIOUR — its own box, never the viewport
-         * ============================================================== */
-
         test('the band fills its container and reads no viewport', () => mounted(async (page) => {
-            // #fixed-holder is 640px at BOTH geometries, so an inline measurement that
-            // differed between 1281×801 and 1000×600 came from the viewport.
             const host = await page.box('#fixed');
             const band = await page.box('#fixed >>> #band');
             near(host.width, 640, 'the host fills its container');
@@ -921,9 +649,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the title gives before the actions do', () => mounted(async (page) => {
-            // Appendix 7's idea, kept: "A three-column header with a fixed centre track,
-            // so tabs stay optically centred and the flanks overflow rather than shove."
-            // Departure 4 makes the flank that overflows do it as an ellipsis.
             const bandH = ORACLE.bandH * await densityOf(page);
             const wide = await page.box('#squeeze >>> #save');
             await page.setStyle('#squeeze-holder', { 'inline-size': '460px' });
@@ -944,19 +669,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'ellipsis',
                 'and it says so, rather than cutting mid-glyph',
             );
-            // The affirmative action stays inside the band's own inset: overflow, never
-            // shove, and never off the edge of the band.
             assert.ok(tight.save.right <= tight.band.right - ORACLE.inset + 0.6,
                 `the trail was pushed out of the band (${tight.save.right} vs ${tight.band.right})`);
         }));
 
         test('the two layouts are the spec\'s two, and the fallback is flanks', () => mounted(async (page) => {
-            // flanks: LAYOUT_SPEC_DRAFT.md:632-633 "<editor-header>
-            //   grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) / centre track =
-            //   the tablist's own width; flanks overflow, never shove"  — departure 5,
-            //   not Slate's `minmax(0,1fr) 430px minmax(0,1fr)`.
-            // centre: :540 "Contents are a 3-part flex row: library button, favourites
-            //   bank (1fr, min-width: 0), action cluster."
             const tracks = async (sel) => (await page.prop(sel, 'grid-template-columns'))
                 .split(/\s+/).map(parseFloat);
             const editor = await tracks('#editor >>> #band');
@@ -978,19 +695,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* ================================================================
-         * 8. DEPARTURE 2 — the seam draws the underline, and only once
-         * ============================================================== */
-
         test('the band draws no bottom edge of its own', () => mounted(async (page) => {
-            // CITE editor-steps .slate-editor-header [i=2] box-shadow = rgb(82, 97, 107)
-            //      0px -1px 0px 0px inset  <-  profile-editor-v3.css
-            //      `.slate-editor-header` authored `inset 0 -1px var(--slate-line-strong)`
-            //      !important=no (token-driven)   [prov-light rgb(170, 178, 183)]
-            // CONVENTIONS §13 names this line as the seam utility's: ".seam-strong — the
-            // emphasised divider: rail edge, HEADER UNDERLINE, band top." A band that
-            // drew its own as well would be L9's shape — "every rail stepper draws its
-            // seam twice (component inset shadow + Live border)".
             const cs = await page.computed('#settings >>> #band',
                 ['box-shadow', 'border-bottom-width', 'border-bottom-style']);
             assert.equal(cs['box-shadow'], 'none', 'the band draws no shadow');
@@ -999,9 +704,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the screen grid draws it, once, as a gap', () => mounted(async (page) => {
-            // LAYOUT_SPEC_DRAFT.md:521-525 — `gap: var(--ui-seam)` over `background:
-            // var(--ui-line-strong)`, "the seam IS the divider". The gap between the
-            // band and the body is the only thing between them.
             const band = await page.box('#settings >>> #band');
             const body = await page.box('#screen-a > .body');
             const seam = parseFloat(await page.prop('#screen-a', 'row-gap'));
@@ -1009,21 +711,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(body.top - band.bottom, seam, 'exactly one seam between band and body');
         }));
 
-        /* ================================================================
-         * 9. ARIA — the state a screen reader reads is the state on screen
-         * ============================================================== */
-
         test('the band is a <header>, and the landmark is opt-in', () => mounted(async (page) => {
-            // ORACLE, both sides:
-            //   CITE live-ready .slate-live-header [i=1] <header class="slate-live-header
-            //        bg-[var(--box-color)] border-b border-base-400 w-full h-[168px]
-            //        relative" role="banner">                              (7 states)
-            //   CITE settings-display-skin #subpage-header [i=2] <div id="subpage-header"
-            //        class="flex justify-between items-center p-6 border-b border-base-300
-            //        bg-[var(--box-color)] h-[150px]">                     (39 states, no
-            //        role; its parent is role="dialog" — settings.html:6)
-            // 39 without against 7 with, and the 39 are right: a banner landmark inside a
-            // dialog is a landmark in the wrong place. Default off; Live writes `banner`.
             const shape = await page.evalFn(() => {
                 const read = (id) => {
                     const el = document.getElementById(id).shadowRoot.getElementById('band');
@@ -1040,10 +728,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(shape.inDialog.tag, 'header', 'it stays a real <header> either way');
             assert.equal(shape.live.role, 'banner', 'Live opts in');
 
-            // REVIEW FINDING c3-2. `role === null` is not what this departure claims, and
-            // cannot fail for it: a bare <header> outside article/aside/main/nav/section
-            // has the IMPLICIT role banner, and role="dialog" does not suppress it. So the
-            // attribute is now explicit AND the COMPUTED role is what is asserted.
             assert.equal(shape.settings.role, 'none', 'the non-banner case says so out loud');
             assert.equal(shape.inDialog.role, 'none');
 
@@ -1055,8 +739,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(ax.live.role, 'banner', 'Live really is a banner landmark');
             assert.notEqual(ax.settings.role, 'banner',
                 'a default band computed a banner landmark — departure 3 is not achieved');
-            // #dialog-holder is role="dialog", which is the exact arrangement Slate ships
-            // (settings.html:6) and the one the departure was written about.
             assert.notEqual(ax.inDialog.role, 'banner',
                 'a banner landmark inside a dialog is a landmark in the wrong place');
             assert.equal(ax.inDialog.role, 'none');
@@ -1076,16 +758,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the commit buttons carry their own accessible name', () => mounted(async (page) => {
-            // The name IS the label, so the wording rule and the accessible name are one
-            // string and cannot drift — Appendix 15's argument, applied to text.
             const names = await page.evalFn(() => {
                 const btn = (host, id) => document.getElementById(host).shadowRoot
                     .getElementById(id).shadowRoot.querySelector('button');
-                /* #1 paints its label through a <slot> (ui-button.js render(): the inner
-                 * button's only child is <slot></slot>), so the accessible name is
-                 * computed from the FLATTENED tree — the shadow button's own
-                 * textContent is empty by construction. Read what the slot is handed,
-                 * which is exactly what a screen reader announces. */
                 const nameOf = (host, id) => {
                     const b = btn(host, id);
                     const slot = b.querySelector('slot');
@@ -1109,16 +784,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the visible text IS the name — an aria-label here could disagree with it');
         }));
 
-        /* ================================================================
-         * 10. ZERO !IMPORTANT, and the shadow boundary that makes it possible
-         * ============================================================== */
-
         test('every paint in this component landed from a plain class rule', () => mounted(async (page) => {
-            // Slate's three header sheets need `!important` because other sheets can
-            // reach the same elements — slate-live.css:98-101 carries three on one rule.
-            // Nothing can reach into a shadow root, so the reason is gone (CONVENTIONS
-            // §6), and the proof is that the plain rules landed at all with the
-            // FIXTURE_CSS attack sheet live on the page throughout.
             const cs = await page.computed('#settings >>> #band',
                 ['background-color', 'display', 'align-items', 'column-gap']);
             assert.equal(cs.display, 'grid');
@@ -1128,10 +794,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ===========================================================================
- * THEMES — one band, two palettes, no rule change (A6 / the Radian rule)
- * =========================================================================== */
 
 describe('ui-page-header across themes', () => {
     const seen = {};
@@ -1145,11 +807,6 @@ describe('ui-page-header across themes', () => {
                 seen[theme] = await page.computed('#settings >>> #band', ['background-color']);
                 const title = await page.computed('#settings >>> #title', ['color']);
 
-                // CITE settings-display-skin #subpage-header [i=2] background-color =
-                //      rgb(17, 22, 26) [prov-baseline] / rgb(250, 250, 250) [prov-light]
-                //      <- slate-shell.css `#subpage-host #subpage-header` (token-driven)
-                // CITE settings-display-skin #page_title [i=3] color =
-                //      rgb(244, 247, 248) [prov-baseline] / rgb(23, 26, 28) [prov-light]
                 assert.equal(seen[theme]['background-color'], ORACLE[theme].bar);
                 assert.equal(title.color, ORACLE[theme].text);
             },
@@ -1160,15 +817,6 @@ describe('ui-page-header across themes', () => {
         assert.notEqual(seen.dark['background-color'], seen.light['background-color']);
     });
 });
-
-/* ===========================================================================
- * THE GALLERY ENTRY THIS COMPONENT SHIPS
- * The entry lives in its own file (tools/gallery/entries/ui-page-header.entry.js)
- * because twelve wave-2 builders cannot all append to one array under a whole-file
- * write rule; the wave's single cross-cutting writer wires it into
- * tools/gallery/entries.js. The ENTRY's own correctness is this builder's problem,
- * and an entry that throws photographs an empty stage rather than failing.
- * =========================================================================== */
 
 describe('the gallery entry this component ships', () => {
     test('every declared state mounts, settles and paints a band', async () => {
@@ -1214,12 +862,8 @@ describe('the gallery entry this component ships', () => {
                     assert.ok(band, `${entry.id}--${state.id} rendered a host with no band`);
                     assert.ok(band.w > 0, `${entry.id}--${state.id} rendered a zero-width band`);
                     near(band.h, ORACLE.bandH, `${entry.id}--${state.id} band height`);
-                    // CONVENTIONS §13 trap 1: an unpainted cell in a seam grid is a hole,
-                    // and the screen-grid state mounts this band inside exactly that.
                     assert.notEqual(band.bg, 'rgba(0, 0, 0, 0)',
                         `${entry.id}--${state.id} paints no ground`);
-                    // P17 again, this time through the shipped states: every band in
-                    // every state carries the one inset, on both edges.
                     near(band.padLeft, ORACLE.inset, `${entry.id}--${state.id} padding-left`);
                     near(band.padRight, ORACLE.inset, `${entry.id}--${state.id} padding-right`);
                 }

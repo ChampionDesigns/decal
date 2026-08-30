@@ -1,30 +1,5 @@
 /**
- * guards.test.mjs — Gate C's canaries.
- *
- * "Every guard ships with a canary. A fixture that deliberately violates the rule,
- *  and a test asserting the guard fails on it. All three old-guard failures were
- *  guards that silently stopped covering their target; a canary converts that decay
- *  from invisible to a red build." — SCOPE Part 8 §2, Gate C.
- *
- * The canary is as much the deliverable as the guard. So this file asserts in both
- * directions, and exactly:
- *
- *   - each guard FAILS on its canary, at the right file and the right line;
- *   - each guard PASSES on a clean component that uses the shapes most likely to
- *     trip a careless scanner (test/fixtures/guard-clean/) — a guard that fires on
- *     everything gets switched off, which is the same outcome as one that fires on
- *     nothing;
- *   - the guards find the violation hidden in a nested template inside an
- *     interpolation, and do NOT find the ones written in prose, in a comment or in a
- *     string (test/fixtures/canaries/hidden-literal.js);
- *   - all THREE halves of the scan are covered: the `css` templates in .js files, plain
- *     .css files, and authored CSS inside an HTML document — a `<style>` element or a
- *     `css` template in an inline `<script>` (test/fixtures/canaries/html-style-literal.html);
- *   - the default scan roots exclude test/, so the build does not fail on its own
- *     canaries (test/fixtures/canaries/README.md states this as worth a test);
- *   - the exemption-rot check fires when an exempt path does not exist ON DISK, and
- *     does not fire merely because a run's scan roots were narrowed;
- *   - and the shipping tree is clean, which is the assertion the build actually runs.
+ * Gate C's canaries.
  */
 
 import { test, describe, after } from 'node:test';
@@ -43,16 +18,7 @@ import { findColourLiterals, isColourBearing } from '../scripts/lib/colour-liter
 const CANARIES = ['test/fixtures/canaries'];
 const CLEAN = ['test/fixtures/guard-clean'];
 
-/**
- * Run over a fixture tree. The exemption check stays ON: the exempt sheets live under
- * the real repo root, which is still `root` here, so narrowing `roots` must not make
- * the rot check fire. That it once did is the reason this argument is spelled out.
- */
 const overFixtures = (roots, only = null) => runGuards({ roots, only, checkExemptions: true });
-
-/* ---------------------------------------------------------------------------
- * The tree the build actually guards
- * ------------------------------------------------------------------------- */
 
 describe('Gate C over the shipping tree', () => {
     test('every guard passes', async () => {
@@ -62,17 +28,9 @@ describe('Gate C over the shipping tree', () => {
     });
 
     test('and it is actually looking at something', async () => {
-        // A guard that scans zero files passes forever. This is the assertion that
-        // catches the day someone moves src/ and nobody notices Gate C went quiet.
         const report = await runGuards({});
         assert.ok(report.blocks >= 5, `expected several CSS blocks, found ${report.blocks}`);
         assert.ok(report.declarations >= 100, `expected a real declaration count, found ${report.declarations}`);
-        /* WHAT "SOMETHING" IS DEPENDS ON WHAT THE GUARD ASKS. Every guard here reads CSS
-         * blocks except `parses`, which asks a question about FILES — the block scanner
-         * only extracts css`` templates, so a guard that must see every authored file
-         * cannot be written against blocks at all, which is precisely the gap it closes.
-         * Asserted per kind rather than by loosening the number, because "blocks or files,
-         * whichever is non-zero" would let a block guard go quiet and still pass. */
         for (const r of report.results) {
             const kind = GUARDS.find((g) => g.id === r.guard)?.kind;
             if (kind === 'files') {
@@ -93,15 +51,9 @@ describe('Gate C over the shipping tree', () => {
     });
 
     test('the tool pages` <style> blocks are scanned, not skipped as scaffolding', async () => {
-        // ~120 lines of authored CSS in a <style> element. Before it was read, Gate C
-        // reported PASS on a file it had never opened.
         const report = await runGuards({});
         assert.ok(report.files.includes('tools/gallery/index.html'));
         assert.ok(report.files.includes('index.html'));
-        // The blocks themselves, via the collector the guards share. EVERY tool page with
-        // a <style> element is here, not a fixed count: wave 5.1 added the screens walk
-        // (tools/screens/index.html), and a count nobody could add to would have made the
-        // next tool page's chrome unscanned — the very hole this test was written for.
         const { blocks } = await collectAuthoredCss({});
         const styleEl = blocks.filter((b) => b.kind === 'style-element');
         const gallery = styleEl.find((b) => b.file === 'tools/gallery/index.html');
@@ -121,10 +73,6 @@ describe('Gate C over the shipping tree', () => {
         assert.ok(!DEFAULT_SCAN_ROOTS.some((r) => r.startsWith('vendor')));
     });
 });
-
-/* ---------------------------------------------------------------------------
- * The canaries — one per guard, all three halves of the scan
- * ------------------------------------------------------------------------- */
 
 describe('Gate C canaries', () => {
     test('colour-literal fails on the template canary, at the right lines', async () => {
@@ -189,10 +137,6 @@ describe('Gate C canaries', () => {
     });
 });
 
-/* ---------------------------------------------------------------------------
- * Guard blindness, in both directions
- * ------------------------------------------------------------------------- */
-
 describe('guard blindness', () => {
     test('a literal hidden in a nested template inside an interpolation is found', async () => {
         const report = await overFixtures(CANARIES, ['colour-literal']);
@@ -203,11 +147,6 @@ describe('guard blindness', () => {
     });
 
     test('the viewport-unit guard finds all four shapes and spares the var() fallback', async () => {
-        /* The four shapes are a fraction of the height, a fraction of the width, a
-         * vmin, and one buried in a calc() where it reads as arithmetic. The shape it
-         * must NOT report is `var(--ui-app-h, 100dvh)`: that is the pre-fit fallback,
-         * the reason a WebView with the inline script blocked still gets a page, and a
-         * guard that fired on it would be a guard nobody could satisfy. */
         const report = await overFixtures(CANARIES, ['viewport-unit']);
         const hits = report.violations.filter((v) => v.file.endsWith('viewport-unit.js'));
         assert.deepEqual(hits.map((v) => v.detail.split(':')[0]).sort(),
@@ -220,19 +159,11 @@ describe('guard blindness', () => {
     test('colours and !important written in prose, comments and strings are not violations', async () => {
         const report = await overFixtures(CANARIES);
         const hits = report.violations.filter((v) => v.file.endsWith('hidden-literal.js'));
-        // The file writes #ff0000, rgb(1, 2, 3) and "!important" in a doc comment, in
-        // two module-scope strings, in a comment inside the css template, and in a
-        // `content:` string. src/components/base.js does the same when it documents
-        // why those things are never used — a guard that greps the raw file fails on
-        // the file that documents the rule.
         assert.equal(hits.filter((h) => h.guard === 'important').length, 0);
         assert.equal(hits.filter((h) => /#ff0000|rgb\(/.test(h.message)).length, 0);
     });
 
     test('a colour written in an HTML comment or a JS string is not a violation either', async () => {
-        // The HTML canary's own explanatory comment writes #ff0000 and rgb(1, 2, 3),
-        // and its inline script writes #ff0000 in a comment and in a string. Only the
-        // three real ones may fire — the same rule, on the new scan surface.
         const report = await overFixtures(CANARIES, ['colour-literal']);
         const hits = report.violations.filter((v) => v.file.endsWith('html-style-literal.html'));
         const decoyLines = [15, 28, 29]; // the HTML comment, the JS comment, the JS string
@@ -248,10 +179,6 @@ describe('guard blindness', () => {
         assert.ok(report.blocks > 0, 'the clean fixture must actually be scanned');
     });
 });
-
-/* ---------------------------------------------------------------------------
- * The exemptions
- * ------------------------------------------------------------------------- */
 
 describe('exemptions', () => {
     const temps = [];
@@ -279,8 +206,6 @@ describe('exemptions', () => {
     });
 
     test('an exemption pointing at a file that is not on disk is itself a violation', async () => {
-        // The mechanism under test is a FILESYSTEM fact. So: a tree where one exempt
-        // sheet exists and the rest do not, and the check must name exactly those.
         const root = await makeTree({
             'styles/tokens.css': ':root { --ui-text: #e8eef2; }\n',
             'src/thing.js': 'export const x = 1;\n',
@@ -288,10 +213,6 @@ describe('exemptions', () => {
         const report = await runGuards({ root, roots: ['src', 'styles'], checkExemptions: true });
         const rot = report.violations.filter((v) => /exempt path does not exist/.test(v.message));
 
-        // Five, because the registry's exemptions are: chart-channels.css for two
-        // guards, document.css for one, and the two instrument host pages for the
-        // viewport-unit guard — the pages whose stage IS the viewport, which is the
-        // ground being stated rather than the app reading it.
         assert.equal(rot.length, 5, `\n${formatReport(report)}`);
         assert.deepEqual(
             [...new Set(rot.map((v) => v.file))].sort(),
@@ -305,10 +226,6 @@ describe('exemptions', () => {
     });
 
     test('narrowing the scan roots does not make the rot check fire', async () => {
-        // The bug this pins: the check used to test membership of THIS run's scanned
-        // file list, so `roots: ['src']` reported all five exempt sheets as
-        // non-existent while they sat in styles/. Five false errors whose obvious
-        // remedy is checkExemptions:false — the check switching itself off.
         for (const roots of [['src'], ['tools'], ['test/fixtures/canaries']]) {
             const report = await runGuards({ roots, checkExemptions: true });
             const rot = report.violations.filter((v) => /exempt path does not exist/.test(v.message));
@@ -317,22 +234,14 @@ describe('exemptions', () => {
     });
 
     test('the exempted sheets really do hold literals, so the exemption is load-bearing', async () => {
-        // If tokens.css ever stopped holding colour literals, the exemption would be
-        // dead weight — and dead exemptions are how a guard's coverage silently shrinks.
         const report = await runGuards({ roots: ['styles'], checkExemptions: true });
         assert.equal(report.violations.length, 0, 'styles/ is clean with the exemptions in place');
 
         const unexempted = await runGuards({ roots: ['styles'], only: ['colour-literal'], checkExemptions: true });
-        // Sanity: prove the guard would have plenty to say about the token sheet by
-        // scanning it directly through the vocabulary rather than the file walk.
         assert.ok(findColourLiterals('--ui-steel', '#b0c4ce').length > 0);
         assert.equal(unexempted.violations.length, 0);
     });
 });
-
-/* ---------------------------------------------------------------------------
- * The colour vocabulary, on strings
- * ------------------------------------------------------------------------- */
 
 describe('what counts as a colour literal', () => {
     test('the three literal forms are caught', () => {
@@ -360,8 +269,6 @@ describe('what counts as a colour literal', () => {
     });
 
     test('a colour name in a non-colour property is not a colour', () => {
-        // "plum", "linen" and "tan" are also ordinary words. Flagging them in
-        // grid-template-areas is the false positive that gets a guard exempted.
         assert.deepEqual(findColourLiterals('grid-template-areas', '"plum linen"'), []);
         assert.deepEqual(findColourLiterals('font-family', 'Geist, system-ui, sans-serif'), []);
         assert.equal(isColourBearing('grid-template-areas'), false);

@@ -1,14 +1,5 @@
 /**
- * steam-chart.test.mjs — WHAT THE LIVE CHART DRAWS WHILE THE MACHINE IS STEAMING.
- *
- * Ben, 24 August 2026: "There is a steam chart that is shown in the live view when
- * steaming." Decal drew the espresso chart through every steam and then went back to
- * the LAST SHOT — a picture of something that happened ten minutes ago, on the one screen
- * you are looking at while steaming.
- *
- * TWO PIECES, BOTH PURE. The MODE is a fold over machine frames, ported from the old
- * skin's own module with its precedence intact; the BUFFER is what those frames
- * accumulate into. The rendering is `test/render/live-bands.render.test.mjs`'s.
+ * What.
  */
 
 import { test, describe } from 'node:test';
@@ -122,9 +113,6 @@ describe('the two axes are fixed, and the channels know which they are on', () =
     });
 
     test('and the two temperatures carry the RIGHT scale', () => {
-        /* A temperature drawn against the 0..6.5 bar axis is a line pinned to the top of
-         * the plot for the whole session, which looks exactly like a chart with no
-         * temperature on it. That was the first draft. */
         const byKey = Object.fromEntries(STEAM_CHANNEL_SPECS.map((spec) => [spec.key, spec]));
         for (const key of STEAM_Y2_CHANNELS) assert.equal(byKey[key].scale, 'y2', key);
         for (const key of ['pressure', 'flow', 'targetFlow']) {
@@ -201,10 +189,6 @@ describe('the session buffer', () => {
             buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 + i });
         }
         assert.equal(buffer.get().counts.samples, STEAM_SAMPLE_CAP);
-        /* THE COUNT IS PUBLISHED ONCE, AT THE CAP, and grows in the store without
-         * republishing — a session past the cap is being dropped from now on, and a
-         * republish per dropped sample would be churn for a number nobody watches
-         * change. What the state has to say is THAT the cap was reached. */
         assert.ok(buffer.get().counts.dropped >= 1, 'the state says samples were dropped');
     });
 

@@ -1,19 +1,5 @@
 /**
- * ui-chart-card-gallery-entry.test.mjs — the wave-3 #9 gallery entry, checked against the
- * contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array and
- * the run's rule is whole-file writes; N builders appending to it in parallel is N−1
- * entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the wave's
- * reviewer wires them in serially. This file is what makes that hand-off safe: it asserts
- * the shape the gallery needs BEFORE the wiring, so a malformed entry is a red test here
- * rather than a battery photographing an empty stage.
- *
- * `test/render/ui-chart-card.render.test.mjs` takes the other half — it mounts every one
- * of these states in a real browser and asserts each has a BUILT PLOT, which for this
- * component is the failure that matters: the card draws only what a derivation gives it,
- * so a state that forgets to hand it one photographs as a frame with no traces and
- * nothing anywhere raises.
+ * The wave-3 #9 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -46,9 +32,6 @@ test('state ids are unique, because they are capture filenames', () => {
 });
 
 test('every state gives the card a BLOCK size — uPlot sizes from clientHeight', () => {
-    /* A card in an auto-height stage builds its plot at zero and photographs as an empty
-     * frame. The inline size is deliberately NOT stated: the stage owns it, which is what
-     * makes `narrow-container` an honest container demonstration. */
     for (const state of entry.states) {
         assert.match(state.html, /block-size:\s*\d+px/,
             `state ${state.id} would build its plot at height 0`);
@@ -92,19 +75,10 @@ test('the demo drives a REAL recorded shot, and the fixture it names exists', as
 });
 
 test('the demo defers updateComplete until the shot has drawn', async () => {
-    /* gallery.js settles on `updateComplete` through the shadow tree; the card's mount is
-     * asynchronous (sheet, font, first build) and the shot arrives later still. Without
-     * this the battery photographs an empty canvas roughly as often as not, and "a capture
-     * taken one frame early is a baseline that is wrong forever". */
     const source = await readFile(repo('tools/gallery/entries/ui-chart-card.demo.js'), 'utf8');
     assert.match(source, /async getUpdateComplete\s*\(/);
     assert.match(source, /await this\.#loaded/);
 
-    /* AND IT MUST NOT AWAIT ITS OWN updateComplete TO DO IT. `updateComplete` routes
-     * through the override above, which awaits the loader — so awaiting it from inside
-     * the loader is a deadlock, and a silent one: MEASURED, the gallery-state render test
-     * sat on it until the run was killed, 23 of 25 subtests green and no error anywhere.
-     * Lit's `performUpdate()` is synchronous and is what this uses instead. */
     const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     assert.doesNotMatch(code, /await this\.updateComplete/,
         'awaiting updateComplete inside the promise getUpdateComplete awaits is a deadlock');

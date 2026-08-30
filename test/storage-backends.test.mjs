@@ -1,5 +1,4 @@
-// The backends, and specifically the two failure modes the module they replace got wrong:
-// an absent store threw at first read, and a failing write was invisible.
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -57,8 +56,6 @@ test('web storage round-trips through JSON', () => {
 });
 
 test('an ABSENT store degrades to memory with one warning — it does not throw', () => {
-    // storage-keys.js:20-22 threw `${name} is unavailable`; in a private-mode WebView that
-    // was an uncaught throw at first read. SCOPE Part 3 §5: degrade to in-memory instead.
     const logger = recordingLogger();
     const backend = createWebStorageBackend({ storage: undefined, logger, label: 'localStorage' });
     assert.doesNotThrow(() => backend.get('decal.theme'));

@@ -1,50 +1,5 @@
 /**
- * editor.js — the profile editor's rendering-test helper. Wave 5.5, row
- * `a8-rendering-tests`.
- *
- * ===========================================================================
- * WHAT IT IS FOR
- * ===========================================================================
- * A8, and Part 5 §5's sentence about this screen in particular: "the old editor is
- * pinned by tests that regex-match the stylesheet's source text for the 1920x1200 lock
- * and the 64px literals — TESTS THAT MADE THE DEFECTS UNREMOVABLE. The rewrite's editor
- * lands with rendering tests asserting COMPUTED STYLES, and no test anywhere may match
- * source text."
- *
- * Every export here takes a live `Page` and returns a measurement or asserts about one.
- * NOTHING IN THIS FILE OPENS A FILE, and that is the point of putting the wave's shared
- * assertions in one module: the matrix and editing rows assert THROUGH this, so "no test
- * in this wave reads source text" is a property of one file rather than a promise
- * repeated in five. The guard that keeps it true tree-wide is
- * `scripts/a8-source-text.js`, with its canary in `test/a8-source-text.test.mjs`.
- *
- * ===========================================================================
- * THE ONE ASSERTION THIS WAVE OWES ITSELF: assertTokenMovesBox
- * ===========================================================================
- * §7.4 E8: "`--pe-scale` is declared, documented, exported AND TESTED — and wired to
- * nothing. The tests pass against a layout engine the app does not use." A layout engine
- * that is not consulted does not exist in the rewrite, and the only proof that a value is
- * consulted is that MOVING IT MOVES A RENDERED BOX. `assertTokenMovesBox` is that proof,
- * written once: it reads the box, moves the token, reads the box again, and puts the
- * token back whether it passed or not.
- *
- * It is deliberately not `assertTokenDrill` (`test/harness/assertions.js`), which proves
- * a token reaches a COMPUTED PROPERTY. Reaching a property and moving a box are different
- * claims, and E8 is about the second: `--pe-scale` would have passed a drill on any
- * element that read it.
- *
- * ===========================================================================
- * THE STAGE IS SHARED FOR THE SAME REASON THE ASSERTIONS ARE
- * ===========================================================================
- * `editorStage()` builds the markup every editor suite mounts, so a capture, a
- * measurement and a battery frame are all of the same arrangement. The two mount points
- * are LIGHT-DOM children of `<editor-screen>` — `slot="steps"` for the matrix and
- * `slot="settings"` for the field rows — which is the contract `editor-screen.js` states
- * in its header and the one `test/fixtures/editor-shell-fixture.js` drives.
- *
- * B2: nothing here states a range. A fixture that restates a maximum is a second ranges
- * table and a block; the review lines below carry the bounds they were handed on the
- * segment, exactly as `reviewStepSpec` emits them.
+ * The profile editor's rendering-test helper.
  */
 
 import assert from 'node:assert/strict';
@@ -73,15 +28,8 @@ export const EDITOR = Object.freeze({
     reviewGrid: 'editor-screen >>> #review-panel >>> #panel',
     reviewColumns: 'editor-screen >>> #review-panel >>> .column',
 
-    /* THE MATRIX. A LIGHT-DOM child of <editor-screen>, so it is reached from the
-     * document and not through the screen's shadow root — that is the mount contract
-     * editor-screen.js states and the reason this spelling has no `>>>` in it. */
     matrix: 'step-matrix',
 
-    /* THE EDITING SURFACES (rows chart-preview, editor-dialogs, numpad-flows). All three
-     * are LIGHT-DOM children of <editor-screen> for the same reason the matrix is: the
-     * screen forwards `preview` into the review panel's chart row and `overlays` into a
-     * region that takes no track. */
     preview: 'editor-preview',
     previewCard: 'editor-preview >>> #card',
     previewPlot: 'editor-preview >>> #card >>> .plot',
@@ -127,15 +75,10 @@ export const textOf = (page, selector) => page.evalFn(
     (s) => (window.__h.q(s)?.textContent ?? '').trim(), selector,
 );
 
-/** The panel values, in §4.3's order — the same order the tab bar renders. */
 export const EDITOR_PANELS = Object.freeze(['steps', 'settings', 'review']);
 
 /** One tab button inside the bank, by index. */
 export const editorTab = (index) => `${EDITOR.tablist} >>> #item-${index}`;
-
-/* ===========================================================================
- * Reading numbers off the engine
- * =========================================================================== */
 
 /** Rendered lengths at dsf 1.5 are not string-comparable; whole CSS px are. */
 export const near = (got, want, what, tol = 0.51) => assert.ok(
@@ -149,19 +92,6 @@ export const tracks = (value) => String(value).trim().split(/\s+/);
 /** A computed length as a number. */
 export const px = (value) => parseFloat(value);
 
-/* ===========================================================================
- * The stage
- * =========================================================================== */
-
-/**
- * The markup every editor suite mounts.
- *
- * @param opts.matrix        inline style for the `slot="steps"` stand-in, or `null` to
- *                           leave the mount region empty (the skeleton's own state).
- * @param opts.fields        how many settings field rows to mount.
- * @param opts.fieldMinBlock each row's floor, so a suite can force the panel to scroll.
- * @param opts.stage         inline style for `#stage`.
- */
 export function editorStage({
     matrix = 'min-block-size: 2400px; min-inline-size: 2400px',
     fields = 9,
@@ -189,24 +119,6 @@ export async function mountEditor(page, options = {}) {
     return page;
 }
 
-/**
- * SEAT A PROFILE, THE WAY THE SHELL DOES  (fix run 4 — `dec-A-B-1`, `cmp-seh-3`).
- *
- * The editor takes its record from `boot.profileEditor`, the store `app-boot.js` builds
- * and the selector's Edit seats. A suite that wants the loaded-profile states — the
- * header's identity block, a dirty count, a save — drives the SAME path rather than
- * writing a private field: a real `createProfileEditorStore` over a transport this
- * function controls, handed to the screen on a `boot` object with the two doors the
- * screen actually reads (`profileEditor` and `capabilities.machineLimits()`).
- *
- * THE TRANSPORT IS THE TEST'S. `request` is answered from `answers` — `{ok, status, data}`
- * per route id, or a function — and every call made is recorded, so a suite asserts WHICH
- * route a gesture took rather than inferring it from what changed on screen. The default
- * answers a `postProfiles` with a record whose `parentId` is the seated record's id, which
- * is what ReaPrime does on B11's path.
- *
- * Returns the seated record's id.
- */
 export async function seatProfile(page, {
     profile = null,
     record = null,
@@ -231,24 +143,14 @@ export async function seatProfile(page, {
             import('/src/data/adapters-r.js'),
         ]);
         const calls = [];
-        /* `callRoute` calls `transport.request(path, {method, query, body})` — two
-         * arguments, the path already built from the route table — so this fake takes the
-         * same two and records the PATH, which is the evidence a suite wants: a gesture
-         * that took the wrong route wrote the wrong path. */
         const transport = {
             async request(path, options = {}) {
-                /* The path is the ROUTE TABLE's, not the URL: `callRoute` builds it from
-                 * the row and the transport owns the /api/v1 base, so a suite asserting
-                 * `/profiles` is asserting what the client spelled. */
                 const call = { path, method: options.method ?? 'GET', body: options.body ?? null };
                 calls.push(call);
                 const canned = payload.answers
                     ? (payload.answers[`${call.method} ${call.path}`] ?? payload.answers[call.method] ?? null)
                     : null;
                 if (canned) return canned;
-                /* THE DEFAULT: a create that answers the way ReaPrime's does — 201 with a
-                 * record carrying the parent link, so B11's "the old version is kept" is
-                 * a fact on the wire and not a claim in a test. */
                 const body = call.body ?? {};
                 return {
                     ok: true,
@@ -303,11 +205,6 @@ export async function setEditorWidth(page, value) {
     await page.settle(3);
 }
 
-/**
- * Show a panel THROUGH THE TAB BAR, which is the one owner of which panel shows.
- * Writing the screen's `tab` attribute instead measures a frame in which the bar has not
- * yet synced and the panels are still the previous tab's.
- */
 export async function selectPanel(page, value) {
     const index = EDITOR_PANELS.indexOf(value);
     assert.ok(index >= 0, `selectPanel: '${value}' is not one of ${EDITOR_PANELS.join(', ')}`);
@@ -316,21 +213,6 @@ export async function selectPanel(page, value) {
     return page.evalFn((s) => window.__h.need(s).getAttribute('tab'), EDITOR.screen);
 }
 
-/* ===========================================================================
- * The assertions
- * =========================================================================== */
-
-/**
- * E8's proof: move a custom property and watch a rendered box move.
- *
- * @param opts.token     the property, e.g. '--ui-editor-field-min-h'
- * @param opts.selector  the box that must move
- * @param opts.by        how much to add to the token's current value, in px
- * @param opts.axis      'block' (default) or 'inline'
- *
- * The token is restored whether the assertion passes or throws, so one failure does not
- * poison every test after it in the same page.
- */
 export async function assertTokenMovesBox(page, {
     token, selector, by = 120, axis = 'block',
 }) {
@@ -360,11 +242,6 @@ export async function assertTokenMovesBox(page, {
     }
 }
 
-/**
- * §2.4: nothing clips silently. A box that is not a declared scroll region must not carry
- * an `overflow` that hides its own overflow — Slate clips at `slate-components.css:51`,
- * and that is what made chart-C3's 32px overflow invisible.
- */
 export async function assertNoSilentClip(page, selector) {
     const m = await page.metrics(selector);
     for (const [axis, value] of [['x', m.overflowX], ['y', m.overflowY]]) {
@@ -390,11 +267,6 @@ export async function visiblePanels(page) {
         .filter(Boolean);
 }
 
-/**
- * Sweep a container query and report where the used track count flips. The threshold is
- * SWEPT rather than asserted at two convenient widths, because a query written on the
- * wrong box still gives the right answer at two points and the wrong one in between.
- */
 export async function sweepCollapse(page, {
     selector, from, to, step = 4,
 }) {
@@ -406,43 +278,6 @@ export async function sweepCollapse(page, {
     const flips = seen.filter((row, i) => i > 0 && row.n !== seen[i - 1].n);
     return { seen, flips };
 }
-
-/* ===========================================================================
- * §7.4 E4 — THE DEAD-RULE WALK  (and P9, which is the same scan)
- *
- * E4: "Eight CSS rules whose selectors cannot match, eight emitted-but-unstyled
- * classes, and a dead `data-pe-mode` attribute hook." A rule that cannot match is a
- * claim about the screen that the screen does not make, and it is the residue every
- * other §7.4 defect leaves behind — E8's unconsulted engine in miniature.
- *
- * A8: THIS READS NO FILE. It walks `adoptedStyleSheets` on the LIVE document and asks
- * the engine, through `querySelectorAll`, whether each selector has anything to select.
- * The authored string never enters it; a rule renamed in the source is followed here for
- * free, which is the whole difference between this and the 29 text-scan suites.
- *
- * THREE THINGS MAKE IT NON-VACUOUS, because a walk that silently finds no rules passes
- * every assertion about them:
- *
- *   1. A STYLE RULE IS RECORDED BEFORE ITS CHILDREN, NOT INSTEAD OF THEM. Under CSS
- *      nesting every `CSSStyleRule` carries a (usually empty) `cssRules`, so the
- *      familiar `if (rule.cssRules) { recurse; continue; }` shape walks past every
- *      top-level rule in the sheet and reports an empty census. Selectors are collected
- *      first and nesting is recursed into afterwards.
- *   2. THE CALLER ASSERTS A RULE COUNT. `ruleCensus().sheets()` reports `rules` per
- *      sheet so a suite can refuse a scan that found nothing.
- *   3. THE CANARY. `assertScanIsLive()` inserts a selector that cannot match, re-scans,
- *      and requires the scan to report it dead — the E8 proof, applied to the test.
- *
- * DEPTH-AWARE, AND STATE-AWARE. `hosts` are `>>>` paths, so each component is asked
- * about ITS OWN root. Only the last adopted sheet is walked: the earlier ones are the
- * shared fragments (base, type roles, seams) whose unmatched rules belong to whichever
- * component does use them. Where that last sheet is ITSELF shared — the two editor
- * dialogs both end on `dialogRows` — the sheets are keyed BY IDENTITY, so a selector
- * live in either root counts as live for the sheet. And a rule is only dead if it
- * matches in NO state the caller drives: `#steps[hidden]` matches once another tab is
- * selected, `.cell > ui-locked-value` once a step holds, `.seg-lev` once a lever
- * segment is fed. Union first, judge afterwards.
- * =========================================================================== */
 
 /** The in-page walk. One call, many hosts, so sheet identity is comparable across them. */
 export const EDITOR_RULE_SCAN = `(function (hostSels, canary) {
@@ -528,23 +363,12 @@ export const EDITOR_RULE_SCAN = `(function (hostSels, canary) {
     return JSON.stringify(out);
 })`;
 
-/**
- * Scan one set of `>>>` hosts in the state the page is in right now.
- *
- * @param opts.canary a selector to insert into each sheet before walking and remove
- *                    after, so the caller can prove the scan reports a dead rule.
- */
 export async function scanRules(page, hosts, { canary = null } = {}) {
     return JSON.parse(await page.eval(
         `${EDITOR_RULE_SCAN}(${JSON.stringify(hosts)}, ${JSON.stringify(canary)})`,
     ));
 }
 
-/**
- * Accumulate scans across states and judge afterwards. `add()` ORs each selector's
- * match over every state it has been seen in; `sheets()` reports one row per sheet
- * identity with the selectors that never matched anywhere.
- */
 export function ruleCensus() {
     const sheets = new Map();
     return {
@@ -581,11 +405,6 @@ export function ruleCensus() {
     };
 }
 
-/**
- * THE CANARY. E8's lesson turned on the test itself: a scan that reports nothing wrong
- * because it is looking at nothing is the same failure as a layout engine wired to
- * nothing. This inserts a selector that cannot match and requires the scan to say so.
- */
 export async function assertScanIsLive(page, hosts, canary = '.rea-e4-canary') {
     const rows = await scanRules(page, hosts, { canary });
     for (const row of rows) {
@@ -596,7 +415,6 @@ export async function assertScanIsLive(page, hosts, canary = '.rea-e4-canary') {
         assert.equal(found[0].matched, false,
             `canary: the scan called an unmatchable selector live in ${row.host}`);
     }
-    /* And the sheet is handed back exactly as it was found. */
     const after = await scanRules(page, hosts);
     for (const row of after) {
         assert.equal(row.parts.filter((p) => p.selector === canary).length, 0,
@@ -604,21 +422,6 @@ export async function assertScanIsLive(page, hosts, canary = '.rea-e4-canary') {
     }
     return after;
 }
-
-/* ===========================================================================
- * THE STEP MATRIX — the same stage, with the real element in the steps region
- *
- * Wave 5.5's matrix cluster asserts THROUGH here for the reason the file's header
- * gives: "no test in this wave reads source text" is a property of one module rather
- * than a promise repeated in five. Nothing below opens a file either.
- *
- * B2 AGAIN, AND IT BINDS HARDEST HERE. `matrixStep()` builds a step out of VALUES —
- * a temperature, a flow, a duration — carried from the shape the 147-record fixture
- * holds on all 890 of its steps. It states no minimum, no maximum and no increment:
- * "a test fixture that restates maxima is a second ranges table and a BLOCK". Every
- * bound in a mounted matrix arrives through `createEditorRanges`, which is imported
- * IN THE PAGE so the suite measures the door the screen uses.
- * =========================================================================== */
 
 /** The matrix's row rail cell, by row key. */
 export const matrixRail = (row) => `${EDITOR.matrix} >>> [data-rail="${row}"]`;
@@ -629,15 +432,6 @@ export const matrixCell = (row, index) => `${EDITOR.matrix} >>> [data-cell="${ro
 /** The control inside one data cell. */
 export const matrixControl = (row, index, tag) => `${matrixCell(row, index)} > ${tag}`;
 
-/**
- * The step-name field, which is NOT a direct child of its cell and only exists while
- * that step is being edited.
- *
- * Since 0.1.18 the head cell draws `.head-line` — the spoken sentence, the name (a
- * button at rest, a ui-text-field while editing) and the pen — so `matrixControl` finds
- * nothing there: its `>` is a direct-child combinator and the field is one level down.
- * Pair it with `openStepName` rather than reaching for the field that is not on screen.
- */
 export const matrixNameField = (index) => `${matrixCell('head', index)} ui-text-field`;
 
 /** Press a step's name to bring its field on screen, the way a person does. */
@@ -667,14 +461,6 @@ export function matrixStep(over = {}) {
     };
 }
 
-/**
- * Mount the editor with a REAL <step-matrix> in the steps region, seeded with steps
- * and with the one ranges door.
- *
- * The door is built in the page from `r2MachineLimits()` — the R2 adapter, which is
- * how every surface reaches `machine-limits.js` — so the matrix under test resolves
- * its bounds exactly the way the screen will.
- */
 export async function mountStepMatrix(page, {
     steps = [matrixStep(), matrixStep(), matrixStep()],
     stage = 'inline-size: 100%; block-size: 100dvh',
@@ -702,10 +488,6 @@ export async function seedMatrix(page, {
         const ranges = await import('/src/lib/editor-ranges.js');
         const adapters = await import('/src/data/adapters-r.js');
         const el = window.__h.need(sel);
-        /* THE CLASS RIDES WITH THE TABLE (27 Aug 2026) — the authoring half has two
-         * machine-dependent flow ceilings now, and both are derived from this one served
-         * capability array so the mounted matrix cannot show one machine's bounds while
-         * claiming another's. */
         el.ranges = ranges.createEditorRanges({
             machineLimits: adapters.r2MachineLimits(payload.capabilities).value,
             machineClass: adapters.machineClassFromServedSet(payload.capabilities),
@@ -740,13 +522,6 @@ export async function scrollMatrix(page, { left = null, top = null } = {}) {
     return page.metrics(EDITOR.matrix);
 }
 
-/**
- * SWEEP THE FILL/SCROLL FLIP. The threshold is not declared anywhere — it is what
- * happens when N columns of the step minimum stop fitting — so it is found by walking
- * the container's width and watching for horizontal overflow, exactly once.
- *
- * Returns every width sampled with its overflow state, and the flips between them.
- */
 export async function sweepFill(page, { from, to, step = 4 }) {
     const seen = [];
     for (let w = from; w >= to; w -= step) {
@@ -758,15 +533,6 @@ export async function sweepFill(page, { from, to, step = 4 }) {
     return { seen, flips };
 }
 
-/**
- * EVERY ACCESSIBLE NAME CHROME COMPUTES, from its own accessibility tree (E14).
- *
- * Not a scan of aria-* attributes: the name of a cell is computed from its contents,
- * a group's name reaches the controls inside it, and only the engine knows either.
- * `Accessibility.getFullAXTree` walks the flattened tree, so shadow roots are included
- * — which is the only way to see what a screen reader would be told about a matrix
- * made of six different components.
- */
 export async function accessibleNames(page, roles = null) {
     await page.send('Accessibility.enable');
     const tree = await page.send('Accessibility.getFullAXTree');
@@ -781,27 +547,6 @@ export async function accessibleNames(page, roles = null) {
 /** The names for one role, in tree order. */
 export const namesFor = (nodes, role) => nodes.filter((n) => n.role === role).map((n) => n.name);
 
-/* ===========================================================================
- * THE EDITING SURFACES — the preview chart, the two dialogs, the numpad
- *
- * Wave 5.5 rows chart-preview, editor-dialogs and numpad-flows. One stage for all
- * three, because they are one arrangement: a matrix whose value cells open a keypad, an
- * exit band whose condition slot opens a dialog, a settings field row that opens the same
- * keypad, and a preview chart on the Review tab that must not rebuild while any of it
- * happens.
- *
- * B2 BINDS HERE TOO, AND HARDEST. Nothing in this section states a minimum, a maximum or
- * an increment. The stage builds its door in the page from `r2MachineLimits()` and every
- * control it arms — the matrix, the settings field, the dialogs, the keypad — takes its
- * bounds from that one door, so a suite measuring a hint is measuring the table.
- *
- * THE STAGE CARRIES A COMPOSITION ROOT, and it is deliberately tiny: `window.__editor`
- * holds the draft and writes it when an editing event arrives, which is the job the
- * editor ROUTE will have when it is built (`app-routes.js` still lists `editor` as a
- * planned id). Without it a press would move nothing and every "the data changed" claim
- * below would be a claim about a fixture rather than about the screen.
- * =========================================================================== */
-
 /** Every module the editing stage needs, in mount order. */
 export const EDITING_MODULES = Object.freeze([
     ...EDITOR_MODULE,
@@ -811,15 +556,6 @@ export const EDITING_MODULES = Object.freeze([
     '/src/components/ui-stepper.js',
 ]);
 
-/**
- * The markup. The four editing surfaces are LIGHT-DOM children of <editor-screen>, in
- * the four regions it declares: `steps`, `preview`, `overlays` and `settings`.
- *
- * The settings field row is a COMPOSITION and not a component (Part 10 §9) — a caption
- * and a #4 stepper — and it names its door field with `data-editor-field`, which is the
- * whole contract between a field row and <editor-overlays>. It states no bound; the
- * stage arms it from the door below.
- */
 export function editingStage({
     stage = 'inline-size: 100%; block-size: 100dvh',
     field = 'targetWeight',
@@ -852,13 +588,6 @@ export function editingProfile(steps = [matrixStep(), matrixStep({ pump: 'pressu
     };
 }
 
-/**
- * Mount the whole editing stage and wire it: one ranges door, one draft, and the
- * composition root that writes the draft when an editing event arrives.
- *
- * Returns the page. `window.__editor` is available in the page for a suite that needs to
- * read the draft back or apply an edit without a press.
- */
 export async function mountEditing(page, {
     steps = null,
     profile = null,
@@ -906,26 +635,6 @@ export async function mountEditing(page, {
                 overlays.steps = root.draft.steps;
                 preview.profile = root.draft;
             },
-            /**
-             * RECORD ONE EVENT. The discriminator is `event`, and it is written LAST —
-             * after the payload is spread. Both halves are the fix.
-             *
-             * This was `{type: '<name>', ...event.detail}`, and EXIT_CONDITION_CHANGE's
-             * detail carries its own `type`: the exit CHANNEL (pressure, flow, weight).
-             * It won the spread, so every row that event produced read `type: 'pressure'`
-             * and a filter on `type === 'exit-condition-change'` matched NOTHING — and
-             * matched nothing SILENTLY, which is why the one outcome the exit dialog
-             * reports went unasserted for a whole wave while the suite filtered on `slot`
-             * to work around it. The payload was never wrong; the frame field was.
-             *
-             * A reserved key on its own would only move the collision, so the ORDER
-             * carries the guarantee: the payload goes down first and the recorder's own
-             * field is written over the top, where no detail can reach it. That inverts
-             * the risk onto a detail that genuinely carries `event`, which would now lose
-             * payload silently — so that case THROWS. Every stage here asserts
-             * `page.pageErrors` is empty, so such a payload fails loudly on first press
-             * rather than quietly dropping a field.
-             */
             record(name, detail) {
                 if (detail && Object.prototype.hasOwnProperty.call(detail, 'event')) {
                     throw new Error(`editor harness: the '${name}' detail carries an 'event' key, `
@@ -1053,28 +762,11 @@ export async function typeNumpad(page, digits) {
     await page.settle(4);
 }
 
-/**
- * Everything the composition root recorded, in order.
- *
- * EACH ROW IS `{...detail, event: '<event name>'}`. Filter on `event`, never on `type`:
- * `type` belongs to the exit dialog's payload (the exit channel) and means nothing on the
- * other four rows. See `record()` in the stage above for why the discriminator moved.
- */
 export const editorEvents = (page) => page.evalFn(() => window.__editor.events.map((e) => ({ ...e })));
 
 /** Every row the composition root recorded for one event name, in order. */
 export const eventsNamed = async (page, name) => (await editorEvents(page)).filter((e) => e.event === name);
 
-/**
- * EVERY STRING CHROME WOULD ANNOUNCE, names and values alike, from its own tree.
- *
- * `accessibleNames` above answers "what is this control called" and drops the roles that
- * carry no name of their own — `generic` and `StaticText` among them. A visually-hidden
- * reading (#43's `label`, ui-badge's, ui-keycap's) is exactly that: static text inside a
- * generic box, carrying no role and needing none. It is announced, and it is invisible to
- * a role-filtered walk — so a reading can be missing from the tree entirely while every
- * named node still checks out. This is the probe for "is the value ANNOUNCED AT ALL".
- */
 export async function accessibleText(page) {
     await page.send('Accessibility.enable');
     const tree = await page.send('Accessibility.getFullAXTree');

@@ -1,18 +1,5 @@
 /**
- * editor-exit-add.render.test.mjs — THE + CONDITION BUTTON, DRIVEN AS A USER DRIVES IT.
- *
- * Ben, 29 August 2026: "In the profile editor, if I tried to press the + Condition button
- * to a step that doesn't have an exit condition it didn't add one or start the condition
- * modal."
- *
- * THE BAND WAS NEVER AT FAULT. `ui-exit-sentence` dispatched `exit-add` correctly —
- * composed, bubbling, carrying {index, slot, type} — and its own suite proved the menu was
- * composed. NOTHING LISTENED: the string `exit-add` appeared nowhere in `src/` outside two
- * comments, exactly as `step-action` did on 27 August.
- *
- * That is why this file drives the WHOLE editor rather than the band alone. The band's own
- * suite mounts it in isolation, where an unheard event is the CORRECT outcome, so no
- * assertion there could ever have gone red. The gesture only means something end to end.
+ * The + condition button, driven as a user drives it.
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,17 +34,6 @@ const overlayState = (page) => page.evalFn((sel) => {
     return { numpad: flag('#numpad'), exit: flag('#exit') };
 }, EDITOR.overlays);
 
-/**
- * PRESS ONE ADD SLOT, THE WAY A PERSON DOES, AND REFUSE TO LIE ABOUT IT.
- *
- * The matrix is its own scrollport, so the exit band can be laid out perfectly and still
- * sit below the window — at 1281x801 the band's first add slot lands at y=843. `page.click`
- * dispatches at the rect's centre and Chrome hits whatever is there, which for a row
- * outside the port is nothing at all: the press never happens and the assertion afterwards
- * is about a gesture that was never made. So scroll it into the port first, then CHECK the
- * box is inside the window before pressing. Same rule as `pressKey` in the step-action
- * suite, and it is the reason this file's first draft failed green-looking.
- */
 async function pressAdd(page, slot) {
     const control = `${BAND} >>> #add-${slot}`;
     await page.evalFn((sel) => {

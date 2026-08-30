@@ -1,18 +1,4 @@
-/**
- * chart-readout.test.mjs — the cursor readout's arithmetic, audit F-032 / F-034.
- *
- * A PURE SUITE. `src/lib/chart-readout.js` imports one module (`shot-summary.js`) and
- * touches no DOM, so every claim here is made under plain `node:test` with no browser.
- * The BEHAVIOUR — that a scrub on a real card fills a real legend — is asserted in
- * `test/render/history-readout.render.test.mjs` and
- * `test/render/ui-chart-card-scrub.render.test.mjs`, where a pointer can move.
- *
- * WHAT IT FAILED BEFORE. Every assertion below was written against a tree in which
- * `chart-readout.js` did not exist at all: F-032's finding is that "the machinery exists
- * and is never fed", and the missing piece was the arithmetic that turns a
- * `cursor-change` detail into the two shapes `<ui-chart-legend>.values` and a foot strip
- * take.
- */
+
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';

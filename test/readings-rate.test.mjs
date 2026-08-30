@@ -1,12 +1,5 @@
 /**
- * readings-rate.test.mjs — the gauge cluster redraws at 5 Hz, and the two flushes hold.
- *
- * Ben, 29 August 2026: "could we make it so they don't change at 15 Hz? Make it say 5 Hz
- * instead? Just the values in the data row above the chart."
- *
- * THE RATE LIMIT IS THE EASY HALF. The tests that matter are the flushes: a rate limit
- * that also delays a channel going away puts a STALE NUMBER on screen for a channel the
- * machine has stopped serving, which is worse than the churn it removed.
+ * The gauge cluster redraws at 5 Hz, and the two flushes hold.
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';

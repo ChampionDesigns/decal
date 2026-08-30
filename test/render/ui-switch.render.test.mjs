@@ -1,24 +1,5 @@
 /**
- * ui-switch.render.test.mjs — Wave 1 item #5's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. The switch's defect is bug T17 — "Twenty
- * hardcoded copies of the switch geometry in template strings, including an
- * undocumented derived throw" (LAYOUT_SPEC_DRAFT.md §7.5). A component that ships
- * `translate-x: 46px` renders pixel-identically to one that derives it, so a
- * screenshot gate cannot tell them apart and neither can a reviewer. The token
- * drills below are the only mechanism that can: retarget `--ui-switch-track-w` on
- * `:root` and a derived throw follows it while a literal one does not. Four
- * tokens, four drills, and the throw asserted as arithmetic rather than as 46.
- *
- * EVERY STARTING VALUE IS THE ORACLE'S, quoted in ui-switch.js's header:
- * `prov_query.py find --cls slate-switch` → 24 elements in 13 states, one distinct
- * geometry (100 × 50, ×24), knob 40 × 40 at dx=5 off and dx=51 on, unanimous.
- * Colours are asserted against the resolved token, never against a hex, so the
- * suite is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -40,22 +21,6 @@ const ON = '<ui-switch id="on" checked aria-label="Wake lock"></ui-switch>';
 const DISABLED = '<ui-switch id="dis" disabled aria-label="Stop at weight"></ui-switch>';
 const MARKUP = `${OFF}${ON}${DISABLED}`;
 
-/**
- * MEASURE THE SETTLED STATE, NOT THE FLIGHT.
- *
- * The switch animates: `--ui-dur-slow` (200ms) on the knob's travel and on both
- * fills, which is Slate's `duration-200` carried over. A drill or a click therefore
- * leaves 200ms in which every geometry and colour read is an interpolated value —
- * measured here as a knob at dx=54.95 on its way to 91, and a track at
- * rgb(49, 30, 52) on its way to the drill colour. Sleeping for the duration would
- * work and would be flaky; instead the page is put into `prefers-reduced-motion:
- * reduce`, which this component honours (CONVENTIONS §11: the base carries no
- * reduced-motion rule and says it "belongs ... in each animating component").
- *
- * So every assertion below reads a settled value, and the two tests at the end of
- * the file are the ones that assert the motion itself — with no emulation, so the
- * transitions are real there and nowhere else.
- */
 async function reduceMotion(page) {
     await page.send('Emulation.setEmulatedMedia', {
         features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
@@ -94,10 +59,6 @@ async function switchTokens(page) {
     };
 }
 
-/* Everything shape="pill" could accidentally change. The radii are kept OUT of this
- * list because they are the one intended difference; the pill tests assert PAINT is
- * identical and RADII are not. Ported from #56's own suite when the wrapper was
- * deleted (DQ-610) — the comparison is the evidence, and it outlives the component. */
 const PAINT = [
     'background-color', 'border-top-color', 'border-top-width', 'border-top-style',
     'border-right-color', 'border-bottom-color', 'border-left-color',
@@ -134,12 +95,6 @@ const radiiOnly = (surface) => ({
     knob: Object.fromEntries(RADII.map((p) => [p, surface.knob[p]])),
 });
 
-/**
- * §3.1's derivation, spelled out here so the test computes it independently of the
- * component: "Throw is calc(track-w - knob - 2*inset - border), DERIVED, not the
- * literal 46px". With the shipped tokens this is 100 − 40 − 10 − 4 = 46, which is
- * the oracle's measured dx=51 minus its inset of 5.
- */
 const derivedThrow = (t) => t.trackW - t.knob - 2 * t.inset - 2 * t.borderStrong;
 
 let browser;
@@ -174,19 +129,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * THE ORACLE'S GEOMETRY, REPRODUCED
-         * prov_query.py find --cls slate-switch → 100 × 50 ×24, one distinct
-         * geometry across 13 states; knob 40 × 40; dx=5 off, dx=51 on.
-         * ============================================================== */
-
         test('the host is the oracle\'s 100 × 50 track box', () => mounted(async (page) => {
             const t = await switchTokens(page);
             const box = await page.box('#off');
             near(box.width, t.trackW, 'host inline size is --ui-switch-track-w');
             near(box.height, t.trackH, 'host block size is --ui-switch-track-h');
-            // The oracle's own numbers, so a token edit that silently changes the
-            // control's size is visible here and not only in a drill.
             near(box.width, 100, 'ORACLE settings-display-wake-lock[46] width=100px');
             near(box.height, 50, 'ORACLE settings-display-wake-lock[46] height=50px');
         }));
@@ -200,8 +147,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             near(await knobDx(page, '#off'), t.inset, 'off knob sits at --ui-switch-inset');
             near(await knobDx(page, '#off'), 5, 'ORACLE off knob measured dx=5 on 24 of 24');
-            // Vertically centred: (50 − 40) / 2 = 5, which is also the oracle's
-            // rect [1780,296,40,40] against a label at y=291.
             near(await knobDy(page, '#off'), (t.trackH - t.knob) / 2, 'knob is vertically centred');
             near(await knobDy(page, '#off'), 5, 'ORACLE knob dy=5');
         }));
@@ -217,11 +162,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(await knobDy(page, '#on'), 5, 'only the knob moves, and only sideways');
         }));
 
-        /* ================================================================
-         * THE ORACLE'S PAINT, REPRODUCED — asserted against resolved TOKENS,
-         * so the suite holds in both themes.
-         * ============================================================== */
-
         test('the OFF track is --ui-key inside a --ui-line hairline at --ui-radius', () => mounted(async (page) => {
             const track = await page.computed('#off >>> .track', [
                 'background-color', 'border-top-color', 'border-top-width', 'border-top-left-radius',
@@ -231,9 +171,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'winning rule=slate-components.css {.slate-switch input[type="checkbox"] + div} authored `var(--slate-key)`');
             assert.equal(track['border-top-color'], await page.resolveToken('--ui-line', 'border-top-color'),
                 'ORACLE same element border-top-color=rgb(58, 72, 82) authored `var(--slate-line)`');
-            // Resolved through `width`, not `border-top-width`: a probe element with
-            // no border-style computes every border width to 0px, so the obvious
-            // spelling would compare 1 against 0 and read as a component defect.
             near(parseFloat(track['border-top-width']),
                 parseFloat(await page.resolveValue('var(--ui-border-w)', 'width')),
                 'ORACLE border-top-width=1px authored `var(--slate-hairline)`');
@@ -274,11 +211,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('polarity is fixed: only the track fills and only the knob moves', () => mounted(async (page) => {
-            // slate-components.css:434-437 — "POLARITY IS FIXED: filled track = on,
-            // always. Previously OFF drew a dark knob on a light track and ON a light
-            // knob on a dark track, so both the dark mass and the fill polarity
-            // swapped between states". The proof: nothing but background-color and
-            // border-color differs between the two states, and the boxes are equal.
             const offTrack = await page.box('#off >>> .track');
             const onTrack = await page.box('#on >>> .track');
             assert.deepEqual(
@@ -293,11 +225,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* ================================================================
-         * STANDING ASSERTION 1 — TOKENS ARE CONSUMED, NOT COPIED.
-         * These four drills ARE bug T17's death certificate.
-         * ============================================================== */
-
         test('drill: --ui-switch-track-w moves the track AND re-derives the throw [T17]', () => mounted(async (page) => {
             const t = await switchTokens(page);
 
@@ -308,10 +235,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'width',
             });
 
-            // The half a screenshot cannot see. With track-w at 140 the throw becomes
-            // 140 − 40 − 10 − 4 = 86, so the checked knob must sit at 5 + 86 = 91.
-            // A component carrying Slate's literal 46 leaves it at 51 and passes
-            // every other assertion in this file.
             await page.setToken('--ui-switch-track-w', '140px');
             const drilled = await knobDx(page, '#on');
             await page.setToken('--ui-switch-track-w', null);
@@ -403,9 +326,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('[T17] the geometry has exactly ONE owner: all four tokens at once', () => mounted(async (page) => {
-            // Slate's defect is eighty literals across twenty call sites, so the
-            // honest test is not "one token works" but "the token layer is the only
-            // owner". Move all four together and every measured number must follow.
             const before = {
                 host: await page.box('#off'),
                 knob: await page.box('#off >>> .knob'),
@@ -434,10 +354,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near((await page.box('#off')).width, before.host.width, 'restore');
             near(await knobDx(page, '#on'), before.dxOn, 'restore');
         }));
-
-        /* ================================================================
-         * STANDING ASSERTION 4 — FOCUS GEOMETRY, UNCLIPPED (bug L24's class)
-         * ============================================================== */
 
         test('the focus ring is the token ring, unclipped, outset', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, '#off');
@@ -469,14 +385,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + '(bug T15 — "four of twenty switches have no accessible name")');
         }));
 
-        /* ================================================================
-         * CONTAINER BEHAVIOUR — the frozen-geometry answer.
-         * §3.1 gives four fixed px and §2.3 permits them; responsive behaviour has
-         * no Slate answer (98.4 % frozen) and the layout spec governs. So the
-         * assertion is INVARIANCE: this control reads neither its container nor
-         * the viewport, and says so out loud.
-         * ============================================================== */
-
         test('the switch is the same size in a 200px container and a 900px one', () => mounted(async (page) => {
             const read = async () => {
                 const b = await page.box('#off');
@@ -491,19 +399,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a squeezed FLEX row cannot shrink it — the T9 failure mode, foreclosed', () => mounted(async (page) => {
-            // T9: "select.slate-select does not hold its stated 250px — it is a flex
-            // item with default shrink. Measured 214 in one leaf and 250 two rows
-            // below, inside a single screen." Slate answers with `flex-shrink-0` at
-            // all twenty switch call sites; the component owns it instead.
             await page.setStyle('#mount', { display: 'flex', 'inline-size': '140px' });
             await page.setStyle('#pressure', { 'inline-size': '400px', 'flex-shrink': '0' });
             const box = await page.box('#off');
             near(box.width, 100, 'the switch held its width against 400px of sibling in a 140px row');
         }, `${MARKUP}<div id="pressure"></div>`));
-
-        /* ================================================================
-         * HIT FLOOR — spec §2.3 case 2 / Appendix 5
-         * ============================================================== */
 
         test('the whole control is the hit target and it clears --ui-hit-min', () => mounted(async (page) => {
             const hit = await assertHitFloor(page, '#off', { mode: 'element' });
@@ -511,12 +411,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(hit.block, 50, '50 against a 48px floor');
             assert.ok(hit.inline >= hit.floor && hit.block >= hit.floor);
         }));
-
-        /* ================================================================
-         * ARIA — spec Appendix 15: "the aria-*-driven state selectors ... the right
-         * contract for a Lit component's reflected properties". Accessibility state
-         * and visual state are the same state, so they cannot drift.
-         * ============================================================== */
 
         test('role, aria-checked and the accessible name are all on the host', () => mounted(async (page) => {
             const a = await page.evalFn(() => {
@@ -570,19 +464,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* The tab order has two owners — this component and whoever lays the row
-         * out — and these three tests are the seam between them (Appendix 10's
-         * roving-tabindex tablist is the pattern the spec keeps verbatim, and it
-         * writes tabindex on hosts like this one). Attribute reads only: tabindex
-         * IS the contract, and a focus check would pass on a host that is merely
-         * programmatically focusable. */
-
         test('a disabled switch that is re-parented returns to the tab order when enabled', () => mounted(async (page) => {
-            // The failure this pins: connectedCallback runs again on every move, so
-            // a snapshot taken there reads the component's OWN tabindex="-1" off a
-            // disabled host and restores it forever. Any list re-render moves an
-            // element, and the switch is then unreachable by keyboard while looking
-            // and reporting as fully enabled.
             const state = await page.evalFn(async () => {
                 const el = document.getElementById('dis');
                 const before = el.getAttribute('tabindex');
@@ -605,9 +487,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, `${MARKUP}<div id="elsewhere"></div>`));
 
         test('an owner\'s roving tabindex survives the next update (Appendix 10)', () => mounted(async (page) => {
-            // A tablist sets tabindex AFTER connect, so a component that restored
-            // only its connect-time snapshot would revert the owner on the next
-            // toggle — the exact thing the component's own comment forbids.
             const state = await page.evalFn(async () => {
                 const el = document.getElementById('off');
                 el.setAttribute('tabindex', '-1');          // the owner rovers away
@@ -643,10 +522,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, '<ui-switch id="rove" tabindex="-1" aria-label="Cup warmer"></ui-switch>'));
 
         test('disabled fades the switch as ONE object, not track and knob separately', () => mounted(async (page) => {
-            // slate-components.css: "Fading the track and the knob separately makes
-            // each blend with what is behind IT — the track with the page, the knob
-            // with the track — so the knob's contrast against its own track
-            // collapses: measured 7 levels apart on Stop at Weight."
             assert.equal(parseFloat(await page.prop('#dis >>> .track', 'opacity')), 1,
                 'the track must not carry its own fade');
             assert.equal(parseFloat(await page.prop('#dis >>> .knob', 'opacity')), 1,
@@ -661,12 +536,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'opacity',
             });
         }));
-
-        /* ================================================================
-         * INPUT — asserted through the browser's own hit test, not a synthetic
-         * event: "the uPlot mount-C failure is pixel-identical and completely dead
-         * to input" (Part 8 §3 Rule 1).
-         * ============================================================== */
 
         test('a real click toggles, and says so with a change event', () => mounted(async (page) => {
             await page.recordEvents('#off', ['change']);
@@ -685,21 +554,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'Space is the required key for role="switch"',
             );
         }));
-
-        /* ================================================================
-         * ZERO !IMPORTANT — Slate needs four here because app.css utilities reach
-         * the same divs. The shadow boundary removes the reason (CONVENTIONS §6),
-         * and the proof is that the plain class rules landed at all: every paint
-         * assertion above passed with no !important in the component.
-         * ============================================================== */
-
-        /* ================================================================
-         * MOTION — spec §3.7. Slate's switch carries `transition-colors
-         * duration-200` on the track and `transition-[transform,background-color]
-         * duration-200` on the knob; 200ms is --ui-dur-slow. Timing functions and
-         * durations are outside the oracle's 18-property appearance surface, so
-         * this is a read-only source read plus the token, not a corpus answer.
-         * ============================================================== */
 
         test('the travel and both fills run at --ui-dur-slow', () => animated(async (page) => {
             const slow = await page.resolveValue('var(--ui-dur-slow)', 'transition-duration');
@@ -743,19 +597,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(bad, [], 'zero !important, base rules included (spec §2.1 Rule 3)');
         }));
 
-        /* -------------------------------------------------------------------
-         * shape="pill" — Q14, ANSWERED (DQ-610, Ben's ruling, 21 Aug 2026)
-         *
-         * #56 `ui-toggle-pill` was a wrapper whose whole substance was two corner
-         * radii, and it is deleted. These three tests are the half of its suite
-         * that was about the SHAPE rather than about the wrapper: the pill is the
-         * only difference, it is --ui-radius-pill, and none of main.css's
-         * machine-generated numbers came with it. The rest of that file — a
-         * slotted control keeping its own aria, its own change event, its own
-         * keyboard — was about a slot that no longer exists, and it is not ported
-         * because there is nothing left to wrap.
-         * ----------------------------------------------------------------- */
-
         test('the pill is the corners and NOTHING else', () => browser.withPage({ geometry }, async (page) => {
             await page.mount(
                 '<ui-switch id="pill" shape="pill" checked aria-label="Pill"></ui-switch>'
@@ -779,9 +620,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the corner is the one difference there is; if it disappears the attribute '
                 + 'is a no-op and should be deleted outright');
 
-            /* THE CORNER IS THE TOKEN, on both parts, and it is --ui-radius-pill —
-             * spec §3.4's kept value, not main.css:424's machine-generated
-             * 2617.374px, which the same table drops by name. */
             const pillRadius = await page.resolveValue('var(--ui-radius-pill)', 'border-top-left-radius');
             for (const part of ['track', 'knob']) {
                 for (const corner of RADII) {
@@ -833,17 +671,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
     });
 }
 
-/* ---------------------------------------------------------------------------
- * The gallery entry, exercised here rather than at the gate.
- *
- * tools/gallery/entries.js is a SHARED single-array file and sixteen parallel
- * builders doing whole-file writes on it would clobber each other, so this entry
- * lives in its own file and the gate wires it in. That hand-off is the moment a
- * malformed entry would first be noticed — unless it is checked here, where the
- * builder can still fix it. So: the shape entries.js documents, and every state
- * mounted for real.
- * ------------------------------------------------------------------------- */
-
 test('the gallery entry is the documented shape', () => {
     assert.equal(galleryEntry.id, 'ui-switch', 'the entry id is the tag name and the capture prefix');
     assert.equal(galleryEntry.module, '../../src/components/ui-switch.js', 'module is relative to tools/gallery/');
@@ -869,10 +696,6 @@ test('every gallery state mounts and renders a switch', async () => {
         }
     });
 });
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the switch is a token, not a fraction of the viewport.
- * ------------------------------------------------------------------------- */
 
 test('the switch renders identically at the bench and at the floor', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {

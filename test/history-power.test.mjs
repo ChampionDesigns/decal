@@ -1,15 +1,4 @@
-// history-power.test.mjs — the power page's DOM-free half: the derived-channel plot's
-// axes, the P–Q trajectory's points, and Q16's correspondence marks. Fix run 6.
-//
-// A8: this suite executes the module. It does not read `history-power.js` as text and it
-// does not assert on a shape nothing draws — the two failure modes the ported history
-// tests had ("a test asserting on trace objects nothing renders is a test of the wrong
-// thing"). The rendering half is `test/render/history-power.render.test.mjs`.
-//
-// THE SUBJECT IS A REAL RECORDED SHOT, run through the real gate-6 derivation, with the
-// derived channels recomputed exactly as ReaPrime recomputes them on read (machine.dart
-// :64-140 at pin 2b047d02). A hand-built sample can only contain what its author already
-// believed; these are 923 measurements off a bench.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -74,8 +63,6 @@ describe('the three channels are READ, never derived (A7)', () => {
             assert.ok(SERIES_KEYS.includes(key),
                 `${key} is not a gate-6 series key — this page must plot what the walk emits`);
         }
-        /* Ben, 25 Aug 2026: "Power will be on the Pressure/Flow chart, not on the
-         * resistance / impedance chart. No second axis on these charts." */
         assert.deepEqual([...DERIVED_LEFT_CHANNELS], [...DERIVED_CHANNELS]);
         assert.ok(!DERIVED_CHANNELS.includes('power'),
             'W is on the flow page now, where it shares pressure and flow own band');

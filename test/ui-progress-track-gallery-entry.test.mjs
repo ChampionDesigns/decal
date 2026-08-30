@@ -1,17 +1,5 @@
 /**
- * ui-progress-track-gallery-entry.test.mjs — the wave-1 #17 gallery entry,
- * checked against the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared
- * array and the run's rule is whole-file writes; sixteen wave-1 builders appending
- * to it in parallel is fifteen lost entries. Each builder therefore writes
- * `tools/gallery/entries/<tag>.entry.js` and the GATE agent wires them in (import +
- * spread, or a manifest). This file is what makes that hand-off safe: it asserts
- * the shape the gallery needs BEFORE the wiring, so a malformed entry is a red test
- * here rather than a battery photographing an empty stage.
- *
- * `test/render/ui-progress-track.render.test.mjs` takes the other half — it mounts
- * every state in a real browser at both standard geometries.
+ * The wave-1 #17 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -43,17 +31,12 @@ test('state ids are unique, because they are capture filenames', () => {
 });
 
 test('the module path resolves from tools/gallery/, which is where gallery.js imports it', async () => {
-    // gallery.js does `import(entry.module)` and lives in tools/gallery/, so the
-    // path is relative to THAT directory, not to the entry file's own.
     const resolved = new URL(entry.module, new URL('../tools/gallery/', import.meta.url));
     const info = await stat(resolved);
     assert.ok(info.isFile(), `${entry.module} does not resolve to a file`);
 });
 
 test('the states cover the range, not just one pretty number', () => {
-    // A progress bar has exactly two interesting failure modes at the ends — a
-    // zero-width fill that still paints a sliver, and a full fill that leaves a
-    // hairline of trough showing — and neither is visible in a single mid state.
     const html = entry.states.map((s) => s.html).join(' ');
     assert.match(html, /value="0"/, 'no empty state to catch a sliver at zero');
     assert.match(html, /value="1"/, 'no full state to catch a hairline at the end');

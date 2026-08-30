@@ -1,8 +1,4 @@
-// The feed store: last-known value plus staleness, and NEVER a second source of truth.
-//
-// The tests that matter most here are the ones that assert something does NOT happen —
-// the value is not cleared when the socket closes, no value is invented when it never
-// opened, and nothing is recomputed locally when a channel goes absent (A7).
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -11,7 +7,6 @@ import {
     isLive, isStale, isBlank, valueOf,
 } from '../src/stores/feed-store.js';
 
-/** A fake source in the shape every Gate 3 channel exposes. */
 function fakeSource() {
     const frames = new Set();
     const signals = new Set();
@@ -282,15 +277,6 @@ describe('the predicates read the same way at every call site', () => {
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * A DEPARTED SOURCE STAYS DEPARTED.
- *
- * The tests above assert the STALE that a signal produces, and none of them ticks the
- * clock afterwards — which is where it came undone. `refreshStaleness` re-derived the
- * status from age alone whenever `sourceOpen` was still true, and the scale socket stays
- * open across a scale disconnect by design, so the very next tick of the render loop
- * reported a scale that had announced its own departure as LIVE, holding its last weight.
- */
 describe('a signal-driven stale is not undone by the clock', () => {
     test('a disconnected scale does not come back LIVE on the next refresh', () => {
         const clock = fakeClock();
@@ -341,10 +327,6 @@ describe('a signal-driven stale is not undone by the clock', () => {
         feed.signal({ kind: 'status', status: 'connected' });
         clock.advance(50);
         feed.refreshStaleness();
-        // A `connected` envelope is a claim about the SCALE, not a reading from it. The
-        // value we hold is still the one from before it left, and a scale that came back
-        // has almost certainly been moved, tared or reseated in between. It stays marked
-        // until it says something.
         assert.equal(feed.get().deviceStatus, 'connected');
         assert.equal(feed.get().status, FEED_STATUS.STALE);
         feed.accept({ weight: 0.0 });

@@ -1,18 +1,4 @@
-// The R-tagged adapter module: the tags are greppable, every adapter names its missing
-// field, and nothing in it reads a machine name.
-//
-// The greppability test greps THIS MODULE'S OWN SOURCE, on purpose. The swap discipline is
-// only worth anything if `grep -n 'R3' src/data/adapters-r.js` finds every occupant, and a
-// test that asserted over the exported objects alone would still pass if the tags lived
-// nowhere in the text.
-//
-// FIXTURES ARE CONTRACT-CHECKED (Gate B rule 4) against ReaPrime at
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3: the capability body is
-// `{capabilities: [...]}` from `de1handler.dart`; the machine-info body is
-// `MachineInfo.toJson` — `{version, model, serialNumber, GHC, extra}` with the GHC key in
-// capitals; `extra.profileModeCaps` is `unified_de1.dart`'s fail-closed word; the workflow
-// body is `Workflow.toJson` (top-level `id` = the WORKFLOW uuid, `profile` = a bare
-// `Profile.toJson` with no id); the profile listing is `ProfileRecord.toJson` rows.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -45,12 +31,6 @@ const SOURCE = readFileSync(MODULE_PATH, 'utf8');
 /** Code with comments removed — routes and tags live in strings, so strings stay. */
 const CODE = stripComments(SOURCE);
 
-/**
- * Identifiers only: comments AND string bodies dropped. The register rows describe the
- * upstream gap in words, and "the handler emits the seven iff the device is a
- * BengleInterface" is a RECORD, not a sniff — the same distinction `rea-excluded.test.mjs`
- * draws. What must not exist is a machine name being READ.
- */
 const IDENTIFIERS = stripComments(SOURCE, { dropStrings: true });
 
 const SEVEN = ['cupWarmer', 'integratedScale', 'stopAtWeight', 'ledStrip', 'scaleCalibration', 'preheat', 'wakeSchedule'];
@@ -277,18 +257,6 @@ describe('R1 — the loaded profile id, provisional by title match', () => {
         assert.deepEqual(answer.value.candidates, ['profile-0', 'profile-1']);
     });
 
-    /* ─────────────────────────────────────────────────────────────────────────
-     * THE BODY BREAKS A TITLE TIE, and this is a real machine's case rather than a
-     * constructed one. Ben, 25 August 2026: "I just pulled a shot, but if I click
-     * edit profile the page is blank". His loaded profile had been edited, and
-     * saving an edit KEEPS the old record — so two records carried one title, R1
-     * answered `ambiguous`, and the shell seated nothing.
-     *
-     * WHY MATCHING THE BODY IS NOT PICKING ONE: the store is content-addressed
-     * (`ProfileController.create` computes the id from the profile and returns the
-     * existing record when the content is already stored), so two records cannot
-     * hold the same body. A body that equals exactly one candidate identifies it.
-     * ──────────────────────────────────────────────────────────────────────── */
     const bodied = (title, ...bodies) => bodies.map((profile, index) => ({
         id: `profile-${index}`,
         profile: { version: '2', title, notes: '', author: 'Decent', beverage_type: 'espresso', ...profile },
@@ -375,12 +343,6 @@ describe('R1 — the loaded profile id, provisional by title match', () => {
     });
 });
 
-// CORRECTED WITH THE TABLE (Risk 9). This block used to pin the reserved slot: that it
-// threw, and that the register row read `slot-reserved`. The one interim table is now
-// built (`src/lib/machine-limits.js`) and reached only through this adapter, so those two
-// assertions would defend an unbuilt slot against built code. What DOES survive unchanged
-// is the number scan — the numbers live in the table module and nowhere else, and this
-// adapter is a door, not a second copy.
 describe('R2 — the one interim limits table, and only through this door', () => {
     test('the adapter hands back a table rather than refusing', () => {
         const answer = r2MachineLimits(SEVEN);
@@ -390,16 +352,6 @@ describe('R2 — the one interim limits table, and only through this door', () =
         assert.ok(answer.value.hotWaterVolume, 'the machine-independent rows are there');
     });
 
-    /* THE TWO CEILINGS ARE THE SAME NUMBER TODAY, AND THE INPUT STILL MATTERS.
-     *
-     * This test asserted `bengle.max > de1.max`, which pinned a DIFFERENCE rather than the
-     * mechanism. Ben raised both ceilings to 170 on 26 August 2026 after the bench served
-     * a Bengle holding exactly 170 — a skin refusing to show the machine's own value is a
-     * wrong band, not a safe one — so the difference is gone and the mechanism is not.
-     *
-     * What the adapter promises is that the class comes from the SERVED SET and never from
-     * a model string, and that the table says which class it resolved. That is what is
-     * asserted now, and it keeps holding the day the two bands diverge again. */
     test('the machine class comes from the served capability answer, never a model string', () => {
         const bengle = r2MachineLimits(SEVEN).value.steamTemp;
         const de1 = r2MachineLimits([]).value.steamTemp;

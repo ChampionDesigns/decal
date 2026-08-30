@@ -1,6 +1,4 @@
-// The router's job in one line: a value reaches exactly one layer, chosen by the table.
-// The row-wise test below is the proof, and it runs over EVERY row so a new key cannot be
-// added without its routing being asserted.
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -86,8 +84,6 @@ test('every unrouted row refuses the call and names the owner', async () => {
 });
 
 test('a shot rating cannot be persisted through the router at all', async () => {
-    // `rating:<shotId>` KV keys orphan forever when the shot is deleted. The route to the
-    // annotation is in the error message so the next person finds it without the audit.
     const { router } = fixture();
     await assert.rejects(() => router.set('shotRating', 80), /PUT \/api\/v1\/shots/);
 });
@@ -117,21 +113,12 @@ test('prefix enforcement: browser keys are prefixed, KV keys are not', () => {
     const { router } = fixture();
     assert.equal(router.physicalKey('theme'), 'decal.theme');
     assert.equal(router.physicalKey('pendingAssignmentIndex'), 'decal.pendingAssignmentIndex');
-    /* The KV namespace carries the identity — a prefixed KV key would name the skin twice.
-     *
-     * THE SAMPLE KEY IS `waterTankUnit` AND WAS `steamStopMode` (27 August 2026). That row is
-     * retired: the Live rail derives the steam stop mode from the machine now instead of
-     * keeping a copy, so nothing reads the key and `layer: 'none'` makes the router throw on
-     * it. Every use of it in this file was as "some machine-scoped KV key"; the tank's
-     * display unit is one, and the claim being tested is unchanged. */
     assert.equal(router.physicalKey('waterTankUnit'), 'waterTankUnit');
     assert.equal(router.physicalKey('numpadRecents', { field: 'flow' }), 'previous-values-flow');
 });
 
 test('the old skin key name does not resolve — nothing migrates (A10)', async () => {
     const { router } = fixture();
-    // `slate.profileFoldersOpen` was a PHYSICAL key used as a logical one. It has no row,
-    // so it is an unknown key: the old value is unreachable and stays the old skin's.
     await assert.rejects(
         () => router.get('slate.profileFoldersOpen'),
         (error) => error.code === ERROR_CODES.UNKNOWN_KEY,
@@ -198,12 +185,6 @@ test('absent means absent: a missing key returns the fallback, and null is not a
 });
 
 test('writing null or undefined DELETES — the router cannot store an absent value', async () => {
-    // get() already collapses null to "absent", so a stored null could only ever be a
-    // value nothing can read. On the KV layer it is worse than unreadable: ReaPrime's
-    // handler does `jsonDecode(body) ?? body` (kv_store_handler.dart:41-48) and
-    // jsonDecode('null') is null, so the `??` falls through to the RAW BODY STRING and
-    // the store holds the four characters 'null' — read back as a present, truthy
-    // setting. This is the one place that closes it, for every backend at once.
     for (const absent of [null, undefined]) {
         const { router, backends } = fixture();
         assert.equal(await router.set('theme', 'light'), true);
@@ -227,8 +208,6 @@ test('a null write fans out as a delete, and still refuses an unrouted key', asy
 });
 
 test('a null write survives being destructured off the router', async () => {
-    // The returned object is routinely destructured; the null path must not depend on
-    // `this` or it becomes a TypeError at the first null write.
     const { router, backends } = fixture();
     const { set } = router;
     await set('theme', 'light');

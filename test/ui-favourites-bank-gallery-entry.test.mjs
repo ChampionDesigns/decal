@@ -1,21 +1,5 @@
 /**
- * ui-favourites-bank-gallery-entry.test.mjs — the wave-4 #36 gallery entry, checked
- * against the loading contract `tools/gallery/gallery.js` actually implements.
- *
- * The rendering half lives in `test/render/ui-favourites-bank.render.test.mjs`, which
- * mounts every state in a real browser. This file exists for the one failure that half
- * cannot photograph: a state whose tags the entry's module does not register does not
- * render badly, it HANGS. gallery.js does one `import(entry.module)` per entry
- * (gallery.js:46-51) and then awaits `customElements.whenDefined` for every custom tag
- * on the stage, shadow roots included (gallery.js:86-88); a tag whose module was never
- * imported never settles, `data-gallery-settled` is never set, and Gate B's capture
- * battery waits on that flag.
- *
- * #36's `beside-the-tabs` state mounts a real `<ui-tab-bar>` beside the bank — it is the
- * L8 comparison the audit started from — so the entry has to load two modules. Entries
- * are imported LAZILY and per entry, so "ui-tab-bar is registered by its own entry" is
- * not a load-bearing fact: a battery that navigates straight to `?state=…` has shown no
- * other entry.
+ * The wave-4 #36 gallery entry, checked against the loading contract tools/gallery/gallery.js actually implements.
  */
 
 import { test } from 'node:test';

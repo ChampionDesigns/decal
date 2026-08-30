@@ -1,20 +1,5 @@
 /**
- * ui-chart-legend-gallery-entry.test.mjs — the wave-3 #10 gallery entry, checked against
- * the contract `tools/gallery/entries.js` and `tools/gallery/README.md` document.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array and
- * the run's rule is whole-file writes; N builders appending to it in parallel is N−1
- * entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the wave's
- * reviewer wires them in serially. This file is what makes that hand-off safe: it asserts
- * the shape the gallery needs BEFORE the wiring, so a malformed entry is a red test here
- * rather than a battery photographing an empty stage.
- *
- * The other half is `test/render/ui-chart-legend.render.test.mjs`, which mounts the
- * component in a real browser at both Gate A geometries. What is checked HERE is only
- * what can be checked without one: shape, uniqueness, the module paths existing on disk,
- * and that every state's markup is honest about what it claims to show — a state
- * promising "one series turned off" and handing over five identical chips would
- * photograph as a state that exists, which is the failure this file is for.
+ * The wave-3 #10 gallery entry, checked against the contract tools/gallery/entries.js and tools/gallery/README.md document.
  */
 
 import { test } from 'node:test';
@@ -52,9 +37,6 @@ test('the module the gallery imports exists, and so does what it imports', async
     assert.ok((await stat(module)).isFile(), `${entry.module} does not exist`);
 
     const source = await readFile(module, 'utf8');
-    /* The demo defines nothing: it exists because gallery.js does exactly one import per
-     * entry and one state mounts a chart card as well. If it ever grows a subclass, the
-     * gallery stops photographing the shipping component. */
     assert.ok(!/customElements\.define|class\s+\w+\s+extends/.test(source),
         'the gallery must photograph the SHIPPING component, not a demo subclass');
     for (const imported of ['ui-chart-legend.js', 'ui-chart-card.js']) {
@@ -81,8 +63,6 @@ test('every state states its items, and every item carries a key and words', () 
 });
 
 test('the swatch states really do show both weights and a dash', () => {
-    /* §6.2's defect is a swatch that draws the same 3px mark whatever it stands for.
-     * A gallery that only ever photographed major solid channels could not show the fix. */
     const live = JSON.parse(entry.states.find((s) => s.id === 'live-set').html
         .match(/items='([^']*)'/)[1]);
     assert.ok(live.some((i) => !i.minor && !i.dash), 'a major solid channel');

@@ -1,69 +1,5 @@
 /**
- * ui-action-key-rail.render.test.mjs — Wave 4 item #42's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the 1000x600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS FOR. Row #42 carries no bug id and one decision, C7 (five
- * buttons, no drag). Three things are therefore worth measuring rather than reading:
- *
- *  1. THAT THE WHOLE KEY IS PRESSABLE. The composition is five #1 ui-buttons inside
- *     the seam utility, and the obvious way to make a composed #1 fill its cell —
- *     #1's own documented `ui-button { display: block }` lever — silently breaks it:
- *     a <button> in a block container is shrink-to-fit in Chrome whatever its
- *     display, so the control came out 74px inside a 255px key with 181px of dead
- *     fascia beside it. That is the defect ui-icon-button.js:104-117 names ("a 64px
- *     button in a 96px host with a dead strip beside it") and nothing in a screenshot
- *     shows it. §2 measures the control box against the key box on all five keys.
- *
- *  2. THAT DISABLED IS A DIMMED GLYPH ON THE SAME GROUND. Slate's own sheet states
- *     that intent at profile-editor-v3.css:1076-1081 and a shell rule 1000 lines away
- *     beats it with !important (measured — see the CITEs in the component header). The
- *     structure here makes the intent free: the FACE is the seam cell, the GLYPH is
- *     the ghost button, and the one dial fades only the second. §4 measures both
- *     halves against a live sibling.
- *
- *  3. THAT NOTHING IS CUT. §7.4 E1 is "overflow-y: hidden CUTS THE ACTION ROW" — this
- *     component is that row, and it uses `overflow: hidden` for its radius. §6
- *     squeezes the container to 120px and asserts the rank holds its floor and the
- *     clip still has nothing to clip.
- *
- * ============================ ORACLE ==========================================
- * Disqualification check first (prov_query.py --help, SCOPE Part 10 §4). C7 settles
- * the control type and the count; responsive behaviour has no Slate answer (frozen at
- * 1920x1200, layout spec governs); and TWO of §7.4's bugs land on the elements this
- * component is built from, so the oracle is disqualified for exactly two values:
- *   E13 — CITE editor-steps .pe-action-btn [i=214] color: dark rgb(149, 149, 149) /
- *         light rgb(90, 101, 108)  <-  dark dark-mode.css `[data-theme="dark"]
- *         .pe-action-btn` authored `rgb(149, 149, 149)` !important=no ; light
- *         profile-editor-v3.css `.pe-action-btn` authored `var(--slate-muted)`. The
- *         neutral key's ink is a literal in dark and a token in light. §3 asserts
- *         --ui-muted in BOTH themes and asserts the literal absent.
- *   E1  — the clip; §6.
- * Everything else is quoted and reproduced:
- *   CITE prov_query.py find --cls pe-action-cell -> "found 3 element(s) in 1 state(s)",
- *        "distinct geometries (w x h), all matched elements: 316 x 64 x3"
- *   CITE prov_query.py find --cls pe-action-btn -> "found 15 element(s) in 1 state(s)",
- *        "distinct geometries (w x h), all matched elements: 62 x 62 x15" — five keys
- *        per rail, three rails.
- *   CITE editor-steps .pe-action-cell [i=210] background-color: dark rgb(58, 72, 82) /
- *        light rgb(203, 208, 211)  (= --ui-line, both themes exactly)
- *   CITE editor-steps .pe-action-cell [i=210] gap = 1px, padding-left = 1px,
- *        border-top-left-radius = 6px, height = 64px
- *   CITE editor-steps .pe-action-btn [i=213] background-color: dark rgb(14, 19, 23) /
- *        light rgb(242, 243, 243)  (= --ui-fascia, both themes exactly)
- *   CITE editor-steps .pe-action-btn [i=213] color: dark rgb(176, 196, 206) / light
- *        rgb(49, 92, 112)  <-  `.pe-action-btn.pe-act-add` authored `var(--slate-steel)`
- *   CITE editor-steps .pe-action-btn [i=212] color: dark
- *        color(srgb 0.811922 0.464784 0.459451) / light
- *        color(srgb 0.609882 0.189961 0.217412)  <-  `.pe-action-btn.pe-act-del`
- *        authored `color-mix(in srgb, var(--slate-danger) 72%, var(--slate-muted))`
- *   CITE editor-steps .pe-action-btn [i=211] background-color: dark rgb(14, 19, 23) /
- *        light rgb(242, 243, 243)  <-  `.pe-action-btn.pe-act-disabled` — the disabled
- *        key's ground IS the live key's ground, in both themes.
- * Colours are asserted against RESOLVED TOKENS, never against a hex, so every
- * assertion below is true in both themes; the two theme-specific ones say so.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -79,15 +15,10 @@ import {
     DRILL_LENGTH,
 } from '../harness/assertions.js';
 
-/* One module. It side-effect imports src/components/ui-button.js — item #1, the row's
- * stated dependency — and if that import is ever dropped this file fails first, with
- * <ui-button> never upgrading and every key box coming out wrong. */
 const MODULE = ['/src/components/ui-action-key-rail.js'];
 
-/** C7's five, in Slate's footer order (profile_editor.js:2119-2123). */
 const ACTIONS = ['move-left', 'delete', 'insert-after', 'duplicate', 'move-right'];
 
-/** Slate's own aria-label strings, the translation keys carried unchanged. */
 const NAMES = {
     'move-left': 'Move step left',
     delete: 'Delete step',
@@ -150,10 +81,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -----------------------------------------------------------------
-         * 1. C7 — FIVE KEYS, BUTTONS, NO DRAG
-         * ----------------------------------------------------------------- */
-
         test('C7: five keys, in Slate\'s footer order, and every one is a #1 ui-button',
             () => mounted(async (page) => {
                 const found = await page.evalFn(() => {
@@ -203,10 +130,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -----------------------------------------------------------------
-         * 2. THE RANK — every key pressable end to end, no dead strip
-         * ----------------------------------------------------------------- */
-
         test('every key\'s control fills its key, on all five', () => mounted(async (page) => {
             for (const action of ACTIONS) {
                 const k = await page.box(key(action));
@@ -219,13 +142,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a STRETCHED key stretches its control — the dead-strip trap, measured',
             () => mounted(async (page) => {
-                /* The shipped rail is sized by its keys, so control-box == key-box is
-                 * nearly free and the assertion above cannot bite on its own. This one
-                 * can: it re-sizes the tracks to 1fr in a 900px rail — the shape any
-                 * future editor layout would reach for — and re-measures. Under
-                 * `.key { display: block }` (#1's own documented full-width lever, and
-                 * the wrong tool here) the control comes back 74px inside a 179px key
-                 * and this test is the only thing in the suite that notices. */
                 await page.setStyle('#rail >>> .rail', {
                     'inline-size': '900px',
                     'grid-auto-columns': 'minmax(var(--ui-control-h), 1fr)',
@@ -279,16 +195,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the rank TAKES the width it is given, and its keys divide it',
             () => mounted(async (page) => {
-                /* IT USED TO REFUSE THE WIDTH, and Ben changed that on 25 August 2026:
-                 * "tweak the bottom buttons so the 4 buttons are the same total width as
-                 * say the slider ... Then make all the controls 350px wide? This should
-                 * get it pixel perfect width."
-                 *
-                 * A rank sized to its own keys can only line up with the stepper above it
-                 * by arithmetic that happens to agree. A rank sized to its container does
-                 * it by construction, and that is what this now measures: the rail is its
-                 * container, the five keys are equal shares of it, and the SQUARE-key
-                 * claim moves to the floor below rather than to the resting width. */
                 const key = () => page.evalFn(() => {
                     const rail = document.getElementById('rail').shadowRoot.querySelector('.rail');
                     const cells = [...rail.children].map((c) => c.getBoundingClientRect().width);
@@ -303,18 +209,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     for (const cell of got.cells) {
                         near(cell, got.cells[0], 'and the keys are equal shares of it', 1);
                     }
-                    /* AND NOTHING IS CUT AT ANY OF THEM. The slab clips its own corners,
-                     * so an overflow here is invisible — which is why it is measured at
-                     * every width rather than only at the floor. */
                     const m = await page.metrics('#rail >>> .rail');
                     near(m.scrollWidth, m.clientWidth, `nothing cut inside the slab at ${width}px`, 1);
                 }
                 await page.setStyle('#rail', { 'inline-size': null });
             }));
-
-        /* -----------------------------------------------------------------
-         * 3. TOKEN DRILLS — nothing in this file is a number or a colour
-         * ----------------------------------------------------------------- */
 
         test('token drill: the seam ground is --ui-line (the oracle\'s .pe-action-cell)',
             () => mounted(async (page) => {
@@ -337,11 +236,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('token drill: the enclosure width is --ui-border-w', () => mounted(async (page) => {
-            /* expectLanding: false — the harness resolves a drill value on a bare probe
-             * element, and `border-top-width: 37px` with no border-style computes to
-             * 0px there, so the generic landing check would compare against 0. The
-             * landing is checked here instead, in whole CSS px, because a rendered
-             * length at dsf 1.5 is not string-comparable (CONVENTIONS §10). */
             const drilled = await assertTokenDrill(page, {
                 token: '--ui-border-w',
                 value: DRILL_LENGTH,
@@ -401,9 +295,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('token drill: the delete key is --ui-status-danger, 72% of it', () => mounted(async (page) => {
-            /* expectLanding: false — the token is a COMPONENT of a color-mix, so the
-             * rendered value is the mix and not the drill colour. The shape check is
-             * the next test, which reproduces Slate's own arithmetic. */
             await assertTokenDrill(page, {
                 token: '--ui-status-danger',
                 value: DRILL_COLOUR,
@@ -415,10 +306,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the delete key is Slate\'s arithmetic, not Slate\'s computed value',
             () => mounted(async (page) => {
-                /* CITE .pe-action-btn.pe-act-del authored
-                 * `color-mix(in srgb, var(--slate-danger) 72%, var(--slate-muted))`.
-                 * Carried as arithmetic so it stays true when either token moves;
-                 * resolved here through the engine rather than written as a hex. */
                 const want = await page.resolveValue(
                     'color-mix(in srgb, var(--ui-status-danger) 72%, var(--ui-muted))', 'color');
                 assert.equal(await page.prop(glyph('delete'), 'color'), want);
@@ -440,15 +327,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('token drill: the rank\'s floor is --ui-control-h', () => mounted(async (page) => {
-            /* Squeeze the host so the rank is at its floor, then move the token and
-             * watch the floor move with it. The floor is read from min-inline-size, which
-             * is where this file states it — the rendered width is the CONTAINER's now
-             * (Ben, 25 August 2026), so it is not the thing that reports the floor.
-             *
-             * --ui-control-h AND NOT --ui-hit-min. For one release this read the hit
-             * minimum, 48, and a 48px track cannot hold one of #1's keys: 24 + 24 of
-             * padding plus a hairline enclosure is 50px of border box before any glyph.
-             * Every key stood out of its track and the slab cut it. */
             await assertTokenDrill(page, {
                 token: '--ui-control-h',
                 value: DRILL_LENGTH,
@@ -457,10 +335,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 expectLanding: false,
             });
         }));
-
-        /* -----------------------------------------------------------------
-         * 4. DISABLED — one dial, dimmed glyph, same ground
-         * ----------------------------------------------------------------- */
 
         test('the edge keys are the two C7 disables, and only those', () => mounted(async (page) => {
             const state = await page.evalFn(() => {
@@ -506,30 +380,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }, LAST));
 
-        /**
-         * A ONE-STEP PROFILE DISABLES THREE KEYS, AND THE THIRD IS A DECLARED DEPARTURE.
-         *
-         * THIS ASSERTION USED TO READ `delete: false`, justified as "the only step is
-         * still deletable — Slate's behaviour". It was measured correctly and reasoned
-         * wrongly, and it was inverted on 27 August 2026 rather than weakened: the claim
-         * is now the opposite claim, held just as tightly, because the tree's own rule
-         * says so somewhere else. `step-matrix.js render()` refuses to draw a matrix with
-         * no steps — "A profile with zero steps is not an editing surface" — and assigns
-         * the other half by name: "'never delete the last step' is the draft owner's rule
-         * to keep". `editor-draft.js applyStepAction` keeps it, so the press was going to
-         * be refused; the only question was whether the person could SEE that before
-         * pressing.
-         *
-         * THE DEAD END IS REAL AND BEN WALKED INTO IT FROM THE OTHER SIDE the same day, on
-         * a new profile the selector seated with an empty step list: "there is not + button
-         * to add a new step etc, ie I cannot add any steps." With no steps there are no
-         * step columns; with no step columns there are no action rails; the action rail is
-         * the only route to a new step. Slate has the same dead end and has never been
-         * driven into it, because its own new-profile seed is a four-step worked example.
-         *
-         * THE TWO LIVE KEYS ARE INSERT-AFTER AND DUPLICATE, which is the whole point: from
-         * one step you can always get to two, and from two you can delete again.
-         */
         test('a one-step profile disables both arrows AND delete', () => mounted(async (page) => {
             const state = await page.evalFn(() => {
                 const root = document.getElementById('rail').shadowRoot;
@@ -545,9 +395,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, 'the only two live keys are the two that GROW the list');
         }, ONLY));
 
-        /* THE DEPARTURE IS BOUNDED: at two steps delete comes back, on both of them. A
-         * `minCount` that leaked upwards would make delete unreachable on a two-step
-         * profile, which is a different bug wearing the same fix. */
         test('at two steps, delete is live again on both of them', () => mounted(async (page) => {
             const state = await page.evalFn(() => {
                 const rail = document.getElementById('rail');
@@ -571,8 +418,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 4: a dimmed glyph on the SAME ground as its live siblings',
             () => mounted(async (page) => {
-                /* Slate's own words, profile-editor-v3.css:1076-1081, and the thing its
-                 * shell rule then defeated with !important. Here it is structural. */
                 const dimmedFace = await faceColour(page, 'move-left');
                 const liveFace = await faceColour(page, 'delete');
                 assert.equal(dimmedFace, liveFace,
@@ -628,10 +473,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         }, OFF));
 
-        /* -----------------------------------------------------------------
-         * 5. NO SELECTION TREATMENT — the four dials belong to #3
-         * ----------------------------------------------------------------- */
-
         test('selection cannot express: every spelling, on the host and on a key, moves nothing',
             () => mounted(async (page) => {
                 const props = ['background-color', 'color', 'box-shadow', 'text-shadow',
@@ -673,10 +514,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -----------------------------------------------------------------
-         * 6. E1's CLASS — the clip never has anything to clip
-         * ----------------------------------------------------------------- */
-
         test('E1 cannot express: the slab clips for its radius and nothing overflows it',
             () => mounted(async (page) => {
                 const m = await page.metrics('#rail >>> .rail');
@@ -712,10 +549,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -----------------------------------------------------------------
-         * 7. FOCUS — one ring, inset, unclipped on all five (L24's class)
-         * ----------------------------------------------------------------- */
-
         test('focus-unclipped: every key\'s ring survives the slab\'s overflow: hidden',
             () => mounted(async (page) => {
                 for (const action of ACTIONS) {
@@ -745,16 +578,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -----------------------------------------------------------------
-         * 8. THE EVENT
-         * ----------------------------------------------------------------- */
-
         test('a press fires step-action with the action, the index and the count',
             () => mounted(async (page) => {
-                /* Recorded ONCE, before the loop: page.recordEvents() adds a listener
-                 * every time it is called and clears only the log, so re-arming inside
-                 * the loop doubles each subsequent event (measured — the second key
-                 * reported two). One listener, five presses, one comparison. */
                 await page.recordEvents('#rail', ['step-action']);
                 for (const action of ACTIONS) {
                     await page.click(control(action));
@@ -788,10 +613,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 composed: true, bubbles: true, cancelable: true, target: 'ui-action-key-rail',
             }, 'cancelable so a screen can put #19 in front of delete, the shape #18 uses');
         }));
-
-        /* -----------------------------------------------------------------
-         * 9. ARIA
-         * ----------------------------------------------------------------- */
 
         test('the rail is a named group and every key carries a name on the real control',
             () => mounted(async (page) => {
@@ -828,10 +649,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(name, 'Step 3 actions');
         }, '<ui-action-key-rail id="rail" index="2" count="6" label="Step 3 actions"></ui-action-key-rail>'));
 
-        /* -----------------------------------------------------------------
-         * 10. THEME — E13 is the one oracle value not copied
-         * ----------------------------------------------------------------- */
-
         for (const theme of ['dark', 'light']) {
             test(`E13 cannot express: the neutral key is --ui-muted in ${theme}`, () => mounted(
                 async (page) => {
@@ -839,9 +656,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     for (const action of ['move-left', 'duplicate', 'move-right']) {
                         assert.equal(await page.prop(glyph(action), 'color'), muted, action);
                     }
-                    /* dark-mode.css:46-48's literal, written the way Chrome serialises
-                     * it. It is not here in either theme, and in dark it is what Slate
-                     * renders. */
                     for (const action of ACTIONS) {
                         assert.notEqual(await page.prop(glyph(action), 'color'), 'rgb(149, 149, 149)');
                     }
@@ -869,10 +683,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 { theme },
             ));
         }
-
-        /* -----------------------------------------------------------------
-         * 11. THE GALLERY ENTRY, MOUNTED
-         * ----------------------------------------------------------------- */
 
         test('every gallery state mounts, upgrades and renders five keys', () => mounted(async (page) => {
             for (const state of galleryEntry.states) {

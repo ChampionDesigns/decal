@@ -1,16 +1,5 @@
 /**
- * editor-contract.test.mjs — wave 5.5, item `contract-check-editor`.
- *
- * Part 3 §7: contract checking is a BUILD ACTIVITY, done with the handler source open in
- * the next pane while the caller is written — not a doc, not memory, not the old skin.
- * Gate D already re-reads every row's handler at the pin. What this suite adds is the
- * other half of the rule, which Gate D cannot see: that the routes the editor ACTUALLY
- * REACHES are the routes the table says it reaches, and that no other route is touched.
- *
- * THE ROUTES ARE ENUMERATED BY DRIVING THE STORE, not by scanning its source. A text scan
- * would pass a store that named a route id in a comment and called something else; a
- * recording transport cannot be fooled, and it keeps this suite clear of A8's line —
- * nothing here reads a `.js` file and asserts on its contents.
+ *.5, item contract-check-editor.
  */
 
 import { test, describe } from 'node:test';
@@ -79,11 +68,6 @@ describe('the editor touches four routes and every one has a row', () => {
         assert.deepEqual(ids.sort(), ['getProfilesById', 'postProfiles', 'putProfilesById']);
     });
 
-    /**
-     * THE FOURTH IS THE ONE THE EDITOR READS AND DOES NOT CALL. `getProfiles` serves the
-     * record `open()` is handed; `getProfilesByIdLineage` is the selector's (Q7). Both are
-     * in the editor's contract array because the screen depends on what they return.
-     */
     const EDITOR_ROUTES = [
         ['getProfilesById', 'GET', '/api/v1/profiles/{id}', 'ProfileHandler._handleGetById'],
         ['postProfiles', 'POST', '/api/v1/profiles', 'ProfileHandler._handleCreate'],

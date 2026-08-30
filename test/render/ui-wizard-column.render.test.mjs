@@ -1,59 +1,5 @@
 /**
- * ui-wizard-column.render.test.mjs — Wave 4 item #39's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and behaviour, never
- * source text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the 1000x600 floor
- * (CONVENTIONS §10, Part 8 §2).
- *
- * WHAT THIS SUITE IS REALLY FOR. Row #39 carries one bug id, and it is a bug about a
- * NUMBER THAT IS NOT THERE:
- *
- *   T1 (§7.5) — "The load-cell wizard is 63px wider than every other leaf — measured
- *   1263 against 1200, right edge 1892 against 1829 on all 37 others. The comment says
- *   the LEFT edge was fixed so paging no longer jolts; the right edge still jumps."
- *   (`slate-shell.css:2290-2295` vs `:1285-1288`)
- *
- * The oracle has both halves of that measurement, and they came out of prov_query rather
- * than out of the bug list:
- *   CITE `prov_query.py find --cls slate-cal-step-label` -> found 1 element in 1 state:
- *        settings-calibration-load-cells .text-[24px] [i=50] rect x=629 y=321 w=1263 h=27
- *   CITE `prov_query.py find --cls slate-cal-card` -> settings-calibration-load-cells
- *        .slate-card [i=51] rect x=629 y=384 w=760 h=296
- * — a leaf 63px wider than the 1200px cap, with a card 440px narrower than the leaf
- * inside it. Two of T21's three undocumented live measures, in one screen.
- *
- * A defect of omission cannot be tested by looking for its absence in the source, so §4
- * measures the CONSEQUENCE instead: the wizard's rendered inline size against a sibling
- * leaf's, in the same stage, at two stage widths, at both geometries — plus
- * `max-inline-size` on every box in the column, host and slotted card included, because
- * a single cap anywhere is how 1263 and 760 both happened.
- *
- * The other four sections are the standing assertions in the shapes this component makes
- * them take:
- *   §2  THE DIALS. The chips are selection-family members (SCOPE.md:1577 names #39 in the
- *       list that may not own a private selected look), and the dials are not a stand-in
- *       for Slate's paint — they ARE Slate's paint:
- *         CITE settings-calibration-load-cells .rounded-full [i=46] background-color =
- *              rgb(176, 196, 206)   (--slate-steel)
- *         CITE settings-calibration-load-cells .rounded-full [i=46] color =
- *              rgb(18, 24, 28)  <- <inline> authored `var(--slate-on-steel)`
- *       against shipped dials of --ui-steel / --ui-on-steel (`styles/tokens.css:834-835` dark / `:903-904` light),
- *       whose dark values are #b0c4ce and #12181c. Same pixels, reachable by a fork.
- *   §5  THE CONTAINER FLOOR. 44x44 is a touch floor (spec §2.3 case 2, §2.2 row 1: "never
- *       fluid"), so the chip is the thing that must NOT respond; the strip wraps, and
- *       below one whole chip+connector unit it overflows visibly rather than clip. The
- *       suite squeezes the stage to 320px, to the stated 92px floor and below it, and
- *       measures what moved.
- *   §6  FOCUS, UNCLIPPED — bug L24's class, on the slotted buttons, because a wizard's
- *       only focusables are slotted and a component with an overflow: hidden anywhere in
- *       the column would clip their rings.
- *   §7  ARIA per Appendix 15 ("the aria-*-driven state selectors … the right contract for
- *       a Lit component's reflected properties").
- *
- * Slate's rects are frozen 1920x1200 captures, quoted as what Slate does and never as a
- * responsive target — LAYOUT_SPEC_DRAFT.md governs responsive behaviour and the oracle
- * has no vote there (Part 10 §4). Colours are asserted against resolved tokens, never
- * hexes, so every assertion is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -73,21 +19,10 @@ const MODULES = [
     '/src/components/ui-button.js',
 ];
 
-/* Slate's own four steps (`settings.js:4867`, read-only). They are DATA — what the
- * machine's calibration walk does — passed in by the screen, not strings the component
- * owns. */
 const STEPS = JSON.stringify(['Zero', 'Left cell', 'Right cell', 'Verify']);
 
-/** The stage's stated width, so every measured box is the CONTAINER's answer and not the
- *  viewport's — the two geometries must produce identical numbers (spec §2.1 Rule 1). */
 const STAGE_W = 720;
 
-/**
- * The wizard mid-walk (two steps behind, one current, one ahead) beside a REFERENCE LEAF
- * in the same stage. The reference is what T1 is a difference from: in Slate every one of
- * the other 37 leaves is capped at 1200 and the wizard is not, so the assertion is a
- * comparison and not a magic number.
- */
 const MARKUP = `
     <style>
       /* border-box stated here, not assumed: styles/document.css declares no global
@@ -191,17 +126,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(env.w, geometry.width);
         }));
 
-        /* ===================================================================
-         * 1. THE MEASURED CHIP — 44x44, square, --ui-text-md
-         * =================================================================== */
-
         test('the chips are 44x44, and the number is --ui-control-sm', () => mounted(async (page) => {
-            /* CITE `prov_query.py find --cls rounded-full` -> settings-calibration-
-             * load-cells, 4 elements: [629,259,44,44] [733,259,44,44] [837,259,44,44]
-             * [941,259,44,44] — the real chips, against the dead [data-wizard-step] rule
-             * that sizes them var(--slate-control-height) = 64 (BUG-6/T6: "the load-cell
-             * step chips are div.rounded-full…, measured 44x44, not 64"). Spec §3.1's
-             * --ui-control-sm row cites this very measurement. */
             const floor = parseFloat(await page.resolveToken('--ui-control-sm', 'width'));
             near(floor, 44, '--ui-control-sm');
 
@@ -218,13 +143,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the chips are squares with --ui-radius corners, not the discs the class says',
             () => mounted(async (page) => {
-                /* CITE settings-calibration-load-cells .rounded-full [i=46]
-                 * border-top-left-radius = 6px  <-  slate-shell.css
-                 * `#subpage-host [class*="rounded-full"]:not(.slate-keep-round)…`
-                 * !important=yes (token-driven) — the shell hands every rounded-full in
-                 * settings --slate-radius, so the authored Tailwind class never renders.
-                 * 6px is --ui-radius. Matching the CLASS instead of the RENDER would have
-                 * shipped a disc Slate does not draw. */
                 const want = await page.resolveToken('--ui-radius', 'border-top-left-radius');
                 const got = await page.computed(chip(3), ['border-top-left-radius', 'border-bottom-right-radius']);
                 assert.equal(got['border-top-left-radius'], want);
@@ -232,13 +150,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the glyph and the caption are the measured type roles', () => mounted(async (page) => {
-            /* CITE settings-calibration-load-cells .rounded-full [i=46] font-size = 18px
-             *      <- slate-shell.css `[class*="text-[22px]"]` authored
-             *      `var(--slate-text-md)` !important=yes — the authored 22px never renders
-             * CITE settings-calibration-load-cells .rounded-full [i=46] font-weight = 500
-             *      <- slate-shell.css `[class*="font-bold"]` authored `500` !important=yes
-             * CITE settings-calibration-load-cells .text-[24px] [i=50] font-size = 18px,
-             *      color = rgb(148, 161, 169) (--slate-muted), font-weight = 400 */
             const md = await page.resolveToken('--ui-text-md', 'font-size');
             const muted = await page.resolveToken('--ui-muted', 'color');
             const medium = await page.tokenValue('--ui-weight-medium');
@@ -256,9 +167,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the caption reads "Step 3 of 4 · Right cell", from the shared string table',
             () => mounted(async (page) => {
-                /* Slate's own key and separator (`settings.js:4888-4890`), which
-                 * `i18n/en.json:446` already carries: "Step {n} of {total}". D2 — one
-                 * table, no component-local strings. */
                 const text = await page.eval(
                     'document.getElementById("walk").shadowRoot.getElementById("caption")'
                     + '.textContent.replace(/\\s+/g, " ").trim()',
@@ -266,25 +174,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(text, 'Step 3 of 4·Right cell');
             }));
 
-        /* ===================================================================
-         * 2. THE FOUR DIALS — the chips are selection-family members
-         * =================================================================== */
-
         test('SELECTION: the current chip is painted by the four dials and nothing else',
             () => mounted(async (page) => {
-                /* SCOPE Part 4's founding-defect callout (SCOPE.md:1577): "the wizard
-                 * chips in #39 … are all expressed through #3 or its four
-                 * --slate-selected-* dials". This is the whole-shape assertion: face, ink,
-                 * LED and glow all move with their dial, and the ahead chip does not. */
                 const measured = await assertOneSelectionTreatment(page, {
                     selected: chip(3),
                     unselected: chip(4),
                 });
 
-                /* And the dials land on SLATE'S OWN PIXELS, which is the point of taking
-                 * this route rather than inventing a look:
-                 *   CITE …[i=46] background-color = rgb(176, 196, 206)  (--slate-steel)
-                 *   CITE …[i=46] color = rgb(18, 24, 28)   (var(--slate-on-steel)) */
                 const steel = await page.resolveToken('--ui-steel', 'background-color');
                 const onSteel = await page.resolveToken('--ui-on-steel', 'color');
                 assert.equal(measured.face, steel, '--ui-selected-face ships as --ui-steel');
@@ -293,9 +189,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('SELECTION: no chip owns a private selected look — turn the dial off and the '
             + 'current chip stops looking current', () => mounted(async (page) => {
-            /* The test that would have caught Slate: L8/E10/T5 are all "the paint stayed
-             * when the dial moved". Point both colour dials at the resting values and the
-             * current chip must become indistinguishable from an ahead one. */
             const before = await page.computed(chip(3), ['background-color', 'color']);
             const ahead = await page.computed(chip(4), ['background-color', 'color']);
             assert.notDeepEqual(before, ahead, 'the states must differ to begin with');
@@ -316,11 +209,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the three chip states are three treatments, and only one of them is a dial',
             () => mounted(async (page) => {
-                /* CITE …[i=47] background-color = rgba(0, 0, 0, 0) authored `transparent`
-                 * CITE …[i=47] color = rgb(148, 161, 169)  (var(--slate-muted))
-                 * CITE …[i=47] border-top-width = 1px, border-top-color = rgb(58, 72, 82)
-                 *      (--slate-line) — the AHEAD chip, measured.
-                 * DONE is unmeasured: no capture in the 49 has a step behind the walk. */
                 const line = await page.resolveToken('--ui-line', 'border-top-color');
                 const muted = await page.resolveToken('--ui-muted', 'color');
                 const keyOn = await page.resolveToken('--ui-key-on', 'background-color');
@@ -346,11 +234,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the connectors mark the walk by weight, and take --ui-space-7 as their length',
             () => mounted(async (page) => {
-                /* Slate draws a 40x3 div between chips and recolours it once the walk is
-                 * past (`settings.js:4883`, read-only; the connectors are not in the
-                 * corpus's 18-property capture, so this is a source read, not a CITE).
-                 * 40 is --ui-space-7; 3px has no token, so the emphasised rule weight
-                 * --ui-border-w-strong carries it. */
                 const strong = await page.resolveToken('--ui-line-strong', 'background-color');
                 const line = await page.resolveToken('--ui-line', 'background-color');
                 const walked = await page.computed(rule(1), ['background-color', 'block-size', 'inline-size']);
@@ -361,10 +244,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(parseFloat(walked['inline-size']), 40, 'the connector is --ui-space-7 long');
                 near(parseFloat(walked['block-size']), 2, 'the connector is --ui-border-w-strong thick');
             }));
-
-        /* ===================================================================
-         * 3. TOKEN DRILLS — consumed, not copied
-         * =================================================================== */
 
         test('TOKEN DRILL: --ui-control-sm moves the chip', () => mounted(async (page) => {
             await assertTokenDrill(page, {
@@ -411,10 +290,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('TOKEN DRILL: the column rhythm is --ui-space-6 and --ui-space-4',
             () => mounted(async (page) => {
-                /* MEASURED, and the one gap Slate has on the scale: chips bottom out at
-                 * 259 + 44 = 303 and the caption starts at y = 321, so strip-to-caption is
-                 * 18px = --ui-space-4. The column gap replaces an untokenised gap-[30px]
-                 * (`settings.js:5015`) with --ui-space-6 = 28. */
                 await assertTokenDrill(page, {
                     token: '--ui-space-4', value: '36px', selector: '#walk >>> #progress', property: 'row-gap',
                 });
@@ -425,15 +300,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(parseFloat(gap['row-gap']), 18, 'strip-to-caption is the measured 18px');
             }));
 
-        /* ===================================================================
-         * 4. T1 — THE COLUMN IS THE LEAF'S WIDTH, AND OWNS NO CAP
-         * =================================================================== */
-
         test('T1: the wizard is exactly as wide as every other leaf, at two container widths',
             () => mounted(async (page) => {
-                /* T1 is a DIFFERENCE — "63px wider than every other leaf … 1263 against
-                 * 1200" — so the assertion is a difference, measured against a sibling in
-                 * the same stage rather than against a remembered number. */
                 const stage = await page.box('#stage');
                 const first = {
                     wizard: await page.box('#walk'),
@@ -463,12 +331,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T1: nothing in the column carries a max-inline-size — not the 1263, not the 760',
             () => mounted(async (page) => {
-                /* The mechanism half. T1 is a cap that beat the leaf cap
-                 * (`slate-shell.css:2290-2295` vs `:1285-1288`) and T21's 760 is a second
-                 * cap inside the first (CITE find --cls slate-cal-card -> [i=51] rect
-                 * 629,384,760,296). SCOPE.md:2252: "the wizard … asks for it explicitly via
-                 * its own container, not via a bespoke cap." There is no cap here to ask
-                 * with, on the host, on any box in the shadow tree, or on the slotted card. */
                 const caps = await page.eval(`JSON.stringify(${CAPS})`).then(JSON.parse);
                 const capped = caps.filter((c) => c.max && c.max !== 'none');
                 assert.deepEqual(capped, [],
@@ -478,24 +340,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T1: the slotted card is the column\'s width, not a 760px island',
             () => mounted(async (page) => {
-                /* Slate's card is 760 inside a 1263 leaf, left-aligned, which is the
-                 * "three things that each chose their own alignment" its own comment
-                 * complains about (`slate-shell.css:2281-2289`). Here the body is a bare
-                 * slot, so the card is a grid item of the column and stretches. */
                 const wizard = await page.box('#walk');
                 const card = await page.box('#body');
                 near(card.width, wizard.width, 'the slotted card must be the column\'s width');
                 near(card.left, wizard.left, 'and share its left edge');
             }));
 
-        /* ===================================================================
-         * 5. THE CONTAINER FLOOR — what gives way, in what order
-         * =================================================================== */
-
         test('CONTAINER FLOOR: at 320px the strip wraps and the chips keep their 44',
             () => mounted(async (page) => {
-                /* Slate is frozen at 1263 and has no answer here (Part 10 §4); spec §2.2
-                 * row 1 does — a touch target is "fixed token, never fluid". */
                 await page.setStyle('#stage', { 'inline-size': '320px' });
                 await page.settle();
 
@@ -517,10 +369,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('CONTAINER FLOOR: the floor is one chip+connector unit, and at it the strip '
             + 'still fits', () => mounted(async (page) => {
-            /* §2.4 asks for "an explicit floor and a defined order of surrender". The
-             * floor is --ui-control-sm + --ui-space-2 + --ui-space-7 = 44 + 8 + 40 = 92,
-             * the strip's min-content width — one whole unit per line. Computed from the
-             * tokens rather than written as 92, so a token change moves the assertion. */
             const sum = (names) => Promise.all(names.map((n) => page.resolveToken(n, 'width')))
                 .then((v) => v.reduce((a, x) => a + parseFloat(x), 0));
             const floor = await sum(['--ui-control-sm', '--ui-space-2', '--ui-space-7']);
@@ -544,11 +392,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('CONTAINER FLOOR: below the floor it overflows VISIBLY — never clipped, never '
             + 'a hidden scrollbar', () => mounted(async (page) => {
-            /* The order of surrender's last step, and the one §2.4 cares about: "hiding
-             * the scrollbar is banned" (T16 is the counter-example — both settings nav
-             * columns scroll with scrollbar-width: none). Below one unit the strip has
-             * nothing left to give, and it says so rather than shrinking the target or
-             * quietly cutting a chip off. */
             await page.setStyle('#stage', { 'inline-size': '112px' });   /* a 64px column */
             await page.settle();
 
@@ -564,11 +407,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('CONTAINER FLOOR: nothing in the column hides overflow, and that is stated',
             () => mounted(async (page) => {
-                /* Spec §2.4 wants a floor and a STATED overflow for every scroll region.
-                 * This component is not one — the leaf pane scrolls (spec §4.4) — so the
-                 * statement is that every box here is `visible`. The `.a11y` 1px box is
-                 * the base fragment's and is exempt by construction: it is 1x1 and clipped
-                 * on purpose (CONVENTIONS §5a). */
                 const caps = await page.eval(`JSON.stringify(${CAPS})`).then(JSON.parse);
                 const hiding = caps.filter((c) => c.overflowX && c.overflowX !== 'visible'
                     && !String(c.where).includes('a11y'));
@@ -578,9 +416,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('CONTAINER FLOOR: an empty actions cluster draws no row', () => mounted(async (page) => {
-            /* The F3 hole is a STATE, not a gap: with nothing slotted the cluster is
-             * hidden, so the column does not reserve 28px for a control that is not
-             * there. Compared against the same walk WITH actions, which must be taller. */
             const empty = await page.box('#walk');
             const actions = await page.computed('#walk >>> #actions', ['display']);
             assert.equal(actions.display, 'none', 'an empty actions cluster must not draw');
@@ -591,10 +426,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 `slotting two buttons must make the column taller (${filled.height} vs ${empty.height})`);
         }, NO_ACTIONS));
 
-        /* ===================================================================
-         * 6. FOCUS, UNCLIPPED — bug L24's class, on slotted controls
-         * =================================================================== */
-
         test('FOCUS: the slotted ui-button\'s ring is the token ring and nothing clips it',
             () => mounted(async (page) => {
                 const g = await assertFocusUnclipped(page, '#go >>> #btn');
@@ -604,10 +435,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('FOCUS: a BARE slotted button gets the same one ring (CONVENTIONS §3a)',
             () => mounted(async (page) => {
-                /* Review finding cross-3: a bare button slotted into a component took
-                 * Chrome's own outline: auto — a sixth treatment inside the layer that
-                 * exists to end the five. The base's ::slotted rule closes it; this is the
-                 * proof for THIS component's slots. */
                 await assertFocusUnclipped(page, '#bare');
             }));
 
@@ -619,16 +446,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await assertFocusUnclipped(page, '#go >>> #btn');
         }));
 
-        /* ===================================================================
-         * 7. ARIA — Appendix 15, and T15's absences
-         * =================================================================== */
-
         test('ARIA: exactly one chip is current, it says "step", and the class agrees',
             () => mounted(async (page) => {
-                /* Appendix 15: "the aria-*-driven state selectors … the right contract for
-                 * a Lit component's reflected properties". Accessibility state and visual
-                 * state are the same state. T15's settings finding is the counter-example:
-                 * "selection is class-only with no aria-current/aria-selected". */
                 const chips = await page.eval(`JSON.stringify(${CHIPS})`).then(JSON.parse);
                 assert.equal(chips.length, 4);
                 assert.deepEqual(chips.map((c) => c.current), [null, null, 'step', null],
@@ -666,9 +485,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('ARIA: each chip announces the step NAME, visually hidden, not its number',
             () => mounted(async (page) => {
-                /* CONVENTIONS §5a: one visually-hidden treatment, still in the
-                 * accessibility tree. The strip reads "Zero, Left cell, Right cell,
-                 * Verify" with one of them current, rather than "1 2 3 4". */
                 const chips = await page.eval(`JSON.stringify(${CHIPS})`).then(JSON.parse);
                 assert.deepEqual(
                     chips.map((c) => c.text),
@@ -680,16 +496,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('ARIA: nothing in the strip is focusable or clickable', () => mounted(async (page) => {
-            /* The chips are an INDICATOR. Slate's are inert divs; jumping to an arbitrary
-             * calibration step is not a thing the machine supports, and inventing
-             * navigation would be inventing semantics. Recorded as a deferred question. */
             const focusables = await page.count('#walk >>> #steps :is(a, button, input, [tabindex])');
             assert.equal(focusables, 0, 'a step chip is not a control');
         }));
-
-        /* ===================================================================
-         * 8. THE GALLERY ENTRY IS THIS COMPONENT
-         * =================================================================== */
 
         test('every gallery state mounts and renders four chips', () => mounted(async (page) => {
             /* The battery photographs these ids; a state that throws or renders nothing is

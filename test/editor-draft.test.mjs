@@ -1,20 +1,5 @@
 /**
- * editor-draft.test.mjs — the draft writer (fix run 4, `dec-A-B-1`).
- *
- * WHAT IS ACTUALLY BEING TESTED. Four elements dispatch four events and until this run
- * nothing in `src/` applied any of them: the only writer in the tree was the ten-line
- * `root.apply()` inside `test/harness/editor.js`'s composition root, so B10/B11's whole
- * save path had nothing to save. These are the rules that closed it, and three of them are
- * somebody else's rule composed rather than restated — the limiter's inner value
- * (`step-matrix-rows.js:122-125` names this module's job in as many words), the pump
- * reseed (`profile-modes.js seedStepForPump`), and the exit's three parts.
- *
- * IMMUTABILITY IS ASSERTED, NOT ASSUMED. Every surface takes the draft as a property and
- * Lit's change check is identity, so a mutated array is the same array and the matrix
- * would not re-render. `seedStepForPump` mutates in place by design, which is exactly why
- * it must never be handed the draft's own step.
- *
- * A8: every assertion is about a returned value. Nothing reads a source file.
+ * The draft writer (fix run 4, dec-A-B-1).
  */
 
 import { test, describe } from 'node:test';
@@ -24,8 +9,6 @@ import {
     applyEditorEdit, applyStepValue, applyExitCondition, applyLeverChange,
     applyExitRemove, applyStepAction, renameBody, EDITOR_EDIT, STEP_ACTIONS,
 } from '../src/lib/editor-draft.js';
-/* The blank step's ONE declaration, imported so no assertion below retypes Ben's six
- * values — a fixture that restates them is a second seed and would drift. */
 import { newStep } from '../src/lib/profile-modes.js';
 
 const step = (over = {}) => ({
@@ -71,14 +54,6 @@ describe('a cell value moved — step-change and value-commit are one gesture', 
         assert.deepEqual(after.steps[0].limiter, { value: 4.5, range: 0.6 });
     });
 
-    /* CHANGED 29 AUGUST 2026, audit F-048. This asserted
-     *   `assert.deepEqual(after.steps[0].limiter, { value: 3 });`
-     * — a limiter with NO `range`, which is exactly the body that made Save answer 500.
-     * ReaPrime's `StepLimiter.fromJson` reads `range` through `parseDouble(String)`, so a
-     * rangeless limiter throws before any handler sees it. The created limiter is now
-     * seeded from the step's own mode factory, so it is complete; the rest of the case —
-     * that a step with none gets one rather than a refusal — is unchanged, and
-     * `test/editor-draft-limiter.test.mjs` carries the whole rule. */
     test('a limiter on a step that has none is created rather than refused', () => {
         const { draft: after } = applyStepValue(draft([step({ limiter: undefined })]), {
             index: 0, field: 'limiter', value: 3,
@@ -105,11 +80,6 @@ describe('a cell value moved — step-change and value-commit are one gesture', 
 
     test('the reseed\'s NESTED write never reaches the draft either — the limiter is copied '
         + 'before the power branch clamps through it', () => {
-        /* The power reseed clamps a carried-over positive limiter IN PLACE
-         * (`step.limiter.value = clamp(...)`), and `withStep`'s copy is shallow — so
-         * without its own copy the clamp would land in the caller's step and, on a first
-         * edit of a seated step, in the BASELINE the rename body is built from. A 0.5 mL/s
-         * flow soft-knee is the reseed's own example: it clamps to the 1-bar floor. */
         const before = draft([step({ limiter: { value: 0.5, range: 0.6 } })]);
         const original = before.steps[0];
         const { draft: after, applied } = applyStepValue(before, { index: 0, field: 'pump', value: 'power' });
@@ -137,11 +107,6 @@ describe('the two dialogs', () => {
     });
 });
 
-/* ===========================================================================
- * `exit-remove` — the × on an occupied slot. Ben, 29 Aug 2026: the band dispatched it
- * and nothing listened, exactly as `step-action` did on 27 Aug. These fix the rule in
- * place so the wire cannot go quiet again without a red test.
- * =========================================================================== */
 describe('an exit slot is cleared by the rule the band uses to call it occupied', () => {
     test('removing the condition writes the server\'s own empty shape', () => {
         const before = draft([step({ exit: { type: 'pressure', condition: 'over', value: 4.5 } })]);
@@ -234,18 +199,6 @@ describe('the rename body is the served record with one string changed', () => {
     });
 });
 
-/* ===========================================================================
- * THE FIFTH EVENT — the five keys under a step column
- *
- * Ben, 27 August 2026: "IN the profile editor page, the 5 buttons down the bottom dont
- * seem to do anything, like if I try to make a new step of copy one etc it does noting."
- * `ui-action-key-rail.js` dispatched `step-action` correctly and NOTHING in `src/` was
- * listening — the same class of defect as `dec-A-B-1` above, one wave later.
- *
- * These are the rules; `test/render/editor-step-actions.render.test.mjs` is the proof that
- * a real press reaches them.
- * =========================================================================== */
-
 /** A named list, so a failure says which step ended up where rather than printing objects. */
 const names = (profile) => profile.steps.map((s) => s.name);
 
@@ -286,9 +239,6 @@ describe('the step list itself — move, delete, insert and duplicate', () => {
         assert.deepEqual(names(result.draft), ['one', 'New step', 'two', 'three']);
         assert.equal(result.index, 1, 'the caret lands on what was just created');
 
-        /* THE SEED IS `profile-modes.js NEW_STEP` AND NOT A SECOND ANSWER — the same
-         * object a brand-new profile opens with. Compared by value against the module's
-         * own constant so this file states none of Ben's six numbers itself. */
         const seeded = result.draft.steps[1];
         assert.deepEqual({ ...seeded, name: '' }, { ...newStep(), name: '' });
         assert.equal(seeded.name, 'New step', 'and the caller\'s translated word is used');
@@ -337,16 +287,6 @@ describe('the step list — the edges the rail already declares', () => {
         assert.match(result.reason, /already at that end/);
     });
 
-    /**
-     * THE ONE STEP A PROFILE ALWAYS KEEPS.
-     *
-     * This is not this module's opinion: `step-matrix.js render()` refuses to draw a matrix
-     * with no steps ("A profile with zero steps is not an editing surface") and names the
-     * owner of the other half — "'never delete the last step' is the draft owner's rule to
-     * keep". This module is that owner. Ben walked into the same dead end from the other
-     * side the same morning, on a new profile seeded with no steps: "there is not + button
-     * to add a new step etc, ie I cannot add any steps."
-     */
     test('the last remaining step cannot be deleted', () => {
         const before = draft([step({ name: 'only' })]);
         const result = applyStepAction(before, { action: 'delete', index: 0 });
@@ -385,15 +325,6 @@ describe('the step list — the edges the rail already declares', () => {
     });
 });
 
-/**
- * THE PREINFUSION MARKER RIDES WITH ITS STEP.
- *
- * `target_volume_count_start` is a 1-BASED step index where 0 means None, it is one of the
- * seven inputs to ReaPrime's content hash, and no surface in Decal edits it — which makes
- * it more dangerous rather than less. Slate's own `moveStepTo` says why it has to be
- * carried: "Reordering steps under it would otherwise silently re-point preinfusion at
- * whichever step happened to land in that slot."
- */
 describe('the preinfusion marker survives every reorder', () => {
     /** A three-step profile whose marker points at step 2 (1-based). */
     const marked = (at = 2) => ({ ...three(), target_volume_count_start: at });
@@ -428,8 +359,6 @@ describe('the preinfusion marker survives every reorder', () => {
         assert.equal(markedStep(applyStepAction(marked(), { action: 'delete', index: 0 }).draft), 'two');
     });
 
-    /* SLATE DOES NOT DO THIS ONE. Its `deleteStep` splices and leaves the marker pointing
-     * at whatever slid into the slot, or past the end of the list. */
     test('deleting the marked step itself sets the marker to None, not to its neighbour', () => {
         const after = applyStepAction(marked(), { action: 'delete', index: 1 }).draft;
         assert.equal(after.target_volume_count_start, 0);
@@ -444,13 +373,6 @@ describe('the preinfusion marker survives every reorder', () => {
     });
 });
 
-/**
- * HOLD LATCHES THE PREVIOUS STEP'S TARGET, so it means nothing at index 0 — which is why
- * `profile-modes.js transitionSegments` marks the HOLD chip `disabled: index === 0`. That
- * gate stops a person AUTHORING one there; only this can stop a move or a delete from
- * promoting one that was authored legally further along. Slate keeps the two halves
- * together too (`resetLeadingHold`).
- */
 describe('a HOLD step is never promoted to first', () => {
     test('moving one left into the first column drops it to a hard jump', () => {
         const before = draft([step({ name: 'a' }), step({ name: 'held', transition: 'hold' })]);
@@ -497,10 +419,6 @@ describe('a structural edit writes nothing in place — Lit compares identity', 
     });
 });
 
-/* The scope of the leading-HOLD rule, stated as its own test because "runs on the paths
- * that can create one" is a claim about what it does NOT do. An insert or a duplicate
- * lands at index + 1, which is never 0, so neither may touch step 0 at all — a press that
- * silently rewrote an untouched step would be its own small bug. */
 test('an insert or a duplicate never rewrites a leading HOLD it did not create', () => {
     const before = draft([
         step({ name: 'imported', transition: 'hold' }), step({ name: 'b' }),

@@ -1,26 +1,5 @@
 /**
- * mock-contract.test.mjs — Gate B rule 4, inside `npm test`.
- *
- * "The battery is only as honest as mock_rea's frames" (SCOPE Part 8 §2, Gate B change
- * 4). `tools/check_mock_contract.py` holds the capture mock to the SAME table Gate D
- * holds the client to, and this suite is what keeps the checker itself honest:
- *
- *   * the control — the real fixture set, the real ledger — passes, and passes with the
- *     counts a reader can compare against the wave record rather than a bare boolean;
- *   * every rule fires on its own canary. Seven are deliberately wrong FIXTURES on disk
- *     in `test/fixtures/mock-contract/`; four mutate the ledger or the table into a temp
- *     file, because copying a 500-line ledger to break one field would rot the copy;
- *   * the three things the port DELETED stay deleted: the canned `{"success": true}`
- *     write reply, the three-deep chain of candidate contract tables, and `_resolve`'s
- *     endpoint fallback, which answered every `/shots?…` query from the one recorded
- *     `limit=20` page. All three are the A7 defect — a plausible answer standing where
- *     an absence should be visible — and a deleted fallback with no test is a fallback
- *     waiting to be helpfully restored.
- *
- * Python by design: the checker lives beside the mock it checks, and shelling out is how
- * `tools-port.test.mjs` already covers the capture rig. If python3 is missing these fail
- * loudly rather than skipping — a green suite that quietly stopped covering the capture
- * rig is exactly the decay Gate C's canary rule exists to prevent.
+ * Gate B rule 4, inside npm test.
  */
 
 import { test } from 'node:test';
@@ -65,8 +44,6 @@ test('the control passes: every frame the mock can serve is vouched for', () => 
     assert.equal(report.ok, true,
         JSON.stringify(report.findings.filter((f) => f.blocking), null, 1));
     assert.equal(report.counts.blocking, 0);
-    // Counts, not just a boolean: a checker that silently stopped looking at anything
-    // also reports ok. Every fixture is accounted for in exactly one bucket.
     const c = report.counts;
     assert.equal(c.vouched + c.unadopted + c.ledgered + c.nonJson + c.failed, c.fixtures,
         `every fixture belongs to exactly one bucket: ${JSON.stringify(c)}`);
@@ -91,10 +68,6 @@ test('the ledger accounts for every fixture the table does not', () => {
     assert.equal(report.counts.nonJson, ledger.nonJson.length);
     assert.equal(report.counts.unadopted, ledger.unadopted.length);
 });
-
-// --------------------------------------------------------------------------- //
-// The canaries. One rule each.
-// --------------------------------------------------------------------------- //
 
 const FIXTURE_CANARIES = [
     ['shape-kind', 'an object where the row says an array'],
@@ -139,20 +112,6 @@ test('canary: ledger-unstamped — a ledger that is not stamped at the pin', () 
 });
 
 test('canary: ledger-source — an entry anchored on the wrong handler file', () => {
-    /* THIS CANARY NAMED A LIST THAT CAN LEGITIMATELY EMPTY, AND ON 27 AUGUST 2026 IT DID.
-     *
-     * It mutated `unadopted[0]`, and the unadopted list held exactly one entry:
-     * `api__v1__info.json`. That route gained a client that day — Updates › Skin / App
-     * finally has an App half — so it moved into the contract table, and a ledger entry
-     * beside a table row is two records of one route, which `check_mock_contract.py` fails
-     * as `ledger-stale` in as many words. The list went to zero and the canary stopped
-     * proving anything: it threw a TypeError, which reads as a broken test rather than as
-     * a guard that has lost its target.
-     *
-     * `ledger-source` WALKS ALL THREE LISTS — nonJson, unadopted and findings — so the
-     * canary takes whichever one has an entry, and ASSERTS there is one. A canary that
-     * cannot fail is worse than no canary; a canary that cannot RUN at least says so, and
-     * this one now says which. */
     const anchored = (doc) => doc.nonJson?.[0] ?? doc.unadopted?.[0] ?? doc.findings?.[0] ?? null;
     assert.ok(anchored(JSON.parse(readFileSync(LEDGER, 'utf8'))),
         'the ledger carries no handler-anchored entry at all — this canary has no target');
@@ -218,10 +177,6 @@ test('canary: write-frame — the mock\'s synthesized write reply against a move
     assert.deepEqual(rules(report), ['write-frame'], JSON.stringify(report.findings));
 });
 
-// --------------------------------------------------------------------------- //
-// The three deleted fallbacks stay deleted (A7)
-// --------------------------------------------------------------------------- //
-
 test('mutating verbs are answered from the table, never a canned success', () => {
     const out = execFileSync('python3', ['-c', `
 import sys, json; sys.path.insert(0, 'tools')
@@ -284,17 +239,10 @@ finally:
         + '"the machine has nothing" rather than "this instrument has no recording"');
     assert.ok(!/^\{\}$/.test(body.trim()));
     assert.match(body, /no recorded response/);
-    // 404 is ReaPrime's feature-absent signal (_bengleFirmwareGate). An instrument that
-    // manufactures it teaches a capability store that a feature is missing.
     assert.notEqual(status, 404);
 });
 
 test('a query with no recording reads as absent, not as a different page', () => {
-    // `_resolve` used to fall back from an exact miss to any recording of the same
-    // endpoint, so this exact request came back 200 with 21 items, limit 20, offset 0:
-    // four times the rows asked for, at the wrong offset, echoing a page size nobody
-    // requested. The recorded query is asked alongside it, because a mock that answers
-    // 503 to everything would pass the first half and photograph nothing.
     const out = execFileSync('python3', ['-c', `
 import sys, json, urllib.request, urllib.error; sys.path.insert(0, 'tools')
 import mock_rea
@@ -331,9 +279,6 @@ finally:
 });
 
 test('canary: query-fallback — the rule bites when the fallback is put back', () => {
-    // The canary restores the deleted code in-process and asks the checker's own rule
-    // about it. Without this the rule could be scanning nothing and every run would
-    // still be green — "a guard with no canary is a guard nobody has seen bite".
     const out = execFileSync('python3', ['-c', `
 import sys, json; sys.path.insert(0, 'tools')
 import mock_rea, check_mock_contract

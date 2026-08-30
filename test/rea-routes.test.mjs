@@ -1,14 +1,4 @@
-// The route table, checked against the handlers it claims to describe — and the thin
-// binding on top of it.
-//
-// THE RULE THIS SUITE ENFORCES (SCOPE Part 3 §7, Gate D): the handler body is the
-// authority. Not rest_v1.yml, not doc/Api.md, not the old skin's JSDoc. The table is
-// GENERATED from the yml, which makes that rule load-bearing rather than decorative: three
-// rows already contradict the spec on purpose, and this is where the contradiction is
-// justified by reading the Dart at the pinned commit.
-//
-// A passing desk check is necessary, not sufficient (the D7 episode). Nothing here claims
-// a runtime behaviour; every assertion is about text that exists in the pinned tree.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -69,13 +59,6 @@ const registrations = (() => {
     return { exact, wildcards };
 })();
 
-/* FOUR SINCE 27 AUGUST 2026, and the fourth arrived the way the third did — from a build
- * reading the Dart before writing the caller, not from a sweep. `account-proxy-query-passthrough`
- * is `getAccountProxySupportApiByEndpoint`: the spec documents that operation with no query
- * parameters at all and the handler forwards the whole query string verbatim, so a
- * spec-faithful client could not address `support/api/email?subject=…&body=…` — which is
- * the ONLY send path a skin has, because the write half of the proxy needs a scope the
- * injected skin token does not carry. The Talk to Decent message box is the caller. */
 describe('the four exceptions, justified at the handler', () => {
     test('there are exactly four, each with handler evidence and an upstream ask', () => {
         assert.equal(REA_ROUTE_EXCEPTIONS.length, 4);
@@ -148,8 +131,6 @@ describe('the four exceptions, justified at the handler', () => {
             for (const r of [get, post]) {
                 assert.equal(r.anyMethod, true);
                 assert.equal(r.exception, 'plugins-passthrough-any-method');
-                // The plugin defines the response, so it is not documented JSON. A caller
-                // must not assume a decodable body.
                 assert.equal(r.json, false);
             }
         });
@@ -183,20 +164,6 @@ describe('the four exceptions, justified at the handler', () => {
         });
     });
 
-    /* ===================================================================
-     * 4 — the account proxy relays a query string the spec does not document
-     * ===================================================================
-     *
-     * THE SHAPE OF THIS ONE IS `plugins-passthrough-any-method`'S, one axis over. There the
-     * spec narrowed a catch-all's METHODS; here it narrows a relay's QUERY. In both cases
-     * the spec's own prose admits the passthrough ("the runtime route is a catch-all under
-     * /api/v1/account/proxy/") and its SCHEMA does not, and a generator reads schema.
-     *
-     * AND IT BITES HARDER THAN THE OTHER THREE, because `buildQuery` in `rea-routes.js`
-     * THROWS on an undeclared key rather than dropping it. Without the exception the Talk
-     * to Decent message box could not be written at all — not "would silently lose a
-     * capability", but "throws at the call site".
-     */
     describe('4 — the account proxy forwards a query string the spec does not declare', () => {
         test('the handler forwards the raw query and the service puts it on the upstream URI', () => {
             const proxyHandler = handler('account_proxy_handler.dart');
@@ -207,9 +174,6 @@ describe('the four exceptions, justified at the handler', () => {
             assert.match(service, /query: query,/, 'and put it on the outbound URI untouched');
         });
 
-        /* THE TWO NAMES ARE REAPRIME'S OWN, WHICH IS WHY THEY AND NOT SLATE'S THREE. Slate
-         * also sends `since` to `support/api/emails`; no ReaPrime source names that
-         * parameter anywhere, so it is not in the table and this skin does not send it. */
         test('subject and body are the names ReaPrime itself sends to that upstream endpoint', () => {
             const account = read('lib/src/services/account/decent_account_service.dart');
             assert.match(account, /'\/support\/api\/email\?subject=\$subject&body=\$body'/,
@@ -225,9 +189,6 @@ describe('the four exceptions, justified at the handler', () => {
          * shape available. If this ever stops being true the exception should be re-argued,
          * not merely kept. */
         test('the injected skin token is scoped for reads only, so POST is not an option', () => {
-            /* THE SKIN TOKEN IS MINTED IN THE SERVICE'S CONSTRUCTOR at this pin — `main.dart`
-             * only hands it to the WebUI service (`webUIService.skinProxyToken =
-             * proxyTokenService.skinToken`), so the SCOPE is stated here and nowhere else. */
             const tokens = read('lib/src/services/account/proxy_token_service.dart');
             assert.match(tokens, /id: 'skin',\s*\n\s*scopes: \{scopeAccountProxy\},/,
                 'the skin caller is registered with the read scope alone');
@@ -253,9 +214,6 @@ describe('the four exceptions, justified at the handler', () => {
                 'neither is required — the same relay answers `sn` with no query at all');
             assert.equal(get.exception, 'account-proxy-query-passthrough');
 
-            /* THE WRITE ROWS ARE LEFT ALONE ON PURPOSE. They relay a query the same way and
-             * nothing in this skin can call them, so widening them would be surface invented
-             * for a caller that cannot exist. */
             for (const id of ['postAccountProxySupportApiByEndpoint', 'putAccountProxySupportApiByEndpoint']) {
                 assert.deepEqual(REST_ROUTE_BY_ID[id].query, [], `${id} must stay as the spec has it`);
                 assert.equal(REST_ROUTE_BY_ID[id].exception, null);
@@ -280,8 +238,6 @@ describe('the spec is not the authority — pinned divergences that do NOT reach
     });
 
     test('no route in the table carries a machine-state list', () => {
-        // The generator refuses a $ref query parameter for exactly this reason, so a stale
-        // enum cannot travel into the client through a route definition.
         for (const r of REST_ROUTES) {
             for (const q of r.query) {
                 if (!q.enum) continue;
@@ -326,11 +282,6 @@ describe('the table agrees with ReaPrime elsewhere in the tree', () => {
     });
 
     test('the documented rows with no exact registration are the known wildcard handlers', () => {
-        // Checked, not assumed: eight documented operations are served by a parameterised
-        // registration. `PUT /api/v1/scale/<command>` switches on tare; `/scale/timer/
-        // <command>` on start|stop|reset; skin-assets and the support proxy use catch-all
-        // path patterns. If upstream ever splits or drops one, this list changes and the
-        // test says so.
         const unregistered = REST_ROUTES
             .map((r) => `${r.method} /api/v1${r.route}`)
             .filter((key) => !registrations.exact.has(key))
@@ -365,11 +316,6 @@ describe('the demand surface — every helper names its consumer', () => {
     });
 
     test('EVERY HELPER HAS A LIVE CONSUMER — the guard the demand rule was missing', () => {
-        // The old guard asserted only that the exported set equalled HELPER_DEMAND, so a
-        // table row was enough to make a helper look wanted. Five of the ten had ZERO
-        // consumers anywhere under src/, and two of them were bypassed by the very modules
-        // named as their demand, which went and spelled their own paths. This reads the
-        // consumer file and requires the call.
         const root = join(import.meta.dirname, '..');
         for (const d of HELPER_DEMAND) {
             assert.ok(d.consumer, `${d.helper}: a demand row must name its consumer file`);
@@ -419,8 +365,6 @@ describe('the demand surface — every helper names its consumer', () => {
         assert.match(de1, /'currentTemperature': await bengle\.getCupWarmerCurrentTemperature\(\)/);
 
         const shots = handler('shots_handler.dart');
-        // The list is {items, total, limit, offset} — NOT `shots`, which is the numpad's
-        // live contract bug. And `limit` is echoed unclamped.
         assert.deepEqual(routeById('getShots').successSchema.keys, ['items', 'total', 'limit', 'offset']);
         assert.match(shots, /limit: limit\.clamp\(1, 100\)/);
         assert.match(shots, /'limit': limit,/);
@@ -472,9 +416,6 @@ describe('lookup is the Gate D coverage primitive', () => {
     });
 
     test('a route ReaPrime has never served does not resolve', () => {
-        // The load-cell wizard's path. Five independent mismatches, and this path has
-        // never existed in ReaPrime's history — the real contract is
-        // PUT /machine/scaleCalibration with {command: abort|zero|latch, weightGrams}.
         assert.equal(findRoute('POST', '/machine/scale/calibrate'), null);
         assert.equal(isDocumentedRoute('POST', '/machine/scale/calibrate'), false);
         assert.ok(isDocumentedRoute('PUT', '/machine/scaleCalibration'));

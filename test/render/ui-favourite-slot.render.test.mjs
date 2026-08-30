@@ -1,73 +1,5 @@
 /**
- * ui-favourite-slot.render.test.mjs — Gate A for component #35 (wave 2, item #35).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor — asserting only on computed style, box geometry and behaviour,
- * never on source text (Part 8 §2).
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. token drill — ten tokens, each retargeted on :root with the rendered value
- *      asserted to move, to land, and to come back;
- *   2. ONE SELECTION TREATMENT — `assertOneSelectionTreatment`, the four-dial drill.
- *      Wave 1 ran this assertion zero times ("no wave-1 primitive paints a selection
- *      state", waves/1/DONE.json carriedForward[2] / REPORT.md cross-8); this row is
- *      one of the five in wave 2 that does. Plus the harder half, which is this
- *      component's own: OCCUPANCY IS NOT SELECTION, and the only rendered difference
- *      between a selected slot and an identical unselected one is the four dials'
- *      four properties;
- *   3. focus geometry from --ui-focus-*, unclipped, in BOTH offsets (bug L24's class);
- *   4. container behaviour at the floor — the disc reads its own container and
- *      REFUSES to shrink with it (spec §2.2: ergonomics is physical);
- *   5. hit-area floor (spec §2.3 case 2, Appendix 5) through the ONE shared utility,
- *      including the case that makes the utility do work: ink 32px, floor still 48px;
- *   6. BUG P4, asserted dead in all three of its halves (see below);
- *   7. the aria contract (spec Appendix 15) — the selection state IS the aria state,
- *      and a disc showing "3" has an accessible name.
- *
- * ============================================================================
- * P4, AND THE MISREADING THIS SUITE EXISTS TO NOT REPEAT
- * ============================================================================
- * §7.3: "P4 | The favourite slots take their GEOMETRY from one rule and their PAINT
- * from another 1300 lines away; measured 64x64, so --slate-hit-min is silently not
- * applied where the comment says it is, and the favourites row is 113px rather than
- * ~96."
- *
- * 64 is LARGER than the 48px floor. P4 is not "the target is too small" — wave 1's
- * item #2 read it that way and withdrew the claim in the fix phase (waves/1/
- * REPORT.md:146-153), and the misreading is still live in five files, the shared one
- * being test/harness/assertions.js:467, whose message reads "a floor the comment
- * claims and the box does not have". That file is single-writer and not this row's to
- * edit, so `assertHitFloor` is used here for the half it really does check — the
- * rendered floor — and P4's own half is asserted separately, three ways:
- *
- *   P4 (a) THE TOKEN IS THE BOX. Slate's `width: var(--slate-hit-min)` wins its
- *          source-order tie and the box is still 64, because `min-width: 64px` from
- *          1300 lines up is a DIFFERENT PROPERTY and clamps the used value. So: the
- *          disc measures --ui-hit-min, it MOVES when the token moves, and it declares
- *          no min-inline-size / min-block-size at all — one owner per dimension
- *          (spec §2.3).
- *   P4 (b) THE SECOND RULE IS UNREACHABLE. The defect's exact shape, injected from
- *          the document with `!important` — width/height/min-width/min-height at 64px
- *          — moves nothing, because it cannot cross the shadow boundary.
- *   P4 (c) THE ROW ARITHMETIC. "the favourites row is 113px rather than ~96": a row
- *          of five slots is 48 tall, not 64. (The row itself is #36's, wave 4; what
- *          this element owes it is the 48.)
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY in both themes, because "measured from the
- * oracle" should be checkable rather than claimed. Every literal carries its CITE.
- * The oracle's GEOMETRY is disqualified here and quoted only as what Slate does —
- * the element is on the 140-bug list, at P4 (SCOPE Part 10 §4 disqualification).
- *
- * TWO MEASUREMENT NOTES.
- *   - `box-sizing` is border-box (base.js:426 + the `:where(*)` inherit at :456), so
- *     getComputedStyle().width is the CONTENT box (46px inside a 48px disc) while
- *     getBoundingClientRect is the border box. Every box assertion below reads the
- *     rect; the one drill that must land on a length uses a custom reader for the
- *     same reason.
- *   - color-mix serialises as `color(srgb …)` in Chrome and the corpus recorded it
- *     that way. Colours are compared numerically with a tolerance rather than by
- *     string, so the assertion survives a serialisation change and still fails on a
- *     wrong colour.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -85,13 +17,6 @@ import {
 
 const MODULE = ['/src/components/ui-favourite-slot.js'];
 
-/* The profile-selector row the oracle measured, rebuilt in Decal terms: five slots,
- * the first three occupied and the last two empty.
- *   CITE prov_query.py find --cls ps-fav-slot → "found 5 element(s) in 1 state(s)";
- *        profile-selector, rects [207,1112,64,64] [293,1112,64,64] [379,1112,64,64]
- *        [465,1112,64,64] [551,1112,64,64]; "distinct geometries (w x h), all matched
- *        elements: 64 x 64 x5" — DISQUALIFIED as a target (this is P4 itself), quoted
- *        as what Slate does. */
 const MARKUP = `
 <div id="row" style="padding: 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
     <ui-favourite-slot id="empty" index="4"></ui-favourite-slot>
@@ -123,31 +48,6 @@ const MARKUP = `
 const HOST = (id) => `ui-favourite-slot#${id}`;
 const SLOT = (id) => `ui-favourite-slot#${id} >>> #slot`;
 
-/* The oracle's own numbers, named once. Paint only — the geometry is disqualified.
- *   CITE profile-selector #assign-fav-btn-3 [i=170] background-color = rgba(0, 0, 0, 0)
- *        ← slate-shell.css `#subpage-host .ps-fav-slot` authored `transparent`
- *        !important=no (FROZEN/hardcoded)
- *   CITE profile-selector #assign-fav-btn-3 [i=170] color = rgb(148, 161, 169)
- *        ← `#subpage-host .ps-fav-slot` authored `var(--slate-muted)` (token-driven)
- *        [prov-light rgb(90, 101, 108)]
- *   CITE profile-selector #assign-fav-btn-3 [i=170] border-top-color = rgb(82, 97, 107)
- *        ← `#subpage-host .ps-fav-slot` authored `(NOT CAPTURED — shorthand)`
- *        (token-driven)  [prov-light rgb(170, 178, 183); slate-shell.css:1671
- *        `border: var(--slate-hairline) solid var(--slate-line-strong)`]
- *   CITE profile-selector #assign-fav-btn-0 [i=167] background-color = rgb(23, 59, 77)
- *        ← `#subpage-host .ps-fav-slot[data-occupied="true"]` authored `(NOT CAPTURED
- *        — shorthand)` (token-driven)   [prov-light rgb(35, 79, 99)]
- *   CITE profile-selector #assign-fav-btn-0 [i=167] color = rgb(246, 251, 253)
- *        ← same rule, authored `var(--slate-on-primary)`  [prov-light rgb(248, 252, 253)]
- *   CITE profile-selector #assign-fav-btn-0 [i=167] border-top-color =
- *        color(srgb 0.258196 0.381804 0.443608)  [prov-light color(srgb 0.152627
- *        0.324078 0.40251)] ← same rule, authored `(NOT CAPTURED — shorthand)`
- *        [slate-shell.css:1680 color-mix(in srgb, var(--slate-primary) 72%,
- *        var(--slate-steel))]
- *   CITE profile-selector #assign-fav-btn-0 [i=167] font-size = 17px ←
- *        `var(--slate-text-base)`; font-weight = 500 ← `var(--slate-weight-medium)`;
- *        box-shadow = none (FROZEN); letter-spacing = normal; text-transform = none;
- *        opacity = 1; font-family = Geist, system-ui, sans-serif */
 const ORACLE = {
     dark: {
         empty: { face: 'rgba(0, 0, 0, 0)', ink: 'rgb(148, 161, 169)', edge: 'rgb(82, 97, 107)' },
@@ -159,21 +59,12 @@ const ORACLE = {
     },
     fontSize: '17px',
     fontWeight: '500',
-    /* The floor, from the token Slate's own rule already names (slate-shell.css:1669-
-     * 1670 `width: var(--slate-hit-min)`), NOT from the disqualified 64. */
     floor: 48,
-    /* What Slate renders, quoted so the departure is checkable rather than claimed. */
     slateBox: 64,
 };
 
-/** Whole CSS px — the comparison CONVENTIONS §10 mandates at dsf 1.5. */
 const roundPx = (v) => Math.round(parseFloat(v));
 
-/**
- * A computed colour as [r,g,b] in 0..1, whatever serialisation Chrome chose.
- * `color(srgb 0.25 0.38 0.44)` and `rgb(64, 97, 112)` become comparable, so a
- * color-mix assertion cannot be defeated by a serialisation change.
- */
 function srgb(value) {
     const nums = String(value).match(/-?\d*\.?\d+(e-?\d+)?/g)?.map(Number) ?? [];
     if (/^color\(/.test(String(value))) return nums.slice(0, 3);
@@ -218,16 +109,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* == 1. TOKENS ARE CONSUMED, NOT COPIED ============================== */
-
         test('drill: --ui-hit-min IS the box, and the hit overlay with it — P4 (a)', () => mounted(async (page) => {
-            // The honest form of "the comment is true". Slate's rule cites the token
-            // and the box is 64 anyway; here, moving the token moves the disc.
             await assertTokenDrill(page, {
                 token: '--ui-hit-min',
                 value: DRILL_LENGTH,
-                // The rect, not getComputedStyle().width: box-sizing is border-box, so
-                // the computed width is the 46px content box inside a 48px disc.
                 read: async (p) => Math.round((await p.box(SLOT('empty'))).width),
                 expected: parseFloat(DRILL_LENGTH),
             });
@@ -237,8 +122,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 read: async (p) => Math.round((await p.box(SLOT('empty'))).height),
                 expected: parseFloat(DRILL_LENGTH),
             });
-            // …and the shared utility's transparent ::before moves with it, which is
-            // what makes the floor a floor rather than a comment (Appendix 5).
             await assertTokenDrill(page, {
                 token: '--ui-hit-min',
                 value: DRILL_LENGTH,
@@ -265,7 +148,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await assertTokenDrill(page, {
                 token: '--ui-on-primary', selector: SLOT('fill'), property: 'color',
             });
-            // The occupancy rim is Slate's own mix, so it must move with EITHER input.
             const edge = await page.prop(SLOT('fill'), 'border-top-color');
             await page.setToken('--ui-steel', DRILL_COLOUR);
             const mixed = await page.prop(SLOT('fill'), 'border-top-color');
@@ -297,21 +179,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 token: '--ui-opacity-disabled', value: '0.5',
                 selector: HOST('off'), property: 'opacity',
             });
-            // The base paints BOTH spellings — :host(:is([disabled],…)) and
-            // :where([disabled],…) inside the tree — and this control legitimately
-            // carries both. .38 × .38 = .14 is a control three times fainter than the
-            // one dial says (ui-button.js:221-231 makes the same correction).
             const inner = await page.prop(SLOT('off'), 'opacity');
             assert.equal(inner, '1', `double-dim: the disc inside a disabled slot computes opacity ${inner}`);
         }));
 
-        /* == 2. ONE SELECTION TREATMENT ===================================== */
-
         test('the four dials are the whole of the selected state', () => mounted(async (page) => {
-            // cross-8's first subjects: wave 1 ran this assertion zero times.
-            // `unselected` is the FILLED-but-unselected disc, not the empty one — the
-            // stronger claim, because occupancy is the paint most easily mistaken for
-            // selection (bug L8/BUG-12 is exactly that mistake, in the favourites bank).
             await assertOneSelectionTreatment(page, {
                 selected: SLOT('pick'),
                 unselected: SLOT('fill'),
@@ -330,10 +202,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const filled = await page.prop(SLOT('fill'), 'background-color');
             assert.equal(filled, primary, 'a filled, unselected slot paints --ui-primary');
 
-            // A slot that is BOTH: selection is a STATE treatment and beats the resting
-            // paint (CONVENTIONS §4 rule 1). This is the assertion the private-property
-            // indirection in the component exists to pass — the obvious spelling,
-            // `:host([filled]) .slot { … }` at (0,3,0), fails it silently.
             const both = await page.prop(SLOT('pick'), 'background-color');
             assert.equal(
                 both, face,
@@ -341,16 +209,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'here means the occupancy rule out-specifies selectionSurface (0,1,0).',
             );
 
-            // And an unfilled selected slot is painted by the dials too — selection is
-            // not a modifier of occupancy.
             assert.equal(await page.prop(SLOT('bare'), 'background-color'), face);
         }));
 
         test('nothing but the four dial properties differs between selected and unselected', () => mounted(async (page) => {
-            // The founding defect, stated as a measurement: two discs identical in every
-            // respect except the state. If anything else moves — a border, a radius, a
-            // weight, an outline — a second selection treatment has been born, which is
-            // "the seventh" the standing assertion exists to stop (Part 8 §2).
             const props = [
                 'border-top-color', 'border-top-width', 'border-top-left-radius',
                 'border-bottom-right-radius', 'font-size', 'font-weight', 'font-family',
@@ -367,8 +229,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the dials retarget without a rule change — Radian on Slate rules', () => mounted(async (page) => {
-            // "Four values, zero rule changes" (spec §3.9). Slate ships led 0px / glow
-            // 0%; Radian moves the two, and this component's CSS does not change.
             await page.setToken('--ui-selected-led', '4px');
             await page.setToken('--ui-selected-glow', '55%');
             const led = await page.prop(SLOT('pick'), 'box-shadow');
@@ -384,24 +244,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* == 3. FOCUS GEOMETRY, UNCLIPPED (bug L24's class) ================= */
-
         test('the ring is --ui-focus-*, unclipped, in both offsets', () => mounted(async (page) => {
             await assertFocusUnclipped(page, SLOT('empty'));
-            // The same ring drawn INSIDE the box, for a slot in an overflow:hidden row —
-            // L24 is "focus rings clipped on all four sides by the components they sit
-            // inside", and a favourites bank is exactly such a row.
             await assertFocusUnclipped(page, SLOT('inset'));
         }));
 
         test('a selected disc still shows the one ring', () => mounted(async (page) => {
-            // Selection paints background, ink and two shadows; it must not eat the
-            // outline, and the ring must not become a second selected look.
             const g = await assertFocusUnclipped(page, SLOT('pick'));
             assert.equal(g.outlineColor, await page.resolveValue('var(--ui-steel)', 'outline-color'));
         }));
-
-        /* == 4. THE HIT FLOOR — ONE UTILITY, INK SEPARATE FROM THE FLOOR ==== */
 
         test('the hit box reaches --ui-hit-min on both axes', () => mounted(async (page) => {
             const got = await assertHitFloor(page, SLOT('empty'));
@@ -410,10 +261,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('ink is separate from the hit floor: a 32px disc still presses 48px', () => mounted(async (page) => {
-            // Appendix 5's actual claim, and what makes the shared utility do work here
-            // rather than tie. spec §4.2's list row wants "the favourite disc" and
-            // Slate's own .ps-fav-badge is "the SAME disc, one size down" at 44px
-            // (slate-shell.css:1685-1694) — one custom property, and the floor holds.
             const ink = await page.box(SLOT('small'));
             assert.equal(Math.round(ink.width), 32, 'the ink did not follow --_ui-fav-slot-size');
             assert.equal(Math.round(ink.height), 32);
@@ -431,8 +278,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* == 5. BUG P4, ASSERTED DEAD ======================================= */
-
         test('P4 (a): the disc is --ui-hit-min and declares no min-* clamp', () => mounted(async (page) => {
             const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
             const box = await page.box(SLOT('empty'));
@@ -443,10 +288,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the disc measures Slate\'s 64 — the disqualified geometry has been copied.',
             );
 
-            // P4's MECHANISM: `min-width: 64px` in a rule 1300 lines from the one that
-            // sets `width: var(--slate-hit-min)`. A min-* is a different property, so it
-            // clamps the used value without ever losing a cascade fight. There is no
-            // min-* here at all — one owner per dimension (spec §2.3).
             const clamps = await page.computed(SLOT('empty'), ['min-width', 'min-height']);
             assert.deepEqual(clamps, { 'min-width': 'auto', 'min-height': 'auto' });
         }));
@@ -475,8 +316,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('P4 (c): a row of five slots is 48 tall, not 64', () => mounted(async (page) => {
-            // "…and the favourites row is 113px rather than ~96." The row is #36's
-            // (wave 4); what this element owes it is the 48.
             const bank = await page.box('#bank');
             assert.equal(
                 Math.round(bank.height), ORACLE.floor,
@@ -498,13 +337,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             };
         }));
 
-        /* == 6. CONTAINER BEHAVIOUR AT THE FLOOR ============================ */
-
         test('in a 36px container the disc overflows rather than shrinking', () => mounted(async (page) => {
-            // The oracle has no vote — Slate is frozen at 1920x1200 and never meets a
-            // narrow container — so §2.2 governs: "Control heights, touch targets,
-            // hairlines | Fixed token. Never fluid … A control that shrinks with the
-            // window becomes unusable exactly when the window is small."
             const box = await page.box(SLOT('cramped'));
             assert.equal(Math.round(box.width), ORACLE.floor);
             assert.equal(Math.round(box.height), ORACLE.floor);
@@ -524,8 +357,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(Math.round(narrow.width), Math.round(wide.width));
             assert.equal(Math.round(narrow.height), Math.round(wide.height));
         }));
-
-        /* == 7. ORACLE PARITY, both themes ================================= */
 
         for (const theme of ['dark', 'light']) {
             test(`oracle parity in ${theme}: empty and filled, face ink and edge`, () => mounted(async (page) => {
@@ -552,9 +383,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(got['font-size'], ORACLE.fontSize);
             assert.equal(got['font-weight'], ORACLE.fontWeight);
             assert.match(got['font-family'], /Geist/);
-            // CITE … box-shadow = none ← (no declaration) (FROZEN/hardcoded). Also the
-            // standing proof that selectionSurface reaches only a selected element: the
-            // fragment puts a two-item list here the moment a state matches.
             assert.equal(got['box-shadow'], 'none');
             assert.equal(got['letter-spacing'], 'normal');
             assert.equal(got['text-transform'], 'none');
@@ -563,11 +391,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the disc is round, from --ui-radius-pill', () => mounted(async (page) => {
-            // CARVE-OUT, stated: "prov_query: property not probed: border-radius", so
-            // the corpus has no answer and the fall-through source is P4's own pair,
-            // disagreeing with itself (slate-shell.css:357 var(--slate-radius) vs :1672
-            // 50%, the later winning the source-order tie). Shipped as the disc, behind
-            // --_ui-fav-slot-radius; recorded as a deferred question.
             const r = await page.prop(SLOT('empty'), 'border-top-left-radius');
             assert.ok(
                 parseFloat(r) >= ORACLE.floor / 2,
@@ -578,8 +401,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setStyle(HOST('empty'), { '--_ui-fav-slot-radius': null });
             assert.equal(square, '6px', 'the radius knob is not wired — the square is not one property away');
         }));
-
-        /* == 8. THE ARIA CONTRACT (spec Appendix 15) ======================== */
 
         test('selection is the aria state, on the control the eye sees', () => mounted(async (page) => {
             const read = (id) => page.evalFn((s) => {
@@ -595,8 +416,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(await read('pick'), { pressed: 'true', hostAttr: true, tag: 'BUTTON' });
             assert.deepEqual(await read('fill'), { pressed: 'false', hostAttr: false, tag: 'BUTTON' });
 
-            // Visual state and accessibility state are the SAME state, so they cannot
-            // drift (Appendix 15). Setting the property must move both.
             await page.evalFn((s) => (window.__h.need(s).selected = true, true), HOST('fill'));
             await page.settle(1);
             const after = await read('fill');
@@ -609,8 +428,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a consumer may spell selection on the host and still get the one treatment', () => mounted(async (page) => {
-            // #36 composes #3 with this element; if the bank puts aria-selected on the
-            // host, selectionSurface's :host(:is(…)) block paints it — same four dials.
             await page.setStyle(HOST('empty'), {});
             await page.evalFn((s) => (window.__h.need(s).setAttribute('aria-selected', 'true'), true), HOST('empty'));
             await page.settle(1);
@@ -626,21 +443,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('…and the DISC gets out of the way of it — both spellings paint the same slot',
             () => mounted(async (page) => {
-                // Fix-phase finding c2-3, and the test above is exactly why it survived
-                // 92 green tests: it used the EMPTY slot and asserted only the HOST's
-                // background-color, so it never looked at the disc that covers the host
-                // pixel for pixel (`:host { display: inline-grid }`, sized to a 48×48
-                // disc). MEASURED before the fix, `<ui-favourite-slot filled
-                // aria-selected="true">`: host rgb(176, 196, 206) = --ui-selected-face,
-                // disc rgb(23, 59, 77) = --ui-primary, ink rgb(246, 251, 253) — a
-                // filled+selected slot rendering pixel-identical to an unselected one on
-                // the exact composition path #36 is documented to take.
                 const face = await page.resolveToken('--ui-selected-face', 'background-color');
                 const ink = await page.resolveToken('--ui-selected-ink', 'color');
                 const primary = await page.resolveToken('--ui-primary', 'background-color');
 
-                // What a VIEWER sees: the first opaque ground in the disc→host stack.
-                // Neither element alone is the answer, which is the whole defect.
                 const painted = (id) => page.evalFn((s) => {
                     const el = window.__h.need(s);
                     const stack = [el.shadowRoot.getElementById('slot'), el];
@@ -677,9 +483,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await page.resolveToken('--ui-on-primary', 'color'));
                 }
 
-                // THE TWO SPELLINGS AGREE. #pick is `selected` (the property, which
-                // renders aria-pressed onto the button); #fill carries aria-selected on
-                // the host. Different rules, one rendered slot.
                 await page.evalFn((s) => (window.__h.need(s).setAttribute('aria-selected', 'true'), true), HOST('fill'));
                 await page.settle(1);
                 assert.equal(await painted('fill'), await painted('pick'),
@@ -687,9 +490,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop(SLOT('fill'), 'color'), await page.prop(SLOT('pick'), 'color'),
                     'and one ink');
 
-                // Dial 3 stays reachable on this path, which is why the disc is
-                // TRANSPARENT rather than repainted with the face: an opaque disc would
-                // cover the host's inset LED even when it matched the face exactly.
                 assert.equal(await page.prop(SLOT('fill'), 'background-color'), 'rgba(0, 0, 0, 0)',
                     'the disc must let the ONE painted surface through, LED included');
                 const led = await assertTokenDrill(page, {
@@ -706,12 +506,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 6: selection replaces the occupancy FILL and keeps the occupancy RIM',
             () => mounted(async (page) => {
-                // Slate has no rendered answer — its five slots have occupancy and no
-                // selected state at all — so this is the wave law resolving a case the
-                // oracle never met. border-color is not one of the four dials, so the rim
-                // survives and goes on carrying "something lives here" once the face
-                // cannot. Asserted on BOTH spellings, because the fix routes them
-                // through different rules and only one of them was ever checked.
                 const edge = await page.prop(SLOT('fill'), 'border-top-color');
                 await page.evalFn((s) => (window.__h.need(s).setAttribute('aria-selected', 'true'), true), HOST('fill'));
                 await page.settle(1);
@@ -732,8 +526,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(named.hidden, 'true', 'the numeral must leave the accessibility tree when named');
             assert.equal(named.name, 'Cremina');
 
-            // Visually hidden, still in the tree — 1×1, clipped, not display:none
-            // (the SHARED visuallyHidden fragment, CONVENTIONS §5a).
             const box = await page.box(`${HOST('fill')} >>> #a11y`);
             assert.ok(box.width <= 2 && box.height <= 2, `the a11y text is ${box.width}×${box.height}, i.e. visible`);
 
@@ -751,13 +543,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('slotted content wins over index, and the disc keeps its box', () => mounted(async (page) => {
-            // The flattened tree is the truth here, not textContent: the fallback text
-            // node lives in the shadow tree whether or not anything is assigned, and is
-            // simply not rendered once something is. Asserting on textContent would read
-            // "1" for a disc that displays "C".
-            // `flatten: true` renders the fallback when nothing is assigned, so the two
-            // questions need the two spellings: assignedNodes() answers "did the light
-            // tree supply a mark", flattened answers "what does the disc show".
             const marked = await page.evalFn((s) => {
                 const slotEl = window.__h.need(s).shadowRoot.querySelector('slot');
                 const shown = slotEl.assignedNodes({ flatten: true });
@@ -808,15 +593,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('[hidden] really hides, with no !important', () => mounted(async (page) => {
-            // slate-components.css:230-239: "A component sets display, which outranks
-            // the [hidden] attribute — so hiding one by script silently did nothing."
-            // Here the base's :host([hidden]) is (0,2,0) and this file's :host is
-            // (0,1,0), so state beats layout on specificity (CONVENTIONS §6).
             assert.equal(await page.prop(HOST('gone'), 'display'), 'none');
-            // The container-hosting opt-out is `display: inline-grid`, and a host in a
-            // plain block context computes exactly that. In the flex row above it
-            // computes `grid` instead — CSS blockifies a flex item — which is the
-            // engine's doing, not a second declaration.
             assert.equal(await page.prop(HOST('cramped'), 'display'), 'inline-grid');
             assert.equal(await page.prop(HOST('empty'), 'display'), 'grid');
         }));
@@ -844,14 +621,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 }
 
 describe('ui-favourite-slot gallery entry', () => {
-    // The entry lives in its own file (tools/gallery/entries/ui-favourite-slot.entry.js)
-    // because twelve wave-2 builders cannot all append to one array under a whole-file-
-    // write rule; the cross-cutting writer wires it into tools/gallery/entries.js. That
-    // wiring is a one-line import — but the ENTRY's own correctness is this builder's
-    // problem, so every state's markup is mounted here, at the bench geometry, before it
-    // is handed over ("a gallery that stops mounting fails a test rather than
-    // photographing an empty stage").
-
     test('every declared state mounts, settles and paints', async () => {
         const { entry } = await import('../../tools/gallery/entries/ui-favourite-slot.entry.js');
 
@@ -884,9 +653,6 @@ describe('ui-favourite-slot gallery entry', () => {
                 });
                 assert.ok(painted, `${entry.id}--${state.id} rendered no slot at all`);
                 for (const box of painted) {
-                    // Not a face check: an EMPTY slot is transparent by design (the oracle
-                    // reads rgba(0, 0, 0, 0)), so what must be true of every state is that
-                    // there is a box on screen and it is square.
                     assert.ok(box && box.w > 0 && box.h > 0,
                         `${entry.id}--${state.id} rendered a ${JSON.stringify(box)} box`);
                     assert.equal(box.w, box.h,

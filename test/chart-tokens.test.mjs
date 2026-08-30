@@ -1,15 +1,4 @@
-// A6 — CSS is the single source for chart colour, read once per build. Gate 5.
-//
-// The mechanism this replaces wrote ~40 properties as INLINE STYLES on <html> from two
-// frozen JS objects (`chart-palette.js:124-156`), which no stylesheet can override — so a
-// fork could not retheme a chart without editing code. Here the twenty colours and the
-// geometry live in `styles/chart-channels.css` and `styles/tokens.css`, the component
-// reads its own computed host, and NOTHING is published back.
-//
-// Two halves are tested. The READER, with the `read` seam injected so it needs no DOM;
-// and the FRESHNESS of the name lists against the stylesheets themselves — a token this
-// module names but no sheet declares is a chart that paints sixteen invisible traces, and
-// a colour a sheet declares that this module does not name is the drift A6 exists to end.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -57,10 +46,6 @@ describe('the token names are written in exactly one place', () => {
     });
 
     test('the channel list is exactly what the stylesheet declares, and four surface parts', () => {
-        /* The COUNT is not written here on purpose: gate 6 adds `weight` and `volume` to
-         * both sides at once, and a number in a test is a third place to state the
-         * palette. The relation is what A6 means — one list, one sheet, no drift — and it
-         * is asserted in both directions (the orphan test below is the other one). */
         const declared = new Set(
             [...CHANNEL_CSS.matchAll(/--ui-channel-([a-z0-9-]+)\s*:/g)].map((m) => m[1]),
         );
@@ -198,13 +183,6 @@ describe('axisFont — the CSS-space shorthand', () => {
 });
 
 describe('primaryFamily — the one string that can tell a face from its fallback', () => {
-    /* WHY THIS EXISTS, measured in the browser at both Gate A geometries: at 20px,
-     * `0123456789.` is 119.76 px wide under `"Geist", system-ui, sans-serif` AND under
-     * `"Decal No Such Face", system-ui, sans-serif` — a chain always resolves, so
-     * measuring the chain cannot see a missing face. Alone, the primary family is
-     * 118.50 px loaded and 105.00 px not, and 105.00 px is what an unresolvable family
-     * measures. It is also the string document.fonts.load() wants: `system-ui` and
-     * `sans-serif` are not loadable faces. */
     test('the first family, quotes intact', () => {
         assert.equal(primaryFamily('"Geist", system-ui, sans-serif'), '"Geist"');
         assert.equal(primaryFamily('Geist, sans-serif'), 'Geist');

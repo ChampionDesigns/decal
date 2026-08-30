@@ -1,44 +1,5 @@
 /**
- * ui-notes-editor.render.test.mjs — Wave 4 item #55's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR,
- * never source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the
- * 1000×600 floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. Both of the row's bugs are invisible to a
- * screenshot of this component alone:
- *
- *   O7  is a RATIO between two things in two different coordinate spaces. A body at
- *       18px under a title at 28px photographs identically whether the canvas is
- *       there or not — what changed is the physical size on the panel. So the suite
- *       mounts the editor inside a real <ui-dialog heading="…"> and divides: the
- *       heading's rendered font-size by the editing surface's, and a toolbar key's
- *       rendered box by a real #1 button's in the same dialog. Slate delivered 1.04
- *       and 1.5; the assertions are 1.5555 and 1.0. The third leg is the mechanism:
- *       no element in this component's shadow tree computes a `transform` — the hack
- *       is not merely absent, it is asserted absent.
- *
- *   O8  is an ATTRIBUTE that was true of nothing. The negative half is asserted on
- *       this element (no role, no aria-modal, no aria-hidden, no tabindex anywhere in
- *       its tree) and the positive half on the shell around it, driven as input:
- *       a real Escape press with the caret in the document, and a real focus() at a
- *       control behind the scrim.
- *
- * THE ORACLE HAS NO ANSWER FOR THIS COMPONENT and the check was run first:
- * `prov_query.py find --cls EasyMDEContainer | editor-toolbar | CodeMirror |
- * notes-modal` returns 0 elements in 0 of 49 states. The corpus' `modal-notes` state
- * is the Live screen with the overlay CLOSED (165 elements, none of them EasyMDE's —
- * CITE modal-notes #shot-dye-btn [i=158] "Full notes" rect 147x64). Two answers it
- * CAN give back two assertions below and are quoted at them: the 28px dialog heading
- * (settings-machine-sleep---wake-schedules .slate-heading [i=74], authored
- * var(--slate-text-xl)) and the 48px hit floor (settings-help-keyboard-shortcuts
- * #kb-current-espresso [i=43] <kbd class="slate-keycap">, authored
- * var(--slate-hit-min)). Everything else is a source read of `notes-modal.css` /
- * `notes-modal.js`, cited by line, or LAYOUT_SPEC_DRAFT.md, which governs every
- * responsive question regardless.
- *
- * Colours and lengths are asserted against the resolved token, never a hex, so the
- * suite is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -62,11 +23,6 @@ const MODULES = [
     '/src/components/ui-text-field.js',
 ];
 
-/* The editor is the BODY; #1 in the footer is the "control elsewhere" O7 measures
- * against; the button outside the dialog is what `inert` has to reach. The seed text
- * is not decoration — EasyMDE only reports a toolbar key as `.active` when the token
- * under the caret really is inside that construct, so an empty document can never
- * produce a selected key to drill the dials on (measured). */
 const SEED = 'Ethiopia Guji, 17.5 g in.\n\nFirst drop at 9 s.\n\n- WDT\n- 18 g VST\n- 60 ppm\n';
 
 const MARKUP = `
@@ -96,10 +52,6 @@ async function selectBoldKey(page) {
         const notes = document.getElementById('notes');
         const cm = notes.editor.codemirror;
         cm.focus();
-        /* A SELECTION, not a bare caret. EasyMDE reports a key `.active` from the
-         * token actually under the cursor, and `**` inserted with nothing between it
-         * is not strong in any markdown mode — measured: an empty document toggled
-         * bold leaves the key inactive. Wrapping a real word is unambiguous. */
         cm.setSelection({ line: 0, ch: 0 }, { line: 0, ch: 8 });
         window.EasyMDE.toggleBold(notes.editor);
         return true;
@@ -115,22 +67,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         const withPage = (fn) => browser.withPage({ geometry }, fn);
 
-        /* ===================================================================
-         * THE VENDOR SHEET — CONVENTIONS §8, and the reason it is a hard failure
-         * =================================================================== */
-
         test('easymde.min.css is adopted into THIS root, and the editor exists', () => withPage(async (page) => {
             await open(page);
 
             const adopted = await page.evalFn(() => document.getElementById('notes').sheetAdopted);
             assert.equal(adopted, true, 'the vendor sheet is not in the shadow root');
 
-            /* The measured failure signature, so the assertion is on the thing the
-             * sheet actually buys rather than on its presence twice. Without it, at
-             * this geometry: .CodeMirror-scroll computes overflow VISIBLE and
-             * .CodeMirror-cursor becomes a 600x20 STATIC block instead of a 1x24
-             * absolute caret — an editor that photographs correctly and cannot be
-             * used, which is spec §6.3 Rule 1's shape one vendor over. */
             const scrollOverflow = await page.prop(SCROLLPORT, 'overflow-y');
             assert.notEqual(scrollOverflow, 'visible', '.CodeMirror-scroll is unstyled');
 
@@ -141,28 +83,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the layer, not the important flag, is what makes this component win', () => withPage(async (page) => {
             await open(page);
 
-            /* EasyMDE styles its keys at `.editor-toolbar button` — (0,2,1) — and this
-             * component paints at `.ui-mde-key` — (0,1,0). Slate's answer to that gap
-             * was 40 !important declarations in one sheet (notes-modal.css:134-232);
-             * here the vendor text is wrapped in `@layer ui-vendor`, so every unlayered
-             * rule outranks it regardless of specificity. If the layer were lost, the
-             * key would take the vendor's 30px height and transparent ground. */
             const key = await page.computed(KEY, ['background-color', 'height']);
             const face = await page.resolveToken('--ui-key', 'background-color');
             assert.equal(key['background-color'], face, 'the vendor sheet is out-ranking the component');
             assert.notEqual(key.height, '30px', 'the key is at EasyMDE\'s own height');
         }));
 
-        /* ===================================================================
-         * O7 — the inverse-scale hack, and both ratios it broke
-         * =================================================================== */
-
         test('O7a: the editing surface is 28:18 under the dialog heading, not 1.04', () => withPage(async (page) => {
             await open(page);
 
-            /* CITE settings-machine-sleep---wake-schedules .slate-heading [i=74]
-             *      font-size = 28px <- slate-shell.css authored var(--slate-text-xl)
-             *      (token-driven) — the step #16 puts on a dialog heading. */
             const heading = parseFloat(await page.prop('ui-dialog >>> ui-sheet-header >>> .title', 'font-size'));
             const body = parseFloat(await page.prop(SURFACE, 'font-size'));
 
@@ -183,10 +112,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const key = await page.box(KEY);
             const control = await page.box('ui-button#confirm');
 
-            /* O7's second half, verbatim: "its toolbar keys are 64x62 REAL px against
-             * 42.7 real px controls elsewhere" — a ratio of 1.5, produced by an
-             * inverse-scale transform, not by either number being wrong. One
-             * coordinate space makes the ratio 1. */
             const ratio = key.height / control.height;
             assert.ok(
                 Math.abs(ratio - 1) < 0.02,
@@ -202,11 +127,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('O7c: nothing in this component computes a transform', () => withPage(async (page) => {
             await open(page);
 
-            /* "The inverse-scale hack goes with the canvas" (spec §5.2 row 55). The
-             * hack was `transform: scale(1/appScale)` on an absolutely positioned
-             * inner div (notes-modal.js:121-143) — one declaration, and it moved every
-             * pixel inside it into a second coordinate space. Asserted on the RENDERED
-             * tree, EasyMDE's own nodes included, not on this file's source. */
             const transformed = await page.evalFn(() => {
                 const root = document.getElementById('notes').renderRoot;
                 const out = [];
@@ -221,17 +141,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('O7d: a key reaches the --ui-hit-min floor', () => withPage(async (page) => {
             await open(page);
-            /* CITE settings-help-keyboard-shortcuts #kb-current-espresso [i=43] <kbd
-             *      class="slate-keycap"> rect 48x48, authored var(--slate-hit-min) —
-             *      the one control in Slate that reaches the floor. The key is 64,
-             *      which clears it; the assertion exists so a later narrowing of the
-             *      bank cannot quietly go under it (bugs P4 and L22's shape). */
             await assertHitFloor(page, KEY, { mode: 'box' });
         }));
-
-        /* ===================================================================
-         * O8 — the modality claim, made impossible to make
-         * =================================================================== */
 
         test('O8a: this component claims no modality at all', () => withPage(async (page) => {
             await open(page);
@@ -239,27 +150,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const claims = await page.evalFn(() => {
                 const el = document.getElementById('notes');
                 const inTree = Array.from(el.renderRoot.querySelectorAll('*'));
-                /* A decorative <svg> inside a NAMED button is supposed to carry
-                 * aria-hidden — that is the icon doing the right thing, and O9's
-                 * complaint one component over is the numpad's svg NOT having it.
-                 * What O8 is about is the container: role=dialog, aria-modal, and
-                 * aria-hidden used as the show/hide mechanism. */
                 const isIcon = (n) => n.tagName.toLowerCase() === 'svg' || n.ownerSVGElement != null;
-                /* EXTENDED 29 AUGUST 2026, audit F-016 #9-#16, on the carve-out this
-                 * test already had and for the same reason. The icons above are
-                 * "aria-hidden doing the right thing"; so is the vendor scaffolding
-                 * EasyMDE and CodeMirror leave in this root — the textarea EasyMDE was
-                 * CONSTRUCTED ON (0×0, superseded by CodeMirror's own input, which is
-                 * NOT excluded here and is asserted named elsewhere) and the fake
-                 * scrollbars and fillers. Wave 1 rowed those as controls with no
-                 * accessible name; they are not controls, and saying so is what
-                 * aria-hidden is for.
-                 *
-                 * THE GUARD IS NOT WEAKENED. What O8 is about is the CONTAINER using
-                 * aria-hidden as a show/hide mechanism — `notes-modal.js:66-72` — and
-                 * the host, the frame, the editor host and every element this component
-                 * authors are all still flagged if they take one. The exclusion is a
-                 * fixed list of vendor selectors, not "anything that has the attribute". */
                 const isVendorScenery = (n) => n.matches(
                     '#editor > textarea, .CodeMirror-vscrollbar, .CodeMirror-hscrollbar,'
                     + ' .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler',
@@ -279,12 +170,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
             });
 
-            /* notes-modal.js:42-45 is three setAttribute calls — role=dialog,
-             * aria-modal=true, aria-hidden — and :66-72 is the whole open path:
-             * classList.add('active') plus aria-hidden=false. The claim WAS the
-             * implementation. §5's instruction for this bug is explicit: "O8/H9 — the
-             * modality gap — is closed by the contract above, NOT BY ADDING
-             * ATTRIBUTES" (SCOPE.md:2077). */
             assert.deepEqual(claims.flagged, [], 'the notes body is claiming modality it does not own');
             assert.equal(claims.hostRole, null, 'the host took a role');
             assert.equal(claims.hostTabindex, null, 'the host took a tabindex');
@@ -309,9 +194,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('O8c: the page behind is really isolated while the editor is up', () => withPage(async (page) => {
             await open(page);
 
-            /* "and \'behind\' the scrim on this machine includes Sleep and the shot
-             * controls" (layout/overlays.md 9.7, quoted at SCOPE.md:2035). A real
-             * focus() call, not an attribute read. */
             const reached = await page.evalFn(() => {
                 const behind = document.getElementById('behind');
                 behind.focus();
@@ -341,21 +223,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             await page.settle();
 
-            /* CHANGED 29 AUGUST 2026, audit F-007. The refusal used to be read off an
-             * event this component raised and nothing in `src/` heard:
-             *
-             *     const blocked = await page.evalFn(() => new Promise((resolve) => {
-             *         const notes = document.getElementById('notes');
-             *         notes.addEventListener('notes-dismiss-blocked', (e) => resolve(e.detail.reason), { once: true });
-             *         document.getElementById('dialog').requestClose('backdrop');
-             *         setTimeout(() => resolve(null), 50);
-             *     }));
-             *     assert.equal(blocked, 'backdrop', 'the guard did not report the refusal');
-             *
-             * The emit is gone and the outcome is on the glass instead. The dialog
-             * assertion below is untouched: it was always the half that mattered, and
-             * "the guard did not report the refusal" is now a claim about what a PERSON
-             * is told rather than about a listener nobody wrote. */
             await page.evalFn(() => {
                 document.getElementById('dialog').requestClose('backdrop');
                 return true;
@@ -385,10 +252,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.evalFn(() => document.getElementById('dialog').open), false,
                 'the guard is still refusing with guard-unsaved off');
         }));
-
-        /* ===================================================================
-         * F-007 — THE REFUSAL IS VISIBLE, AND IT KNOWS WHEN TO GO
-         * ================================================================= */
 
         test('F-007: the refusal line is absent until a dismissal is refused, and goes when the note is touched',
             () => withPage(async (page) => {
@@ -457,10 +320,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'an unmodified note closes, silently');
         }));
 
-        /* ===================================================================
-         * THE FOUR STANDING ASSERTIONS
-         * =================================================================== */
-
         test('token drill: every value on the surface reads a token', () => withPage(async (page) => {
             await open(page);
 
@@ -510,10 +369,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 .renderRoot.querySelector('.ui-mde-key.bold').getAttribute('aria-pressed'));
             assert.equal(pressed, 'true', 'EasyMDE\'s .active is not mirrored onto aria-pressed');
 
-            /* notes-modal.css:203-217 painted its own selected look — --slate-key-on,
-             * a --slate-steel strip and a dark-theme glow: three of the four dials,
-             * hand-rolled, in one sheet. Wave law: "No component in this wave may own
-             * a private selected look" (DECISIONS.md:244, spec §3.9). */
             await assertOneSelectionTreatment(page, { selected: KEY, unselected: KEY_2 });
         }));
 
@@ -521,11 +376,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await open(page);
             await selectBoldKey(page);
 
-            /* The seam between two keys is --ui-seam-ink as an inset shadow, the
-             * mechanism CONVENTIONS §13 refuses the seam utility for by name. It is
-             * declared at (0,0,0) through :where() so the dials win the box-shadow
-             * property and read the seam back out of --_ui-rest-shadow — ui-bank.js
-             * :429-447 is the measurement that made that necessary. */
             const seam = await page.prop(KEY_2, 'box-shadow');
             const ink = await page.resolveToken('--ui-seam-ink', 'color');
             assert.ok(seam.includes('inset'), `an unselected key past the first has no seam: ${seam}`);
@@ -537,11 +387,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('focus-unclipped: a key rings inside the scrolling bank (L24\'s class)', () => withPage(async (page) => {
             await open(page);
-            /* The bank is an overflow-x: auto scrollport inside the dialog body, which
-             * is itself an overflow-y: auto scrollport. An outset ring is clipped by
-             * both, which is bug L24 exactly — "focus rings clipped on all four sides
-             * by the components they sit inside". #editor carries
-             * --_ui-focus-offset: var(--ui-focus-offset-inset) for the whole subtree. */
             await assertFocusUnclipped(page, KEY);
         }));
 
@@ -550,9 +395,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.evalFn(() => { document.getElementById('notes').editor.codemirror.focus(); return true; });
             await page.settle();
 
-            /* CodeMirror's real focusable is a 3px-wide hidden textarea parked at the
-             * caret. CONVENTIONS §3's documented reuse — ring the wrapper, silence the
-             * input — with the exported declaration, not a second treatment. */
             const ring = await page.computed(SURFACE, ['outline-style', 'outline-width', 'outline-color', 'outline-offset']);
             assert.notEqual(ring['outline-style'], 'none', 'the editing surface shows no ring while focused');
             assert.equal(ring['outline-width'], await page.resolveValue('var(--ui-focus-w)', 'outline-width'));
@@ -572,21 +414,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             assert.ok(floor.length > 0, 'the floor is not declared');
 
-            /* Squeeze the DIALOG, not the editor: that is the direction the loss
-             * arrives from on a short viewport, and §4.6's rule is "the dialog's floor
-             * is its own min-content header + actions; the body may compress to its
-             * first row before scrolling". The body is the stated scroll region. */
             await assertScrollFloor(page, {
                 selector: 'ui-dialog >>> #body',
                 squeezeSelector: 'ui-dialog >>> #dialog',
                 squeeze: { 'max-block-size': '240px' },
             });
 
-            /* And the surface never goes under its own floor while that happens.
-             * The squeeze lands on #dialog, not on the host: :host is display:
-             * contents (ui-dialog.js:334-345), so a max-block-size there sizes
-             * nothing. --_ui-dialog-inline is the documented knob and DOES belong on
-             * the host, which is the next test. */
             await page.setStyle('ui-dialog >>> #dialog', { 'max-block-size': '240px' });
             const squeezed = await page.box(SURFACE);
             await page.setStyle('ui-dialog >>> #dialog', { 'max-block-size': null });
@@ -615,10 +448,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + '"a context menu taller than the viewport loses its LAST items"');
         }));
 
-        /* ===================================================================
-         * ARIA — the names EasyMDE does not give, and the bank it locks out
-         * =================================================================== */
-
         test('aria: the editing surface has an accessible name', () => withPage(async (page) => {
             await open(page);
             const name = await page.evalFn(() => document.getElementById('notes')
@@ -627,10 +456,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
              * unlabelled backspace, one component over. */
             assert.equal(name, 'Notes');
         }));
-
-        /* ===================================================================
-         * F-037 — THE PRESSED STATE FOLLOWS THE PRESS
-         * ================================================================= */
 
         test('F-037: Preview takes aria-pressed with its class, and gives it back',
             () => withPage(async (page) => {
@@ -656,11 +481,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'at rest the key is un-pressed and says so');
 
                 await press();
-                /* THE FINDING, INVERTED. Measured before the fix: class went to
-                 * `preview ui-mde-key active` and aria-pressed stayed "false", before
-                 * AND after settling — the preview composes, the toolbar takes
-                 * `disabled-for-preview`, and nothing reading the tree is told the mode
-                 * changed. The two must move TOGETHER, which is what is asserted. */
                 assert.deepEqual(await read(), { active: true, pressed: 'true' },
                     'the visible mode and the announced mode are one fact (F-037)');
 
@@ -673,11 +493,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             () => withPage(async (page) => {
                 await open(page);
                 await selectBoldKey(page);
-                /* Bold's `.active` is a fact about the TEXT under the caret, and it
-                 * arrives through CodeMirror's `cursorActivity`. Preview's arrives
-                 * through the press, because turning the preview on hides the
-                 * CodeMirror and no cursor moves. Both routes call one sync; this is
-                 * the guard that adding the second did not disturb the first. */
                 const bold = await page.evalFn(() => {
                     const btn = document.getElementById('notes').renderRoot
                         .querySelector('.ui-mde-key.bold');
@@ -688,10 +503,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
                 assert.deepEqual(bold, { active: true, pressed: 'true' });
             }));
-
-        /* ===================================================================
-         * F-016 #9/#10/#11/#14/#15/#16 — the vendor's scaffolding is not a control
-         * ================================================================= */
 
         test('F-016: the picked-over textarea and the fake scrollbars are out of the tree',
             () => withPage(async (page) => {
@@ -715,17 +526,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 });
 
-                /* THE ELEMENT EASYMDE WAS BUILT ON is left in the DOM at 0×0 as the
-                 * form-backing field. Wave 1 rowed it because <textarea> is an
-                 * interactive TAG; a person cannot reach it, and naming it would put a
-                 * SECOND field called "Notes" in the tree beside the one that works. */
                 assert.equal(shape.backingIsNotLive, true,
                     'the backing textarea is not the live input — if this ever flips, the '
                     + 'next two assertions would be hiding the editing surface itself');
                 assert.equal(shape.backingHidden, 'true');
                 assert.equal(shape.backingTabindex, '-1');
 
-                /* AND THE ONE A PERSON ACTUALLY USES IS UNTOUCHED AND NAMED. */
                 assert.equal(shape.liveHidden, null, 'the editing surface stays in the tree');
                 assert.equal(shape.liveName, 'Notes');
 
@@ -774,10 +580,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('aria: the bank is reachable from the keyboard — roving tabindex', () => withPage(async (page) => {
             await open(page);
 
-            /* MEASURED: EasyMDE ships tabindex="-1" on every toolbar button and no
-             * roving management, so role="toolbar" names a bank no keyboard can
-             * enter. Appendix 10 keeps Slate's roving-tabindex tablist "exactly as
-             * implemented"; this is that pattern on this bank. */
             const before = await page.evalFn(() => Array.from(document.getElementById('notes')
                 .renderRoot.querySelectorAll('.ui-mde-key')).map((k) => k.tabIndex));
             assert.equal(before.filter((t) => t === 0).length, 1, 'the bank has no single tab stop');
@@ -801,10 +603,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(after.focused ?? '', /italic/, 'ArrowRight did not move along the bank');
             assert.equal(after.tabs.filter((t) => t === 0).length, 1, 'the roving tab stop split in two');
         }));
-
-        /* ===================================================================
-         * TEXT IN, TEXT OUT
-         * =================================================================== */
 
         test('the seed arrives, edits report, and dirty tracks the baseline', () => withPage(async (page) => {
             await open(page);
@@ -878,10 +676,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
              * the shadow tree, which would compose to .38 x .38 on every key. */
             assert.equal(parseFloat(state.keyOpacity), 1, 'the keys are dimmed twice');
         }));
-
-        /* ===================================================================
-         * THE GALLERY'S STATES, in a real browser
-         * =================================================================== */
 
         test('every gallery state mounts and renders a bank', () => withPage(async (page) => {
             for (const state of galleryEntry.states) {

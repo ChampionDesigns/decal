@@ -1,10 +1,4 @@
-// The three readers Gate 2 did not cover — shot state, display, update.
-//
-// Half of this file reads the DART at the pinned commit. Every enum member and every JSON
-// key below is re-derived from the handler's own source rather than trusted from a
-// document, and every behavioural premise the shot buffer stands on (idle is published at
-// cleanup with a null shotId; the socket is fed from a seeded BehaviorSubject) is asserted
-// against the publisher. A name that stops existing upstream turns this red.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -59,8 +53,6 @@ describe('the enums are pinned to ReaPrime, not hand-maintained', () => {
     test('the three `event` values are the ones the publishers write, and there is no fourth', () => {
         const { text } = readReaFile(STATE_MANAGER_DART);
         const { text: model } = readReaFile(SHOT_EVENT_DART);
-        // Each `event:` argument runs to the next line-ending comma; one of the three is a
-        // ternary spanning three lines, so the names are pulled out of the whole chunk.
         const written = new Set();
         for (const [, chunk] of `${text}\n${model}`.matchAll(/event:\s*([^,]*?),\n/g)) {
             for (const [, name] of chunk.matchAll(/'([a-zA-Z]+)'/g)) written.add(name);

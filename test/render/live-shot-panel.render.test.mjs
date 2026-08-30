@@ -1,32 +1,5 @@
 /**
- * live-shot-panel.render.test.mjs — the Live band's shot panel: the rating that was never
- * sent, and the notes sheet that named no shot.
- *
- * Written 29 August 2026 for the fix campaign's cluster L.
- *
- *   F-023 (+ F-010)  "Rate this shot". The rating was set, was printed — the button went
- *          from "Rate this shot —" to "Rate this shot 60" — and was NEVER SENT. The audit
- *          swept a whole run's request log: zero writes to any `/api/v1/shots/<id>` route,
- *          `localStorage` and `sessionStorage` both `{}`. After a reload it read "—"
- *          again. Wave 0 had already reported the wire: `ui-rating-control` emits
- *          `rating-change` and nothing in `src/` listened (F-010). Everything else
- *          existed — a pin-verified `putShotsById` row whose `consumedBy` NAMED
- *          `shots-store.js setEnjoyment`, and that method, fully built, with no caller.
- *
- *   F-029  "All notes" opened a sheet whose whole text was "Close": a header, an empty
- *          body and one button. It named no shot — not the date, not the profile, not the
- *          weight the panel two inches away was printing from the SAME already-fetched
- *          record.
- *
- * THE SMALLEST HONEST PATCH IS PART OF THE SUBJECT. `putShotsById`'s own contract gate says
- * the handler deep-merges the body over `existingShot.toJson()`, so a partial
- * `{annotations:{enjoyment}}` preserves every other annotation and every sample — and
- * sending a whole record back is the risky spelling, not the safe one. The fixture's PUT
- * merges one level deep for exactly that reason, and there is a test below that the shot's
- * OTHER annotation survives the write.
- *
- * BOTH GATE A GEOMETRIES, on the shared carry fixture: a real `createAppBoot`, a real
- * transport, the real shots store, and a scripted table with no server behind it.
+ * The Live band's shot panel: the rating that was never sent, and the notes sheet that named no shot.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -55,10 +28,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, [], 'the panel must run without throwing');
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-023 / F-010 — the rating leaves the building
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('F-023 — rating a shot PUTs the enjoyment to that shot', () => mounted(async (page) => {
             await page.evalFn(() => window.__carry.clearRequests());
             await page.evalFn(() => window.__carry.rate(60));
@@ -81,9 +50,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.match(await page.evalFn(() => window.__carry.ratingFace()), /60/,
                     'and the button prints it in place of the dash');
 
-                /* THE HALF THE FINDING'S PROVEN LINE IS ABOUT: "both are still so after a
-                 * reload". A fresh boot re-reads the list from the server, so this is the
-                 * server's copy answering, not the screen's memory. */
                 await page.evalFn(() => window.__carry.mount());
                 assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 60,
                     'the rating came back from the server');
@@ -101,9 +67,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('F-023 — rating the OLDER shot names the older shot', () => mounted(async (page) => {
-            /* THE JOIN THAT A ONE-SHOT FIXTURE CANNOT SEE. The control carries `shotId`
-             * and the listener uses it, so stepping the band moves what is rated. A
-             * listener that reached for "the newest" instead would pass with one shot. */
             const older = await page.evalFn(() => window.__carry.stepOlder());
             assert.equal(older, 'shot-carry-older', 'the arrow steps the band');
 
@@ -114,10 +77,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(puts.length, 1);
             assert.equal(puts[0].path, '/api/v1/shots/shot-carry-older');
         }));
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-029 — the notes sheet names this shot and shows what is written
-         * ═════════════════════════════════════════════════════════════════ */
 
         test('F-029 — the sheet NAMES the shot the panel is about', () => mounted(async (page) => {
             const sheet = await page.evalFn(() => window.__carry.openNotes());
@@ -134,10 +93,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('F-029 — and SHOWS the text stored against it', () => mounted(async (page) => {
             const expected = await page.evalFn(() => window.__carry.shotNoteText());
             const sheet = await page.evalFn(() => window.__carry.openNotes());
-            /* ROUND 2 (D14): the note is read off the EDITOR's live document rather than
-             * off the paragraph round 1 printed. The claim is unchanged — the sheet shows
-             * the text stored against this shot — and the surface it is shown on is now
-             * one a person can type into. */
             assert.equal(sheet.notes, expected, 'the stored note, verbatim');
             assert.equal(sheet.empty, null, 'and no empty state beside it');
         }));
@@ -147,14 +102,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.stepOlder());
                 const sheet = await page.evalFn(() => window.__carry.openNotes());
 
-                /* ROUND 1's ASSERTION, OVERRIDDEN BY D14. It read:
-                 *     assert.ok(sheet.empty, 'so the sheet says so');
-                 *     assert.match(sheet.empty.body, /Nothing is written against this shot/);
-                 * — correct for a sheet that could only READ. Once the sheet can be written
-                 * in, "no note yet" is not an empty STATE, it is an empty FIELD: there is
-                 * something to do about it, and an empty-state panel would be a wall in
-                 * front of the thing you came to do. The sentence survives as the editor's
-                 * invitation, which is where a person can act on it. */
                 assert.equal(sheet.editable, true, 'the shot can be written about');
                 assert.equal(sheet.notes, '', 'and there is nothing written yet');
                 assert.equal(sheet.empty, null, 'so no empty-state panel stands in the way');
@@ -165,23 +112,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.match(sheet.identity, /Beta ristretto/, 'the older shot is still named');
             }));
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * D14 — the name, and the writing half
-         *
-         * Round 1 flagged the wording ("All notes" inside a PER-SHOT control argues for
-         * this shot; the word "All" argues for every note ever written) and left the
-         * intent line's "and add to" owed. Ben settled both: the surface is "Shot notes"
-         * and it writes.
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('D14 — the surface is called "Shot notes", on the button and on the sheet',
             () => mounted(async (page) => {
-                /* ROUND 1's ASSERTION, OVERRIDDEN BY D14. It read:
-                 *     assert.equal(sheet.heading, 'All notes',
-                 *         'the audit flagged the naming for Ben; this fix changes the
-                 *          CONTENT only');
-                 * That test existed to hold the line while the naming was Ben's to make.
-                 * He has made it. */
                 const face = await page.evalFn(() => window.__carry.notesFace());
                 assert.equal(face, 'Shot notes', 'the button on the panel');
 
@@ -209,10 +141,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .filter((r) => r.method === 'PUT'));
                 assert.equal(puts.length, 1, `one PUT, not ${puts.length}: ${JSON.stringify(puts)}`);
                 assert.equal(puts[0].path, '/api/v1/shots/shot-carry-newest');
-                /* THE SMALLEST HONEST PATCH, AND THE ANNOTATION RATHER THAN ITS SHADOW:
-                 * the handler rewrites the top-level `shotNotes` from this field on every
-                 * PUT, so a body carrying `shotNotes` would be writing to a place the
-                 * server is about to overwrite from somewhere else. */
                 assert.deepEqual(puts[0].body,
                     { annotations: { espressoNotes: 'Nine bar, tasted like blackcurrant.' } },
                     'the annotation, and nothing else');

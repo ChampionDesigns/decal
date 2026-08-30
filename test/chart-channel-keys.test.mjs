@@ -1,25 +1,4 @@
-// The seam between GATE 6'S CHANNEL KEYS and GATE 5'S CHANNEL NAMES.
-//
-// `SERIES_KEYS` are camelCase properties of a derivation bundle (`series.weightFlow`);
-// channel tokens are lower-kebab, because CSS custom properties are
-// (`--ui-channel-weight-flow`). Twelve of the fourteen keys are therefore NOT their own
-// channel name, and using one as the other fails SILENTLY: `channels['weightFlow']` is
-// undefined, uPlot reads undefined as "no stroke", and the trace is absent from a plot
-// that raises nothing — while `readChartTokens(...).missing` stays empty, because the
-// reader validates its own names and never the caller's keys.
-//
-// MEASURED (finding cross-4, before `SERIES_KEY_CHANNELS` existed): a plot built from
-// `SERIES_KEYS.map(k => ({ key: k }))` resolved FIVE of fourteen channels — the five
-// spelled the same in both namespaces — and read back `null` strokes for the other nine.
-// Two of those nine, `weight` and `volume`, had no token under ANY spelling: they are the
-// two channels gate 6 exists to add (Part 6 gate 6, "where the missing `weight` and
-// `volume` channels are added") and the palette was never widened for them. Slate carried
-// exactly this table (`chart-palette.js:102-119`, `CSS_CHANNEL_NAMES`) and the port
-// dropped it.
-//
-// SEPARATE FILE ON PURPOSE. `test/chart-tokens.test.mjs` covers the READER; this covers
-// the two-namespace seam, which is a gate-5-meets-gate-6 question and has a different
-// owner. Under a whole-file-write rule two subjects in one file is one of them lost.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -61,15 +40,6 @@ function declaredIn(selector) {
 
 describe('the map is complete in both directions', () => {
     test('SERIES_KEY_CHANNELS covers every derivation key, and the steam chart\'s two', () => {
-        /* THE MAP IS "KEYS THAT NEED TRANSLATING", not "derivation keys". It was the same
-         * set until 24 Aug 2026, when the steam chart arrived with two channels that are
-         * not shot-derivation series at all — `steamTemperature` and `milkTemperature`
-         * come off the machine snapshot and the milk-probe socket, and neither is in
-         * SERIES_KEYS. `channelNameFor`'s own note anticipated them by name.
-         *
-         * BOTH HALVES OF THE OLD CLAIM SURVIVE: every derivation key is still covered
-         * (below), and nothing dead is left behind (the next test resolves every mapped
-         * name against the stylesheet, so a renamed channel still fails). */
         const mapped = new Set(Object.keys(SERIES_KEY_CHANNELS));
         for (const key of SERIES_KEYS) {
             assert.ok(mapped.has(key), `${key} is a derivation channel with no channel name`);

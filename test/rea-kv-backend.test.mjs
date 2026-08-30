@@ -1,6 +1,4 @@
-// The ReaPrime KV backend. Paths and verbs are transcribed from kv_store_handler.dart;
-// w0b's contract table owns verifying them as a build gate (Gate D). What these tests own
-// is the client half: one implementation, encoded keys, and no thrown surprises.
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -24,13 +22,6 @@ const ok = (body, status = 200) => ({
     json: async () => body,
 });
 
-/* THE SAMPLE KEY IS `waterTankUnit`, AND IT WAS `steamStopMode` UNTIL 27 AUGUST 2026.
- *
- * That row is retired — the Live rail derives the steam stop mode from the machine's own
- * fields now rather than keeping a copy, so the key has no reader and a `layer: 'none'` row
- * makes the router throw on it. Nothing in this file is about steam or about tanks: what it
- * needs is a key the routing table sends to the KV layer, and the tank's display unit is
- * one. The claims are unchanged. */
 test('reads GET the namespaced key path', async () => {
     const fetchImpl = fakeFetch(() => ok('mL'));
     const backend = createReaKvBackend({ namespace: 'decal', fetch: fetchImpl });
@@ -59,8 +50,6 @@ test('deletes use DELETE on the same path', async () => {
 });
 
 test('namespace and key are BOTH percent-encoded', async () => {
-    // The old skin had two implementations of these routes and only one encoded, so a key
-    // with '/', '#' or a space broke one path and not the other. There is one here.
     const fetchImpl = fakeFetch(() => ok(null));
     const backend = createReaKvBackend({ namespace: 'decal.numpad', fetch: fetchImpl });
     await backend.get('previous-values-hot water/temp');
@@ -71,12 +60,6 @@ test('namespace and key are BOTH percent-encoded', async () => {
 });
 
 test('the WRITE side refuses null — ReaPrime would store the string "null"', async () => {
-    // The read side's null handling was covered; the request side was not, and it is
-    // the one that corrupts. kv_store_handler.dart:40-48:
-    //     final maybeJson = jsonDecode(value);  ...  value: maybeJson ?? value
-    // jsonDecode('null') is null, so the `??` falls through to the RAW BODY STRING and
-    // the store ends up holding 'null' — four characters, truthy, indistinguishable
-    // from a real setting on the next read. Nothing must reach the wire.
     const fetchImpl = fakeFetch(() => ok({}));
     const backend = createReaKvBackend({ namespace: 'decal', fetch: fetchImpl });
     for (const absent of [null, undefined]) {
@@ -90,8 +73,6 @@ test('the WRITE side refuses null — ReaPrime would store the string "null"', a
 });
 
 test('the router never lets a null reach the KV backend at all', async () => {
-    // Belt and braces, and this is the braces: the router routes null to remove(), so
-    // the wire sees a DELETE rather than a POST that the backend would have to refuse.
     const fetchImpl = fakeFetch(() => ok({}));
     const router = createStorageRouter({
         backends: {
@@ -105,11 +86,6 @@ test('the router never lets a null reach the KV backend at all', async () => {
 });
 
 test('a never-written key reads as absent — the 200-with-null the handler actually sends', async () => {
-    // kv_store_handler.dart returns jsonOk(store.get(...)) — 200 with a null body — and has
-    // no jsonNotFound anywhere (the whole file was read at the pin; test/gate-d.test.mjs
-    // asserts it still has none). The 404 branch the old client carried was therefore DEAD,
-    // and A7 says a fallback for a status the server does not send is deleted rather than
-    // kept "just in case": kept, it hides the day the server starts sending one.
     const nullBody = createReaKvBackend({ namespace: 'decal', fetch: fakeFetch(() => ok(null)) });
     assert.equal(await nullBody.get('never-written'), undefined);
 });
@@ -153,11 +129,6 @@ test('the router drives the real KV client end to end, and the local layer stays
 });
 
 test('key enumeration returns an array, and a failure is a FAILURE — never an empty one', async () => {
-    // This test used to assert the opposite, and that is the sharpest thing about it: a
-    // suite defending the defect. `return []` on a 503 renders a dead server as "this
-    // namespace is empty" — SCOPE Part 3 §7's CB-21 exactly — and coercing a non-array body
-    // to [] does the same for a shape this build cannot read. An empty namespace is a real
-    // answer; the server spells it `[]` and nothing else may.
     const listing = createReaKvBackend({ namespace: 'decal', fetch: fakeFetch(() => ok(['a', 'b'])) });
     assert.deepEqual(await listing.keys(), ['a', 'b']);
     const empty = createReaKvBackend({ namespace: 'decal', fetch: fakeFetch(() => ok([])) });

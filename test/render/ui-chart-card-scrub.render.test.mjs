@@ -1,22 +1,5 @@
 /**
- * ui-chart-card-scrub.render.test.mjs — the SCRUB, at the component's own level.
- * Audit F-034 (a cursor for a chart whose x is not time), F-032 as the editor preview
- * shows it, and F-016 row 1 (the preview's plot well had no accessible name).
- *
- * A SIBLING OF `ui-chart-card.render.test.mjs`, not an extension of it: that suite owns
- * the index cursor, the coordinate re-verify and the mount, and it is a long file already.
- * What lives here is the machinery the audit found missing — the point cursor, the name on
- * the well, and the one screen that mounts a bare preview card.
- *
- * WHAT FAILED BEFORE. `cursorPoints` did not exist, so a card fed only through `setBands`
- * — the P–Q trajectory, the one chart in the skin whose x is flow — returned from
- * `#readCursor` before it did anything, and its whole shadow markup was byte-identical
- * across a full press-move-release. The well had `role` and `aria-label` on it only when
- * `activate` was set, so every scrub surface in the skin mapped to `generic`, a role that
- * takes no accessible name at all. And `<editor-preview>` mounted a card with a `slot=
- * "empty"` span and nothing else, so its foot slot had nothing to fill.
- *
- * A8: nothing here opens a file.
+ * The SCRUB, at the component's own level.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -35,15 +18,6 @@ const cardStage = `
     style="display: block; block-size: 340px"></ui-chart-card>
 </div>`;
 
-/**
- * A HAND-MADE LOOP, and it has to be hand-made: the claim is that "nearest" is decided by
- * xy distance rather than by x alone, and only a path that visits ONE x at two very
- * different heights can tell the two rules apart. A real trajectory does exactly that —
- * that is what makes it a loop rather than a line — but a fixture's loop is wherever the
- * shot happened to put it, which is not a geometry a test can point at.
- *
- * Four points: two at flow 5 (pressure 1 and pressure 9) and two at the ends.
- */
 const POINTS = [
     { x: 1, y: 1, t: 0 },
     { x: 5, y: 1, t: 1 },
@@ -233,11 +207,6 @@ describe('the plot well is a named control (F-016 row 1)', () => {
                 const el = window.__h.need(s);
                 return { role: el.getAttribute('role'), name: el.getAttribute('aria-label') };
             }, '#c >>> .well');
-            /* D16, BEN, 30 AUGUST 2026: "{chart name} — chart scrub" became "{chart
-             * name} scrub". The three lines here read 'Trajectory — chart scrub' and the
-             * stage above supplied it; the CARD authors no word either way (its NO STRINGS
-             * law), so this is a fixture following the four call sites rather than a claim
-             * about the component changing. */
             assert.deepEqual(attrs, { role: 'group', name: 'Trajectory scrub' });
             const names = await accessibleNames(page);
             assert.ok(names.some((n) => n.role === 'group' && n.name === 'Trajectory scrub'),
@@ -299,10 +268,6 @@ describe('the editor preview names what it draws (F-032)', () => {
             assert.ok(seen.every((s) => s.cursor.active), 'the cursor must be live throughout');
             for (const s of seen) {
                 const parts = s.foot.split('·').map((x) => x.trim());
-                /* A STEP COMMANDS ONE QUANTITY, so a preview names one plus the time.
-                 * `stepTargetOverlay` draws targetFlow over a flow step and
-                 * targetPressure over a pressure one; naming a channel the profile does
-                 * not command there would be inventing a plan it does not carry. */
                 assert.equal(parts.length, 2,
                     `the commanded value and the second — got ${JSON.stringify(s.foot)}`);
                 assert.match(parts[0], /^(Pressure \d+(\.\d+)? bar|Flow \d+(\.\d+)? mL\/s)$/);
@@ -326,9 +291,6 @@ describe('the editor preview names what it draws (F-032)', () => {
             return { role: el.getAttribute('role'), name: el.getAttribute('aria-label') };
         }, '#p >>> #card >>> .well');
         assert.equal(attrs.role, 'group');
-        /* D16: this read 'Profile preview — chart scrub'. Unlike the two above it is not a
-         * fixture — it is what `editor-preview.js` composes — so it is the assertion that
-         * fails before the call site is shortened and passes after. */
         assert.equal(attrs.name, 'Profile preview scrub');
     }));
 });

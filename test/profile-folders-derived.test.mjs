@@ -1,14 +1,4 @@
-// Families that nobody named with a slash.
-//
-// The folder rule was "the text before the first slash", which is the Decent
-// convention and covers the bundled sets — A-Flow, Tea portafilter, Pour over
-// basket. It covers nothing a person adds later. On Ben's machine that left
-// four "Damian's …", four "Baseline • …", two "Espresso Forge …" and two
-// "Filter 2.x" as loose rows in a 79-row list, all obviously families to a
-// human and invisible to the rule.
-//
-// The cases below are taken from that machine's actual library, because the
-// interesting failures are the ones a made-up example does not have.
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { splitProfileTitle, deriveTitleFamilies, folderLeaf, groupProfilesByFolder }
@@ -31,8 +21,6 @@ const folders = (titles) => groupProfilesByFolder(titles, t => t)
     .filter(g => g.folder).map(g => [g.folder, g.entries.length]);
 
 test('a bullet names a family the same way a slash does', () => {
-    // The Baseline set is four profiles separated with "•". Nothing else about
-    // it differs from the slash convention.
     assert.deepEqual(splitProfileTitle('Baseline • Medium Contact • 6 Bar'),
         { folder: 'Baseline', leaf: 'Medium Contact • 6 Bar' },
         'only the FIRST delimiter splits — the second bullet is part of the name');
@@ -47,17 +35,11 @@ test('families are found in the titles when nobody used a delimiter', () => {
 });
 
 test('the longest shared prefix wins, so a family is as specific as it can be', () => {
-    // "Espresso Forge Light" and "Espresso Forge Dark" share two words. Taking
-    // the first word would file them under "Espresso" — a folder whose name
-    // describes most of the library.
     const map = deriveTitleFamilies(['Espresso Forge Light', 'Espresso Forge Dark']);
     assert.equal(map.get('Espresso Forge Light'), 'Espresso Forge');
 });
 
 test('every member keeps a name of its own', () => {
-    // "Temp test" and "Temp test 2" share both words of the shorter title, and
-    // a folder called "Temp test" would leave one row with nothing to display.
-    // Backing off one word gives "test" and "test 2", which are both real.
     const map = deriveTitleFamilies(['Temp test', 'Temp test 2']);
     assert.equal(map.get('Temp test'), 'Temp');
     assert.equal(folderLeaf('Temp test', 'Temp'), 'test');
@@ -65,20 +47,12 @@ test('every member keeps a name of its own', () => {
 });
 
 test('one weak word does not make a family', () => {
-    // MEASURED failure, not a hypothetical: "I Can't Believe It's Not Filter"
-    // and "I got your back" share their first word, and the first version of
-    // this rule put both in a folder called "I".
     assert.deepEqual(folders(["I Can't Believe It's Not Filter", 'I got your back']), []);
-    // And a family is words, never characters — otherwise "…Not Filter" files
-    // under Filter, which is the one place nobody would look for it.
     const found = Object.fromEntries(folders(REAL));
     assert.equal(found['Filter'], 2, 'Filter 2.1 and 2.0, and nothing else');
 });
 
 test('an author-named family is never broken up by a coincidental shared word', () => {
-    // "Tea portafilter/black tea" and "Tea/in a basket" both start with "Tea".
-    // The delimiter said what the families are; the derived rule only ever
-    // looks at what is left over.
     const found = Object.fromEntries(folders(REAL));
     assert.ok(!('Tea' in found),
         'the two slash-named Tea profiles must not be pulled into a derived "Tea" folder');

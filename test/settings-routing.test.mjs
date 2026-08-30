@@ -1,28 +1,5 @@
 /**
- * settings-routing.test.mjs — B7 at Settings volume (wave 5.4, item b7-storage-routing).
- *
- * The screen law this suite enforces, verbatim: "ONE STORE PER SETTING, NEVER TWO. Every
- * leaf's read/write path resolves through the routing table (key -> layer); a per-call-site
- * choice is a block, and a dual write is the proven units.js silent-revert defect.
- * Machine-scoped -> ReaPrime KV; device-scoped -> local; shot-scoped NEVER to KV."
- *
- * `storage-routes.test.mjs` already tests the table's shape row by row. This suite tests
- * the thing that only becomes testable at volume: TOTALITY over the enumerated settings
- * keys, and the absence of any second write path.
- *
- * Four checks, and the order is the order they would fail in a real regression:
- *
- *  1. TOTALITY — every settings key resolves to exactly one layer. Two is a failure. Zero
- *     is a failure. The enumeration is derived from the table (`settingsKeys()`), so
- *     "enumerated but unrouted" is unrepresentable; the failure this catches is a row that
- *     grows a second home, or a leaf key that loses its row.
- *  2. THE DUAL-WRITE DRILL — both backends instrumented, one write, one backend touched.
- *     This is the units.js defect (`units.js:52-58,:106-115`) as an executable assertion.
- *  3. SCOPE DECIDES LAYER — machine-scoped keys land in KV, device-scoped ones stay local,
- *     and nothing shot-scoped reaches KV at all.
- *  4. THE NAMESPACE IS THE NEW SKIN'S (A9/A10) — asserted on the EFFECTIVE values the
- *     router mints, not on a grep that a comment could satisfy, plus a scan of the shipped
- *     tree for a live old-prefix literal.
+ * B7 at Settings volume (.4, item b7-storage-routing).
  */
 
 import { test, describe } from 'node:test';
@@ -164,15 +141,9 @@ describe('2. the dual-write drill — one write, one backend', () => {
     });
 
     test('a FAILED write reaches no second layer — no fallback store', async () => {
-        // The exact shape of the old defect: the first store rejects, and the value must
-        // NOT quietly land somewhere else. `set` reports false; nothing is written.
         const backends = allBackends();
         backends[LAYERS.kv].set = async () => { throw new Error('KV is down'); };
         const router = createStorageRouter({ backends });
-        /* `waterTankUnit` since 27 August 2026: `steamStopMode` was retired when the Live
-         * rail stopped keeping a copy of the steam stop mode, and a retired row makes the
-         * router throw rather than reach a backend. Any machine-scoped KV key proves this
-         * claim — that a rejected first store does not quietly land in a second. */
         const ok = await router.set('waterTankUnit', 'mL');
         assert.equal(ok, false, 'a rejected write must report false, not true');
         assert.equal(backends[LAYERS.local].writes.length, 0, 'the value fell back to localStorage');
@@ -181,9 +152,6 @@ describe('2. the dual-write drill — one write, one backend', () => {
 
     test('a read consults ONE layer — there is no read-priority rule to invert', async () => {
         const backends = allBackends();
-        // Both stores hold a value for the same logical key's physical spelling. Only the
-        // routed one may be consulted: "two stores plus any read-priority rule equals a
-        // path where a failed write wins".
         await backends[LAYERS.local].set(`${STORAGE_PREFIX}tempUnit`, 'F');
         await backends[LAYERS.kv].set('tempUnit', 'C');
         backends[LAYERS.local].calls.length = 0;
@@ -213,8 +181,6 @@ describe('3. scope decides layer', () => {
     });
 
     test('nothing shot-scoped reaches KV — a rating key would orphan forever', () => {
-        // CB-11: deleting a shot does not cascade to its KV rating key. The row that
-        // encodes the rule is `shotRating`, and it must stay unstored by Decal.
         for (const key of allKeys()) {
             const row = STORAGE_ROUTES[key];
             const shotShaped = /rating|shot/i.test(key);
@@ -268,10 +234,6 @@ describe('4. A9/A10 — the namespace is the new skin\'s and nothing migrates', 
     });
 
     test('no live old-namespace literal survives anywhere in the shipped tree', () => {
-        // Comments and the table's own `was:` / `trace:` fields name the old namespaces on
-        // purpose — the record IS the deliverable (see scripts/lib/source-scan.js). So the
-        // scan removes documentary text FIRST and asserts on what is left, rather than
-        // grepping raw source and earning an exemption. An exemption is how coverage dies.
         const offenders = [];
         for (const file of shippedSources()) {
             const source = readFileSync(file, 'utf8');
@@ -283,8 +245,6 @@ describe('4. A9/A10 — the namespace is the new skin\'s and nothing migrates', 
     });
 
     test('the documentary-stripper actually strips — the canary for the check above', () => {
-        // A scan that silently stops matching is this project's most expensive recurring
-        // failure. Prove both directions on strings.
         assert.match(stripDocumentary("const NS = 'slate';"), /'slate'/, 'live code must survive the strip');
         assert.doesNotMatch(stripDocumentary("// the old 'slate' namespace"), /'slate'/, 'a comment must not');
         assert.doesNotMatch(stripDocumentary("    was: 'slate.theme',"), /'slate\.theme'/, 'a `was:` value must not');

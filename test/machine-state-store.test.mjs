@@ -1,10 +1,5 @@
 /**
  * Asking the machine for a state — and what a 200 does NOT mean.
- *
- * Ben, 23 Aug 2026: "please add slates black sleep screen for when it goes to sleep". The
- * blank was written and mounted nowhere; the wake behind it had never been written at all,
- * because `putMachineStateByNewState` sat in the generated route table with no caller. A
- * full-screen blank with no way off it is worse than no blank, so these pin the wake.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,10 +35,6 @@ test('a wake is a PUT, and the state name is in the path', async () => {
 });
 
 test('a 200 publishes WHAT WAS ASKED FOR, never what the machine now is', async () => {
-    /* `de1.requestState` is a BLE write and the handler answers as soon as it resolves.
-     * The machine's own state arrives on the snapshot feed, later and independently — and
-     * the screensaver drops its blank on THAT, which is the whole of the policy the old
-     * skin broke when one tap slept the machine and woke it 46 ms later. */
     const store = createMachineStateStore({ transport: scriptedTransport(OK) });
     const state = await store.request(MACHINE_STATE.IDLE);
     assert.equal(state.status, REQUEST_STATUS.SENT);

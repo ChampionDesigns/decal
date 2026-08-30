@@ -50,9 +50,6 @@ test('chart scheduler never overlaps draw work and performs one trailing draw', 
     assert.equal(draws, 1);
     assert.equal(scheduler.state().inFlight, true);
 
-    // These represent several 15 Hz telemetry frames arriving while the tablet
-    // is still painting. Their data remains in the chart arrays; only the paint
-    // requests coalesce.
     scheduler.request();
     scheduler.request();
     scheduler.request();

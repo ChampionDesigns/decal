@@ -1,11 +1,4 @@
-// The rebuilt IDB latest-shot mirror, executed against a fake IndexedDB.
-//
-// SCOPE Part 6 lists the `idb.js` successor under "Untested today and must not stay that
-// way in this wave's reach" — the old module had NO executing test, which is how a mirror
-// whose whole purpose is an instant paint shipped for months stripping its own cache on
-// every list load, and how a version bump hung boot with nothing in the console.
-//
-// Every describe block below is one of the five named defects.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -217,9 +210,6 @@ describe('defect 4 — a version bump cannot silently wipe', () => {
 describe('defect 5 — a version bump cannot silently hang', () => {
     test('a blocked upgrade fails with a typed reason inside the grace period', async () => {
         const indexedDB = createFakeIndexedDB();
-        // A connection that does NOT step aside — another tab running an older build, which
-        // is the case the real `onblocked` exists for. Our own connections close on
-        // `onversionchange` (the test below), so the block has to come from outside.
         const holder = await new Promise((resolve) => {
             const request = indexedDB.open(IDB_DATABASE_NAME, 1);
             request.onsuccess = () => resolve(request.result);
@@ -280,10 +270,6 @@ describe('defect 5 — a version bump cannot silently hang', () => {
         other.close();
     });
 
-    // The two below exist to earn the declaration in `test/store.test.mjs`, which permits
-    // exactly one `setTimeout` under `src/stores/` — this module's injected default. An
-    // exemption nobody tests is a hole with a comment on it, so the seam is exercised: the
-    // caller's timer is the one used, and the deadline does not outlive the open.
     test('the deadline is an injected seam — a caller that supplies one is never on the platform clock', async () => {
         const scheduled = [];
         const cleared = [];
@@ -291,8 +277,6 @@ describe('defect 5 — a version bump cannot silently hang', () => {
         const mirror = createShotMirror({
             indexedDB: stuck,
             logger: recordingLogger(),
-            // Far longer than this suite could ever wait: if the module reached for the
-            // platform `setTimeout` instead of ours, this test would hang, not pass.
             openTimeoutMs: 3_600_000,
             setTimer: (fn, ms) => { scheduled.push(ms); queueMicrotask(fn); return scheduled.length; },
             clearTimer: (id) => cleared.push(id),
@@ -388,15 +372,6 @@ describe('housekeeping', () => {
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * DEFECT 5's LAST CORNER: the one failure that was PERMANENT.
- *
- * Timeout, blocked and onerror all clear `opening` and retry. A synchronous throw from
- * `indexedDB.open` did not: `finish` ran while `opening = new Promise(...)` was still being
- * evaluated, so its `opening = null` cleared the PREVIOUS value and the assignment then
- * cached the failed promise for the life of the process. `open()` never asked again — and
- * the asymmetry with every other path is what made it invisible.
- */
 describe('defect 5 — a synchronous open failure is not cached for ever', () => {
     test('a throwing indexedDB.open is retried, not remembered', async () => {
         let opens = 0;

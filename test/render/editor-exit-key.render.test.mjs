@@ -1,31 +1,4 @@
-/**
- * editor-exit-key.render.test.mjs — "+ Volume" WRITES A STEP KEY (audit F-020, S1).
- *
- * THE FAULT, AND WHY IT WAS SILENT. `editor-overlays.js EXIT_SLOT_FIELD` mapped the band's
- * volume slot to the single string `'exitVolume'`, and that one string did two jobs: it
- * armed the keypad from the ranges door AND became the commit's `field`, which
- * `editor-draft.js applyStepValue` applies verbatim as `{...step, [field]: value}`. So a
- * person who set a 60 mL exit got `step.exitVolume = 60`: the band still read "+ Volume"
- * with all three add slots empty, the change count never moved, and the profile that saved
- * carried a key ReaPrime has never sent. Two more paths reach the same table — the EDIT of
- * an already-occupied sentence (the device answered 200 OK with the compound hash
- * unchanged) and remove-then-re-add, which ended one body carrying `volume: 0` AND
- * `exitVolume: 48` on the same step and left the profile with no volume stop at all.
- *
- * WHY IT IS DRIVEN END TO END RATHER THAN UNIT-TESTED. The bug lives in the seam between
- * three files that are each correct alone: the band names its slots, the door names its
- * range rows, and the draft writer applies whatever key it is handed. Only the whole
- * gesture — press the slot, key the number, confirm — puts the wrong string in the profile.
- *
- * THE COMPOSITION ROOT HERE APPLIES THE COMMIT, which `test/harness/editor.js`'s does not
- * (it records `value-commit` and stops). Without that, the band cannot redraw and the
- * headline claim — "the band shows a volume sentence that was not there before" — would be
- * unassertable. It applies through `editor-draft.js`'s own door, so nothing about the write
- * rule is restated here.
- *
- * A8: every assertion is a property read off a live element or a value the page computed.
- * Nothing reads a source file.
- */
+
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,13 +28,6 @@ const STOPPED_STEP = Object.freeze({ ...BARE_STEP, volume: 100 });
 
 const BAND = `${EDITOR.matrix} >>> ui-exit-sentence`;
 
-/**
- * ROUTE THE COMMIT INTO THE DRAFT, the way `editor-screen.js #onEdit` does.
- *
- * The harness root owns the draft and pushes it to the three surfaces; this adds the two
- * listeners it does not have. `applyEditorEdit` is the screen's own writer, imported in the
- * page, so the rule under test is the shipped one.
- */
 async function applyCommits(page) {
     await page.evalFn(async () => {
         const draftMod = await import('/src/lib/editor-draft.js');
@@ -82,12 +48,6 @@ async function applyCommits(page) {
 /** Step 0 of the draft the composition root holds, as a plain object. */
 const stepZero = (page) => page.evalFn(() => JSON.parse(JSON.stringify(window.__editor.draft.steps[0])));
 
-/**
- * PRESS ONE BAND CONTROL THE WAY A PERSON DOES — scrolled into the port, and CHECKED to be
- * inside the window before the press. The matrix is its own scrollport and at 1281×801 the
- * exit band lands below the fold, where `page.click` at a rect centre hits whatever is
- * there instead. Same rule, and same reason, as `editor-exit-add.render.test.mjs`.
- */
 async function pressBand(page, id) {
     const control = `${BAND} >>> #${id}`;
     await page.evalFn((sel) => {

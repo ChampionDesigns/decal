@@ -1,51 +1,5 @@
 /**
- * overlay-surfaces.render.test.mjs — wave 5.2 (wf-w5p2-overlays), the SURFACES cluster.
- *
- * Part 10 §12's row for this wave says the phase "integrates and proves"; it builds no
- * overlay machinery. #21 (menu), #22 (toast) and #57 (screensaver) each already have a
- * rendering suite that passes. This file is the suite for the space BETWEEN them, which
- * is the only place the defects this wave owns can live:
- *
- *   O11 (spec §7.7:1228) "A context menu taller than the viewport loses its LAST items."
- *        ui-menu.render.test.mjs drives ONE anchor position. Slate's own clamp
- *        (`context-menu.js:44`) is a top-only clamp, so the edge a bug hides behind is
- *        whichever edge nobody drove. Here the anchor is driven to ALL FOUR, eight
- *        positions, five rows and forty, at both standard geometries.
- *   O2  (spec §7.7:1219) "slate-shell.css:935-954 re-declares the context menu UNSCOPED
- *        and later, and box-shadow: none kills its elevation." ITEMS row x-menu says
- *        "structurally impossible under Shadow DOM but CONFIRM ON SCREEN" — so the
- *        override Slate wrote is written into the page here, `!important` and all, and
- *        the elevation is measured through it.
- *   D10 (SCOPE:218) "Screensaver: fully black, one owner — the skin." ITEMS row
- *        screensaver-d10's acceptance is "fully black (no residual paint)", and the only
- *        instrument that reads that claim is the frame buffer. Every pixel of a real
- *        screenshot is compared to black, with the other four surfaces on screen under it.
- *
- * WHAT THIS SUITE FOUND, and why it exists (recorded here because the fix is invisible
- * without it): the token file puts --ui-z-blackout (400) above --ui-z-toast (300) exactly
- * so a notice cannot paint on a blanked screen — Slate's numbers are the other way round
- * (toast 10001 `index.html:657` over screensaver 10000 `ui.js:1412`) and that is the
- * defect the scale was written to kill. Both components promote themselves into the TOP
- * LAYER, which is ordered by ENTRY and not by z-index, so on the first measurement a
- * `danger` notice raised after the blank put 24,031 non-black pixels on a screen D10 says
- * is black. Neither component's own suite could see it. `ui-screensaver`'s `#watchLayer()`
- * is the repair; §5 below is the gate that keeps it.
- *
- * AND WHAT §4 NOW GATES (DQ-565, Ben's policy, 21 August 2026). The other pair — a notice
- * on screen, then a modal opened over it — was measured, pinned and NOT fixed by wave 5.2,
- * because the answer was a policy call. Ben adopted it: a `danger`-tone notice re-takes the
- * top layer above a modal. `ui-toast.js`'s `#syncDangerWatch()` / `#onForeignOpen()` is that
- * repair, and §4's second test is now the positive assertion plus the tone gate. It listens
- * to `open-change` alone, which is why §5's D10 gate below is untouched: #57 announces no
- * `open-change`, so the blank still re-takes last and the settled order is
- * blank > danger notice > dialog.
- *
- * THE INSTRUMENT. Gate A is computed styles and box geometry, never source text — but
- * "fully black" and "the notice paints above the scrim" are claims about PAINT, and a
- * rect proves neither (the notice under the scrim had a perfectly good rect; that is
- * finding cross-1). So this file adds one instrument: `Page.captureScreenshot` over CDP,
- * decoded here. It is used for exactly the three claims that are about pixels and for
- * nothing else.
+ *.2 (wf-w5p2-overlays), the SURFACES cluster.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -63,18 +17,6 @@ const MODULES = [
     '/src/components/ui-button.js',
 ];
 
-/* ---------------------------------------------------------------------------
- * The one new instrument: a real frame, decoded.
- * ------------------------------------------------------------------------- */
-
-/**
- * The 8-bit, non-interlaced subset of PNG that `Page.captureScreenshot` emits.
- *
- * Written here rather than in `test/harness/` deliberately: three assertions in one file
- * need it, and a shared helper is a thing other suites start reaching for by habit — the
- * rig's rule is computed styles and geometry, and pixels are the exception that has to
- * keep justifying itself.
- */
 function decodePng(buf) {
     assert.equal(buf.readUInt32BE(0), 0x89504e47, 'not a PNG');
     let off = 8;
@@ -152,13 +94,6 @@ const frame = async (page) => decodePng(await page.screenshot());
 
 const rgb = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
 
-/**
- * The share of a CSS-pixel rect that is painted EXACTLY one colour, in the real frame.
- *
- * A share rather than a single sample because a notice has text in it, and a lone centre
- * pixel lands on a glyph as often as on the ground. The inner 70 % is walked so the
- * border, the radius and the tone edge are out of the count.
- */
 function groundShare(img, rect, scale, colour) {
     const inset = (v, size) => v + size * 0.15;
     const x0 = Math.round(inset(rect.left, rect.width) * scale);
@@ -175,10 +110,6 @@ function groundShare(img, rect, scale, colour) {
     }
     return { share: seen ? hit / seen : 0, seen };
 }
-
-/* ---------------------------------------------------------------------------
- * Fixtures
- * ------------------------------------------------------------------------- */
 
 const attr = (items) => JSON.stringify(items).replaceAll('"', '&quot;');
 const FEW = [
@@ -269,10 +200,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(3);
         };
 
-        /* ================================================================
-         * 1. x-menu — CLAMPED AT EVERY ANCHOR POSITION (O11)
-         * ============================================================== */
-
         test('the surface stays inside the window at all eight anchor positions', () => mounted(async (page) => {
             const edge = parseFloat(await page.resolveValue('var(--ui-space-3)', 'width'));
             const seen = [];
@@ -336,10 +263,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ================================================================
-         * 2. O2 — THE UNSCOPED SHELL OVERRIDE, WRITTEN INTO THE PAGE
-         * ============================================================== */
-
         test('O2: Slate\'s own unscoped override cannot reach the surface\'s elevation', () => mounted(async (page) => {
             await dockAt(page, { 'inset-block-start': '200px', 'inset-inline-start': '200px' });
             const before = await page.prop(SURFACE, 'box-shadow');
@@ -347,9 +270,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(before, elevation, 'the surface must take its elevation from --ui-elev-2 to begin with');
             assert.notEqual(before, 'none');
 
-            /* slate-shell.css:935-954 as written, plus the escalation A8 predicts a shell
-             * reaches for when the first override does not win. In the light DOM, where a
-             * shell's stylesheet lives. */
             await page.evalFn(() => {
                 const style = document.createElement('style');
                 style.textContent = `
@@ -371,10 +291,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'nor its ground — A8\'s "the platform enforces it", measured');
             assert.ok(parseFloat(after['border-top-left-radius']) > 0, 'nor its radius');
         }));
-
-        /* ================================================================
-         * 3. THE Z SCALE — ONE ORDER, READ FROM THE TOKENS
-         * ============================================================== */
 
         test('the five layers are one ascending scale and every consumer reads its own token',
             () => mounted(async (page) => {
@@ -401,16 +317,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#hdr', 'z-index'), String(sticky),
                     'ui-section-header reads --ui-z-sticky');
 
-                /* #18 declares none, and that is the design: the top layer is not on the z
-                 * scale, so a number there would read as load-bearing and be a lie
-                 * (ui-dialog.js:112-123, tokens.css:458-459). */
                 assert.equal(await page.prop('#d >>> #dialog', 'z-index'), 'auto',
                     'the dialog must not declare a z-index — the top layer is not on the scale');
             }, FULL_PAGE));
-
-        /* ================================================================
-         * 4. x-toast ABOVE THE DIALOG — the layer, and the paint (cross-1)
-         * ============================================================== */
 
         test('a notice raised over a modal dialog paints ABOVE the scrim, not under it',
             () => mounted(async (page) => {
@@ -418,22 +327,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#t', 'z-index'), toastLayer,
                     'the region sits on --ui-z-toast, as a number nobody wrote by hand');
 
-                /* THE ORDER IS THE CASE, and this test proves ONE order: the modal is open
-                 * and settled, then something is saved. #18 reaches `showModal()` inside
-                 * Lit's `updated()`, a microtask after `show()` returns, so raising the
-                 * notice in the same turn would put the REGION in the top layer first and
-                 * the dialog in after it, and measure the opposite.
-                 *
-                 * THAT OPPOSITE IS NOT HYPOTHETICAL and it is not only a same-turn artefact
-                 * — finding cross-2. A notice fully settled first and a dialog opened after
-                 * it was buried, at both geometries, and the test directly below used to pin
-                 * exactly that. SINCE DQ-565 (Ben, 21 August 2026) it no longer holds for
-                 * ONE tone: a `danger` notice re-takes the layer over a dialog opened after
-                 * it, and the test below is now the positive assertion. This test's own
-                 * notice is `ok`, so the claim here is still the narrow one — this order,
-                 * any tone — and the wide claim ("a notice always paints above a dialog")
-                 * is still not made, because `info`/`ok`/`warn` in the other order are still
-                 * buried and are meant to be. */
                 await page.evalFn(() => { document.getElementById('d').show({ reason: 'test' }); return true; });
                 await page.settle(4);
                 assert.equal(await page.evalFn(() => document.getElementById('d').open), true,
@@ -481,42 +374,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(under, true);
                 await page.settle(2);
                 const below = groundShare(await frame(page), notice.rect, scale, notice.background);
-                /* A DROP, not a floor. MEASURED at the 1000×600 floor: the dialog's own
-                 * footer takes the same surface token as the notice and the card reaches
-                 * down to y=535 while the notice starts at y=511, so a quarter of the
-                 * sampled box paints that exact colour whether the notice is there or not.
-                 * The signal is the change, and it is unmissable: 86 % -> 27 %. */
                 assert.ok(above.share - below.share > 0.4,
                     `demoting the region moved the notice's ground from ${(above.share * 100).toFixed(1)} % to `
                     + `${(below.share * 100).toFixed(1)} % of the sampled box — too small a change to prove the `
                     + 'scrim is over it, so the measurement above is vacuous');
             }, FULL_PAGE));
 
-        /**
-         * THE OTHER ORDER — REPAIRED, AND THIS IS THE GATE (finding cross-2, DQ-565).
-         *
-         * The test above raises the notice over a dialog that is ALREADY open, which is
-         * the save flow's order and the only one wave 5.2 proved. The ordinary opposite —
-         * a notice on screen, then a dialog opened inside its 2400 ms default life
-         * (DEFAULT_TOAST_DURATION, `ui-toast.js:253`, carried from `ui.js:3283`) — measured
-         * the reverse: the notice was BURIED, because the top layer is ordered by ENTRY and
-         * `--ui-z-toast` cannot reach into it. A `danger` notice is the assertive
-         * announcement (`applyAssertiveRole`) and is precisely the one that must not be
-         * hidden, so wave 5.2 pinned the burial rather than fixing it and handed the
-         * decision on: `DEFERRED_QUESTIONS_surfaces.md` #5.
-         *
-         * BEN ADOPTED THE POLICY on 21 August 2026 (DQ-565): "a danger-tone notice re-takes
-         * the top layer above a modal (the costed #22 repair)". So this test is now the
-         * POSITIVE assertion — the danger notice keeps its own ground with a modal dialog
-         * open over it, at both Gate A geometries — and the burial it used to pin is what
-         * would make it red.
-         *
-         * WHAT IT DOES NOT CLAIM. Only `danger` re-takes; the tone gate is asserted at the
-         * end of this test with an `info` notice, which is still buried and is meant to be.
-         * And the blank still outranks both: §5 below is D10's gate and it is unchanged,
-         * because the repair listens to `open-change` alone — #57's re-entry does not emit
-         * one, so the settled order is blank > danger notice > dialog.
-         */
         test('DQ-565: a danger notice on screen KEEPS the layer when a dialog opens after it',
             () => mounted(async (page) => {
                 const raised = await page.evalFn(
@@ -567,11 +430,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `the danger notice paints ${(after.share * 100).toFixed(1)} % of its own inner box under an `
                     + 'open dialog — it must be READ, not merely present');
 
-                /* THE TONE GATE, in the same page and the same frame budget: an `info`
-                 * notice raised while the same dialog is open is NOT special, and is meant
-                 * to lose. Raising it also re-enters the layer for the whole region (that
-                 * is what #syncLayer does on every adoption), so the dialog is re-opened
-                 * afterwards to put the entry order back the way the claim needs it. */
                 await page.evalFn(() => {
                     const t = document.getElementById('t');
                     t.clear('test');
@@ -597,10 +455,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + `${(quietAlone.share * 100).toFixed(1)} %) under the dialog — DQ-565 is gated on TONE, and `
                     + 'a region that raised every tone over a modal would be the opposite defect');
             }, FULL_PAGE));
-
-        /* ================================================================
-         * 5. D10 — FULLY BLACK, AND IT STAYS BLACK
-         * ============================================================== */
 
         test('D10: with all four other surfaces on screen, the blank is black in every pixel',
             () => mounted(async (page) => {
@@ -641,11 +495,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(4);
                 assert.equal(nonBlack(await frame(page)).count, 0, 'the blank must start black');
 
-                /* THE MEASUREMENT THIS SUITE EXISTS FOR. The top layer is ordered by ENTRY,
-                 * so each of these three enters ABOVE a blank promoted before them, and the
-                 * --ui-z-blackout > --ui-z-toast order the tokens declare is not what the
-                 * compositor uses. First measured at 24,031 non-black pixels for the notice
-                 * alone; ui-screensaver's #watchLayer() is what makes this zero. */
                 const surfaces = [
                     ['a danger notice', 'document.getElementById("t").show("After blank", { tone: "danger", duration: 0 })'],
                     ['an open menu', 'window.__h.need("#m").show({ reason: "after-blank" })'],
@@ -663,9 +512,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         + 'screensaver (10000); --ui-z-blackout 400 > --ui-z-toast 300 says the opposite, and '
                         + 'the top layer is ordered by entry, so the order has to be re-taken');
 
-                    /* The two overlays that do NOT block the document leave the wake press
-                     * where it was. The modal dialog does block it, by definition, and that
-                     * is measured on its own below rather than smoothed over here. */
                     if (what !== 'a modal dialog') {
                         const hit = await page.eval(
                             '(() => { const el = document.elementFromPoint(8, 8); return el ? (el.id || el.tagName.toLowerCase()) : null; })()',
@@ -675,23 +521,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }, FULL_PAGE));
 
-        /**
-         * THE SAME CLAIM, FROM A THIRD SHADOW TREE — finding c-surfaces-1.
-         *
-         * Every fixture above is flat document markup, and both of the blank's listening
-         * roots (`document` and its own `getRootNode()`) are then the same node — so the
-         * `beforetoggle` half alone is enough for the notice and the gate cannot see what
-         * happens when it is not. A screen that renders `<ui-toast>` inside its OWN shadow
-         * template while the app-level blank owns the D10 slot is the ordinary composition
-         * for 5.3, and `beforetoggle` is `composed: false`: it stops at the root of the
-         * tree it fired in and no document listener ever hears it.
-         *
-         * Measured before the repair: 24,031 non-black pixels — byte-identical to the
-         * flat-tree number this wave first measured, because it is the same defect arriving
-         * by a route the flat fixtures cannot express. #22 now announces its own layer entry
-         * with `open-change` (`ui-toast.js` `#syncLayer`), which is `composed: true` and is
-         * the contract `LAYER_ENTRY_EVENTS` already consumes from #18 and #21.
-         */
         test('D10: a notice raised from ANOTHER shadow tree does not paint on the blank',
             () => mounted(async (page) => {
                 const moved = await page.evalFn(() => {
@@ -724,9 +553,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + `screen (first at ${JSON.stringify(after.first)}). beforetoggle is composed: false and never `
                     + 'leaves that tree, so the blank only learns of the entry if #22 announces it');
 
-                /* ANTI-VACUITY. Zero non-black pixels is also what an unmounted region, a
-                 * region that never painted, or one the move broke would give. Take the
-                 * blank down and the notice must be there, painting its own ground. */
                 await page.evalFn(() => {
                     document.getElementById('s').setAttribute('machine-state', 'idle');
                     return true;
@@ -750,17 +576,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'inner box — the zero above proved nothing, because there was nothing to cover');
             }, FULL_PAGE));
 
-        /**
-         * PINNED, NOT FIXED. A modal dialog blocks interaction with the whole document
-         * outside itself — that is what modal MEANS, and no layer beats it (ui-toast.js
-         * :328-331 measured the same thing for a notice). So a dialog opened while the
-         * machine is asleep leaves the screen black and takes the wake press with it, and
-         * #18's `#applyInert()` marks the blank inert on the way past. The repair is not
-         * available on this side: making the blank a modal of its own would be a second
-         * copy of #18's machinery, which this wave forbids. What a screen should do with an
-         * open dialog when the machine sleeps is the screen's decision, and this is the
-         * measurement it gets to decide with.
-         */
         test('measured: a modal dialog over the blank keeps it black but takes the press', () => mounted(async (page) => {
             await page.evalFn(() => {
                 document.getElementById('s').setAttribute('machine-state', 'sleeping');

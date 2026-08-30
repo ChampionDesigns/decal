@@ -1,16 +1,5 @@
 /**
- * profile-add.test.mjs — THE THREE WAYS A PROFILE CAN ARRIVE.
- *
- * Ben, 24 August 2026: "We should add Upload, import and the generate one like a new
- * profile." The old skin has all three behind one modal and Decal had none of them: a
- * profile could be created only by saving a new version from the editor.
- *
- *   UPLOAD    a .json file off the tablet -> POST /api/v1/profiles
- *   IMPORT    a 4-character Visualizer share code -> the plugin passthrough
- *   GENERATE  a link to the generator plugin's own page, gated on it being LOADED
- *
- * What is proved here is the shape check and the three call shapes. The menu and the
- * dialog are `test/render/selector-core-loop.render.test.mjs`'s.
+ * The three ways a profile can arrive.
  */
 
 import { test, describe } from 'node:test';
@@ -250,24 +239,7 @@ describe('an add can be forgotten', () => {
     });
 });
 
-/**
- * THE FOURTH WAY — the "New profile" row, which is Slate's + and is the one that was
- * broken. Ben, 27 August 2026: "in profile selector, if I press the button to make a new
- * profile it loads the profile editor but there is no steps, wich means there is not +
- * button to add a new step etc, ie I cannot add any steps."
- *
- * `selector-screen.js #openNewProfile` seated `{ title, steps: [] }` — an object literal
- * in a click handler with two of a profile's ten keys and none of its steps. Both halves
- * are pinned below: a profile with no steps cannot be edited, and a profile with two keys
- * could not have been SAVED either.
- */
 describe('a brand-new profile', () => {
-    /**
-     * THE PIN THAT MATTERS MOST. It is written as "never zero" rather than "exactly one"
-     * so it keeps biting if the seed ever grows a second step on purpose: what may never
-     * come back is the EMPTY list, because the per-step action rail is the only route to a
-     * new step and an empty list has no rails.
-     */
     test('is never seated with zero steps', () => {
         const profile = newProfile({ title: 'New profile' });
         assert.ok(Array.isArray(profile.steps));
@@ -290,12 +262,6 @@ describe('a brand-new profile', () => {
         assert.equal(seeded.exit, null);
     });
 
-    /**
-     * THE SECOND HALF OF THE SAME DEFECT. `{ title, steps }` is not a profile document:
-     * `POST /api/v1/profiles` requires four keys and the format carries ten. Nobody had
-     * reached the Save, because nobody could add a step. Judged by THIS module's own
-     * reader, so a key added to `PROFILE_FILE_KEYS` cannot leave the seed behind.
-     */
     test('is a complete profile document by rea-profile\'s own reader', () => {
         const read = readProfileFile(newProfile({ title: 'New profile' }));
         assert.equal(read.ok, true, read.reason);

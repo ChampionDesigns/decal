@@ -1,7 +1,4 @@
-// The i18n build (D2) and its canaries. Every validation rule here is a guard, and
-// a guard without a canary is how the old tree's three guards stopped covering their
-// target without anyone noticing (Part 8 §2, Gate C) — so each rule is proved by a
-// fixture that deliberately violates it.
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
@@ -10,7 +7,6 @@ import { join } from 'node:path';
 
 import { generate, write, check, readTable } from '../scripts/build-i18n.js';
 
-/** A throwaway tree: i18n/source/strings.json plus any overlay language files. */
 function fixture({ table, overlays = {} }) {
   const root = mkdtempSync(join(tmpdir(), 'decal-i18n-'));
   const sourceDir = join(root, 'i18n', 'source');
@@ -44,8 +40,6 @@ test('round trip: the generated source-language file is exactly the authored key
   const en = parse(files, 'en.json');
   assert.equal(en.language, 'en');
   assert.deepEqual(Object.keys(en.strings), ['Save', 'Steam', 'Step {n} of {total}']);
-  // A key IS its English text, so the round trip is an identity: read it back and
-  // every value equals its key.
   for (const [key, value] of Object.entries(en.strings)) assert.equal(value, key);
   assert.equal(report.keys, 3);
   assert.deepEqual(report.coverage, [{ language: 'en', translated: 3, missing: 0 }]);

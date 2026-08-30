@@ -1,18 +1,5 @@
 /**
- * history-wires.render.test.mjs — the History screen's two wire dispositions.
- * Audit F-015 (an orphan `reset` listener the gate cannot see) and F-012 (an unheard
- * `slot-change` emit).
- *
- * WHY THESE TWO ARE ONE FILE. They are the same screen's two ends of the same seam: a
- * gesture that reached a handler nobody could call, and a handler that told nobody
- * anything. Both are asserted BEHAVIOURALLY — what the viewer was asked to do, and what
- * left the screen — because that is the only reading that could have caught either. The
- * F-015 finding says so in as many words: the gate is silent on `reset` by design
- * (`BUILTIN_EVENTS` is fixed at ship time and is Ben's call), and it was a hand sweep of
- * `@`-bindings against their emitters that found it.
- *
- * A8: nothing here opens a file. The F-015 assertion is a PROTOTYPE SPY on the exported
- * `HistoryViewer` — a live count of which method the gesture reached — not a source read.
+ * The History screen's two wire dispositions.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -35,12 +22,6 @@ const stage = `
   <history-screen></history-screen>
 </div>`;
 
-/**
- * Hand the screen a boot whose transport answers from `tools/rea-fixtures/` — the compare
- * suite's own `BOOT`, so the REAL store, the REAL viewer and the REAL pages are what the
- * gestures below drive, and only the wire is stood in for, at the one seam the tree
- * already injects.
- */
 const ARM = `(async () => {
   const screen = document.querySelector('history-screen');
   const key = (route) => (route === '/shots'

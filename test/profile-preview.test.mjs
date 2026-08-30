@@ -1,19 +1,5 @@
 /**
- * profile-preview.test.mjs — wave 5.3, the profile-preview shaper.
- *
- * `src/lib/profile-preview.js` is the answer to a gap the skeleton recorded: gate 6
- * derives SHOTS, and the selector's detail pane draws a PROFILE's commanded targets,
- * which had no producer in the tree. It composes `profile-modes.js`'s
- * `stepTargetOverlay` — already the one owner of "what does a Power step command?" — and
- * `shot-derivation.js`'s SERIES_KEYS.
- *
- * WHAT IS ASSERTED HERE, and none of it needs a browser: the SHAPE the card reads, the
- * curve's two-points-per-step construction, the gap a channel a step does not command
- * leaves behind, and the one coupling the file depends on (both channels sharing one x
- * array, so `chart-align.js` takes its fast path and the boundary risers survive).
- *
- * The real recorded profiles are read from the fixture rather than invented, so a profile
- * shape this build cannot draw is a failure here rather than a blank chart on screen.
+ *.3, the profile-preview shaper.
  */
 
 import { test, describe } from 'node:test';

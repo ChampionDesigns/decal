@@ -1,17 +1,5 @@
 /**
- * ui-tile-grid-gallery-entry.test.mjs — the wave-4 #40 gallery entry, checked against
- * the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single hand-written
- * array and the run's rule is whole-file writes; parallel builders appending to it is
- * lost entries. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the
- * wave's single cross-cutting writer wires them in. This file makes that hand-off safe:
- * a malformed entry is a red test HERE rather than a capture battery photographing an
- * empty stage.
- *
- * `test/render/ui-tile-grid.render.test.mjs` takes the other half — it mounts every
- * state in a real browser at both standard geometries and measures the column counts
- * these notes claim.
+ * The wave-4 #40 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -20,11 +8,6 @@ import { stat } from 'node:fs/promises';
 
 import { entry } from '../tools/gallery/entries/ui-tile-grid.entry.js';
 
-/** The component's two constants, and the only place this file states them.
- *  ORACLE both are read off the 30 language tiles:
- *  `prov_query.py find --cls slate-lang-tile` → 291x84 at x = 629 / 932 / 1235 / 1538
- *  inside a 1200px leaf → gutter 12px (--ui-space-3), 4 tracks of exactly the 291 the
- *  authored `minmax(280px, 1fr)` predicts. */
 const MIN = 280;
 const GAP = 12;
 
@@ -49,10 +32,6 @@ test('state ids are unique, because they are capture filenames', () => {
 });
 
 test('the module path resolves from tools/gallery/, which is where gallery.js imports it', async () => {
-    // gallery.js does `import(entry.module)` and lives in tools/gallery/, so the path is
-    // relative to THAT directory, not to the entry file's own. It is the .demo.js
-    // sidecar because the states stage real #8 cards as the tiles, and mount() waits
-    // forever on a hyphenated tag whose module never loaded.
     assert.equal(entry.module, './entries/ui-tile-grid.demo.js');
     const resolved = new URL(entry.module, new URL('../tools/gallery/', import.meta.url));
     const info = await stat(resolved);
@@ -60,9 +39,6 @@ test('the module path resolves from tools/gallery/, which is where gallery.js im
 });
 
 test('every state states its container width, because the container IS the input', () => {
-    // #40 has no attribute, no property and no media query that changes what it does:
-    // the stage width is the entire question (spec §2.1 Rule 1). A state with no
-    // hostStyle is a state that asks nothing.
     for (const state of entry.states) {
         const width = parseFloat(state.hostStyle?.['inline-size'] ?? '');
         assert.ok(Number.isFinite(width), `state ${state.id} does not state its container width`);
@@ -70,10 +46,6 @@ test('every state states its container width, because the container IS the input
 });
 
 test('the states straddle every column count the pattern produces', () => {
-    // A fluid grid photographed at one width is photographed as a div. The counts are
-    // floor((W + GAP) / (MIN + GAP)), floored at 1 — so the battery needs states that
-    // land on 4, 3, 2 and the collapsed 1, and one of the 1s must be BELOW the 280
-    // floor, which is where this component departs from Slate.
     const columnsAt = (w) => Math.max(1, Math.floor((w + GAP) / (MIN + GAP)));
     const widths = entry.states
         .filter((s) => !s.html.includes('--_ui-tile-grid-min'))
@@ -90,9 +62,6 @@ test('the states straddle every column count the pattern produces', () => {
 });
 
 test('the knob has a state of its own, set on the host and not on an ancestor', () => {
-    // --_ui-tile-grid-min is read, not baked in; the state proves it, and the placement
-    // matters — a :host default beats an inherited value, so the knob only works when
-    // it names the host.
     const knobbed = entry.states.filter((s) => s.html.includes('--_ui-tile-grid-min'));
     assert.equal(knobbed.length, 1, 'exactly one state should demonstrate the knob');
     assert.match(knobbed[0].html, /<ui-tile-grid[^>]*style="--_ui-tile-grid-min:/,
@@ -100,9 +69,6 @@ test('the knob has a state of its own, set on the host and not on an ancestor', 
 });
 
 test('no state paints a selected look on the grid', () => {
-    // The wave law: "No component in this wave may own a private selected look."
-    // aria-checked belongs on the TILE; the grid may carry the group role the screen
-    // wrote, and nothing else.
     for (const state of entry.states) {
         const openTag = state.html.slice(state.html.indexOf('<ui-tile-grid'));
         const attrs = openTag.slice(0, openTag.indexOf('>'));

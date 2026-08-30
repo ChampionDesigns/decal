@@ -1,23 +1,5 @@
 /**
- * ui-select.render.test.mjs - Gate A for Wave 1 item #7 (Select).
- *
- * Runs the whole rig at BOTH standard geometries - 1281x801 @ dsf 1.5 (the bench
- * truth) and the 1000x600 floor - and asserts only on computed style, box geometry
- * and behaviour, never on source text (SCOPE Part 8 section 2).
- *
- * WHAT EACH GROUP IS FOR
- *   1. tokens are consumed, not copied - every appearance value the oracle measured,
- *      drilled through :root;
- *   2. the caret - the row's other half: six raw numbers written twice become two
- *      numbers written once, and the derivation is asserted rather than assumed;
- *   3. bug T9, asserted dead - a select in a squeezing flex row holds its stated size,
- *      and two selects stating the same size render the same number. Slate renders
- *      250 and 217 in one screen (oracle, settings-extensions-decent-app-settings);
- *   4. focus geometry from --ui-focus-*, unclipped (bug L24's class);
- *   5. the container, not the viewport - the same clamp at both geometries;
- *   6. the aria contract and the behaviour: an accessible name, a value that round
- *      trips, a `change` event that actually crosses the shadow boundary;
- *   7. the negatives - no second selection treatment, no compounded disabled dial.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -40,8 +22,6 @@ const LONG = '[&quot;Everything (ALL)&quot;,&quot;Trace (FINEST) and every packe
 
 const MARKUP = `<ui-select id="units" label="Temperature unit" options="${UNITS}"></ui-select>`;
 
-/* A settings row as Slate builds one: a flex line with a label that will not give up
- * pixels. Slate's select shrinks here; this one must not. */
 const ROW = `
 <style>
   #row { display: flex; align-items: center; gap: 18px; inline-size: 420px; }
@@ -90,14 +70,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 1. tokens are consumed, not copied ---------------------------- */
-
         test('drill: --ui-control-h moves the control height', () => one(async (page) => {
-            // ORACLE state=settings-units---language-temperature element=[38]
-            // <select id="temp-unit-select" class="slate-select w-[200px]"> property=height
-            // value=64px AND property=min-height value=64px winning rule=slate-shell.css
-            // {#subpage-host #settings-content-area select.slate-select} authored
-            // `var(--slate-control-height)`.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-control-h',
                 value: '91px',
@@ -111,9 +84,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-key moves the control face', () => one(async (page) => {
-            // ORACLE ... property=background-color value=rgb(26, 33, 39) [dark] /
-            // rgb(248, 249, 249) [light] winning rule=slate-components.css {.slate-select}
-            // authored `var(--slate-key)`.
             await assertTokenDrill(page, {
                 token: '--ui-key',
                 value: DRILL_COLOUR,
@@ -123,9 +93,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-text moves the control ink', () => one(async (page) => {
-            // ORACLE ... property=color value=rgb(244, 247, 248) [dark] / rgb(23, 26, 28)
-            // [light] winning rule=slate-components.css {.slate-select} authored
-            // `var(--slate-text)`.
             await assertTokenDrill(page, {
                 token: '--ui-text',
                 value: DRILL_COLOUR,
@@ -135,8 +102,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-line moves the control edge', () => one(async (page) => {
-            // ORACLE ... property=border-top-color value=rgb(58, 72, 82) [dark] /
-            // rgb(203, 208, 211) [light] winning rule=slate-components.css {.slate-select}.
             await assertTokenDrill(page, {
                 token: '--ui-line',
                 value: DRILL_COLOUR,
@@ -150,11 +115,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'border-top-width', 'border-top-left-radius', 'font-size', 'font-weight',
                 'padding-left', 'box-shadow', 'opacity', 'appearance',
             ]);
-            // ORACLE ... border-top-width=1px, border-top-left-radius=6px, font-size=17px,
-            // font-weight=400, padding-left=18px, box-shadow=none, opacity=1
-            // (winning rule=slate-components.css {.slate-select}).
-            // Lengths are probed through padding-left: a border-width probe with no
-            // border-style computes 0px, which would make this assertion vacuous.
             assert.equal(
                 px(got['border-top-width']),
                 px(await page.resolveToken('--ui-border-w', 'padding-left')),
@@ -169,21 +129,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the type is inherited, not restated, and no face is declared here', () => one(async (page) => {
-            // ORACLE ... property=font-family value=`Geist, system-ui, sans-serif` winning
-            // rule=app.css {button, input, optgroup, select, textarea} authored `inherit`.
-            // A form control does not inherit type by default, so the component restores
-            // it; the family itself still comes from the document (--ui-font-family), which
-            // is the only place a @font-face may live (spec section 6.3 Rule 2).
             const control = await page.prop('ui-select >>> #control', 'font-family');
             const document_ = await page.resolveToken('--ui-font-family', 'font-family');
             assert.equal(control, document_);
         }));
 
         test('both themes are painted, and from the same token names', () => one(async (page) => {
-            // Guard 4's runtime half. The component reads --ui-key / --ui-text /
-            // --ui-line / --ui-muted and never learns which theme is on; every one of
-            // those is declared in both blocks of styles/tokens.css, so the control has
-            // to change on the stamp and has to keep matching the tokens after it.
             const props = ['background-color', 'color', 'border-top-color'];
             const read = async () => ({
                 got: await page.computed('ui-select >>> #control', props),
@@ -205,15 +156,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.notDeepEqual(dark.got, light.got, 'the theme stamp moved nothing - a literal is hiding somewhere');
         }));
 
-        /* -- 2. the caret: two numbers, derived, not six written twice ------ */
-
         test('drill: --ui-muted moves the caret ink', () => one(async (page) => {
-            // ORACLE ... property=background-image value=`linear-gradient(45deg,
-            // rgba(0, 0, 0, 0) 50%, rgb(148, 161, 169) 50%), linear-gradient(135deg,
-            // rgb(148, 161, 169) 50%, rgba(0, 0, 0, 0) 50%)` winning rule=
-            // slate-components.css {.slate-select} authored `linear-gradient(45deg,
-            // transparent 50%, var(--slate-muted) 50%), linear-gradient(135deg,
-            // var(--slate-muted) 50%, transparent 50%)`.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-muted',
                 value: DRILL_COLOUR,
@@ -236,48 +179,24 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const got = await page.computed('ui-select >>> #control', [
                 'background-size', 'background-repeat', 'background-position', 'padding-right',
             ]);
-            // SOURCE slate-components.css:510 `background-size: 7px 7px, 7px 7px` - the
-            // tile is intrinsic glyph geometry (spec section 2.3 case 3) and is the one
-            // number kept.
             assert.equal(got['background-size'], '7px 7px, 7px 7px');
             // One value per layer, so Chrome serialises the repeat twice.
             assert.equal(got['background-repeat'], 'no-repeat, no-repeat');
 
-            // padding-inline-end = band + space-4, band = inset + 2*tile - overlap.
-            // The tile and the overlap are ARTWORK (spec section 2.3 case 3) and are
-            // written here as the literals the source read gives, deliberately NOT as
-            // --ui-hairline: that token is the hairline, which section 2.3 case 1 says
-            // may become 0.5px at high dpr, and --ui-border-w is derived from it. A
-            // test that spelled the overlap `hairline` would move WITH that edit
-            // instead of catching the chevron changing shape.
             const space = px(await page.resolveToken('--ui-space-4', 'padding-left'));
             assert.equal(px(got['padding-right']), space + 2 * 7 - 1 + space);
 
-            // BACKGROUND-POSITION IS THE ROW'S HEADLINE DELIVERABLE and it is asserted
-            // here rather than by proxy: Slate's `background-position: right 23px center,
-            // right 17px center` (slate-components.css:509, written AGAIN at :534 for
-            // .slate-picker) is FOUR of the six raw numbers this row exists to retire.
-            // padding-right is computed from --_ui-caret-band on its own, so it stays
-            // correct even if the two layers are placed wrongly - a sign slip or a
-            // `band + caret` in the position calc would paint the chevron outside the
-            // border box with every other assertion in this file still green.
-            // Chrome serialises `right <len> center` as an inset from the trailing edge.
-            const outer = space + 7 - 1;   // 23 in Slate; the far tile, one overlap in
-            const inner = space;           // 17 in Slate, snapped to the spacing step
+            const outer = space + 7 - 1;
+            const inner = space;
             assert.equal(
                 got['background-position'],
                 `calc(100% - ${outer}px) 50%, calc(100% - ${inner}px) 50%`,
                 'the two layers are placed from the SAME two numbers the band is derived from',
             );
-            // Slate's 23-vs-17 as arithmetic rather than as two literals: 23 = 17 + 7 - 1.
             assert.equal(outer, inner + 7 - 1);
         }));
 
         test('both caret layers are painted INSIDE the control, in the band they reserve', () => one(async (page) => {
-            // The geometric statement behind the string above, so a change in Chrome's
-            // serialisation cannot quietly make that assertion vacuous: each tile is an
-            // inset from the trailing edge, both are inside the border box, and the whole
-            // glyph fits in the padding the control reserves for it.
             const box = await page.box('ui-select >>> #control');
             const paint = await page.computed('ui-select >>> #control', [
                 'background-position-x', 'padding-right',
@@ -300,11 +219,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the caret overlap does NOT follow --ui-hairline', () => one(async (page) => {
-            // The overlap is glyph geometry, not an edge. Retargeting the hairline
-            // (spec section 2.3 case 1's stated future: "so it can become 0.5px at
-            // high dpr later") must move the BORDER and leave the chevron alone -
-            // otherwise one dpr decision silently reshapes the artwork and shifts the
-            // text inset with it.
             const before = await page.computed('ui-select >>> #control', [
                 'padding-right', 'background-position', 'background-size', 'border-top-width',
             ]);
@@ -327,8 +241,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('retargeting --ui-space-4 moves the caret and the text inset together', () => one(async (page) => {
-            // The point of the derivation: ONE token moves both edges. Slate has to edit
-            // six numbers in two rules to do the same thing.
             const probe = ['padding-left', 'padding-right', 'background-position'];
             const before = await page.computed('ui-select >>> #control', probe);
             await page.setToken('--ui-space-4', '30px');
@@ -337,12 +249,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const restored = await page.computed('ui-select >>> #control', probe);
 
             assert.equal(px(after['padding-left']), 30);
-            // 13 = 2 * 7 (tile) - 1 (overlap), both artwork, both unaffected by the
-            // spacing step; the band is 30 + 13 and the text clears it by another 30.
             assert.equal(px(after['padding-right']), 30 + 13 + 30, 'the caret band moved with the token');
-            // And the PAINT moves with it, not just the space reserved for it:
-            // 30 + 7 - 1 = 36 for the outer tile, 30 for the inner one. Without this the
-            // band could grow while the glyph stayed where Slate's 23/17 put it.
             assert.equal(
                 after['background-position'], 'calc(100% - 36px) 50%, calc(100% - 30px) 50%',
                 'the reserved band moved but the chevron did not - two owners for one number',
@@ -351,24 +258,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the caret sits inside the control, clear of the text', () => one(async (page) => {
-            // The trailing padding must clear the whole glyph, or the longest option
-            // paints over the caret - the failure Slate's 46px reserves against.
             const got = await page.computed('ui-select >>> #control', ['padding-right']);
             const space = px(await page.resolveToken('--ui-space-4', 'padding-left'));
             const band = space + 2 * 7 - 1;
             assert.ok(px(got['padding-right']) >= band, 'the text would overlap the caret');
         }));
 
-        /* -- 3. bug T9, asserted dead -------------------------------------- */
-
         test('T9: a stated width is HELD in a squeezing flex row', () => mounted(ROW, async (page) => {
-            // T9 - "select.slate-select does not hold its stated 250px - it is a flex item
-            // with default shrink. Measured 214 in one leaf and 250 two rows below, inside
-            // a single screen." (LAYOUT_SPEC_DRAFT section 7.5; slate-shell.css:695-700)
-            //
-            // The row is 420px and its label alone claims 320 + an 18px gap, so a
-            // shrinkable control gives up pixels here exactly as Slate's does. Both
-            // selects state 260px.
             const shrink = await page.prop('#a', 'flex-shrink');
             assert.equal(px(shrink), 0, 'T9: the host is a shrinkable flex item again');
 
@@ -384,29 +280,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('T9: two selects stating one width render one number', () => mounted(ROW, async (page) => {
-            // The corpus reproduces the defect in a single state:
-            //   ORACLE state=settings-extensions-decent-app-settings
-            //          #logLevelSelect [i=48] <select class="slate-select w-[250px]
-            //          max-w-[250px]"> rect=[1579,489,250,64]
-            //          .slate-select [i=51] <select class="slate-select w-[250px]
-            //          max-w-[250px]"> rect=[1612,627,217,64]
-            // Same authored width, 33px apart. Here the two differ only in how long their
-            // options are, which is precisely what used to leak into the used width.
             const a = await page.box('#a');
             const b = await page.box('#b');
             assert.equal(a.width, b.width, `two stated 260px selects rendered ${a.width} and ${b.width}`);
         }));
 
         test('T9: the stated width survives a token change that resizes the caret', () => mounted(ROW, async (page) => {
-            // A control that held its width only because its content happened to fit
-            // would move here. This one is stated, so it does not.
             await page.setToken('--ui-space-4', '40px');
             const held = await page.box('#a');
             await page.setToken('--ui-space-4', null);
             assert.equal(held.width, 260);
         }));
-
-        /* -- 4. focus geometry, unclipped (bug L24's class) ---------------- */
 
         test('the focus ring is the token ring, unclipped, outset', () => one(async (page) => {
             const g = await assertFocusUnclipped(page, 'ui-select >>> #control');
@@ -434,8 +318,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('focus() lands on the control, so there is one ring and one target', () => one(async (page) => {
-            // No delegatesFocus (CONVENTIONS.md section 11: as a global default it
-            // produces two rings on one control); the host forwards instead.
             const landed = await page.evalFn(() => {
                 window.__h.need('#units').focus();
                 const root = window.__h.need('#units').shadowRoot;
@@ -444,12 +326,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(landed, 'control');
         }));
 
-        /* -- 5. the container, never the viewport -------------------------- */
-
         test('the control clamps to its own container, not to the window', () => mounted(BOXED, async (page) => {
-            // Same viewport, two containers. A component keyed on the viewport would give
-            // both the same answer; the clamp is max-inline-size: 100%, resolved against
-            // the parent box (spec section 2.1 Rule 1).
             const squeezed = await page.box('#squeezed');
             const free = await page.box('#free');
 
@@ -465,14 +342,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the control never falls below the hit floor', () => one(async (page) => {
-            // Not a cited Appendix 5 consumer (the ink IS the box here), but the floor is
-            // physical: "a wet fingertip is about 9mm" (slate-tokens.css:99-102).
             const floor = px(await page.resolveValue('var(--ui-hit-min)', 'width'));
             const box = await page.box('ui-select >>> #control');
             assert.ok(box.height >= floor, `${box.height}px against a ${floor}px floor`);
         }));
-
-        /* -- 6. the aria contract and the behaviour ------------------------ */
 
         test('the control carries an accessible name and the native role', () => one(async (page) => {
             const state = await page.evalFn(() => {
@@ -489,8 +362,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('an unnamed select carries no empty aria-label', () => browser.withPage({ geometry }, async (page) => {
-            // An empty accessible name is worse than none: it silences the element's own
-            // fallbacks. `nothing` removes the attribute rather than writing "".
             await page.mount('<ui-select id="bare" options="[&quot;a&quot;,&quot;b&quot;]"></ui-select>', MODULE);
             assert.deepEqual(page.pageErrors, []);
             const has = await page.evalFn(
@@ -518,13 +389,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('options assigned as a PROPERTY after mount still set the value', () => browser.withPage({ geometry }, async (page) => {
-            // The documented API - "the option list arrives from outside as a
-            // property" (component docstring :11; Part 10 section 12) - and the one
-            // path every other test in this file skips, because they all state
-            // options="..." in markup and so hand the control its children before the
-            // first update. Adopting the control's value only in firstUpdated() left
-            // the host at '' forever while the control displayed the first option:
-            // measured {"hostValue":"","controlValue":"Celsius","idx":0}.
             await page.mount('<ui-select id="late" label="Temperature unit"></ui-select>', MODULE);
             assert.deepEqual(page.pageErrors, []);
 
@@ -550,9 +414,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a value stated BEFORE a late option list still wins', () => browser.withPage({ geometry }, async (page) => {
-            // The other half of the same adoption: a stated value is pushed DOWN to
-            // the control when the options finally arrive, and is not overwritten by
-            // the adopt-UP branch.
             await page.mount('<ui-select id="late2" value="Fahrenheit (°F)"></ui-select>', MODULE);
             assert.deepEqual(page.pageErrors, []);
             const after = await page.evalFn(async () => {
@@ -579,8 +440,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(chosen, { value: 'Fahrenheit (°F)', index: 1 });
         }));
 
-        /* -- 7. the negatives ---------------------------------------------- */
-
         test('the disabled dial is painted once, not compounded', () => browser.withPage({ geometry }, async (page) => {
             await page.mount(
                 `<ui-select id="off" disabled label="Log level" options="${UNITS}"></ui-select>`
@@ -604,9 +463,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('this primitive invents no selection treatment', () => one(async (page) => {
-            // A select's chosen option is drawn by the UA popup; painting a selected look
-            // on the closed control would be the fourteenth selection idiom in a skin that
-            // is supposed to have one (spec section 3.9).
             const before = await page.computed('ui-select >>> #control', ['background-color', 'color', 'box-shadow']);
             await page.setToken('--ui-selected-face', DRILL_COLOUR);
             await page.setToken('--ui-selected-ink', DRILL_COLOUR);
@@ -619,10 +475,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the stated size is a token, not a fraction of the window
- * ------------------------------------------------------------------------- */
 
 test('the bench and the floor render the same control', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {

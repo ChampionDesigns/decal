@@ -1,23 +1,5 @@
 /**
- * chart-feed.test.mjs — the shot buffer's road to the chart card, without a browser.
- *
- * `ChartFeed` (src/lib/chart-feed.js) is the whole of what the Live screen owns in
- * order to put a live shot on `<ui-chart-card>`: watch a buffer, run gate 6's
- * derivation over it at most once per frame, hand the bundle over. Three of the
- * fourteen chart defects are decided here rather than in a browser, so they are
- * asserted here:
- *
- *   chart-C9   coalescing. Twenty publishes inside one frame are ONE derivation, and a
- *              run whose buffer revision has not moved does nothing at all.
- *   chart-C13  fed from the model. The file is scanned for every route back into the
- *              DOM — the defect is `chart.js` scraping five element ids with a regex,
- *              and the cure is a module with no way to do it.
- *   B4         the axis is ReaPrime's arrival stamps and nothing on this road touches
- *              it: t is stamp minus origin, the intervals stay jittery, and no
- *              unplaceable sample is given a made-up time.
- *
- * The samples are the real recorded shot (426 measurements, 336 in-shot), pushed
- * through `createShotBuffer` the way `attachShotBuffer` pushes a live one.
+ * The shot buffer's road to the chart card, without a browser.
  */
 
 import { test, describe } from 'node:test';
@@ -76,10 +58,6 @@ const feedOn = (host, clock, options = {}) => new ChartFeed(host, {
     cancelFrame: clock.cancelFrame,
     ...options,
 });
-
-/* ===========================================================================
- * 1. WATCHING — a screen mounted mid-shot sees the shot so far
- * =========================================================================== */
 
 describe('watching a buffer', () => {
     test('the first derivation runs at once, so a mid-shot mount is not an empty chart', () => {
@@ -155,10 +133,6 @@ describe('watching a buffer', () => {
     });
 });
 
-/* ===========================================================================
- * 2. BUG chart-C9 — NO DEAD WEIGHT ON THE 15 Hz PATH
- * =========================================================================== */
-
 describe('chart-C9: the 15 Hz path costs one derivation per frame at most', () => {
     test('twenty samples inside one frame are ONE derivation', () => {
         const host = fakeHost();
@@ -229,12 +203,6 @@ describe('chart-C9: the 15 Hz path costs one derivation per frame at most', () =
         buffer.destroy();
     });
 
-    /* The rule above held on the SCHEDULED path only, because the guard was the
-     * scheduler's own try/catch and half the callers never go through the scheduler:
-     * `watch()` (called from the host's `willUpdate`), the `record` setter, `refresh()`
-     * and `hostConnected()` all call the run directly. A throw on the FIRST buffer
-     * therefore propagated into Lit's update and took the screen down — the mount path
-     * being the one that matters most, since it is the one a broken shot reaches first. */
     const OFF_FRAME_PATHS = [
         ['watch() — the mount path, from the host\'s willUpdate', (feed, buffer) => feed.watch(buffer)],
         ['refresh()', (feed, buffer) => { feed.watch(buffer); feed.refresh(); }],
@@ -315,20 +283,12 @@ describe('chart-C9: the 15 Hz path costs one derivation per frame at most', () =
         } finally {
             off();
         }
-        /* "keeps the last good shot" is bounded by WHICH SHOT is being watched: holding
-         * the first buffer's derivation while the second is on screen would draw one shot
-         * under another shot's name, which is worse than an empty card. `watch()` clears,
-         * and that is deliberate. */
         assert.equal(feed.derivation, null,
             'a new buffer with a failing derivation shows nothing, never the old shot');
         first.destroy();
         second.destroy();
     });
 });
-
-/* ===========================================================================
- * 3. B4 — THE AXIS IS ReaPrime's ARRIVAL STAMPS, UNTOUCHED
- * =========================================================================== */
 
 describe('B4: the time axis is passed through, never reconstructed', () => {
     const derivationOf = (count) => {
@@ -375,10 +335,6 @@ describe('B4: the time axis is passed through, never reconstructed', () => {
     });
 });
 
-/* ===========================================================================
- * 4. BUG chart-C13 — FED FROM THE MODEL: NO ROUTE BACK INTO THE DOM
- * =========================================================================== */
-
 describe('chart-C13: the chart road cannot read another component\'s rendered DOM', () => {
     const source = readFileSync(join(REPO, 'src/lib/chart-feed.js'), 'utf8');
     const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
@@ -404,10 +360,6 @@ describe('chart-C13: the chart road cannot read another component\'s rendered DO
         assert.deepEqual(imports, ['./chart-render-scheduler.js', './logger.js', './shot-derivation.js']);
     });
 });
-
-/* ===========================================================================
- * 5. THE RECORD, THE REFUSAL, AND LETTING GO
- * =========================================================================== */
 
 describe('the record, the refusal and the lifecycle', () => {
     test('a record arriving re-derives, and names the step boundaries', () => {

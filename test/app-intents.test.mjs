@@ -1,16 +1,5 @@
 /**
- * app-intents — what a screen's intent means to the shell.
- *
- * WHY THIS FILE EXISTS, in Ben's words on the glass, 23 Aug 2026: "many of the buttons
- * dont work. I cannot edit profiles or pick a new profile, go to settings etc." The
- * cause was not a broken handler; it was no handler at all. `live-screen.js` dispatches
- * six events, `live-wiring.js` listens to four, and the file's own contract block says
- * so plainly — "NOTHING under `src/` listens to the rest". The fullscreen control's note
- * even names the fix and declines it: "a shell listener is another surface's work".
- *
- * A control that looks live and is not is P-1's shape, and P-1 has now cost this project
- * twice. So the mapping is a pure function with a test, and the two branches that act on
- * it are three lines in `app-root.js`.
+ * App-intents — what a screen's intent means to the shell.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -21,15 +10,7 @@ import {
 import { ROUTES } from '../src/lib/app-routes.js';
 
 test('the header\'s two words go to the two screens they name', () => {
-    /* EDIT IS A DIFFERENT KIND, and the blank editor is why. That screen "takes what it
-     * is given and never builds one" — the record has to be seated in the shell's editor
-     * store BEFORE the route, because a route swap destroys the outgoing screen. Routing
-     * there with nothing seated mounts the whole structure around no profile, which is
-     * what Ben saw on the glass. */
-    /* `profileId: null` MEANS "the one the machine is running", and it is a field rather
-     * than an absence because a SECOND caller now sends this action with an id: the
-     * favourites strip's press-and-hold menu edits the profile in the SLOT, which is not
-     * normally the loaded one. A null here and an id there are the same shape of answer. */
+
     assert.deepEqual(intentFor('header-action', { action: 'Edit profile' }),
         { kind: 'edit', route: 'editor', profileId: null });
     assert.deepEqual(intentFor('header-action', { action: 'Settings' }),
@@ -59,28 +40,12 @@ test('an EMPTY favourite slot arms nothing', () => {
 });
 
 test('an action the shell has not been taught is SILENT, not an error', () => {
-    /* Sleep and Full screen were removed from the header in the same ruling that asked for
-     * this wiring, and the rule was: "If either comes back, it must sit inert until someone
-     * decides where it goes — never navigate somewhere arbitrary."
-     *
-     * SLEEP CAME BACK AND SOMEONE DECIDED. Ben, 25 August 2026: "I think I have changed my
-     * mind and please add a sleep button on the top right, to the right of settings." Where
-     * it goes is nowhere — it is not a route — so it is in the OTHER table, and the next
-     * test is what says so. Full screen is still undecided and still inert. */
     assert.equal(intentFor('header-action', { action: 'Full screen' }), null);
     assert.equal(intentFor('header-action', {}), null);
     assert.equal(intentFor('header-action', null), null);
 });
 
 test('Sleep is a machine command, not a route', () => {
-    /* THE TWO TABLES ARE DISJOINT AND THE INTENT SAYS WHICH ONE ANSWERED. A route table
-     * asked to hold a machine command would have to answer "which screen is sleeping",
-     * which has no answer.
-     *
-     * WHAT IT DOES NOT CARRY IS SLEEP-VERSUS-WAKE. `deriveSleepButtonAction` decides that
-     * from the machine's confirmed state, and it exists because of a real bug: one tap on
-     * the old sleep button slept the machine and woke it again 46 ms later. The intent
-     * names the ACTION; the shell asks the policy what command it means. */
     assert.deepEqual(intentFor('header-action', { action: 'Sleep' }),
         { kind: 'machine', command: 'sleep' });
     assert.equal(HEADER_ACTION_ROUTES.Sleep, undefined,
@@ -100,9 +65,6 @@ test('an event that is not an intent is not one', () => {
 });
 
 test('the listener list and the mapping agree', () => {
-    /* The shell adds and removes exactly INTENT_EVENTS. An event in the mapping but not
-     * in the list is a button that never fires; one in the list but not the mapping is a
-     * listener that can only ever do nothing. */
     const answered = INTENT_EVENTS.filter((type) => intentFor(type, { action: 'Settings', value: 'p' }));
     assert.deepEqual([...answered].sort(), [...INTENT_EVENTS].sort(),
         'an event is listened for that the mapping cannot answer');

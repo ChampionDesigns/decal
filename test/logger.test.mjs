@@ -1,6 +1,4 @@
-// The logger. The one behaviour that must never come back is the old module's
-// reassignment of `logger.debug` in place: a consumer that destructured captured the
-// no-op forever and never saw setDebug(true).
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -48,8 +46,6 @@ test('setLevel moves the threshold in both directions', () => {
 });
 
 test('DESTRUCTURING IS SAFE — the bug that made this a rewrite rather than a port', () => {
-    // Old: `setDebug` reassigned `logger.debug` in place, so this captured the no-op
-    // permanently (CARRY_FORWARD, logger.js: verified at source).
     const sink = recordingSink();
     const log = createLogger({ level: 'info', sinks: [sink] });
     const { debug } = log;
@@ -95,8 +91,6 @@ test('records carry level, tag, args and a time from the injected clock', () => 
 });
 
 test('the console sink calls the matching console method, tagged for provenance', () => {
-    // Provenance matters because ReaPrime captures the WebView console
-    // (skin_view.dart:684-692) and replays it at GET /api/v1/webview/logs.
     const target = fakeConsole();
     const log = createLogger({ level: 'debug', console: target });
     log.debug('d'); log.info('i'); log.warn('w'); log.error('e');
@@ -153,9 +147,6 @@ test('a throwing sink cannot take the caller down or block the others', () => {
 });
 
 test('the shared instance exists, starts quiet, and is wired by the composition root', () => {
-    // No sink until the app attaches one: importing the logger must never write to a
-    // console that node:test owns, and the level comes from the stored `debug` preference
-    // through the storage router — the logger never reads storage itself.
     assert.equal(sharedLogger.getLevel(), 'info');
     assert.equal(sharedLogger.sinkCount(), 0);
     const sink = recordingSink();

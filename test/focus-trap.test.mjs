@@ -1,16 +1,5 @@
 /**
- * focus-trap.test.mjs — the pure half of #18's modality (src/lib/focus-trap.js).
- *
- * The browser half is test/render/ui-dialog.render.test.mjs, which drives real CDP
- * Tab presses around a real modal dialog at both Gate A geometries. This file is the
- * half that can state the ORDER and the CYCLE exhaustively, over plain objects, with
- * no browser: the module duck-types every node it touches for exactly that reason
- * (`assignedElements`, `shadowRoot`, `children`, `tabIndex`).
- *
- * The shape under test is the dialog's own: a shadow tree that owns a header and a
- * footer, with the whole BODY arriving through a slot from the light DOM. A walk over
- * the DOM tree would find the header and the footer and miss everything the user came
- * for; these tests are what pin the flat-tree walk that does not.
+ * The pure half of #18's modality (src/lib/focus-trap.js).
  */
 
 import { test, describe } from 'node:test';
@@ -26,11 +15,6 @@ import {
     isTabbable,
     trapTarget,
 } from '../src/lib/focus-trap.js';
-
-/* ---------------------------------------------------------------------------
- * Fakes. Only the four members the module reads, so a test that passes here is a
- * test about the walk and not about a mock DOM.
- * ------------------------------------------------------------------------- */
 
 /** A plain element. `tabIndex` defaults to -1, which is what a <div> reports. */
 const el = (tagName, props = {}, children = []) => ({
@@ -147,12 +131,6 @@ describe('isRendered', () => {
 });
 
 describe('flatTabbables — the dialog shape', () => {
-    /**
-     * What #18 actually renders: a shadow tree of head / body / actions cells, with
-     * the body cell holding a slot and the light DOM holding the body content. The
-     * order below is the order a keyboard walks, and the whole point is that
-     * `slotted-1` and `slotted-2` sit BETWEEN the header's control and the footer's.
-     */
     const buildDialog = () => {
         const closeButton = control('close');
         const slotted1 = control('slotted-1');

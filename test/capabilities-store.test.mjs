@@ -1,18 +1,4 @@
-// The capability store: three answers, not two — and the absent-capability paths, which
-// are the ones the old skin never had.
-//
-// The test that matters most is the one that separates `[]` from a failed read. `[]` is
-// ReaPrime's own answer for a machine that is not a Bengle; a 500 is `withDe1` telling us
-// nothing is connected. A store that collapsed them would report every Bengle as a DE1 for
-// the length of a reconnect and call it a machine difference — which is the sniffing
-// skin's failure mode arriving by a different road.
-//
-// FIXTURES ARE CONTRACT-CHECKED (Gate B rule 4) against ReaPrime at
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3: `GET /api/v1/machine/capabilities` answers
-// `{capabilities: [...]}` with exactly the seven names in `de1handler.dart addRoutes`, or
-// `[]`; with no machine connected `withDe1` catches `DeviceNotConnectedException` and
-// answers 500 through `jsonError`. `POST /api/v1/feedback` answers 503 through
-// `jsonServiceUnavailable` when `!_service.isConfigured`.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -61,11 +47,6 @@ const machineInfo = (over = {}) => ({
 
 describe('the seven, as the handler writes them', () => {
     test('SEVEN here is a FIXTURE, and the staleness gate lives where it can see the Dart', () => {
-        // This assertion used to be the only guard on SERVED_CAPABILITIES, and it is
-        // circular: a second hand copy of the same seven names, in a test, compared to the
-        // first. Both drift together and it still passes. The real check reads
-        // `de1handler.dart` at the pin — test/rea-dart-freshness.test.mjs — and this stays
-        // only to keep the response bodies below honest against the list under test.
         assert.deepEqual([...SERVED_CAPABILITIES], [...SEVEN]);
     });
 
@@ -280,16 +261,6 @@ describe('the R3 gaps the served seven do not cover', () => {
             assert.equal(store.machineLimits().known, true);
             assert.equal(store.machineLimits().value.steamTemp.floor, 135);
         }
-        /* 170 ON A BENGLE SINCE 26 AUG 2026 — the bench served one holding exactly 170, so
-         * a 165 ceiling was a skin refusing the machine's own value.
-         *
-         * THE DE1 WENT BACK TO 160 ON 26 AUGUST 2026 AND THE BENGLE DID NOT — a correction made
-         * in `machine-limits.js` by the pass that re-read the evidence, and this assertion had
-         * pinned the one-day state where both classes carried 170. That reading was taken on a
-         * BENGLE and is evidence about a Bengle; `doc/Skins.md:573` states 135-160 for a DE1,
-         * nothing has been measured against one, and `adapters-r.js` returns that class for real
-         * users. A ceiling is a safety band, and evidence for one machine is not evidence for
-         * another. `test/machine-limits.test.mjs` carries the full argument at the row. */
         assert.equal(bengle.machineLimits().value.steamTemp.max, 170);
         assert.equal(de1.machineLimits().value.steamTemp.max, 160);
         assert.equal(bengle.machineClass(), 'bengle');
@@ -335,24 +306,12 @@ describe('A3 — the store reads no machine name', () => {
     });
 
     test('the store owns exactly one route, through the injected helper', () => {
-        // Comments dropped, strings KEPT: a route lives in a string, so this is where it
-        // would be. Prose about the endpoint is a record and stays.
         assert.ok(!/\/api\/v1/.test(stripComments(SOURCE)), 'a path is spelled in code');
         const helperCalls = [...IDENTIFIERS.matchAll(/routes\.(\w+)/g)].map((m) => m[1]);
         assert.deepEqual([...new Set(helperCalls)], ['capabilities']);
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * forget() MEANS FORGET.
- *
- * The test above checks that the capability entries reset, which is why the other half went
- * unseen: `machineInfo` was deliberately KEPT, and it is what the two R3 gates answer from.
- * So `groupHeadController()` and `profileModes()` went on reporting the DEPARTED machine's
- * hardware — the stale-answer defect the method's own doc says it exists to prevent, in the
- * one field it was not applied to. The GHC strip is the spec's named example of a control
- * that must not render on a machine whose flag is unknown.
- */
 describe('forget() drops the machine INFO too', () => {
     test('the two info-backed gates stop answering from the machine that left', async () => {
         const { store } = storeWith(ok({ capabilities: SEVEN }));

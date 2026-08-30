@@ -1,14 +1,4 @@
-// The A/B comparison as data — wave 5.6, `hist-flow-page` and bug chart-C7.
-//
-// DOM-FREE, so this runs in node with no browser: `src/lib/history-series.js` builds a
-// channel spec list and a record map and does nothing else. What the RENDERED behaviour is
-// — the cap on every series, the shared hue, the fade that survives — belongs to
-// `test/render/history-pages.render.test.mjs`, which reads it off a running uPlot instance.
-// This file pins the two things a browser cannot show: that the module RESAMPLES NOTHING,
-// and that the comparison keys can never collide with a derivation key.
-//
-// A8: nothing here reads a source file. The derivations are built by the shipped gate-6
-// walk from a real recorded shot, exactly as the page builds them.
+
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -45,20 +35,6 @@ describe('the plots this page draws', () => {
         }
     });
 
-    /* THIS TEST NAMED THREE CHANNELS AND NOW NAMES TWO (Ben, 24 Aug 2026: "The
-     * pressure/Flow chart should also display the Power series on the same axis, single
-     * axis").
-     *
-     * ITS REASON WAS ABOUT AN AXIS, NOT ABOUT THE CHANNEL: power's "only home was the y2
-     * axis neither chart factory ever accepted". That is true of a SECOND axis and not of
-     * the first — hydraulic power is 0.1·P·F watts, which shares the 0-10 band pressure
-     * (bar) and flow (mL/s) already share, so one axis carries all three honestly. Slate
-     * drew it on this plot for exactly that reason and only got the axis wrong.
-     *
-     * R AND Z STAY OUT, and their reason is unchanged and is a real one: bar·s²/mL² and
-     * bar·s/mL run away as flow approaches the gate (R is 100 at F = 0.3, P = 9), so one
-     * such sample takes a shared axis with it and flattens everything else. They have the
-     * power page, where the second axis is real, asked for and labelled. */
     test('the two RATIO channels do NOT come across, and power now does', () => {
         const named = FLOW_PLOTS.flatMap((p) => p.channels);
         for (const key of ['resistance', 'impedance']) {
@@ -111,11 +87,6 @@ describe('the channel specs', () => {
     });
 
     test('A carries the treatment the ONE table holds for it — not a treatment of its own', () => {
-        /* THE TABLE IS THE CARD'S, HANDED IN. This module is DOM-free and cannot import
-         * a component, so the test states the same shape `DEFAULT_CHANNELS` has rather
-         * than importing it: what is being pinned is that a key's minor/dash come from
-         * the table and that a key the table does not name gets NOTHING. Reading the
-         * card's own export is the render suite's job, in an engine (A8). */
         const treatments = [
             { key: 'targetPressure', minor: true, dash: 'dash' },
             { key: 'targetFlow', minor: true, dash: 'dash' },
@@ -165,11 +136,6 @@ describe('the channel specs', () => {
     });
 
     test('a chip carries the weight and dash of the trace it stands for', () => {
-        /* §6.2's defect is a swatch whose weight does not match its trace, and this
-         * function used to return `{ key, label }` while its docblock claimed it returned
-         * the weight too — so every History chip drew 3px solid over a target that is
-         * 2px dashed. The items and the specs now come from the one derivation, so the
-         * only honest test is that they agree field for field. */
         const treatments = [{ key: 'targetPressure', minor: true, dash: 'dash' }];
         const items = legendItems(FLOW_TOP_CHANNELS, {}, treatments);
         const specs = referenceSpecs(FLOW_TOP_CHANNELS, treatments);
@@ -225,10 +191,6 @@ describe('the records', () => {
                 `sample ${i} moved by exactly the offset`);
         }
 
-        /* THE PAST-THE-END CONDITION IS REAL ON THIS PAIR, and that is why the pair was
-         * chosen: A ends at 3.26 s, B at 8.54 s, and a full-limit slide puts B's whole
-         * tail beyond A's last sample. The old renderer threw here and a catch swallowed
-         * it; nothing here guards against it, because there is nothing to guard. */
         const aLast = a.series.pressure.x[a.series.pressure.x.length - 1];
         const bLast = after.x[after.x.length - 1];
         assert.ok(bLast > aLast,

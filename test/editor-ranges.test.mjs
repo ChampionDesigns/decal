@@ -1,16 +1,5 @@
 /**
- * editor-ranges.test.mjs — wave 5.5, item `one-ranges-table` (B2/B3).
- *
- * THE CLAIM UNDER TEST IS TOTALITY, NOT PLAUSIBILITY: every ranged field the profile
- * editor has resolves to exactly ONE entry of the two wave-4 tables, and the check is by
- * OBJECT IDENTITY, not by value. That distinction is the whole point. A second table
- * written by hand would produce ranges that look right and compare equal on min/max while
- * being different objects — which is exactly how `profile_editor.js:489-495` lived
- * alongside `profile_modes.js` for years. `Object.is` cannot be fooled that way: a copied
- * range fails, an invented range fails, a widened range fails.
- *
- * A8: not one assertion here reads a file's text. Every claim is about a VALUE returned by
- * a function, which is the only kind of claim that survives the file being rewritten.
+ *.5, item one-ranges-table (B2/B3).
  */
 
 import { test, describe } from 'node:test';
@@ -35,14 +24,6 @@ import { r2MachineLimits, machineClassFromServedSet } from '../src/data/adapters
 const BENGLE = limitsFor('bengle');
 const DE1 = limitsFor('de1');
 
-/**
- * THE DOOR TAKES THE CLASS AS WELL AS THE TABLE, since 27 August 2026 — the authoring
- * half has two machine-dependent rows of its own now (a flow step's target, a pressure
- * step's flow limit), so a door built with a limits table for one machine and no class at
- * all would resolve half its answers for a machine it was not told about. The default is
- * null on purpose: that is a real state ("the capability read has not landed") and the
- * tests that do not care about the machine keep exercising it.
- */
 const doorFor = (limits, machineClass = null) => createEditorRanges({
     machineLimits: limits, machineClass,
 });
@@ -72,13 +53,6 @@ describe('B2 — every editor field resolves to exactly one table entry', () => 
         }
     });
 
-    /* THE TOTALITY SWEEP RUNS ON EVERY MACHINE CLASS, AND ON A MACHINE WHOSE CLASS IS NOT
-     * KNOWN (27 August 2026). It used to run on one table, which was enough while every
-     * authoring row was the same on every machine. Two of them are not any more, and the
-     * failure that would slip past a single-class sweep is precisely the one this file
-     * exists to catch: a surface holding its own 20 for a Bengle, identical in value to
-     * the table's and a different object. `Object.is` against the table FOR THAT CLASS is
-     * the only check that can tell those apart. */
     for (const machineClass of [...MACHINE_CLASSES, null]) {
         const forClass = doorFor(limitsFor(machineClass), machineClass);
         const entries = tableEntries(limitsFor(machineClass), machineClass);
@@ -117,8 +91,6 @@ describe('B2 — every editor field resolves to exactly one table entry', () => 
     });
 
     test('two fields may share one entry, and volume is that case', () => {
-        // The point of a door: one entry, reached by more than one field. The failure it
-        // prevents is the inverse — one field reaching two entries.
         assert.ok(Object.is(door.rangeFor('stepVolume'), door.rangeFor('targetVolume')));
         assert.ok(Object.is(door.rangeFor('stepVolume'), door.rangeFor('exitVolume')));
         assert.ok(Object.is(door.rangeFor('stepWeight'), door.rangeFor('exitWeight')));
@@ -141,18 +113,6 @@ describe('a field with no entry is refused, never defaulted', () => {
         });
     }
 
-    /* THE ASSERTION IS INVERTED AND THE POINT IS UNCHANGED (24 Aug 2026).
-     *
-     * It used to read "tankTemperature has no machine row to fall back to either" and
-     * checked that `tankTemp` was absent from the limits table. The table now carries it,
-     * because the SETTINGS page needed the machine's tank threshold and hiding a control
-     * does not improve the machine's behaviour.
-     *
-     * THE EDITOR FIELD IS STILL UNRANGED, and that is what this file is about. The two
-     * are opposite sides of one MMR write: the machine row is the threshold, the profile
-     * field is the value that OVERWRITES it on every load. A range here would be a second
-     * surface writing one register through two doors. So the assertion becomes: the
-     * machine row exists, and the editor door still refuses. */
     test('tankTemperature refuses even though the machine row now exists', () => {
         assert.ok(LIMIT_KEYS.includes('tankTemp'), 'the settings page needs the machine row');
         assert.ok(Object.hasOwn(BENGLE, 'tankTemp'));
@@ -177,8 +137,6 @@ describe('a field with no entry is refused, never defaulted', () => {
     });
 
     test('an absent machine row is an absence, not a stand-in', () => {
-        // limitsFor(null) is the unknown-machine-class table. brewTemp survives (it is
-        // machine-independent); a row that were absent would refuse.
         const unknown = doorFor(limitsFor(null));
         assert.ok(unknown.rangeFor('stepTemperature'));
         assert.ok(!Object.hasOwn(limitsFor(null), 'steamTemp'), 'no steam row without a class');
@@ -194,38 +152,12 @@ describe('B3 — the steam numbers, and the two that must appear nowhere', () =>
         assert.equal(DE1.steamTemp.floor, 135);
     });
 
-    /* THE CEILING WENT BACK TO 170 ON BOTH (Ben, 26 August 2026). B3 lowered it to
-     * 165/160 from a reading of the machine's band; the bench answered the other way — the
-     * live rig serves `steamTargetTemperature` 170 on a Bengle, so 165 was a skin refusing
-     * to show the machine's own value, with the plus already greyed at a number ABOVE the
-     * one printed beside the label.
-     *
-     * THE FLOOR AND THE HOLE ARE UNCHANGED, and they are what B3 was really about: the
-     * machine enables the steam heater at 135, so 130 is a dead band and stepping down
-     * from 135 lands on 0. */
     test('the ceiling is 170 on a Bengle and 160 on a DE1 — the class decides', () => {
-        /* THE DE1 WENT BACK TO 160 ON 26 AUGUST 2026 AND THE BENGLE DID NOT — a correction
-         * made in `machine-limits.js` by the pass that re-read the evidence, and this
-         * assertion had pinned the one-day state where both classes carried 170. That
-         * reading was taken on a BENGLE and is evidence about a Bengle; `doc/Skins.md:573`
-         * states 135-160 for a DE1, nothing has been measured against one, and
-         * `adapters-r.js` returns that class for real users. A ceiling is a safety band, and
-         * evidence for one machine is not evidence for another.
-         * `test/machine-limits.test.mjs` carries the full argument at the row. */
         assert.equal(BENGLE.steamTemp.max, 170);
         assert.equal(DE1.steamTemp.max, 160);
     });
 
     test('zero is reachable and means the heater is off — the band has a hole, not a floor of 135', () => {
-        /* THE MECHANISM IS UNCHANGED AND THE SENTENCE IS GONE (26 August 2026). `min: 0` and
-         * `floor: 135` both stay, so the clamp, the step and the numpad all still work the
-         * hole, and the steam page's master switch still writes the zero. What went is
-         * `zeroMeans`, which is what `rangeHint` printed as "0 or 135-170 °C" — the page
-         * teaching a second way to switch the heater off, directly under a switch that does
-         * it. Ben: "no need to have <130 = off, the new toggle has that now."
-         *
-         * SO THE ZERO IS ASSERTED WHERE IT LIVES, on the band, rather than through the
-         * sentence that used to describe it. */
         assert.equal(BENGLE.steamTemp.min, 0);
         assert.equal(BENGLE.steamTemp.floor, 135);
         assert.equal(BENGLE.steamTemp.zeroMeans, undefined,
@@ -248,9 +180,6 @@ describe('B3 — the steam numbers, and the two that must appear nowhere', () =>
             for (const key of ['min', 'max', 'step', 'floor']) {
                 const value = range[key];
                 if (value === undefined) continue;
-                /* 130 STAYS FORBIDDEN — it is the DEAD BAND, and a control that offered
-                 * it would write a disabled heater under a number that looks live. 170 is
-                 * no longer forbidden: it is the machine's own value (see above). */
                 assert.notEqual(value, 130, `${name}.${key} is 130 — the retired dead-band floor`);
             }
         }
@@ -259,16 +188,6 @@ describe('B3 — the steam numbers, and the two that must appear nowhere', () =>
 });
 
 describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () => {
-    /* Ben, in the profile editor: "why is flow limited to 15ml/s". Told that the old
-     * editor gave a Bengle 20 and that the lift had been dropped on the way into the port:
-     * "flow limit goes with it to 20 as well."
-     *
-     * IT WAS DROPPED BECAUSE THE OLD EDITOR GATED IT ON THE MACHINE'S NAME, which A3
-     * forbids, and `profile-modes.js` recorded the shape it would have to return in: "a
-     * capability answer applied to THIS table, never a second table". These tests are
-     * about that shape as much as about the two numbers — the class enters the editor
-     * once, from the served capability answer, and both surfaces read it from there. */
-
     const bengleDoor = doorFor(BENGLE, 'bengle');
     const de1Door = doorFor(DE1, 'de1');
     const unknownDoor = doorFor(limitsFor(null), null);
@@ -289,8 +208,6 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
     test('an unresolved machine gets the DE1 numbers — the narrower band, which nests', () => {
         assert.equal(flowTarget(unknownDoor).max, 15);
         assert.equal(flowLimit(unknownDoor).max, 8);
-        // Nothing the unknown band permits can be refused by a Bengle either, which is the
-        // whole justification for choosing a band here rather than going absent as steam does.
         assert.ok(flowTarget(unknownDoor).max <= flowTarget(bengleDoor).max);
         assert.ok(flowLimit(unknownDoor).max <= flowLimit(bengleDoor).max);
         assert.ok(!Object.hasOwn(limitsFor(null), 'steamTemp'),
@@ -298,8 +215,6 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
     });
 
     test('nothing else moves with them — the other bounds are the same object on both machines', () => {
-        // A ceiling that moved a field nobody asked about would be inventing an answer.
-        // Identity, not equality: a copy that happens to agree is the second table.
         for (const { field, ctx } of enumerateEditorRangeRequests()) {
             const a = bengleDoor.rangeFor(field, ctx);
             const b = de1Door.rangeFor(field, ctx);
@@ -311,16 +226,12 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
             if (machineDependent) continue;
             assert.ok(Object.is(a, b), `${field} ${JSON.stringify(ctx)} differs by machine class`);
         }
-        // The flow EXIT threshold is deliberately NOT one of them: Ben named the step's
-        // target and the step's flow limit and no third field.
         assert.ok(Object.is(bengleDoor.rangeFor('exitCondition', { exitType: 'flow' }),
             de1Door.rangeFor('exitCondition', { exitType: 'flow' })));
         assert.equal(bengleDoor.rangeFor('exitCondition', { exitType: 'flow' }).max, 8);
     });
 
     test('the numpad takes the SAME ceiling as the stepper, per machine', () => {
-        // The numpad is the surface Ben would actually type 20 into. It takes its bounds
-        // as data from this one door, so it cannot be offered a different band.
         for (const door of [bengleDoor, de1Door, unknownDoor]) {
             assert.equal(door.numpadLimitsFor('stepTarget', { pump: 'flow' }).max,
                 flowTarget(door).max);
@@ -331,9 +242,6 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
     });
 
     test('the review sentence prints the ceiling the stepper offers, on the same machine', () => {
-        // The one thing this whole table exists to make impossible is one field with two
-        // maxima depending on the surface. The review path resolves its own ranges, so it
-        // takes the class from the door — `editor-screen.js` reads it from nowhere else.
         for (const door of [bengleDoor, de1Door, unknownDoor]) {
             const machineClass = door.machineClass();
             const step = {
@@ -351,9 +259,6 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
     });
 
     test('the class is the SERVED capability answer, never a machine name (A3)', () => {
-        // The route matters as much as the number: `machineClassFromServedSet` over
-        // ReaPrime's capability array is the only producer, and the door will not take a
-        // string it does not know rather than reading it as "unknown".
         assert.equal(machineClassFromServedSet([{ id: 'machine' }]), 'bengle');
         assert.equal(machineClassFromServedSet([]), 'de1');
         assert.equal(machineClassFromServedSet(null), null);
@@ -373,8 +278,6 @@ describe('the Bengle flow-ceiling lift, through the door (27 August 2026)', () =
     });
 
     test('the two moved rows are the ones profile-modes declares machine-dependent', () => {
-        // Derived from the module, not retyped here: a third row becoming machine-dependent
-        // without this file noticing is the drift worth catching.
         assert.deepEqual([...MACHINE_DEPENDENT_AUTHORING_RANGES].sort(),
             ['flowTarget', 'stepFlowLimit']);
         assert.ok(Object.is(flowTarget(bengleDoor), authoringRangesFor('bengle').flowTarget));

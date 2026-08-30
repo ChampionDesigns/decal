@@ -1,13 +1,4 @@
-// The address layer — the one reader that speaks ReaPrime's current names.
-//
-// Frames below are built from the serialisers as written at ReaPrime 2b047d02
-// (MachineSnapshot.toJson, WeightSnapshot.toJson, ShotSnapshot.toJson,
-// BenglePuckEstimator.encodeSample, BengleMilkProbe, SteamSnapshot.toJson).
-//
-// The single most important test in this file is "a gated channel is absent, not
-// recomputed". Every other assertion is scaffolding around that one, because a
-// locally-recomputed ratio behind a dead server name is the defect class this whole wave
-// exists to kill.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -83,9 +74,6 @@ describe('the machine snapshot', () => {
         const frame = gatedOff();
         const s = readMachineSnapshot(frame);
 
-        // P/F² is computable from this very frame — 0.1 / 0.04 = 2.5 — and the old skin
-        // computed it. It would have charted as a real puck resistance at a flow the
-        // server considers meaningless noise. Here it is a gap, with a reason.
         for (const key of ['puckResistanceDerived', 'loadImpedanceDerived', 'hydraulicPowerDerived']) {
             assert.equal(isNoReading(s[key]), true, `${key} must not be manufactured`);
             assert.equal(s[key].reason, ABSENCE.ABSENT);
@@ -101,8 +89,6 @@ describe('the machine snapshot', () => {
         assert.equal(s.hydraulicPowerDerived, 1.6);
         assert.deepEqual(derivedChannelsPresent(s).sort(),
             ['hydraulicPowerDerived', 'loadImpedanceDerived', 'puckResistanceDerived']);
-        // And the reader does not check the value against its own recomputation either —
-        // the server's number is the number.
         const odd = readMachineSnapshot({ ...gatedOn(), puckResistanceDerived: 999 });
         assert.equal(odd.puckResistanceDerived, 999);
     });
@@ -116,8 +102,6 @@ describe('the machine snapshot', () => {
     });
 
     test('there is NO reader for weight, weightFlow or milkTemperature on the machine', () => {
-        // 633f6f68 deleted all three ("MachineSnapshot stays pure machine telemetry").
-        // Three of the 31 live contract bugs are the old skin still reading them here.
         const legacy = { ...gatedOn(), weight: 18.2, weightFlow: 1.7, milkTemperature: 62.5 };
         const s = readMachineSnapshot(legacy);
         for (const key of ['weight', 'weightFlow', 'milkTemperature']) {
@@ -250,9 +234,6 @@ describe('the puck estimator sensor', () => {
     });
 
     test('an error envelope is a signal, not a frame', () => {
-        // sensors_handler answers an unknown id with {"error":"not found"} and closes. The
-        // old skin mapped that to an empty channel set, so a machine swap silently emptied
-        // every channel and every consumer fell back to the derived one.
         const envelope = { error: 'not found' };
         assert.equal(isSensorErrorEnvelope(envelope), true);
         const s = readEstimatorFrame(envelope);
@@ -318,10 +299,6 @@ describe('stored shots — absence is permanent', () => {
     });
 
     test('permanent absence NEVER falls through to the derived channel', () => {
-        // The two are computed from different flows (Q_puck vs Q_in) and diverge exactly
-        // during the compliance transients anyone reading r2 cares about. Presenting one as
-        // the other is the misreading; both are surfaced, separately, and the CHOICE
-        // between them is B6's, made at shot start.
         const m = readStoredMeasurement(legacy());
         assert.equal(isNoReading(m.estimator.channels.r2), true);
         assert.equal(m.machine.puckResistanceDerived, 2.0, 'the derived channel is still read');
@@ -371,9 +348,6 @@ describe('steam — one trace, two reads', () => {
     });
 
     test('the field is written unconditionally, so null is its absence — and null is common', () => {
-        // ReaPrime's steam sequencer picks its temperature source by map insertion order
-        // and can pick the puck estimator, which has no `temperature` channel at all. That
-        // is a ReaPrime-side contract bug on the upstream list, not something to paper over.
         const s = readStoredSteamSnapshot({ machine: gatedOn(), milkTemperature: null });
         assert.equal(s.milkTemperature.reason, ABSENCE.NULL);
         assert.equal(toPlot(s.milkTemperature), null);
@@ -387,19 +361,7 @@ describe('steam — one trace, two reads', () => {
 });
 
 describe('recorded bench fixtures', () => {
-    // tools/rea-fixtures holds real recorded ReaPrime responses. They were captured from an
-    // OLDER build than the pinned commit (their shots carry weight / weightFlow /
-    // milkTemperature / fusedR1 / detEventCount on the machine object, which 633f6f68
-    // deleted and which 2b047d02's fixed-key fromJson/toJson cannot re-emit). That makes
-    // them the best available evidence of a legacy row, and the sternest test of the rule:
-    // whatever a frame carries, the reader takes nothing from a dead name.
     const dir = fileURLToPath(new URL('../tools/rea-fixtures/', import.meta.url));
-    // `/shots/latest` lives in this directory too and is deliberately OUT of this loop:
-    // `ShotsHandler._getLatestShot` answers `toJsonWithoutMeasurements()`, so a body with
-    // no measurements is that route's CORRECT shape rather than a short recording. It is
-    // asserted on its own terms below. The file that used to sit there was the by-id
-    // response pasted over it — 426 measurements the route cannot send — and this loop
-    // read them happily, which is how a fixture stops being a recording unnoticed.
     const LATEST = 'api__v1__shots__latest.json';
     const shotFiles = readdirSync(dir)
         .filter((f) => /^api__v1__shots__/.test(f) && f !== LATEST);
@@ -440,22 +402,11 @@ describe('recorded bench fixtures', () => {
                     assert.equal(m.milkProbe.channels.temperature.reason, ABSENCE.PERMANENT);
                 }
             }
-            // Not asserted as a fixed number: if these fixtures are ever re-recorded against
-            // the pinned build the count goes to zero and the rule above still holds.
             assert.ok(deadSeen >= 0);
         });
     }
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * WHAT IS NOT A FRAME.
- *
- * These three readers accepted a JSON array and an envelope as valid frames — `ok: true`
- * with every channel reported "absent", which is indistinguishable from a machine, a scale
- * or a sensor that is on the wire and reporting nothing. The socket layer's classifier
- * called the same array MALFORMED, so the two layers disagreed about the same bytes; the
- * predicate now has one implementation and this file imports it.
- */
 describe('an array and an envelope are not frames', () => {
     test('a JSON array is rejected by every reader, not read as "everything absent"', () => {
         for (const bad of [[], ['x'], [1, 2, 3]]) {
@@ -472,9 +423,6 @@ describe('an array and an envelope are not frames', () => {
     });
 
     test('the scale STATUS envelope is a signal, and reads as one', () => {
-        // scale_handler.dart's `sendStatus` writes this down the same socket as
-        // WeightSnapshot.toJson. Read as a snapshot it has no weight and no weightFlow —
-        // exactly a scale that is present and still.
         const envelope = readScaleSnapshot({ status: 'disconnected' });
         assert.equal(envelope.ok, false);
         assert.equal(envelope.envelope, 'status');
@@ -490,8 +438,6 @@ describe('an array and an envelope are not frames', () => {
     });
 
     test('a real frame that happens to carry a status string is still a frame', () => {
-        // The envelope test is `status` WITHOUT a timestamp — a WeightSnapshot always has
-        // one — so a real frame is never mistaken for the envelope.
         const frame = readScaleSnapshot({ timestamp: '2026-08-17T09:00:00.000', status: 'x', weight: 18.2 });
         assert.equal(frame.ok, true);
         assert.equal(frame.envelope, null);
@@ -507,8 +453,6 @@ describe('an array and an envelope are not frames', () => {
         for (const payload of [[], null, 42, { weight: 1 }]) {
             assert.equal(isSensorErrorEnvelope(payload), false);
         }
-        // The disagreement that was: the classifier called an array malformed while the
-        // address layer read it as a frame.
         assert.equal(classifyMessage([]).kind, WS_MESSAGE.MALFORMED);
         assert.equal(readMachineSnapshot([]).ok, false);
     });

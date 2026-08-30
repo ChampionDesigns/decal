@@ -1,10 +1,4 @@
-// The shot-so-far buffer: the ONE place live series accumulate.
-//
-// The requirement under test is `chart.js:311-330` transcribed: the snapshot socket is
-// fire-and-forget with one frame of replay, so a subscriber that connects mid-shot has
-// missed the shot. What this file pins is that the buffer keeps what it saw, says when it
-// joined late, never invents what it missed, and offers exactly ONE traversal — the
-// mechanism that stops three walks over the same array from growing back.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -154,9 +148,6 @@ describe('samples are in the RECORDED shape, and nothing is added to them', () =
     });
 
     test('and counting them NOTIFIES NOBODY — an idle machine is not a re-render pump', () => {
-        // Every drop used to publish a fresh frozen state, so with the buffer attached to
-        // the machine feed an idle machine notified every subscriber at the snapshot rate,
-        // ~10 Hz, for ever. The counts are still exact; they are simply not news.
         const buffer = createShotBuffer();
         let notifications = 0;
         buffer.subscribe(() => { notifications += 1; });
@@ -186,16 +177,11 @@ describe('the cap keeps the START of the shot, which is the part that cannot be 
         assert.equal(state.sampleCount, 3);
         assert.equal(state.capped, true);
         assert.equal(buffer.dropped().afterCap, 2);
-        // Reaching the cap publishes ONCE. Every frame after it is counted and silent —
-        // otherwise a machine left in a state that keeps a shot open re-renders for ever
-        // precisely when there is nothing new to draw.
         assert.equal(state.dropped.afterCap, 1, 'the publish at the cap transition');
         assert.equal(state.samples[0].machine.timestamp, at(0), 'the first sample survives — no ring buffer');
     });
 
     test('the default cap is thirty minutes at the snapshot rate', () => {
-        /* Ben, 25 Aug 2026: "I sometimes do very long test shots that last 40mins and with a
-         * 15Hz sample rate." 40 x 60 x 15. */
         assert.equal(DEFAULT_MAX_SAMPLES, 36000);
         assert.throws(() => createShotBuffer({ maxSamples: 0 }), /positive integer/);
     });
@@ -443,9 +429,6 @@ describe('attachShotBuffer: the wiring policies', () => {
 });
 
 describe('the two counts are not spelled alike — a buffer has samples AND subscribers', () => {
-    // The delegated `size()` was the store primitive's SUBSCRIBER count. On a plain store
-    // that name is right; on a thing called a buffer it is the number a chart reaches for,
-    // and it answered 0 on a full buffer and 1 on an empty one with a chart attached.
     const filled = (n) => {
         const buffer = createShotBuffer();
         buffer.noteShotState(shotStateFrame(SHOT_STATE.POURING));

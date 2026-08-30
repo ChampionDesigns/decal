@@ -1,25 +1,5 @@
 /**
- * selector-skeleton.render.test.mjs — wave 5.3, the skeleton-and-layout cluster:
- * `sel-skeleton`, `sel-split-collapse`, `sel-elastic-boxes-notes-ordering`,
- * `sel-scroll-floors`, `bug-P5-P7-P16-P17-register-rhythm`,
- * `bug-P10-no-dead-affordances`, `bug-structural-P1-P3-P9-P11-P14-P15`.
- *
- * ONE SUITE, SEVEN ROWS, because six of them are claims about the same seven boxes and
- * splitting them would mean mounting the screen seven times to ask seven questions about
- * one layout. The sections below are the rows.
- *
- * ENGINE TRUTH ONLY. Nothing here reads a source file. The container query is swept
- * across its threshold rather than asserted at two convenient widths; the track lists are
- * the USED ones off getComputedStyle, not the authored ones; the dead-rule and
- * two-id checks walk the parsed CSSOM of the live shadow roots; the listener check
- * installs its counters BEFORE the modules import.
- *
- * BOTH GATE A GEOMETRIES, AND THE COLLAPSE FIRES AT NEITHER. The screen fills its window,
- * so the split's inline size is 1281 at BENCH and 1000 at FLOOR — both above the 900px
- * threshold, both the wide branch. That is the same shape as the numpad's carried
- * breakpoint (`numpad-container-query.render.test.mjs`: "neither fires on the bench
- * tablet"), and it is why section 2 drives the stage rather than photographing the
- * default. Section 2 runs BOTH branches at BOTH geometries.
+ *.3, the skeleton-and-layout cluster: sel-skeleton, sel-split-collapse, sel-elastic-boxes-notes-ordering, sel-scroll-floors, bug-P5-P7-P16-P17-register-rhythm, bug-P10-no-dead-affordances, bug-structural-P1-P3-P9-P11-P14-P15.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -63,39 +43,14 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
 const tracks = (value) => String(value).trim().split(/\s+/);
 const px = (value) => parseFloat(value);
 
-/**
- * The split's authored constants, read OUT OF THE PAGE rather than retyped here.
- *
- * A component module cannot be imported under `node:test` — its `lit` specifier resolves
- * through `index.html`'s importmap and nowhere else — so the reflex is to spell the
- * threshold a second time in the suite, which is what
- * `numpad-container-query.render.test.mjs` does with its own. It is avoidable: the module
- * is already loaded in the page by the time anything is measured, and `page.eval` awaits
- * promises, so a dynamic import in the browser hands back the numbers the CSS was written
- * beside. One spelling, in the file that owns it.
- */
 const authored = async (page) => JSON.parse(await page.eval(
     "import('/src/screens/selector-split.js').then((m) => JSON.stringify("
     + '{ collapse: m.SPLIT_COLLAPSE_PX, track: m.SPLIT_LIST_TRACK }))',
 ));
 
-/**
- * The seven-step spacing scale plus the eighth page-level step (§3.3), read off the
- * document at run time rather than typed here — P16 is about numbers that disagree, and
- * a test that retyped them would be the same defect one layer up.
- */
 const SPACE_TOKENS = ['--ui-space-1', '--ui-space-2', '--ui-space-3', '--ui-space-4',
     '--ui-space-5', '--ui-space-6', '--ui-space-7', '--ui-space-8'];
 
-/**
- * Walk a shadow root's OWN stylesheet — the last one adopted, which is the component's,
- * the earlier ones being the shared fragments (base, type roles, seams) whose unmatched
- * rules belong to the components that do use them.
- *
- * Returns, per top-level style rule: its selector text, whether any of its comma parts
- * matches something in that root, and how many ids its heaviest part carries. That is
- * P9 and P15 in one pass.
- */
 const CSSOM_WALK = `(function (hostSel) {
     var parts = hostSel.split('>>>').map(function (s) { return s.trim(); });
     var root = document, el = null;
@@ -174,10 +129,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(3);
         };
 
-        /* =================================================================
-         * 1. THE SKELETON — §4.2's two rows, and the split beneath them
-         * ================================================================= */
-
         test('two rows: the band from its token, and everything else', () => mounted(async (page) => {
             const rows = tracks(await page.prop(S, 'grid-template-rows'));
             assert.equal(rows.length, 2, '§4.2 names two rows and the screen has two');
@@ -189,8 +140,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const seam = px(await page.resolveToken('--ui-seam', 'block-size'));
             near(px(rows[1]), screen.height - band - seam, 'row 2 is everything left over');
 
-            /* THE SEAM IS THE HEADER'S UNDERLINE. Ground shows through the gap, so the
-             * gap IS the divider (§2.2, §3.9) and there is no border anywhere. */
             near(px(await page.prop(S, 'row-gap')), seam, 'the row gap is --ui-seam');
             assert.equal(
                 await page.prop(S, 'background-color'),
@@ -215,8 +164,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the two panes are the split\'s grid items, and nothing wraps them',
             () => mounted(async (page) => {
-                /* §4.2's slots are the grid items — `slot { display: contents }`. If a
-                 * wrapper had crept in, the pane's box would not be the track's box. */
                 const grid = await page.box(GRID);
                 const list = await page.box(LIST_PANE);
                 const detail = await page.box(DETAIL_PANE);
@@ -234,21 +181,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the list pane is four tracks and the detail pane is four tracks',
             () => mounted(async (page) => {
-                /* --ui-selector-band-h, NOT --ui-toolbar-h, since 25 August 2026. Ben:
-                 * "Buttons are too tall, we are using the header height buttons when we
-                 * shouldn't" and "The gap between the bottom of the header and the
-                 * functions below is too big, should be halved."
-                 *
-                 * --ui-toolbar-h is 120 — a 64 control plus two --ui-space-6 — which
-                 * centred the buttons in the band and left 28px of air above them; on top
-                 * of the pane's own inset that was 46px of nothing between the header's
-                 * underline and the first button. The band is the control's own height
-                 * now, and the panes take the Live page's inset, so the distance IS the
-                 * page margin. MEASURED after: 25px.
-                 *
-                 * BOTH PANES STILL READ ONE TOKEN, which is the whole point of the
-                 * assertion below and of §3.2's resolution: two literals, one screen, and
-                 * two token reads cannot drift. Only the token changed. */
                 const band = px(await page.resolveToken('--ui-selector-band-h', 'block-size'));
 
                 const listRows = tracks(await page.prop(LIST_PANE, 'grid-template-rows'));
@@ -259,19 +191,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(detailRows.length, 4, '§4.2: title / summary / chart / notes');
                 near(px(detailRows[0]), band, 'the title row is --ui-selector-band-h TOO');
 
-                /* §3.2 RESOLVED A DISAGREEMENT HERE, and this is the assertion that keeps
-                 * it resolved: "h-[121.5px] appears twice in profile_selector.html (lines
-                 * 17 and 48 — the left toolbar and the detail-pane title band) and both
-                 * are effective". Two literals, one screen. Two token reads cannot drift. */
                 near(px(listRows[0]), px(detailRows[0]),
                     'the two --ui-toolbar-h bands on this screen are the same height');
             }));
 
         test('every cell paints, so the seam is a line and not a slab', () => mounted(async (page) => {
-            /* Trap 1 in `seams.js`: "A cell that paints nothing is a hole. The ground
-             * shows through everything not painted over it, so a seamed grid of
-             * transparent cells is a slab of divider colour." Both panes are components
-             * and paint themselves; the assertion is that they actually do. */
             const fascia = await page.resolveToken('--ui-fascia');
             for (const pane of [LIST_PANE, DETAIL_PANE]) {
                 assert.equal(await page.prop(pane, 'background-color'), fascia,
@@ -282,21 +206,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const grid = await page.box(GRID);
             const list = await page.box(LIST_PANE);
             const detail = await page.box(DETAIL_PANE);
-            /* --ui-seam-split, NOT --ui-seam. The PANE divider is two hairlines since
-             * 25 August 2026; the seams INSIDE each pane are still one. A 1px gap did not
-             * survive this screen's zoom (measured 224 on a 242 ground against the chart
-             * card's 203, so the card edge read as the pane boundary), and the fix had to
-             * miss the list's 53 row dividers — which is why it is the grid's own gap and
-             * a second token, rather than --ui-seam widened for the subtree. */
             const seam = px(await page.resolveToken('--ui-seam-split', 'inline-size'));
             near(list.width + seam + detail.width, grid.width, 'the tracks fill the grid');
         }));
 
         test('the band\'s two buttons and the favourites bank land where §4.2 puts them',
             () => mounted(async (page) => {
-                /* The Cancel + Confirm cluster is slotted into #31's TRAIL region, which
-                 * is what layout="flanks" is for. P8 (the primary treatment on Confirm) is
-                 * its own wave-5.3 row; what the skeleton owes it is a place to paint. */
                 const trail = await page.box(`${HEADER} >>> #trail`);
                 const confirm = await page.box(CONFIRM);
                 assert.ok(confirm.x >= trail.x - 0.5 && confirm.x + confirm.width <= trail.x + trail.width + 0.5,
@@ -314,17 +229,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(bank.y > region.y, 'and it sits below the list, not above it');
             }));
 
-        /* =================================================================
-         * 2. THE SPLIT COLLAPSE — a container query, both branches, swept
-         * ================================================================= */
-
         test('the container is the split\'s own box, and it is not its own container',
             () => mounted(async (page) => {
                 assert.equal(await page.prop(SPLIT, 'container-type'), 'inline-size',
                     'spec §2.1 Rule 1 — the component reads its own container');
-                /* THE QUERY'S SUBJECT IS #grid, INSIDE that container. A rule on :host
-                 * would ask the container OUTSIDE the component (an element is never its
-                 * own container), which is the trap this file is shaped around. */
                 const split = await page.box(SPLIT);
                 const grid = await page.box(GRID);
                 near(grid.width, split.width, 'the queried box IS this component\'s box');
@@ -378,9 +286,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the exported threshold and the CSS literal are the same number',
             () => mounted(async (page) => {
-                /* A container condition takes no var(), so the module's exported constant
-                 * and the literal inside its @container rule are two spellings that CANNOT
-                 * be made one. They are checked against each other instead. */
                 const { collapse } = await authored(page);
                 assert.equal(collapse, 900, 'the authored threshold, from the module that owns it');
                 await setStage(page, `${collapse}px`);
@@ -395,12 +300,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('900 is where the two clauses of the list track cross',
             () => mounted(async (page) => {
                 const { collapse, track } = await authored(page);
-                /* THE RELATION, NOT THE LITERALS. Both clauses are tokens since 25 August
-                 * 2026, when the share went 40% -> 33.3% to give the chart Slate's extra
-                 * 128px. A literal string here would have to be edited every time either
-                 * number moves, which is how a test stops meaning anything; what §4.2
-                 * actually claims is that the THRESHOLD is the crossing, and that claim
-                 * is checked below against whatever the tokens now say. */
                 assert.equal(track,
                     'minmax(var(--ui-selector-list-min), var(--ui-selector-list-share))',
                     '§4.2\'s track, as authored — two tokens, one for each clause');
@@ -412,13 +311,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `the floor (${floor}px) must be the share (${share * 100}%) of the `
                     + `threshold (${collapse}px), or the track stops responding before the `
                     + 'collapse and the two-column branch has a dead stretch', 0.6);
-                /* 40% of 900 is 360, so at the threshold the percentage and the minimum
-                 * are the same number: the collapse happens exactly where the list track
-                 * would stop responding to the window. Measured just above it. */
                 near(collapse * share, floor, 'the threshold IS where the two clauses cross', 0.6);
-                /* 900 x 33.3% = 299.7 against a 300px floor. The 0.3px is the share being
-                 * a round-ish percentage rather than an exact third; it is under a pixel
-                 * at the threshold, and the assertion above says how far it may drift. */
                 await setStage(page, `${collapse + 20}px`);
                 const columns = tracks(await page.prop(GRID, 'grid-template-columns'));
                 const listTrack = px(columns[0]);
@@ -448,9 +341,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('no viewport media query exists anywhere in this skeleton',
             () => mounted(async (page) => {
-                /* Read off the parsed CSSOM of every root in the skeleton. §2.1 Rule 2:
-                 * "No global width breakpoints. The three column-split screens each
-                 * collapse on their own container." */
                 for (const host of [S, SPLIT, LIST_PANE, DETAIL_PANE]) {
                     const found = JSON.parse(await page.eval(`${CSSOM_WALK}(${JSON.stringify(host)})`));
                     assert.ok(!found.error, `${host}: ${found.error ?? ''}`);
@@ -458,10 +348,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.deepEqual(sized, [], `${host} asks the viewport about its size`);
                 }
             }));
-
-        /* =================================================================
-         * 3. THE ELASTIC BOXES, AND THE NOTES-BEFORE-CHART GIVE ORDER
-         * ================================================================= */
 
         test('the chart is the only 1fr in the detail pane, and the notes are a fixed share',
             () => mounted(async (page) => {
@@ -472,58 +358,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 near(px(rows[3]), notes.height, 'row 4 is the notes region');
 
-                /* ROW 3 IS THE CHART CARD, AND AT THE FLOOR GEOMETRY IT IS SMALLER THAN
-                 * THE CARD — which is the arrangement, not a defect. The row is
-                 * minmax(0, 1fr) and the CARD carries the floor (--ui-chart-min-h plus
-                 * its own chrome, ui-chart-card.js:220-250); squeezed under it the card
-                 * overflows its track visibly, border still around the plot (§2.4),
-                 * rather than the row lying about how small it can be. So the invariant
-                 * is one-directional: the card is never SMALLER than its track. */
                 assert.ok(card.height >= px(rows[2]) - 0.5,
                     `the card (${card.height}px) is at least its track (${px(rows[2])}px)`);
-                /* AND WHEN IT OVERFLOWS IT IS SITTING ON ITS OWN FLOOR, READ OFF THE CARD.
-                 * The floor used to be spelt here as 186 — "160px of plot plus 26px of
-                 * card chrome" — and the chrome term has since moved twice, most recently
-                 * on 23 August when Ben asked for air between the profile name and the top
-                 * edge of the card. The card computes its own min-block-size from
-                 * --ui-chart-min-h plus a chrome custom property this pane cannot see, so
-                 * the number has exactly one owner and this reads it from there. */
                 if (card.height > px(rows[2]) + 0.5) {
                     const cardFloor = px(await page.prop(CARD, 'min-block-size'));
                     assert.ok(card.height >= cardFloor - 0.5,
                         `the card is ${card.height}px, under its own declared floor of ${cardFloor}px`);
                 }
 
-                /* THE NOTES ARE A SHARE NOW, NOT A CAP, AND THAT IS BEN'S 25 AUGUST RULING.
-                 *
-                 * "Reduce the chart height and make more space for the description."
-                 * MEASURED before the change, both panes at the reference geometry: Slate
-                 * chart 622 / notes 275 of a 1082 pane, i.e. notes 25.4 %; Decal chart
-                 * 673 / notes 164 of a 1081 pane, i.e. 15.2 %.
-                 *
-                 * A CAP WAS THE WRONG INSTRUMENT AND THAT IS WHY THE OLD 32 % NEVER
-                 * SHOWED. The row was fit-content(cap): a SHORT note took its own height
-                 * and the chart kept the rest, so the cap only ever stopped a LONG note
-                 * from eating the chart. Slate's box is 275 whatever it holds and the
-                 * notes scroll inside it. So --ui-selector-notes-max-share is retired with
-                 * the fit-content row that needed it, and --ui-selector-notes-share is a
-                 * flat 25 % track.
-                 *
-                 * WHICH TURNS THIS ASSERTION FROM AN INEQUALITY INTO AN EQUALITY, and that
-                 * is the whole gain: a `<=` against a cap passes for a row that is far too
-                 * short, which is exactly the defect Ben was looking at. The row must now
-                 * BE the share, to the pixel.
-                 *
-                 * STILL A SHARE OF THE PANE'S CONTENT BOX, NOT OF THE PANE, and that half
-                 * of the old note is unchanged and still worth the words: a track
-                 * percentage resolves against the grid container's CONTENT box, here
-                 * paneH - 2 * --ui-space-5. Asserting against pane.height would be loose by
-                 * exactly that padding term and a regression to the border-box reading
-                 * would pass. THE INSET IS --ui-space-5 (24) since version 0.1.23, where
-                 * "the panes take the Live page's inset"; it was --ui-space-4 (18).
-                 *
-                 * MEASURED: bench 158.5 against 0.25 * (682 - 48) = 158.5;
-                 *           floor 111.938 against 0.25 * (495.75 - 48) = 111.9375. */
                 const shareText = await page.tokenValue('--ui-selector-notes-share');
                 assert.match(shareText, /%$/, 'the share is authored as a percentage, not a length');
                 const share = px(shareText) / 100;
@@ -548,15 +390,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('THE ORDERING, SWEPT: the notes cap tightens and the chart keeps its floor',
             () => mounted(async (page) => {
-                /* §4.2: "list and chart share the loss until the chart hits
-                 * --ui-chart-min-h; then the notes cap tightens; then the list scrolls
-                 * harder." Driven by shrinking the stage's BLOCK size, which is what a
-                 * shorter window does, and recorded rather than argued.
-                 *
-                 * The floor asserted is the CARD's, not the plot's: 160px is the plot
-                 * area's floor and a card is that plot plus its own chrome
-                 * (ui-chart-card.js:220-250). Read off the card at rest rather than
-                 * recomputed here — that number has one owner. */
                 const plotFloor = px(await page.resolveToken('--ui-chart-min-h', 'block-size'));
                 const seen = [];
                 for (let height = 900; height >= 420; height -= 60) {
@@ -582,19 +415,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         + 'a share cannot outlive the box it is a share of');
                 }
 
-                /* THE CAP TIGHTENS MONOTONICALLY. This is the half that is a fix rather
-                 * than a constraint: today the notes are an unconditional 275px, so they
-                 * do not tighten at all until the chart is already at zero. */
                 for (let i = 1; i < seen.length; i += 1) {
                     assert.ok(seen[i].cap <= seen[i - 1].cap + 0.5,
                         'the notes cap only ever gets smaller as the pane does');
                 }
 
-                /* THE CHART GIVES FIRST AND KEEPS ITS FLOOR. Above the point where the
-                 * pane can no longer pay for the sum of the floors the card is at or
-                 * above its own minimum; below it the card overflows the pane visibly,
-                 * border still around the plot (§2.4), which is §4.2's arrangement and
-                 * NOT the chart being reduced to a strip. */
                 const squeezed = seen.filter((s) => s.card < plotFloor);
                 for (const s of squeezed) {
                     assert.ok(s.card >= plotFloor * 0.5,
@@ -604,10 +429,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the chart is the box that gives — it is the only 1fr');
             }));
 
-        /* =================================================================
-         * 4. SCROLL REGIONS AND FLOORS  (§2.4, and the M18 proposal)
-         * ================================================================= */
-
         test('the profile list scrolls, shows its bar, and floors at four rows',
             () => mounted(async (page) => {
                 const row = px(await page.resolveToken('--ui-list-row', 'block-size'));
@@ -616,8 +437,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(px(await page.prop(LIST_REGION, 'min-block-size')), floor,
                     'the floor is on the region, from the token');
 
-                /* SQUEEZED, THEN MEASURED: overflow is auto, the bar is visible, and the
-                 * region does not shrink past its floor. All three of §2.4's asks. */
                 await assertScrollFloor(page, {
                     selector: LIST_REGION,
                     squeezeSelector: '#stage',
@@ -636,22 +455,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the PROPOSED floor is on the region (M18 — token and note, not frozen)');
                 assert.equal(await page.prop(NOTES_REGION, 'overflow-y'), 'auto');
 
-                /* THE TOKEN GOVERNS, AND THE SWEEP HAS TO REACH IT TO SHOW THAT.
-                 *
-                 * A single squeeze to a 420px stage does NOT reach the region's minimum,
-                 * and reading that stop as one is how the earlier record came to claim a
-                 * realised minimum of 63px at BENCH and 89.5px at FLOOR. Neither is a
-                 * minimum: at FLOOR/420 the region sits on the 32% CAP
-                 * (0.32 * (315.75 - 36) = 89.52, chart track 3.23px), and at BENCH/420 it
-                 * sits on the space merely LEFT in the pane (content box 265 - 120 toolbar
-                 * - 46 summary - 36 gaps = 63, chart track 0px). Driven further down, both
-                 * geometries land on the token and hold there.
-                 *
-                 * <ui-notes-editor> (#55) contributes nothing to this floor: its host is
-                 * ":host { block-size: 100%; min-block-size: 0 }" (ui-notes-editor.js:355-359,
-                 * so a §4.6 dialog body can compress), and its --_ui-notes-min-h sits on
-                 * .CodeMirror inside that zero-floor host, overflowing internally. Asserted
-                 * below rather than argued, because it is the whole reason the token bites. */
                 near(px(await page.prop(NOTES, 'min-block-size')), 0,
                     'the editor host declares no floor, so nothing outranks the region token');
 
@@ -679,9 +482,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('only two regions scroll, and nothing else clips silently',
             () => mounted(async (page) => {
-                /* §4.2: "Scroll regions: the list (visible scrollbar), the notes pane.
-                 * Nothing else." And §2.4: hidden is banned as a default. Every structural
-                 * box in the skeleton is checked for the old app's answer. */
                 for (const box of [S, SPLIT, GRID, LIST_PANE, DETAIL_PANE, ROWS, SUMMARY]) {
                     const y = await page.prop(box, 'overflow-y');
                     const x = await page.prop(box, 'overflow-x');
@@ -691,18 +491,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* WHERE THE DESIGN FLOOR'S OVERFLOW LANDS — §2.4's "visible overflow" is about a
-         * box's own content showing past its own edge. It does NOT cover a region that
-         * grows past its track and comes to rest ON TOP OF THE NEXT CONTROL SURFACE, and
-         * at 1000x600 that is what happens twice. Both regions are on their declared
-         * floors and both tracks are smaller than those floors; the numbers were already
-         * recorded as "overflow 65.25 / 60.4" without saying what they overflow onto.
-         *
-         * This is RECORDED, NOT BLOCKED (ITEMS.json sel-scroll-floors: "M10 ... record, do
-         * not block"), and the arrangement's reversal is unchanged — it is
-         * DEFERRED_QUESTIONS_skeleton.md section 4's, a definite floor on the third track,
-         * which moves the overflow rather than making the design floor fit. What this test
-         * adds is that the fact has a name and a number at the geometry where it is true. */
         test('the design floor\'s overflow is measured against the siblings it lands on',
             () => mounted(async (page) => {
                 const list = await page.box(LIST_REGION);
@@ -714,52 +502,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const cardOntoNotes = (card.top + card.height) - notes.top;
 
                 if (geometry.name === 'floor') {
-                    /* MEASURED AT 1000x600, AND BOTH NUMBERS ARE ARITHMETIC ANYBODY CAN
-                     * CHECK — which is the point of recording them rather than blessing
-                     * them.
-                     *
-                     * THE LIST. The pane is 495.75 tall with --ui-space-5 either side, so
-                     * its content box is 447.75; three --ui-space-3 gaps take 36; the band
-                     * (64), the assign row (64) and the favourites bank (88) take 216; the
-                     * list track gets what is left, 195.75. The region's own floor is
-                     * --ui-selector-list-min-h = 4 * --ui-list-row = 256, so it stands
-                     * 60.25px past its track, and 12 of that is the gap below it. It lands
-                     * 48.25px inside the favourites bank and covers all five slots.
-                     *
-                     * THE CARD. Same pane height, same inset, so the same 447.75: the band
-                     * (64), the summary strip (52) and the notes share (111.94) leave the
-                     * 1fr chart track at 183.81. The card's own floor is 202 — 160px of
-                     * plot plus its chrome — so it stands 18.19px past its track, 12 of
-                     * that is the gap, and 6.19px of the notes region is underneath it.
-                     *
-                     * BOTH NUMBERS CAME DOWN ON 25 AUGUST, and neither move is drift.
-                     * 53.25 -> 48.25 on the list, because version 0.1.23 carried Ben's own
-                     * list: the band's buttons are "64, not 82", --ui-selector-band-h
-                     * replaced --ui-toolbar-h in BOTH panes, and "the panes take the Live
-                     * page's inset" (--ui-space-4 18 -> --ui-space-5 24). A shorter band
-                     * hands the list track more room than the deeper inset takes back.
-                     * 70.36 -> 6.19 on the card, because the notes row stopped being
-                     * fit-content(32%) and became a flat 25% share — Ben, same day:
-                     * "Reduce the chart height and make more space for the description."
-                     * At THIS geometry the old cap was the binding term and the region
-                     * stood at 147.11; a 25% share of a content box that also lost 12px to
-                     * the bigger inset is 111.94, so the notes region begins 35px lower and
-                     * the card's own overflow, which did not move, reaches much less of it.
-                     * The occlusion is smaller; it has not gone.
-                     *
-                     * THE EARLIER RECORD IS KEPT because it says what each step cost:
-                     * 48.36 -> 54.36 at parity surface 0, when --ui-display-* stopped being
-                     * clamps that shrank in a narrow container and became Slate's flat
-                     * 27/30/42/45/52, making the tile row above the card 6px taller
-                     * (DQ-0-A — the design floor does not fit Slate's own readout sizes,
-                     * and the answer is Ben's, not a re-clamp); then 54.36 -> 70.36 on
-                     * 23 August, when he asked for air between the profile name and the top
-                     * edge of the card, --_ui-chart-card-pad-top went to --ui-space-6, and
-                     * the card's declared floor rose with it because the chrome term is
-                     * part of its min-block-size.
-                     *
-                     * Recorded, not blocked (ITEMS.json sel-scroll-floors: "M10 ... record,
-                     * do not block"), and still red the moment either grows again. */
                     near(listOntoBank, 48.25,
                         'the scrolling list covers the favourites bank at the design floor');
                     near(cardOntoNotes, 6.19,
@@ -779,10 +521,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the chart card resizes and is never a strip', () => mounted(async (page) => {
             const plotFloor = px(await page.resolveToken('--ui-chart-min-h', 'block-size'));
-            /* BOTH HEIGHTS ARE STATED, not "the default and something smaller": at the
-             * 1000x600 floor the default stage is ALREADY under the sum of the pane's
-             * floors, so the card is on its minimum before the test starts and a
-             * comparison against the default would measure nothing. */
             await page.setStyle('#stage', { 'block-size': '900px' });
             await page.settle(3);
             const tall = await page.box(CARD);
@@ -799,16 +537,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'chart-C3\'s neighbour: the card does not clip its own overflow either');
         }));
 
-        /* =================================================================
-         * 5. REGISTER AND RHYTHM  (P5, P7, P16, P17)
-         * ================================================================= */
-
         test('P7 — the summary strip and the chart card share a left edge, exactly',
             () => mounted(async (page) => {
-                /* §7.3 P7: "The summary strip and the chart card are 24px OUT OF REGISTER
-                 * (28 vs 52 measured), and the strip's own 18px inset paints nothing."
-                 * One inset owner — the pane's padding — so every item in a single-column
-                 * grid starts at the same x. Not maintained; unavailable to break. */
                 const pane = await page.box(DETAIL_PANE);
                 const inset = px(await page.prop(DETAIL_PANE, 'padding-left'));
                 const items = {
@@ -843,8 +573,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     for (const [prop, value] of Object.entries(got)) {
                         const n = px(value);
                         if (!Number.isFinite(n)) continue;      /* a gap of `normal` */
-                        /* The seam gap is --ui-hairline and is a divider, not spacing —
-                         * §3.9 names it separately for exactly this reason. */
                         if (n === 1 && /gap/.test(prop)) continue;
                         if (!onScale(n)) off.push(`${box} ${prop} = ${value}`);
                     }
@@ -855,18 +583,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P17 — this band\'s inset is the SAME component\'s inset, not a second copy',
             () => mounted(async (page) => {
-                /* §7.3 P17: "padding: 0 30px ... disagrees with the 28px used by the
-                 * History Viewer header and #right-panel > * ON THE SAME SCREENS." Three
-                 * implementations, four screens. Here there is one component, so the
-                 * assertion is that this screen adds nothing to it. */
                 assert.equal(await page.prop(S, 'padding-left'), '0px',
                     'the screen declares no header inset');
                 assert.equal(await page.prop(HEADER, 'padding-left'), '0px',
                     'nor does the component host — the inset is on the band inside it');
 
-                /* MEASURED INSIDE #31's OWN ROOT, which is the point: this screen cannot
-                 * reach .band with a selector at all (ui-page-header.js:50-54), so the
-                 * inset it gets is the one every other screen gets. */
                 const inset = px(await page.prop(HEADER_BAND, 'padding-left'));
                 const step = px(await page.resolveToken('--ui-space-6', 'padding-left'));
                 near(inset, step, 'ui-page-header.js: "--ui-space-6, 28px, once"');
@@ -876,20 +597,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P5 — the list region has exactly one owner for its block size',
             () => mounted(async (page) => {
-                /* §7.3 P5: an !important height in one sheet against a flex basis in
-                 * another — two owners, and the sheet's number was never the rendered one.
-                 * Here the track owns the size, the region owns a MINIMUM, and neither
-                 * declares a height. */
                 const region = await page.box(LIST_REGION);
                 const rows = tracks(await page.prop(LIST_PANE, 'grid-template-rows'));
                 const floor = px(await page.resolveToken('--ui-selector-list-min-h', 'block-size'));
 
-                /* ONE OWNER, AND IT IS THE GRID TRACK — until the region's own FLOOR takes
-                 * over, which is the only other thing allowed to have an opinion and is a
-                 * minimum rather than a height. At 1000x600 the pane cannot pay for four
-                 * rows and the region sits on its floor, overflowing its track; above that
-                 * the track is the height exactly. Two states, one rule: the region's
-                 * height is max(track, floor) and never anything else. */
                 near(region.height, Math.max(px(rows[2]), floor),
                     `the region is max(track ${px(rows[2])}, floor ${floor}) and nothing else`);
                 assert.equal(await page.prop(LIST_REGION, 'height'),
@@ -923,10 +634,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(bangs, 0, `${host} carries an !important — Gate C guard 3`);
                 }
             }));
-
-        /* =================================================================
-         * 6. P10 — NO DEAD AFFORDANCE, BECAUSE THERE IS NO AFFORDANCE  (Q8)
-         * ================================================================= */
 
         test('P10 — the divider is a gap: no element, no cursor, no role, nothing to be dead',
             () => mounted(async (page) => {
@@ -962,25 +669,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(focusables, 0, 'the split contributes no focus stop');
             }));
 
-        /* =================================================================
-         * 7. THE STRUCTURAL DEATHS  (P1, P2, P3, P9, P11, P14, P15)
-         * ================================================================= */
-
         test('P1 — the screen\'s grid has exactly its two declared children',
             () => mounted(async (page) => {
-                /* §7.3 P1: four <dialog>s parse as children of a 3-column CSS grid,
-                 * because a malformed FRAGMENT was reparented by the parser. A Lit
-                 * template's structure is fixed at module evaluation. */
                 const children = await page.eval(`(function () {
                     var root = document.querySelector('selector-screen').shadowRoot;
                     return JSON.stringify(Array.prototype.map.call(root.children, function (c) {
                         return c.tagName.toLowerCase();
                     }));
                 })()`);
-                /* GRID ITEMS, NOT DOM CHILDREN. ui-toast joined this root on 25 August 2026
-             * (Ben's "Copy Slate" on the favourite refusals) and its host is
-             * position: fixed, so it is not a grid item — css-grid-2 §6. P1 is about a
-             * dialog LEAKING INTO THE LAYOUT, which this still catches. */
             assert.deepEqual(JSON.parse(children).filter((t) => t !== 'ui-toast'),
                 ['ui-page-header', 'selector-split'],
                     'two grid children, both named in §4.2');
@@ -990,9 +686,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P2 — the route is a module and a tag, and the shell mounts the element',
             () => mounted(async (page) => {
-                /* The screen under test is a real custom element, created by name. That is
-                 * the whole of P2's cure and it is visible here as the element existing at
-                 * all: an innerHTML-injected fragment would not have upgraded. */
                 const upgraded = await page.eval(
                     "(() => document.querySelector('selector-screen').shadowRoot !== null)()",
                 );
@@ -1003,10 +696,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P3 — the filter field has rhythm under it, and it comes from one declaration',
             () => mounted(async (page) => {
-                /* §7.3 P3: "pb-4 is the ONE utility in the file absent from the compiled
-                 * bundle, so the filter field sits flush on the hairline. Measured
-                 * padding-bottom: 0px." There is no bundle here to be missing a rule from;
-                 * the rhythm is the pane's row-gap. */
                 const gap = px(await page.prop(LIST_PANE, 'row-gap'));
                 assert.ok(gap > 0, 'the filter field does not sit flush on what follows it');
                 const filter = await page.box(FILTER);
@@ -1037,9 +726,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('P11 — selection is a property that paints, never a class', () => mounted(async (page) => {
-            /* §7.3 P11: "Selecting a profile toggles three classes that cannot paint."
-             * Two halves, and the second is what makes the first non-vacuous: the rows
-             * carry no class, AND the property they carry instead moves a paint value. */
             const classes = await page.eval(`(function () {
                 var rows = document.querySelector('selector-screen').shadowRoot
                     .getElementById('rows').querySelectorAll('ui-list-row');
@@ -1058,9 +744,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .getElementById('rows').querySelector('ui-list-row').selected = true;
                 return true;
             });
-            /* SETTLE BEFORE READING THE ATTRIBUTE. Lit reflects a property to its
-             * attribute in the update cycle, not in the setter, so reading it in the same
-             * task reads the value from before the assignment. */
             await page.settle(3);
             const aria = await page.eval(`(function () {
                 return document.querySelector('selector-screen').shadowRoot
@@ -1076,11 +759,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P14 — the skeleton registers no document or window listener',
             () => mounted(async (page) => {
-                /* §7.3 P14: "Two dead listeners at the bottom of the module
-                 * (DOMContentLoaded fires before the dynamic import; dynamic-content-loaded
-                 * is dispatched nowhere), so the preview-canvas teardown they guard never
-                 * runs." The counters were installed before the imports; this is what the
-                 * whole skeleton added. */
                 const listeners = await page.eval('JSON.stringify(window.__listeners || [])');
                 const added = JSON.parse(listeners);
                 const bad = added.filter((entry) => /content-?loaded/i.test(entry));
@@ -1099,12 +777,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P15 — ids are scoped to their roots, and no selector carries two of them',
             () => mounted(async (page) => {
-                /* §7.3 P15: "#profile-editor-grid names the SELECTOR's body, and
-                 * #left-panel/#right-panel/#separator are shared with Settings — which is
-                 * why the sheet is a wall of three-ID selectors."
-                 *
-                 * Half one: the light DOM holds a #grid of its own, and the split's #grid
-                 * rule does not reach it. Nothing to escalate against. */
                 assert.equal(await page.prop(OUTSIDE, 'display'), 'block',
                     'the light-DOM #grid is untouched by the split\'s #grid rule');
                 const gridDisplay = await page.prop(GRID, 'display');
@@ -1118,21 +790,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* =================================================================
-         * 6. PARITY SURFACE 5 — the three things the corpus could not hold
-         *
-         * Each of these pins a change the surface-5 pass landed, and each is here
-         * rather than left to the provenance diff for a stated reason:
-         *   - the CAPTION is invisible to the walk (no own text node, no paint), so
-         *     the corpus cannot see it whether it renders or not. This suite is the
-         *     ONLY guard the fix has.
-         *   - the SEAM is a container's gap. prov_diff compares elements, and a gap is
-         *     nobody's element; both the before and the after read border-top-width 0
-         *     on every row.
-         *   - the BAND'S HEIGHT the corpus does see, and it is pinned anyway, because
-         *     the tall attribute is one word in a template and nothing else asserts it.
-         * ================================================================= */
-
         test('parity 5 — the band\'s two actions are --ui-control-lg, not --ui-control-h',
             () => mounted(async (page) => {
                 const lg = px(await page.resolveToken('--ui-control-lg', 'block-size'));
@@ -1144,11 +801,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${id} reads --ui-control-lg`);
                     near((await page.box(sel)).height, lg, `${id} RENDERS at --ui-control-lg`);
                 }
-                /* AND THE BAND'S OWN DERIVATION IS WHY: --ui-band-h is control-lg plus two
-                 * insets (times the density, which multiplies the band and NOT the control
-                 * — "ergonomics is physical", ui-page-header.js:185), so a 64px control in
-                 * that band leaves dead space above and below itself. Measured, with the
-                 * density read rather than assumed, so the claim is not just an attribute. */
                 const band = px(await page.resolveToken('--ui-band-h', 'block-size'));
                 const inset = px(await page.resolveToken('--ui-band-inset', 'block-size'));
                 const density = parseFloat(await page.eval(
@@ -1161,20 +813,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('parity 5 — THE LIST CAPTION IS GONE, and the controls start at the inset',
             () => mounted(async (page) => {
-                /* IT RENDERED UNTIL 25 August 2026, and this test existed because it kept
-                 * collapsing to zero width: a shrink-to-fit host under
-                 * container-type: inline-size. Ben removed the words instead — "We can
-                 * remove 'ALL PROFILES' label" — because the screen's own title is
-                 * "Profiles" and the list under it is the profiles. Slate has no caption
-                 * there either.
-                 *
-                 * SO THE CLAIM INVERTS, and it is worth keeping rather than deleting: the
-                 * caption was what pushed the three controls to the far end of the band,
-                 * and its absence is what puts them where Slate's are. A caption that came
-                 * back would move them again, and this fails when it does.
-                 *
-                 * THE COUNT WENT WITH IT. The caption carried "93 profiles"; nothing shows
-                 * a count now, and Slate shows none either. */
                 const present = await page.eval(`(function () {
                     var root = document.querySelector('selector-screen').shadowRoot;
                     return root.getElementById('list-caption') === null;
@@ -1188,9 +826,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and the first control starts at the pane inset, as Slate\'s does');
                 return;
 
-                /* THE ROLE, not five restated declarations, and every value against its
-                 * TOKEN rather than a hex or a number: ORACLE profile-selector
-                 * .slate-microcap [i=15] 15px / 600 / 1.8px / uppercase / --ui-muted. */
                 assert.equal(await page.prop(cap, 'color'), await page.resolveToken('--ui-muted'));
                 assert.equal(await page.prop(cap, 'font-size'),
                     await page.resolveToken('--ui-text-sm', 'font-size'));
@@ -1198,13 +833,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.resolveToken('--ui-weight-semibold', 'font-weight'));
                 assert.equal(await page.prop(cap, 'text-transform'), 'uppercase');
 
-                /* IT GREW, it did not merely fit — and what it grows INTO is now the line
-                 * minus one control. The demo poses no count and no restore affordance,
-                 * but the ADD affordance is unconditional (Ben, 24 Aug 2026: Upload,
-                 * import, generate), so the toolbar holds the caption and one icon button.
-                 * The claim is unchanged and is the one that was ever worth making: the
-                 * caption takes the SLACK rather than shrinking to its text. Before this
-                 * pass it was neither — it was ZERO. */
                 const bar = await page.box(`${S} >>> .toolbar`);
                 const add = await page.box(`${S} >>> #add-open`);
                 assert.ok(host.width > bar.width * 0.6,
@@ -1223,11 +851,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.notEqual(line, fascia,
                     'the divider ink and the row ground must differ or a gap draws nothing');
 
-                /* THE GROUP IS NOT IN THIS STATE ANY MORE. The demo renders its four
-                 * rows flat — it exists to show the LAYOUT with no machine attached, and
-                 * folding two of its titles into a family made it a smaller sample of the
-                 * thing it is for. A real family's seam is asserted where real families
-                 * are: selector-core-loop.render.test.mjs, in the booted state. */
                 for (const sel of [ROWS]) {
                     assert.equal(await page.prop(sel, 'display'), 'grid',
                         `${sel} is a seamed grid`);
@@ -1241,10 +864,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const rows = await page.evalFn(() => {
                     const box = document.querySelector('selector-screen').shadowRoot
                         .getElementById('rows');
-                    /* ADJACENT SIBLINGS, not the first two rows in the tree: a family
-                     * caption sits between two of them and the gap that matters is the one
-                     * BETWEEN TWO ROWS. Measured the lazy way first, and it read 36.5 —
-                     * the caption's own box, not a seam. */
                     const all = [...box.querySelectorAll('ui-list-row')];
                     const pair = all.find((r) => r.nextElementSibling
                         && r.nextElementSibling.tagName === 'UI-LIST-ROW');
@@ -1266,10 +885,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(rows[1].y - (rows[0].y + rows[0].h), seam,
                     'consecutive rows are one --ui-seam apart');
 
-                /* THE FAMILY CAPTION IS GONE and its assertion with it. A family is a
-                 * ROW now, so it pays for its own ground the way every other row does —
-                 * through <ui-list-row>, whose own suite owns that claim. What survives
-                 * here is `fascia`'s role in the row ground, asserted above. */
             }));
     });
 }

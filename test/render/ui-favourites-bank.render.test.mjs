@@ -1,60 +1,5 @@
 /**
- * ui-favourites-bank.render.test.mjs — Wave 4 item #36's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR,
- * never source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the
- * 1000×600 floor (CONVENTIONS §10, Part 8 §2).
- *
- * WHAT THIS SUITE IS REALLY FOR. #36's whole claim is subtraction: the favourites
- * bank becomes "a composition of #3 + #35 instead of the hand-built copy with three
- * overlapping box implementations (L7, L8)" (SCOPE Part 4, Wave 4 row 36). A suite
- * that only checked the row looks right would pass just as happily against a
- * component that had quietly grown its own cell box or its own selected rule — which
- * is precisely how Slate ended up with `#profile-fav-nav` painting a fourth
- * "selected" that no `--slate-selected-*` dial can reach. So the load-bearing tests
- * are the ones that cannot pass for a private implementation:
- *
- *   §2  L7 — the cell's box has ONE owner. A document sheet carrying every selector
- *       Slate's three rules use, with `!important` on width / min-width / height /
- *       padding, is appended AFTER the components and reaches nothing; the five
- *       cells are equal; and `--ui-space-4` DRILLS the cell's padding, which is the
- *       half Slate cannot do at all ("the `--slate-space-4` padding paints nothing").
- *   §3  L8 — one selection treatment, proved ACROSS components: one turn of
- *       `--ui-selected-face` moves this bank's selected cell AND a `ui-tab-bar`
- *       mounted beside it. That is L8's own sentence inverted — "re-skinning
- *       selection changes the tabs and leaves the favourites alone" — and it is the
- *       only form of the assertion a hand-built copy could not fake. The four dials
- *       are then turned neutral, which is the state in which a fifth treatment stops
- *       hiding behind the shipped values.
- *   §5  the `inert` mark. A real hit-tested CDP click on the disc has to arrive at
- *       the cell, and Tab out of the row has to leave the component: nested
- *       interactive content would fail both, and neither is visible in a screenshot.
- *
- * ORACLE, re-read mechanically through prov_query.py, disqualification check first.
- * `#profile-fav-nav` and its buttons are bugs L7 and L8 themselves, so their
- * geometry and their selected paint are DISQUALIFIED as targets and are quoted only
- * as what Slate does:
- *   CITE live-ready #profile-fav-nav [i=2] rect 1040×82, and background-color =
- *        rgb(26, 33, 39) <- slate-live.css `#main-page #profile-fav-nav` (shorthand;
- *        token name not citable) — the same value ui-bank cites for `.slate-bank`
- *        [i=163], i.e. --ui-key. The copy agrees on the ground and diverges only on
- *        selection.
- *   CITE live-ready #fav-profile-btn-1 [i=4] width = 180px <- slate-live.css
- *        `#main-page #profile-fav-nav > button` authored `auto` !important=yes
- *        (FROZEN/hardcoded) — the `width: 20%` rule at slate-live.css:196 never
- *        reaches the element.
- *   CITE live-ready #fav-profile-btn-1 [i=4] padding-left = 14px <- slate-live.css
- *        `#main-page #profile-fav-nav > button` authored `14px` !important=yes,
- *        kind screen-literal, "FROZEN under token perturbation — hardcoded, not
- *        themable" — the `--slate-space-4` at slate-live.css:1768 paints nothing.
- *   CITE live-ready #fav-profile-btn-1 [i=4] color: dark rgb(148, 161, 169) /
- *        light rgb(90, 101, 108) — the RESTING ink, which is --ui-muted and is the
- *        one thing the copy and the real bank agree on.
- *   CITE find --id fav-profile-btn-0..4 (live-ready) — five cells at 264.094 / 180 /
- *        234 / 180 / 180 in a 1040px box, and the last two carry no text at all.
- * Slate's rects are frozen 1920×1200 captures; LAYOUT_SPEC_DRAFT.md governs
- * responsive behaviour and the oracle has no vote there. Colours are asserted
- * against resolved tokens, never hexes, so the suite is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -76,11 +21,6 @@ const MODULE = [
     '/src/components/ui-tab-bar.js',
 ];
 
-/**
- * Slate's own live-ready strip, as data: three occupied favourites and two empty
- * slots. CITE find --id fav-profile-btn-0..4 — btn-3 and btn-4 record no text.
- * The selected one is btn-0 (`class="... text-white"`), so `value` is p1.
- */
 const FAVOURITES = JSON.stringify([
     { value: 'p1', name: 'Extractamundo Dos!' },
     { value: 'p2', name: 'Temp test' },
@@ -95,16 +35,11 @@ const BANKS = `
     <ui-tab-bar id="tabs" label="Chart" value="flow"
         tabs='["flow","power","data"]'></ui-tab-bar>`;
 
-/* A STATED STAGE WIDTH, so every measured box is the CONTAINER's answer and not the
- * viewport's — the two geometries must produce identical numbers (spec §2.1 Rule 1).
- * 900px sits above the row's own floor of 5 × (48 + 2 × 18) = 420px. */
 const MARKUP = `
     <style>
       #stage { display: grid; gap: 24px; inline-size: 900px; }
     </style>
     <div id="stage">${BANKS}</div>`;
-
-/* ---- deep selectors ------------------------------------------------------- */
 
 const BANK = '#favs >>> #bank';
 /** The bank's own cell button, two boundaries deep. */
@@ -120,16 +55,7 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/**
- * Everything worth comparing between a selected cell and a resting one that the four
- * dials do NOT own. Carried unchanged from ui-bank.render.test.mjs (itself carried
- * from ui-list-row) on purpose: one library, one list, so the selection surfaces
- * cannot be held to standards that drift apart.
- */
 const NON_DIAL_PROPERTIES = [
-    /* `font-weight` left this list at parity surface 2, when the selected weight
-     * became the fifth dial (base.js, --ui-selected-weight). It is neutralised with
-     * the other four in the test below and asserted against the dial there. */
     'font-size', 'font-family', 'letter-spacing', 'text-transform',
     'border-top-width', 'border-top-color', 'border-top-left-radius',
     'border-bottom-width', 'border-left-width', 'padding-left', 'padding-right',
@@ -137,12 +63,6 @@ const NON_DIAL_PROPERTIES = [
     'display', 'align-items', 'gap', 'cursor', 'user-select',
 ];
 
-/**
- * SLATE'S OWN SELECTORS, WITH FORCE — every hook its three box rules and its four
- * private selected declarations use, aimed at the document AFTER the components have
- * defined themselves. In Slate each of these wins a fight; here there is nothing in
- * the document tree for them to reach, which is the whole architecture in one probe.
- */
 const SLATE_ATTACK = `
     #profile-fav-nav > button,
     #profile-fav-nav > button[aria-pressed="true"],
@@ -202,10 +122,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(env.w, geometry.width);
         }));
 
-        /* ===================================================================
-         * 1. IT IS ONE BANK PLUS FIVE MARKS — the row's own sentence, measurable
-         * =================================================================== */
-
         test('the row renders exactly one ui-bank and no control of its own', () => mounted(async (page) => {
             const shape = await page.evalFn(() => {
                 const root = document.getElementById('favs').shadowRoot;
@@ -249,14 +165,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(marks.map((m) => m.selected), [true, false, false, false, false]);
                 assert.deepEqual(marks.map((m) => m.index), ['1', '2', '3', '4', '5']);
             }));
-
-        /* ===================================================================
-         * 2. BUG L7 — THE CELL'S BOX HAS ONE OWNER
-         *
-         * "Three overlapping implementations of the favourite button's box;
-         *  `width: 20% !important` is dead and the `--slate-space-4` padding paints
-         *  nothing." (§7.2 L7; slate-live.css:194-208, :1720-1724, :1764-1769)
-         * =================================================================== */
 
         test('L7: the five cells are one box, equal and token-sized — no second implementation to disagree with',
             () => mounted(async (page) => {
@@ -320,15 +228,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(box.height, floor, 'the mark\'s ink is the token');
         }));
 
-        /* ===================================================================
-         * 3. BUG L8 — ONE SELECTION TREATMENT, ACROSS COMPONENTS
-         *
-         * "The favourites bank and `#dye-strip` are two hand-built copies of
-         *  `.slate-bank`, while the expanded tabs use the real one — so re-skinning
-         *  selection changes the tabs and leaves the favourites alone, bypassing all
-         *  four `--slate-selected-*` dials." (§7.2 L8)
-         * =================================================================== */
-
         test('L8: the selected cell is painted by the four dials and nothing else',
             () => mounted(async (page) => {
                 await assertOneSelectionTreatment(page, {
@@ -362,12 +261,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('L8: with all five dials neutral a selected cell is indistinguishable from a resting one',
             () => mounted(async (page) => {
-                /* The state in which a sixth, private treatment stops hiding behind
-                 * the shipped dial values. Slate's copy would still differ here by a
-                 * --slate-steel text-shadow and an ::after LED — and by font-weight 500,
-                 * which parity surface 2 turned from one of those private expressions
-                 * into the fifth dial. Neutralising it here is the proof: a weight
-                 * written as a RULE would still differ with every dial turned off. */
                 for (const [token, value] of [
                     ['--ui-selected-face', 'var(--ui-key)'],
                     ['--ui-selected-ink', 'var(--ui-muted)'],
@@ -387,10 +280,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the selected cell carries Slate\'s medium weight, through the fifth dial',
             () => mounted(async (page) => {
-                /* ORACLE live-ready #fav-profile-btn-0 font-weight = 500 (the selected
-                 * favourite) against #fav-profile-btn-1..4 at 400 — the same 400 -> 500
-                 * lift slate-components.css:392 writes for .slate-bank-item, which is
-                 * what L8's hand-built copy of the bank is reproducing. */
                 const dial = await page.resolveToken('--ui-selected-weight', 'font-weight');
                 assert.equal(await page.prop(cell(0), 'font-weight'), dial,
                     'the selected cell reads --ui-selected-weight');
@@ -417,10 +306,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop(disc('p1'), 'background-color'), face,
                     'the selected mark is painted by the same dial as its cell — #35\'s :host(:is(...)) block');
 
-                /* ui-bank sets --_ui-rest-shadow on `.item + .item` and custom
-                 * properties inherit down the flat tree, so without the reset in
-                 * .mark the bank's 1px inset seam would be composed into a round
-                 * mark's own selected shadow. Cell 1 is a `+ sibling`, cell 0 is not. */
                 await page.setStyle('#favs', { '--ui-selected-led': '4px' });
                 const first = await page.prop(disc('p1'), 'box-shadow');
                 await page.evalFn(() => {
@@ -432,10 +317,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(second, first,
                     'the second mark carries a seam the first does not — the bank\'s resting shadow leaked across the slot');
             }));
-
-        /* ===================================================================
-         * 4. ARIA — Appendix 15, one state, spelled once
-         * =================================================================== */
 
         test('exactly one cell carries aria-pressed=true, empty cells are disabled, and the name is on the group',
             () => mounted(async (page) => {
@@ -483,10 +364,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a second tab stop inside the row — the mark\'s own button is reachable, which is what inert exists to prevent');
             }));
 
-        /* ===================================================================
-         * 5. THE COMPOSITION IS REAL — a hit-tested press on the disc
-         * =================================================================== */
-
         test('a real click on the inert mark arrives at its cell and changes the value',
             () => mounted(async (page) => {
                 await page.recordEvents('#favs', ['change']);
@@ -533,10 +410,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.press(' ');
                 assert.equal(await page.evalFn(() => document.getElementById('favs').value), 'p2');
             }));
-
-        /* ===================================================================
-         * 6. TOKENS, FOCUS, HIT FLOOR, CONTAINER FLOOR
-         * =================================================================== */
 
         test('the ground and the resting ink are tokens, drilled', () => mounted(async (page) => {
             await assertTokenDrill(page, {
@@ -586,26 +459,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the same stated container gives the same numbers whatever the viewport',
             () => mounted(async (page) => {
-                /* Spec §2.1 Rule 1, made falsifiable: these two numbers are recorded
-                 * from a 900px stage, so a rule keyed to the viewport rather than to
-                 * the container would make them differ between the two geometries. */
                 const box = await page.box(cell(0));
                 near(box.width, 179.6, 'cell width from a 900px stage', 0.6);
                 const markBox = await page.box(mark('p1'));
                 near(markBox.width, 48, 'mark width from a 900px stage');
             }));
 
-        /* ===================================================================
-         * 7. THE GALLERY ENTRY IS THIS COMPONENT
-         * =================================================================== */
-
-        /* THE STATES ARE MOUNTED UNDER THE GALLERY'S OWN CONTRACT, not under this
-         * suite's MODULE list. gallery.js imports `entry.module` and NOTHING ELSE
-         * (gallery.js:46-51), then awaits `customElements.whenDefined` for every tag on
-         * the stage (gallery.js:88) — so preloading ui-tab-bar.js here would prove the
-         * pictures and hide the hang: `beside-the-tabs` mounts a real <ui-tab-bar>, and
-         * a tag whose module was never imported never settles. Mounting the sidecar is
-         * what makes this test the entry's proof rather than its alibi. */
         const GALLERY_MODULE = ['/tools/gallery/entries/ui-favourites-bank.demo.js'];
 
         test('every gallery state mounts and renders a bank', () => mounted(async (page) => {
@@ -615,11 +474,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(page.pageErrors, [],
                     `gallery state ${state.id} threw on mount`);
 
-                /* The settle condition itself, evaluated the way gallery.js evaluates
-                 * it: every custom tag on the stage, shadow roots included, must be
-                 * DEFINED. An undefined one is not an unstyled element — it is
-                 * `whenDefined` never resolving, so `data-gallery-settled` is never set
-                 * and the battery times out on a blank stage. */
                 const undefinedTags = await page.evalFn(() => {
                     const all = [];
                     const walk = (root) => {

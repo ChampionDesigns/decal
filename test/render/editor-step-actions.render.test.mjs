@@ -1,58 +1,5 @@
 /**
- * editor-step-actions.render.test.mjs — the five keys under a step column, and the step a
- * brand-new profile opens with.
- *
- * ===========================================================================
- * WHY THIS SUITE EXISTS: BOTH DEFECTS GOT PAST A FULL GREEN SUITE
- * ===========================================================================
- * Ben, 27 August 2026, two reports in one message:
- *
- *   "IN the profile editor page, the 5 buttons down the bottom dont seem to do anything,
- *    like if I try to make a new step of copy one etc it does noting."
- *
- *   "in profile selector, if I press the button to make a new profile it loads the profile
- *    editor but there is no steps, wich means there is not + button to add a new step etc,
- *    ie I cannot add any steps."
- *
- * NEITHER WAS A BROKEN COMPONENT. `ui-action-key-rail.js` has a 93-test suite that proves
- * all five keys press, dispatch `step-action` composed and bubbling, and grey correctly at
- * the edges — and every one of those tests mounts the rail ON ITS OWN, where an event
- * nobody hears is the right answer. `step-matrix.render.test.mjs` mounts the rails and
- * asserts a drag emits nothing. `editor-editing.render.test.mjs` drives the editing events
- * through a composition root the HARNESS owns. Between them, nobody ever asked the question
- * a person asks: I pressed this; did anything happen to the profile?
- *
- * SO EVERY CLAIM HERE IS DRIVEN THE WAY BEN DRIVES IT. The real `<editor-screen>` with its
- * own `<step-matrix>` and a profile seated through the real `createProfileEditorStore`; the
- * real `<selector-screen>` with its real + menu; presses dispatched by CDP at viewport
- * coordinates so Chrome's own hit test decides what was pressed; and the assertion is on
- * THE SCREEN'S OWN DRAFT, which is the object a Save would send. Nothing here reads a
- * source file (A8) and nothing states a bound (B2).
- *
- * ===========================================================================
- * THE TWO PINS, AND WHAT THEY ARE PINNING AGAINST
- * ===========================================================================
- * Section 1 is not a behaviour test, it is a tripwire on the two shapes that failed:
- *
- *   1. THE RAIL'S EVENT HAS A LISTENER THAT CHANGES THE DRAFT. Stated as a fact about the
- *      draft rather than about listener counts, because "a listener is attached" was never
- *      the missing half — the missing half was that pressing changed nothing. Deleting the
- *      screen's `#onStepAction` turns this red.
- *   2. A NEW PROFILE IS NEVER SEATED WITH ZERO STEPS. Section 4.
- *
- * ===========================================================================
- * ONE GEOMETRY, DECLARED
- * ===========================================================================
- * BENCH only, and the reason is worth writing down rather than leaving as a shrug. Every
- * claim below is about WIRING — a press reaching a draft — and wiring does not vary with
- * the window. What DOES vary is whether a given step column is inside the matrix's
- * scrollport at all: the rail is 192px and a column is 431, so at BENCH's 1281 the third
- * column is already outside it and at FLOOR's 1000 the second is. That is a real property
- * and it is `step-matrix.render.test.mjs`'s, at both geometries, where the boxes are the
- * subject. Here it is a hazard instead, and `pressKey` below handles it by scrolling the
- * column into view and REFUSING TO PRESS unless the key is genuinely on screen — so a
- * press that lands on the wrong thing fails loudly instead of asserting about a step
- * nobody touched.
+ * The five keys under a step column, and the step a brand-new profile opens with.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -75,11 +22,6 @@ const keyControl = (index, action) => `${rail(index)} >>> #key-${action} >>> .bt
 /** One step column's head cell, for reading names off the screen rather than the draft. */
 const headCell = (index) => `${MATRIX} >>> [data-cell="head-${index}"]`;
 
-/**
- * THE SCREEN'S OWN DRAFT, as plain data. This is the object `saveAsNewVersion` would send,
- * which is what makes it the honest subject: a test that asserted on the matrix's `steps`
- * property would pass just as well if the screen never wrote anything down.
- */
 const draftOf = (page) => page.evalFn((sel) => {
     const held = window.__h.need(sel)._draft;
     return held ? JSON.parse(JSON.stringify(held)) : null;
@@ -108,16 +50,6 @@ const railDisabled = (page, index) => page.evalFn((sel) => {
 /** Where the caret is, as an anchor path — the harness's own deep walk. */
 const activePath = (page) => page.eval('window.__h.anchorPath(window.__h.deepActiveElement())');
 
-/**
- * PRESS ONE KEY, THE WAY A PERSON DOES, AND REFUSE TO LIE ABOUT IT.
- *
- * The matrix is its own scrollport in both axes, so a step column can be laid out perfectly
- * and still be nowhere near the viewport. `page.click` dispatches at the rect's centre and
- * Chrome hits whatever is there — which, for a column scrolled out of the port, is
- * something else entirely, and the assertion afterwards would then be about a press that
- * never happened. So: scroll the column into its own port the way the person scrolls it,
- * then CHECK the key's box is inside the window before pressing.
- */
 async function pressKey(page, index, action) {
     await page.evalFn((sel, i) => {
         const cell = window.__h.need(sel).renderRoot.querySelector(`[data-cell="actions-${i}"]`);
@@ -139,14 +71,6 @@ async function pressKey(page, index, action) {
     await page.settle(4);
 }
 
-/**
- * A SEATED EDITOR THAT OWNS ITS OWN MATRIX.
- *
- * `matrix: null` leaves the `steps` mount region empty, which is what makes the screen
- * render its own `<step-matrix>` as slot fallback (`#owns`) — the arrangement the APP uses
- * and the one no other suite drives. Every other editor suite mounts a stand-in or its own
- * real matrix, which is a caller-mounted region and therefore a different wiring.
- */
 async function seated(page, steps) {
     await mountEditor(page, { matrix: null, fields: 0 });
     await seatProfile(page, { profile: editingProfile(steps) });
@@ -183,10 +107,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
         assert.deepEqual(page.pageErrors, [], 'nothing threw during the press');
     };
 
-    /* =====================================================================
-     * 1. THE TWO PINS
-     * ===================================================================== */
-
     test('PIN: the rail\'s five ids and the draft writer\'s five ids are the same five',
         mounted(three(), async () => {
             const authored = await page.evalFn(async () => {
@@ -207,13 +127,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
                 'and the screen listens for this exact name — it imports it from the rail');
         }));
 
-    /**
-     * THE PIN THAT WOULD HAVE CAUGHT IT. Not "is a listener attached" — the rail dispatched
-     * perfectly all along and every isolated test was green. The fact that was false is
-     * that pressing a key changed the profile. It is driven here by DISPATCHING the rail's
-     * own event on the matrix, so the pin holds even if the keys are one day laid out
-     * somewhere a hit test cannot reach; the real presses in section 2 are the other half.
-     */
     test('PIN: step-action has a listener, and that listener changes the draft',
         mounted(three(), async () => {
             const before = (await draftOf(page)).steps.length;
@@ -231,10 +144,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
                 'the event reached a writer — this was FALSE until 27 August 2026, with '
                 + 'every suite in the tree green');
         }));
-
-    /* =====================================================================
-     * 2. THE FIVE KEYS, PRESSED
-     * ===================================================================== */
 
     test('insert-after: a real press adds a step, and it is the shared blank step',
         mounted(three(), async () => {
@@ -292,11 +201,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
             assert.deepEqual(await screenNames(page), ['one', 'three']);
         }));
 
-    /**
-     * D11's count is the store's reading of the draft, so a structural edit has to move it.
-     * A profile whose steps were reordered and whose band still reads "Save" is a profile
-     * somebody closes without saving.
-     */
     test('a structural edit makes the profile dirty, so Save says so',
         mounted(three(), async () => {
             const before = await page.evalFn((sel) => window.__h.need(sel).changeCount ?? null,
@@ -313,11 +217,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
             assert.equal(typeof before, 'number');
         }));
 
-    /**
-     * THE REVIEW TAB IS MODEL OUTPUT over the same draft, so it has to follow. This is the
-     * cheapest proof that the draft the screen wrote is the draft every other surface reads
-     * — not a private copy the matrix happens to be holding.
-     */
     test('the Review tab follows a structural edit', mounted(three(), async () => {
         await selectPanel(page, 'review');
         const before = await page.count(`${EDITOR.review} >>> .block`);
@@ -327,10 +226,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
         const after = await page.count(`${EDITOR.review} >>> .block`);
         assert.equal(after, before + 1, 'one more step, one more review block');
     }));
-
-    /* =====================================================================
-     * 3. THE EDGES, AND WHERE THE CARET GOES
-     * ===================================================================== */
 
     test('the two arrows are refused at the two ends, and the press does nothing',
         mounted(three(), async () => {
@@ -342,16 +237,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
                 'a disabled key refuses the press natively — nothing moved');
         }));
 
-    /**
-     * THE ONE STEP A PROFILE ALWAYS KEEPS, proved from the person's side.
-     *
-     * `step-matrix.js render()` refuses to draw a matrix with no steps and hands the other
-     * half to the draft owner by name: "'never delete the last step' is the draft owner's
-     * rule to keep". With no steps there are no columns, with no columns there are no
-     * rails, and the rail is the ONLY route to a new step — which is exactly the dead end
-     * Ben reported from the other side. So delete goes GREY rather than being pressable and
-     * refused: a live button that does nothing is the defect, not the fix.
-     */
     test('on a one-step profile, delete is grey and the two GROWING keys are live',
         mounted([matrixStep({ name: 'only' })], async () => {
             const state = await railDisabled(page, 0);
@@ -375,13 +260,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
             assert.equal((await railDisabled(page, 0)).delete, true, 'and grey again at one');
         }));
 
-    /**
-     * THE CARET RIDES WITH THE STEP.
-     *
-     * Lit reuses the DOM, so after a move the button under the finger belongs to the step
-     * that was DISPLACED. Without this, a second press moves the wrong step; after a delete
-     * the caret falls out to <body> with nothing to say where it went.
-     */
     test('after a move, the caret is on the same key of the step that moved',
         mounted(three(), async () => {
             await pressKey(page, 0, 'move-right');
@@ -431,9 +309,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
             await page.settle(3);
             assert.equal(await page.exists(`${headCell(0)} ui-text-field`), true);
 
-            /* A value edit rebuilds only the step it touched (`editor-draft.js`: "new step
-             * objects ON THE PATH THAT CHANGED"), so step 0's object is the same object and
-             * the field stays. A blunter "the steps changed at all" rule would close it. */
             await page.evalFn((sel) => {
                 window.__h.need(sel).dispatchEvent(new CustomEvent('step-change', {
                     bubbles: true,
@@ -449,28 +324,6 @@ describe(`profile editor — the step action keys (${BENCH.name})`, () => {
                 'and the field somebody is typing in is still open');
         }));
 });
-
-/**
- * ===========================================================================
- * 4. A NEW PROFILE, OPENED FROM THE + THE WAY BEN OPENS IT
- * ===========================================================================
- * Ben, 27 August 2026: "in profile selector, if I press the button to make a new profile
- * it loads the profile editor but there is no steps, wich means there is not + button to
- * add a new step etc, ie I cannot add any steps."
- *
- * THE HANDOFF IS THE SUBJECT, so it is driven and not simulated. The selector seats the
- * record in the SHELL'S store (`boot.profileEditor`) and then asks for a route; the editor
- * reads it back off the same store. Both screens are mounted here over ONE store, which is
- * the whole handoff minus the route swap — and the route swap is precisely the thing the
- * store exists to survive (`#openNewProfile`: "a route swap destroys this screen ... so a
- * record handed over any other way would go with it"). `<app-root>` is not in this suite,
- * so the swap is the one link left to `test/render/app-shell.render.test.mjs`.
- *
- * NOT ONE OF BEN'S SIX NUMBERS IS TYPED IN THIS BLOCK. They are read out of the page from
- * `profile-modes.js NEW_STEP`, which is their single declaration; a test that retyped them
- * would be a second seed that drifts silently. What IS asserted here is the thing a
- * constant cannot assert: that they reached rendered controls.
- */
 
 /** The steppers and banks of one step column, by the row keys the model declares. */
 const CELL = (row, index = 0) => `${MATRIX} >>> [data-cell="${row}-${index}"]`;
@@ -492,12 +345,6 @@ describe('profile selector — the + opens an editable profile', () => {
         await browser?.close();
     });
 
-    /**
-     * BOTH SCREENS, ONE STORE. The selector runs without a library store (its own "layout
-     * demo" state — an empty list, every toolbar control present), because the listing is
-     * not what is being tested and a 147-record mock would only add a socket to the run.
-     * What it DOES have is the two doors `#openNewProfile` actually reads.
-     */
     async function stage() {
         await page.reload();
         await page.mount(
@@ -624,9 +471,6 @@ describe('profile selector — the + opens an editable profile', () => {
             await stage();
             await pressNewProfile();
 
-            /* `{ title, steps: [] }` was missing eight of a profile's ten keys as well as
-             * its step, and `POST /api/v1/profiles` requires four of them. Judged by the
-             * address layer's own reader rather than by a list retyped here. */
             const read = await page.evalFn(async (sel) => {
                 const m = await import('/src/data/rea-profile.js');
                 const result = m.readProfileFile(window.__h.need(sel)._draft);

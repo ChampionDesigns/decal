@@ -1,25 +1,5 @@
 /**
- * app-fit.render.test.mjs — the fit, in a real engine, on the real page.
- *
- * WHAT ONLY A BROWSER CAN SAY. test/app-fit.test.mjs holds the arithmetic and holds the
- * pre-paint copy in index.html to the module, both without a DOM. Neither can say the
- * thing the fit exists for: that the app FILLS THE SCREEN at the right scale, with
- * nothing scrolling and the design laid out in the units the oracle was measured in.
- *
- * IT ALSO REPLACES A TEST THAT SHOULD NOT HAVE EXISTED. The first draft asserted that
- * styles/document.css contains `zoom: var(--ui-app-scale, 1)` and that `:root` does not.
- * A8 rejected it — "a test that matches source text makes the defect it describes
- * unremovable" — and A8 was right twice over, because the source text is not the claim.
- * The claim is that zoom on `:root` DOES NOT WORK, and that is observable: measured
- * before any of this was written, a zoomed `:root` left the initial containing block at
- * 1281 layout units and painted 855x535 inside a 1281x801 screen, blank on two sides.
- * `fills the screen exactly` below is that same measurement, kept as the assertion.
- *
- * FOUR GEOMETRIES, and the two that are not Gate A's earn their place:
- *   BENCH   1281x801 @1.5   Ben's tablet, the only screen that matters today
- *   DESKTOP 1920x1200 @1    the oracle's geometry, where the scale is exactly 1
- *   C1      1920x1080 @1    a 16:9 screen, where the design gets WIDER and not shorter
- *   FLOOR   1000x600  @1    the small end
+ * The fit, in a real engine, on the real page.
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -57,20 +37,6 @@ async function fitted(geometry, body) {
                 docClientWidth: de.clientWidth,
                 docScrollHeight: de.scrollHeight,
                 docClientHeight: de.clientHeight,
-                /* THE ONE TOKEN THAT USED TO READ THE VIEWPORT, MEASURED AS A LENGTH.
-                 * `getComputedStyle().getPropertyValue()` on a custom property answers
-                 * the SUBSTITUTED TEXT — `calc(0.18 * 1200px)` — not the used length, so
-                 * reading it that way asserts on a string and would pass just as happily
-                 * on `calc(0.18 * 100dvh)`, which is the bug. A real box in a real length
-                 * context is what resolves it.
-                 *
-                 * ON THE BODY, NOT INSIDE app-root: the shell renders a shadow root with
-                 * no slot, so a light-DOM child of it is never laid out and answers 0.
-                 * The body is the right place anyway — both --ui-app-h and the token are
-                 * declared on :root, and `offsetHeight` reports unzoomed layout units on
-                 * either side of the zoom, so the number is the same design 216 in both
-                 * places. What would NOT be the same is a viewport unit, which is the
-                 * whole point. */
                 footShare: (() => {
                     const probe = document.createElement('div');
                     probe.style.cssText = 'position:absolute;visibility:hidden;'
@@ -91,9 +57,6 @@ async function fitted(geometry, body) {
 for (const geometry of GEOMETRIES) {
     describe(`the fit at ${geometry.name} (${geometry.width}x${geometry.height} @${geometry.deviceScaleFactor})`, () => {
         test('the app fills the screen exactly', () => fitted(geometry, (seen) => {
-            /* THE 855x535 ASSERTION. A zoom that does not expand the layout viewport
-             * paints the app at scale INSIDE a full-size viewport and leaves a blank
-             * band on two sides. One number each way catches it. */
             assert.ok(Math.abs(seen.paintedWidth - seen.viewportWidth) < 1.5,
                 `the app paints ${seen.paintedWidth} wide in a ${seen.viewportWidth} viewport`);
             assert.ok(Math.abs(seen.paintedHeight - seen.viewportHeight) < 1.5,
@@ -121,10 +84,6 @@ for (const geometry of GEOMETRIES) {
 
         test('the foot share is a share of the DESIGN height, not of the viewport',
             () => fitted(geometry, (seen) => {
-                /* 18% of 1200 = 216 design units, at every geometry. Before the fit this
-                 * token read `18dvh` and would answer 144.2 here on the bench tablet and
-                 * 108 at the floor — a phase row lost, silently, on the one screen that
-                 * matters. */
                 assert.ok(Math.abs(seen.footShare - 216) < 1,
                     `--ui-live-foot-share used ${seen.footShare}px, not 216px of design`);
             }));
@@ -163,46 +122,6 @@ describe('the fit follows a resize', () => {
     });
 });
 
-/* ===========================================================================
- * THE ZOOM TRAP — the browser's page scale, which is a layer above the fit
- * ===========================================================================
- *
- * Ben, 27 August 2026: "after going into the editor and other pages, the page zoom good
- * odd and I zoom in a lot and have to drage the view around to see the rest of the page
- * with no way to zoom out."
- *
- * WHICH ZOOM. Not `app-fit`'s. Measured first, before anything was changed: at BENCH,
- * `app-root`'s zoom is 0.6675 and the app paints 1281x801 on every one of the five routes
- * — live, selector, settings, editor, history — so nothing about navigating moves the
- * fit. What moves is the BROWSER'S page scale, the visual viewport: forced to 3 it leaves
- * a 427x267 window onto a 1281x801 layout viewport, which is the report exactly, and on a
- * full-screen wall-panel WebView there is no chrome to undo it and no script that can
- * (page scale has no setter; a viewport meta rewritten after the fact does not clamp a
- * scale already applied — measured).
- *
- * MOBILE VIEWPORT MODE IS LOAD-BEARING HERE and it is why these two tests carry their own
- * geometry. A viewport meta's scale constraints are honoured only when the engine is in
- * mobile viewport mode; measured in this rig at `mobile: false`, the same forced scale of
- * 3 sticks whatever index.html says, because desktop Blink ignores `user-scalable` and
- * `maximum-scale` outright. Gate A's BENCH is `mobile: false` — right for laying
- * components out, useless for asking this question — and the tablet's WebView is mobile.
- * One field differs, and it is named rather than assumed.
- *
- * WHAT THIS PAIR CAN AND CANNOT SAY. It cannot reproduce the TRIGGER: a synthesized pinch
- * (`Input.synthesizePinchGesture`) does not move page scale in this headless build at all
- * — not on the app and not on a bare scalable page with a 3000px body, which was run as
- * the control — and Chromium's other likely trigger, Android WebView's
- * `setAutoZoomFocusedEditableToLegibleScale`, is off in desktop Blink. So neither test
- * below claims the gesture is reachable on Ben's glass. What they claim is narrower and
- * is the thing that was actually wrong: THE PAGE PERMITTED THE STATE, and now refuses it.
- * The canary is what makes that a measurement — same rig, same force, one difference.
- *
- * WHICH TRIGGER IT ACTUALLY IS was settled by reading the host rather than the rig, and
- * the argument lives beside the declaration in index.html: ReaPrime's WebView already
- * runs `supportZoom: false, builtInZoomControls: false`, so pinch is off both ways — the
- * way in AND the way out — and the engine's focus-autozoom is what is left. Read that
- * comment before changing the meta; this file only holds the consequence.
- */
 describe('the browser cannot leave the panel zoomed with no way back', () => {
     /* The bench tablet as the WebView actually presents it. See the note above. */
     const MOBILE_BENCH = { ...BENCH, name: 'bench (mobile viewport)', mobile: true };
@@ -240,9 +159,6 @@ describe('the browser cannot leave the panel zoomed with no way back', () => {
     });
 
     test('and the canary proves the rig can still see the trap', async () => {
-        /* WITHOUT THIS, a rig that had quietly lost the ability to change page scale at
-         * all would report the trap as fixed for ever. The canary is index.html's own
-         * pre-27-August viewport meta and nothing else. */
         const seen = await forcedTo('/test/fixtures/canaries/scalable-viewport.html', 3);
         assert.equal(seen.scale, 3,
             'the canary did not take a page scale of 3, so this rig can no longer observe the '
@@ -252,28 +168,7 @@ describe('the browser cannot leave the panel zoomed with no way back', () => {
     });
 });
 
-/* ===========================================================================
- * THE KEYBOARD, AND THE WAY IT USED TO LEAVE THE PANEL COLLAPSED
- * =========================================================================== */
 describe('a keyboard that is dismissed by navigating does not resize the panel', () => {
-    /* FOUND 27 August 2026 while measuring the zoom trap, and it is a different bug in
-     * the opposite direction — the panel got SMALLER, not bigger, so it is not what Ben
-     * reported. It is real all the same, and reachable on his tablet by the most ordinary
-     * gesture there is: type in a field, then tap Save.
-     *
-     * `app-fit` already refuses a SHRINK while something is being typed into, because an
-     * on-screen keyboard shrinks the layout viewport and a keyboard is not a smaller
-     * screen. What it did not survive was the shrink outliving the focus. Navigating away
-     * fires `focusout` with the keyboard still up; `typing()` answers false because the
-     * field has gone; and the fit took the keyboard-shrunk height for the size of the
-     * screen. Measured, at BENCH with the height dropped to 430: scale 0.4 (the MIN_SCALE
-     * floor), design 2400x1200 (the MAX_DESIGN_WIDTH cap), painted 960x480 inside
-     * 1281x801 — a third of the glass, letterboxed on two sides, and recovering only if
-     * the WebView's keyboard-close happens to deliver a resize.
-     *
-     * The latch in `installFit` is the fix and this is its pin. `test/app-fit.test.mjs`
-     * holds the same rule as arithmetic; this holds it as a rendered fact, because the
-     * `focusout` half only exists in a real document. */
     test('focus, keyboard, navigate away — the fit holds', async () => {
         const page = await browser.newPage({ geometry: BENCH });
         try {

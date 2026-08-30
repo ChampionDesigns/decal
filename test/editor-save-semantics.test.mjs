@@ -1,22 +1,5 @@
 /**
- * editor-save-semantics.test.mjs — wave 5.5, items `save-semantics` (B10/R8) and
- * `profile-versions` (B11).
- *
- * THE DATA IS THE RECORDED LISTING. 147 real ProfileRecords, every one carrying
- * `metadataHash` and `compoundHash`, and a real parent chain among them — so "the lineage
- * fields surface unmodified" is a claim about what the machine actually serves rather than
- * about a pair of rows a test wrote.
- *
- * TWO TRANSPORTS, ON PURPOSE:
- *   * the OFFLINE MOCK proves the REQUEST and the REFUSAL. `tools/mock_rea.py` answers
- *     every mutating verb from the contract table and never forwards; both save routes
- *     return a typed ProfileRecord document, which is not synthesizable, so both are 501.
- *     That is a property worth pinning — a mock that invented a ProfileRecord would teach
- *     the client a server that does not exist.
- *   * a STUBBED transport proves the success path, because there is no offline success
- *     path to prove it against.
- *
- * A8: every assertion is about a returned value. Nothing reads a source file.
+ *.5, items save-semantics (B10/R8) and profile-versions (B11).
  */
 
 import { test, describe } from 'node:test';
@@ -539,39 +522,11 @@ describe('the offline mock proves the REQUEST and the REFUSAL, never a success',
     });
 
     test('so the success path is proven against a stub, and that is recorded here', () => {
-        // Stated as a test so the reason travels with the suite rather than in a comment
-        // somebody deletes: a mock that invented a ProfileRecord would teach the client a
-        // server that does not exist, which is the A7 defect the endpoint fallback was
-        // deleted for.
         assert.equal(writeResponse('/api/v1/profiles', 'POST').status, 501);
     });
 });
 
-/* ===========================================================================
- * WHICH SAVE A GESTURE IS  (fix run 4, `dec-A-B-1`)
- *
- * The three operations existed from wave 5.5 and nothing chose between them: the store
- * had no caller in `src/` at all. `commitPlan` is that choice, and every case below is
- * one of the reasons it is a table over GESTURES rather than a diff.
- * =========================================================================== */
-
 describe('commitPlan: the route follows the gesture, never a diff', () => {
-    /* -----------------------------------------------------------------
-     * A CONTENT SAVE WRITES AND CLOSES — 27 August 2026, and this test asserted
-     * `close: false` until that evening.
-     *
-     * Ben saved on the bench, was left standing in the editor with a toast, pressed Save a
-     * SECOND time to get out (that press lands on the clean branch below, which closes),
-     * re-opened and read the old value — because the record he was looking at was not the
-     * one he had just written. His words: "pressing save should close and arm, I shouldn't
-     * need to press save twice."
-     *
-     * ONE BUTTON, ONE MEANING. `close: false` here made the band's Save mean "write" on a
-     * dirty draft and "leave" on a clean one, and a person pressing it twice in a row got
-     * both — which is indistinguishable, from the outside, from one press that did
-     * nothing. The two branches now differ in the OPERATION and not in the exit, and that
-     * is the difference the assertions below name.
-     * ----------------------------------------------------------------- */
     test('the band\'s Save on a dirty draft is B11\'s path, and it closes — DQ-629, Ben\'s ruling', () => {
         const plan = commitPlan({ gesture: COMMIT_GESTURE.SAVE, dirty: true, seated: true });
         assert.equal(plan.operation, SAVE_OPERATION.NEW_VERSION);
@@ -586,29 +541,6 @@ describe('commitPlan: the route follows the gesture, never a diff', () => {
         assert.equal(plan.close, true);
     });
 
-    /* -----------------------------------------------------------------
-     * CANNOT TELL IS NOT CLEAN — not where the answer decides something.
-     *
-     * `changeCountOf` has always reported `{count: 0, clean: true, tell: 'cannot-tell'}`
-     * for a pair it could not compare, and every caller flattened it by taking `.count`.
-     * At `dirty: false` a Save means LEAVE, so an unanswerable question closed the editor
-     * over the draft with no write, no toast and no question — the defect class this fork
-     * exists to remove, and the shape of what Ben reported on 27 August 2026.
-     *
-     * The two mistakes are not symmetrical. An unnecessary write costs one spare version
-     * and DQ-629's whole design keeps the previous one, so it is visible and undoable. A
-     * silent close destroys work that exists nowhere else. See the block inside
-     * `commitPlan` for the argument in full.
-     *
-     * THE WORD "SILENT" IS DOING ALL THE WORK, and it is worth saying so because this test
-     * also asserted `close: false` until 27 August 2026 and no longer does. The cannot-tell
-     * branch went with the content-save branch when Ben ruled that a save closes, so an
-     * unanswerable dirty state now WRITES AND LEAVES. Nothing about the argument above
-     * changes: the draft is on the wire before the screen goes, so there is no draft left
-     * to destroy, and the version it wrote is in the list where a person can see it and
-     * undo it. What is refused is still exactly what was always refused — closing with
-     * nothing written.
-     * ----------------------------------------------------------------- */
     test('an UNKNOWN dirty state saves rather than closing over the draft', () => {
         const plan = commitPlan({
             gesture: COMMIT_GESTURE.SAVE, dirty: false, tell: CHANGE_TELL.CANNOT_TELL, seated: true,
@@ -621,9 +553,6 @@ describe('commitPlan: the route follows the gesture, never a diff', () => {
     });
 
     test('the tell is exactly what changeCountOf answers — no second vocabulary', () => {
-        /* THE REAL ANSWER, PASSED STRAIGHT THROUGH, so the two modules cannot drift: an
-         * unreadable baseline is what produces cannot-tell, and it is what produces the
-         * save. Nothing in this test names the string. */
         const draft = { title: 'Londinium', steps: [] };
         const unreadable = changeCountOf(draft, null);
         assert.equal(unreadable.count, 0, 'still counted as clean, as B10 requires of a LABEL');
@@ -635,13 +564,6 @@ describe('commitPlan: the route follows the gesture, never a diff', () => {
         });
         assert.equal(plan.operation, SAVE_OPERATION.NEW_VERSION);
 
-        /* THE OTHER SIDE OF THE SAME QUESTION, AND SINCE 27 AUGUST 2026 THE DIFFERENCE IS
-         * THE OPERATION RATHER THAN THE EXIT. This used to read `.close === true` against
-         * an unknown state's `close: false`, and that comparison stopped separating
-         * anything the moment a save started closing too. What still separates them —
-         * and what this test is actually about — is that an unreadable baseline WRITES and
-         * a genuinely clean one does not. Asserting the operation is the stronger claim,
-         * and it is the one a caller acts on. */
         const readable = changeCountOf(draft, draft);
         const clean = commitPlan({
             gesture: COMMIT_GESTURE.SAVE,
@@ -666,9 +588,6 @@ describe('commitPlan: the route follows the gesture, never a diff', () => {
     });
 
     test('a rename takes the PUT, because metadata cannot carry a name', () => {
-        /* `saveMetadata` sends `profileUpdateBody({metadata})` and `metadata` is
-         * ProfileRecord's free-form map; the displayed name is `record.profile.title`. A
-         * rename routed through it would answer 200 and change nothing on screen. */
         const plan = commitPlan({ gesture: COMMIT_GESTURE.RENAME, seated: true });
         assert.equal(plan.operation, SAVE_OPERATION.IN_PLACE);
         assert.equal(plan.close, false);

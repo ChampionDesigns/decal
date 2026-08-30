@@ -1,13 +1,5 @@
 /**
- * profile-tree.test.mjs — the family tree's own arithmetic.
- *
- * WHY IT IS A TREE AND NOT A LISTBOX. Ben, 24 August 2026: "Make families collapse."
- * `role="listbox"` owns options and groups and nothing else — the selector's own P12 test
- * names "a folder disclosure's head row" as the failure it exists to catch — so a
- * collapsible grouped single-select list has to be a tree. What is proved here is the two
- * pure pieces that made that cheap: which nodes are VISIBLE, and what the two sideways
- * keys mean from each kind of node. The rendering is
- * `test/render/selector-core-loop.render.test.mjs`'s.
+ * The family tree's own arithmetic.
  */
 
 import { test, describe } from 'node:test';

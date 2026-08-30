@@ -1,21 +1,5 @@
 /**
- * gallery.render.test.mjs — the gallery scaffold, driven the way the capture battery
- * will drive it.
- *
- * The gallery is scaffolding rather than shipping surface, but it is scaffolding the
- * rest of the run stands on: Gate B's capture battery walks it, every wave from 1 to
- * 4 adds entries to it, and "the gallery gives them subjects from the first
- * component on" (SCOPE Part 10 §13). A gallery that silently stops mounting is a
- * battery photographing an empty stage — the same class of failure as a guard that
- * stops covering its target.
- *
- * So this suite asserts the machine-facing contract, not the look:
- *   - every registered state mounts, settles, and leaves no page error;
- *   - `window.__gallery.states()` enumerates them with unique ids;
- *   - `?state=` and `?theme=` select on load, so a battery can navigate instead of
- *     scripting;
- *   - `document.body.dataset.gallerySettled` is the signal to shoot on;
- *   - a state's `hostStyle` really resizes the container the component reads.
+ * The gallery scaffold, driven the way the capture battery will drive it.
  */
 
 import { test, before, after } from 'node:test';
@@ -89,7 +73,6 @@ test('a state\'s hostStyle resizes the container the component reads', async () 
 
         assert.equal(wide, '40px', 'the default state fills the stage');
         assert.equal(narrow, '10px', 'hostStyle 380px puts the component below its own 400px breakpoint');
-        // Same viewport for both — which is the whole of spec §2.1 Rule 1.
         assert.equal(await page.eval('innerWidth'), BENCH.width);
     });
 });

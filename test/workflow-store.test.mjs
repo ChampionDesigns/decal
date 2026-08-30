@@ -1,11 +1,5 @@
 /**
  * The workflow store — the Live rail's owner.
- *
- * The rail's failure was not a wrong number, it was NO number: nothing set `targets`, so
- * every control rendered disabled, and the one handler that writes `targets` sat behind
- * the controls being unwritten had disabled. These tests hold the read, the write, and —
- * the part that matters most on a machine that clamps — what the rail is left holding when
- * a write is refused or adjusted.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -67,10 +61,6 @@ test('a refused read leaves NO targets — the rail dashes, it does not invent',
 });
 
 test('a write sends the PARTIAL body and publishes what the SERVER answers', async () => {
-    /* The machine clamps: `hotWaterVolume` is packed into one byte upstream and truncates
-     * rather than clamps. So the number the rail ends up holding must be the server's, not
-     * the one the press asked for. Scripted here as the real route behaves — the write
-     * answers the document the machine now holds. */
     const clamped = structuredClone(WORKFLOW);
     clamped.hotWaterData = { ...clamped.hotWaterData, volume: 144 };
     const transport = scriptedTransport((p, options, n) => (n === 1 ? served()
@@ -158,10 +148,6 @@ test('a store without a transport refuses to exist', () => {
 /* ══════════════════════════════════ apply — the road a PROFILE takes onto the machine ═ */
 
 test('apply PUTs the partial it is given and publishes the served document', async () => {
-    /* `POST /machine/profile` arms the DE1 and touches nothing else, so on its own it
-     * leaves GET /workflow serving the previous profile — the old title on the header, the
-     * old dose and drink weight on the rail, and the old name stamped into every shot
-     * ReaPrime records from then on. This is the write that makes the document true. */
     const loaded = structuredClone(WORKFLOW);
     loaded.profile = { ...loaded.profile, title: 'Lever Classic' };
     loaded.context = { targetDoseWeight: 18, targetYield: 40, grinderSetting: null };

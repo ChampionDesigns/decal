@@ -1,11 +1,4 @@
-// The staleness gate for src/data/machine-state.generated.js (SCOPE Part 2 §7: every
-// committed generated file has its generator in scripts/ and a test that regenerates it
-// and fails on a diff).
-//
-// The cautionary tale in this tree is app.css — a checked-in build artifact whose pipeline
-// had quietly stopped running, so new work compiled to nothing. The cautionary tale for
-// THIS artifact is sharper, because it already happened: the hand-copied enum drifted
-// twice in one object and both drifts shipped.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -46,8 +39,6 @@ describe('the committed artifact is what the generator produces', () => {
     });
 
     test('the artifact matches the source enum member for member, not just byte for byte', () => {
-        // Byte equality alone would pass if the generator and the artifact were both wrong
-        // together. This reads the Dart file independently.
         const { source } = readSource();
         assert.deepEqual([...MACHINE_STATES], parseEnum(source, 'MachineState'));
         assert.deepEqual([...MACHINE_SUBSTATES], parseEnum(source, 'MachineSubstate'));

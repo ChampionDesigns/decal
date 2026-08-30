@@ -1,14 +1,5 @@
 /**
- * authored-css.test.mjs — the scanner underneath Gate C, tested on strings.
- *
- * The guards' canaries prove the RULES cover their targets. This proves the thing
- * the rules stand on: that "all authored styles" really means all of them, and that
- * a line number in a violation points at the line a human would open.
- *
- * Everything here is a case that has broken a real scanner: a regex literal
- * containing a quote, a template inside an interpolation, a `url(data:…;base64,…)`
- * that looks like two declarations, a comment carrying the very text being searched
- * for.
+ * The scanner underneath Gate C, tested on strings.
  */
 
 import { test, describe } from 'node:test';
@@ -193,9 +184,6 @@ describe('authored CSS inside an HTML document', () => {
     });
 
     test('a document with no <style> and no css`` yields nothing, but is still read', async () => {
-        // index.html is exactly this today: one inline theme-stamp script, no CSS. It
-        // must be IN the file list — "scanned and clean" is a different fact from
-        // "never opened", and the second one is how a guard goes quiet.
         const files = await listAuthoredFiles(DEFAULT_SCAN_ROOTS);
         assert.ok(files.includes('index.html'));
         const { blocks } = await collectAuthoredCss({ roots: ['index.html'] });

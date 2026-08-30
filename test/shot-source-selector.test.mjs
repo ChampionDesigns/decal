@@ -1,19 +1,4 @@
-// B6: the duplicated channels — chosen once at shot start, held for the whole shot.
-//
-// The gap-position test is the one that encodes the defect. `fused.js` re-picks per
-// sample, and the two sources go absent at different moments: the derived channels gate on
-// the current operating point, the estimator's sentinel means "not yet observed". A
-// per-sample pick therefore produces a trace whose gap lands somewhere different every
-// shot, which reads as a machine glitch rather than a data state. Here the same sample
-// sequence must produce the SAME gaps under the held decision, whichever source was
-// chosen — and never a value silently borrowed from the other instrument.
-//
-// FIXTURES ARE CONTRACT-CHECKED (Gate B rule 4) against ReaPrime at
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3: `MachineSnapshot.toJson` OMITS a `*Derived`
-// key when `_derivedOrNull` returns null (never nulls it); `encodeSample` OMITS an
-// estimator channel it has not observed; the measured/derived pairing is the one stated in
-// each getter's doc comment — `r2` <-> `puckResistanceDerived`, `r1` <->
-// `loadImpedanceDerived`, `hydraulicPowerMeasured` <-> `hydraulicPowerDerived`.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -124,8 +109,6 @@ describe('the choice is made ONCE and HELD', () => {
         selector.beginShot(sample({ machine: DERIVED_ALL }));
         assert.equal(selector.sourceOf('resistance'), SOURCE.DERIVED);
 
-        // The estimator registers lazily, on the first decoded frame — mid-shot arrival is
-        // the NORMAL case, and it must not move the trace onto another instrument.
         const later = sample({ machine: DERIVED_ALL, estimator: ESTIMATOR_ALL });
         assert.equal(selector.sourceOf('resistance'), SOURCE.DERIVED);
         assert.equal(selector.read(later, 'resistance'), 2.0);
@@ -184,7 +167,6 @@ describe('the choice is made ONCE and HELD', () => {
 });
 
 describe('the gap lands in the same place every time', () => {
-    /** A shot in which each source goes absent at a DIFFERENT sample. */
     const series = () => [
         sample({ machine: DERIVED_ALL, estimator: ESTIMATOR_ALL }),
         sample({ machine: DERIVED_ALL, estimator: { r1: 4.6 } }),                 // estimator r2 gone
@@ -204,8 +186,6 @@ describe('the gap lands in the same place every time', () => {
         assert.equal(estimatorRun.sourceOf('resistance'), SOURCE.ESTIMATOR);
         assert.deepEqual(gaps(estimatorRun, samples), [1]);
 
-        // The same series read through the derived channel gaps at a different sample —
-        // which is exactly why re-picking per sample makes the gap wander.
         const derivedRun = createShotSourceSelector();
         derivedRun.beginShot(sample({ machine: DERIVED_ALL }));
         assert.equal(derivedRun.sourceOf('resistance'), SOURCE.DERIVED);
@@ -250,15 +230,6 @@ describe('what this module must not contain', () => {
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * `none` IS UNDECIDED, NOT DECIDED.
- *
- * At t=0 of a real espresso NEITHER twin can be present: `machine.dart`'s `_derivedOrNull`
- * returns null — and `toJson` omits the key — whenever `flow < 0.3 || pressure < 0.3`, and
- * the estimator has observed nothing yet. `beginShot` used to freeze that as the shot's
- * answer, so all three B6 quantities rendered a permanent gap for the WHOLE shot, even
- * after both instruments came on the wire, with `endShot` the only exit.
- */
 describe('the first sample of a real shot carries neither twin', () => {
     /** t=0: both under ReaPrime's own gate, so it omits all three derived keys. */
     const shotStart = () => sample({ machine: { flow: 0.0, pressure: 0.1 } });
@@ -335,10 +306,6 @@ describe('the first sample of a real shot carries neither twin', () => {
 
 describe('the pairing table names keys ReaPrime actually serves', () => {
     test('every estimatorChannel and derivedKey is one rea-names.js carries', async () => {
-        // The six wire keys in this file were the only copy of a server truth in the tree
-        // with nothing derived behind them. They cannot be generated — the pairing is a
-        // physical claim from machine.dart's doc comments — but they can be required to
-        // name keys that exist, at import.
         const { ESTIMATOR_CHANNELS, SNAPSHOT_DERIVED_KEYS } = await import('../src/data/rea-names.js');
         for (const row of DUPLICATED_QUANTITIES) {
             assert.ok(ESTIMATOR_CHANNELS.includes(row.estimatorChannel), row.estimatorChannel);

@@ -1,29 +1,5 @@
 /**
- * settings-leaves.render.test.mjs — wave 5.4's one-primitive cluster, measured off the
- * engine: `settings-row-thirty-leaves`, `c6-density-type-scale`, `d8-way-out-of-the-skin`,
- * `d11-save-count`, `a11y-cluster-t15`.
- *
- * ONE SUITE, because every claim below is about the same leaf pane holding the same rows,
- * and splitting them would mean mounting the screen six times to ask six questions about
- * one box. The sections are the rows.
- *
- * ENGINE TRUTH ONLY. Nothing here reads a source file (that is
- * `test/settings-leaves.test.mjs`, which asks what a measurement cannot). The rhythm
- * claims are computed rects across DIFFERENT LEAVES rather than one leaf twice — T13 is
- * one leaf out of thirty-seven sitting 12px low, so a suite that only ever renders one
- * leaf could not see it. The accessible names are read off the live elements after the
- * naming ladder has run, not asserted from the markup that was written.
- *
- * BOTH GATE A GEOMETRIES. The leaf pane is the elastic region and it collapses to two
- * columns at the floor, so the same rows are measured in two boxes.
- *
- * THE FIXTURE BUILDS THE DATA LAYER, and it is the same fixture the capture battery
- * drives (`tools/screens/screens.js`, states `settings--leaf-rows` and
- * `settings--dirty-save`): memory-backed storage through the real router and the real
- * settings store, a capability store that has asked nothing (so every gate reads UNKNOWN
- * and every gated row is hidden — the mock's own verdict), the real limits table through
- * the R2 door, and a scripted machine document. A picture nobody asserts and an assertion
- * nobody photographs are the two halves of the same mistake.
+ *.4's one-primitive cluster, measured off the engine: settings-row-thirty-leaves, c6-density-type-scale, d8-way-out-of-the-skin, d11-save-count, a11y-cluster-t15.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -84,15 +60,6 @@ const rowReport = (page) => page.evalFn(() => {
     });
 });
 
-/**
- * EVERY SWITCH THE SCREEN CAN SHOW, and its computed accessible name.
- *
- * T15's clause is "four of twenty switches have no accessible name", so the assertion has
- * to be over ALL of them rather than over one leaf's. The walk visits every leaf that
- * carries a switch row, renders it, and reads the name off the live element after #29's
- * naming ladder has run — a label read from the template would prove only that the
- * template was written, not that the name arrived.
- */
 const switchWalk = (page) => page.evalFn(async () => {
     const api = window.__settings;
     const nav = await import('/src/lib/settings-nav.js');
@@ -118,26 +85,6 @@ const switchWalk = (page) => page.evalFn(async () => {
     return out;
 });
 
-/**
- * EVERY BANK THE SCREEN CAN SHOW, its box INSIDE its row, and whether a finger
- * reaches it. cmp-sm-2's assertion class, and the one this suite did not have.
- *
- * The gap was not that nobody looked at a bank: section 5 below has asserted the
- * display-size bank's four labels since wave 5.4. It read them out of the shadow
- * tree with textContent and drove the choice through the store, so a bank whose host
- * had collapsed to its two hairlines — items overflowing an overflow: hidden box,
- * invisible on the panel and dead to the touch — answered every question this file
- * asked. MEASURED at the freeze: ui-bank inside ui-settings-row computed 2.00px wide
- * with three 36px items (padding only, zero content box), and elementFromPoint at an
- * item centre answered settings-leaf-pane rather than the button.
- *
- * So the walk measures the BOX and the HIT, over every BANK row in the registry
- * rather than over the one leaf a section happens to render — the same reason the
- * switch walk is a walk. The label width comes off a Range over the item's own text
- * (cross-1's pattern): a label that is being ellipsised still LAYS OUT at its full
- * width, so the range says what the cell would need and the cell's content box says
- * what it got, and the two agreeing is "n x the widest item" stated as a number.
- */
 const bankWalk = (page) => page.evalFn(async () => {
     const api = window.__settings;
     const nav = await import('/src/lib/settings-nav.js');
@@ -159,9 +106,6 @@ const bankWalk = (page) => page.evalFn(async () => {
         return node;
     };
 
-    /* The laid-out width of an item's text, ellipsis or no ellipsis. Nothing is
-     * slotted into a settings bank, so assignedNodes({ flatten: true }) hands back
-     * the slot's fallback — the label ui-bank rendered itself. */
     const textWidth = (item) => {
         const label = item.querySelector('.label');
         if (!label) return 0;
@@ -188,16 +132,6 @@ const bankWalk = (page) => page.evalFn(async () => {
         const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
         for (const bank of leaf.shadowRoot.querySelectorAll('ui-bank')) {
             const row = bank.closest('ui-settings-row');
-            /* SCROLL IT INTO VIEW BEFORE MEASURING OR PRESSING. The leaf pane scrolls, and
-             * elementFromPoint answers null for a point outside the viewport — so a hit
-             * test that does not scroll first is not testing the control, it is testing
-             * whether the control happens to fit above the fold.
-             *
-             * IT STARTED FAILING when the leaf gained a rule and a description under its
-             * title (Ben's O5 and O6, 26 August 2026), which pushes every row down by
-             * about 45px and put the Steam stop bank below 600 at the floor geometry. The
-             * bank did not move within its row and nothing about it changed; the page got
-             * taller, which is what was asked for. */
             bank.scrollIntoView({ block: 'center' });
             const rect = bank.getBoundingClientRect();
             const style = getComputedStyle(bank);
@@ -253,25 +187,6 @@ const focusWalk = (page, steps) => page.evalFn((n) => {
 }, steps);
 
 let browser;
-/**
- * EVERY CONTROL ON EVERY REGISTRY LEAF, AND WHETHER IT IS INSIDE THE PANE.
- *
- * THE DEFECT THIS EXISTS FOR, measured on 26 August. `connection-machine-host` is the
- * one TEXT row in the registry. ui-settings-row's control track is `flex: none`, so it
- * takes its content's own base size; ui-text-field declares no host block at all and
- * lays out as a block, which contributes ZERO to a shrink-to-fit track. The track
- * computed 0 wide, the field computed 0 wide, and the field's label and input drew at
- * x=1207 with the leaf pane ending at 1281 — a control rendering outside the surface
- * that holds it, on the page whose whole subject is the connection.
- *
- * NOT ONE ASSERTION ABOUT ONE ROW, because the shape is general: any archetype that
- * states no width lands in a zero track, and the registry can grow one at any time.
- * The walk renders every leaf and asks the same question of every control in it.
- *
- * THE PANE, NOT THE VIEWPORT. A control can overflow its pane and still sit inside the
- * window — the ReaPrime field did, by 74px — so a viewport test would have passed
- * through the whole defect. Two CSS px of tolerance for subpixel layout at dsf 1.5.
- */
 const controlBounds = (page) => page.evalFn(async () => {
     const api = window.__settings;
     const nav = await import('/src/lib/settings-nav.js');
@@ -314,9 +229,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         before(async () => {
             page = await browser.newPage({ geometry });
             await page.mount(STAGE, MODULES);
-            /* `.then(() => true)` because `mount()` resolves with the ELEMENT, and a DOM
-             * node cannot cross the CDP boundary by value ('Object reference chain is too
-             * long' is what that looks like from here). */
             await page.evalFn(() => window.__settings.mount().then(() => true));
             assert.deepEqual(page.pageErrors, [], 'the screen must mount without throwing');
         });
@@ -354,41 +266,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await showLeaf('machine', 'machine-flush');
                 const rows = await rowReport(page);
                 assert.equal(rows[0].hint, '5–95 °C');
-                /* 2–8 SINCE 26 August 2026. Ben, point 20: "flush range should be 2 to
-                 * 8ml/s". Below 2 the flush is too slow to clear the group. */
                 assert.equal(rows[1].hint, '2–8 mL/s');
-                /* NO ZERO CLAUSE since 26 Aug 2026 — Ben: "remove the 0 = no flush, it's
-                 * a button the user needs to press." The hint is the band and nothing
-                 * else; the second job hidden in the floor is gone. */
                 assert.equal(rows[2].hint, '0–60 s');
             });
 
-            /* THE FAN THRESHOLD BAND IS MACHINE-DEPENDENT SINCE 27 AUGUST 2026, so this
-             * pin needs a machine before it can read a band at all.
-             *
-             * Ben: "I think I will update the FW in Bengle to 40-60c, 30 is too low and
-             * seems pointless so lets increase it this in the decal for Bengle and do
-             * what ever reaprime has for the DE1." It was 30–70 on both for one day (his
-             * point 128) and 0–50 on both before that, read straight off
-             * `MMRItem.fanThreshold`.
-             *
-             * WHAT THIS PIN HAS ALWAYS BEEN ABOUT SURVIVES INTACT and is now asserted twice
-             * over: the hint is the LIMITS TABLE's sentence, in °C, and never the percentage
-             * the old page printed over a caption that said °C.
-             *
-             * A NON-EMPTY SERVED SET IS A BENGLE AND AN EMPTY ONE IS A DE1 — ReaPrime's own
-             * inference (`de1handler.dart` emits the seven inside one `if (de1 is
-             * BengleInterface)`), read through `machineClassFromServedSet`. */
             const fanHint = async (served) => {
                 await page.evalFn((entries) => window.__settings.capabilities(entries).then(() => true), served);
                 await page.settle();
                 await showLeaf('calibration', 'calibration-hardware');
                 const rows = await rowReport(page);
-                /* T7 IS ABOUT THE FAN, NOT ABOUT THE PAGE. It read `rows.length === 1`
-                 * while Fan Threshold had a page to itself, so the page count and the Fan
-                 * count were the same number. The 28 Aug merge put Refill Kit and Voltage
-                 * beside it, so the proxy stopped holding while the rule it stands for did.
-                 * Counting the Fan rows says what T7 always meant: one implementation. */
                 const fan = rows.filter((row) => row.id === 'calibration-fan-threshold');
                 assert.equal(fan.length, 1, 'T7: one Fan implementation, not two');
                 assert.equal(rows.length, 3, 'and it shares Hardware with Refill Kit and Voltage');
@@ -402,45 +288,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('and ReaPrime\'s own declared band on a DE1', async () => {
-                /* "do what ever reaprime has for the DE1" — `MMRItem.fanThreshold` declares
-                 * `min: 0, max: 50`, so that is what a DE1 owner is offered. There is no DE1
-                 * on this bench to correct the declaration with, and evidence gathered on a
-                 * Bengle is not evidence about a DE1. */
                 const hint = await fanHint([]);
                 assert.equal(hint, '0–50 °C');
             });
 
             test('with no machine answer there is NO band, and that is A7 rather than a gap', async () => {
-                /* The two bands overlap without nesting — 40–60 against 0–50 — so there is
-                 * no honest stand-in even in principle: either stand-in would let one
-                 * machine's owner reach a number the other's machine is not offered, and
-                 * their first press would land inside it. The row still draws; it simply
-                 * has no sentence beside its label until the capability read lands, exactly
-                 * as the steam row has behaved since B3. */
                 assert.equal(await fanHint(null), '');
             });
 
             test('every stepper prints its range, and the range is the table\'s', async () => {
-                /* THIS PIN INVERTED ON 26 August 2026. It used to prove that an UNBOUNDED
-                 * row prints no hint — "nothing is invented", B2's unstated-is-unbounded —
-                 * and hot-water Flow was the example because it had no limit.
-                 *
-                 * Ben's O8 retires the state it was proving: "All steppers should have a
-                 * range and when at the max the + or - should be grayed out." Three rows
-                 * had none (hot-water flow, the cup-warmer target, the machine's flow
-                 * calibration) and all three now do — point 16 gives the first its 2–8 mL/s
-                 * and point 55 the second its 40–70 °C.
-                 *
-                 * THE UNDERLYING RULE IS UNTOUCHED and is what this now asserts: a hint is
-                 * the LIMITS TABLE's sentence and nothing else, so a row still cannot
-                 * invent one. What changed is that no row is unbounded any more. */
                 await showLeaf('machine', 'machine-hot-water');
                 const rows = await rowReport(page);
-                /* BY ID, NOT BY INDEX. This read `rows[0]` and meant Flow; on 24 Aug 2026
-                 * Temperature and Volume landed above it (both bounded, both hinted) and
-                 * the assertion silently moved onto a row it was never about. `hotWaterFlow`
-                 * still has no row in the limits table, which is what "unstated is
-                 * unbounded" looks like from the screen. */
                 const flow = rows.find((row) => row.id === 'machine-hot-water-flow');
                 assert.ok(flow, 'the leaf still draws the flow row');
                 assert.equal(flow.hint, '2–8 mL/s', 'O8: no stepper is unbounded any more');
@@ -448,24 +306,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(temperature.hint, '0–99 °C', 'and the two beside it ARE bounded');
             });
 
-            /* THIS TEST HAS MOVED TWICE IN ONE DAY, and both moves are the same sweep
-             * working, so the trail is worth keeping.
-             *
-             * It began on `help-keyboard-shortcuts`, whose one registry row was a READING
-             * of the stored bindings. Ben's pass deleted that row — the leaf IS the binding
-             * table, and a count above it said the same fact twice — so `rows[0]` was
-             * undefined and the suite reported a TypeError.
-             *
-             * It moved to `connection-scale-last`, which was deleted hours later for a
-             * sharper reason: nothing in src/ had ever WRITTEN `scaleDeviceId`, so that row
-             * printed the absence dash on every machine for ever.
-             *
-             * IT LIVES ON `extensions-decent-app-path` NOW, which is a reading that is
-             * genuinely a reading: the web UI folder is served by the app, shown on the
-             * page, and deliberately never offered — writing it re-points the server at
-             * another folder, which is how a skin removes itself from the screen. The
-             * ABSENCE half of the claim is pinned separately, on the cup warmer's plate
-             * temperature, which the machine reports as null whenever the warmer is off. */
             test('a reading row renders its value and no control', async () => {
                 await showLeaf('extensions', 'extensions-decent-app-settings');
                 const rows = await rowReport(page);
@@ -476,10 +316,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and it prints what the app served, not a dash');
             });
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 2. T13 / T14 / T20 — ONE RHYTHM ACROSS LEAVES, MEASURED
-         * ═════════════════════════════════════════════════════════════════ */
 
         describe('one row component means one padding and one gap, across leaves', () => {
             test('T13: every leaf\'s heading lands at the same y', async () => {
@@ -516,10 +352,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             });
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 3. T9 / T10 — CONTROLS HOLD THEIR SIZE AND NOTHING OVERFLOWS
-         * ═════════════════════════════════════════════════════════════════ */
 
         describe('T9 / T10: a control holds its stated size and its cluster fits its track', () => {
             test('T9: the same control is the same width in two different rows', async () => {
@@ -560,16 +392,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 3b. cmp-sm-2 — A BANK IN A ROW HAS A BOX, AND A FINGER REACHES IT
-         *
-         * The blocker of the final review, and the assertion class that would have
-         * caught it: a bank's RENDERED BOX, measured inside a settings row, at both
-         * Gate A geometries, for every BANK row the registry has. Slate's own
-         * settings bank is the number to beat — .slate-bank 348x64 with 115px items
-         * on the machine-steam stop row (prov-baseline/settings-machine-steam.json).
-         * ═════════════════════════════════════════════════════════════════ */
-
         describe('cmp-sm-2: the bank archetype is a control, not a hairline', () => {
             test('every bank in the registry has a real box inside its row', async () => {
                 const banks = await bankWalk(page);
@@ -579,11 +401,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(bank.display, 'grid', `${bank.row}: the bank is n equal columns`);
                     assert.ok(bank.items.length >= 2, `${bank.row}: a bank with one cell is not a bank`);
 
-                    /* THE ARITHMETIC OF "n x THE WIDEST ITEM", both halves stated.
-                     * A cell is the widest label plus ui-bank's own padding-inline,
-                     * every cell is that same width, and the bank is n of them
-                     * between its two hairlines. The 2px failure satisfied none of
-                     * the three. */
                     const widest = Math.max(...bank.items.map((item) => item.text));
                     const cell = bank.items[0].width;
                     near(cell, widest + bank.items[0].padding, `${bank.row}: a cell is the widest label plus its padding`, 1.01);
@@ -616,19 +433,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const [bank] = (await bankWalk(page)).filter((b) => b.row === 'machine-steam-stop');
                 assert.ok(bank, 'the steam-stop row must carry a bank');
 
-                /* prov-baseline settings-machine-steam: .slate-bank 348x64, items 115.
-                 * Whole pixels, because the oracle was captured at dsf 1 and this suite
-                 * runs at both — the claim is the SHAPE, not a sub-pixel identity. */
                 near(bank.height, 64, 'the bank floor is --ui-control-h');
                 assert.ok(Math.abs(bank.width - 348) <= 6,
                     `the steam-stop bank measured ${bank.width}, Slate's is 348`);
                 assert.ok(bank.rowBox && bank.width < bank.rowBox.right - bank.rowBox.x,
                     'a bank that fills its whole row is not being sized by its content');
 
-                /* THE PRESS, THROUGH CHROME'S OWN HIT TEST rather than through the
-                 * store — the half of the blocker a programmatic change() cannot see.
-                 * The value is read off the LEAF MODEL, so what is asserted is the
-                 * whole path: hit test, button, bank, row, leaf, model. */
                 /* bankWalk() left the screen on the LAST bank leaf in the registry. */
                 await showLeaf('machine', 'machine-steam');
                 const stopValue = () => page.evalFn(() => window.__settings.model()
@@ -644,11 +454,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const at = index < 0 ? items.length - 1 : index;
                     return { id: items[at].id, label: items[at].textContent.trim() };
                 });
-                /* SCROLL IT UNDER THE FINGER FIRST — the same reason as in bankWalk. The
-                 * leaf pane scrolls, a real click is a hit test, and a hit test on a point
-                 * outside the viewport reaches nothing. The Steam stop row sits below the
-                 * fold at the floor geometry since the leaf gained its rule and its
-                 * description (O5, O6). */
                 await page.evalFn(() => {
                     const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
                     leaf.shadowRoot
@@ -664,16 +469,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 3c. cmp-sm-1 — THE STEAM LEAF IS WHOLE
-         *
-         * The leaf shipped two rows where the oracle draws four, with nothing in
-         * PENDING_ROWS to say so. prov-baseline/settings-machine-steam.json:
-         * [i=65..69] the stop bank, [i=70] its caption, [i=71] the milk-probe note,
-         * [i=72..79] Duration with the hint "0-120 s · 0 = steam heater off", and
-         * [i=80..82] the Steam purge mode select with its caption.
-         * ═════════════════════════════════════════════════════════════════ */
-
         describe('cmp-sm-1: the steam leaf draws five rows, not two', () => {
             const steam = async () => {
                 await showLeaf('machine', 'machine-steam');
@@ -682,22 +477,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('the five rows are there, in the oracle\'s order and archetypes', async () => {
                 const rows = await steam();
-                /* FOUR BECAME FIVE ON 24 AUG 2026: Temperature sits beside Flow, where
-                 * the two machine numbers belong. Its pending entry pointed at
-                 * `POST /machine/shotSettings`, which cannot carry one value — the
-                 * workflow door can, and it reaches the DE1 through
-                 * `De1Controller.updateWorkflowSettings`. */
-                /* SIX SINCE 26 Aug 2026. The master switch is the new first row (Ben:
-                 * "add a new toggle to the top to turn the steam on and off ... rest of
-                 * the order is ok"), and the rest of the order is exactly what it was. */
-                /* SEVEN, LATER THE SAME DAY, and the seventh is what the Milk Temp option
-                 * had always been missing: `machine-steam-milk-target`, the temperature the
-                 * probe stops at. The bank's own caption promises the machine stops "when
-                 * the milk reaches the target temperature" and there was NO CONTROL anywhere
-                 * on the page for that target — Slate draws a stepper and a live probe
-                 * reading whenever that mode is chosen. It sits directly under the mode that
-                 * names it, which is Slate's grouping and the same rule the night-mode times
-                 * follow one cluster over. */
+
                 assert.deepEqual(rows.map((row) => row.id), [
                     'machine-steam-enabled',
                     'machine-steam-flow', 'machine-steam-temp', 'machine-steam-stop',
@@ -711,43 +491,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('Duration carries the limits table\'s own hint, zero meaning and all', async () => {
                 const duration = (await steam()).find((row) => row.id === 'machine-steam-duration');
                 assert.equal(duration.heading, 'Duration');
-                /* The string is machine-limits.js's rangeHint over steamDuration, not a
-                 * string this suite or the registry composed — B2. The oracle's [i=73]
-                 * reads the same words from the same table one skin over. */
-                /* NO ZERO CLAUSE since 26 Aug 2026: the page has a master switch now, and
-                 * Ben retired the sub-band rule with it — "the new toggle does that job".
-                 * A stop time of zero is a stop time of zero.
-                 *
-                 * AND THE FLOOR IS 10, LATER THE SAME DAY, on Slate's own band
-                 * (`settings.js:3474`, step 5 min 10 max 120) — the only stated one, since
-                 * no MMR declares a range for this field. With the Steam stop bank carrying
-                 * an explicit Off option, a duration of zero had become a SECOND spelling of
-                 * "no time stop", which is the duplicate meaning Ben stripped out of the
-                 * flush row and out of the tank row the same day. Off owns zero; this
-                 * stepper offers durations. */
+
                 assert.equal(duration.hint, '10–120 s');
                 assert.equal(duration.control[0].tag, 'ui-stepper');
             });
 
-            /* ═══════════════════════════════════════════════════════════════
-             * F-021 / F-047 — THE STEAM TEMPERATURE ROW, WHICH TURNED THE HEATER OFF
-             *
-             * The audit's sweep, four times over, on the tablet: typed 150 → 150,
-             * 136 → 136, 135 → 135, but 134 → 135 (snapped up), 120 → 135 (snapped up)
-             * and 63 → "–" with `{"steamSettings":{"targetTemperature":0}}` on the wire
-             * and the Steam switch above it flipped to false. Wave 4 confirmed the server
-             * accepts and stores that 0. The band the pad offered was 0–170 and nothing on
-             * the glass said a number inside it would be replaced.
-             *
-             * These drive the REAL settings screen — the pad the row opens, not a mounted
-             * keypad — because the fault is in what this screen hands it (`#typingBand`).
-             * ═══════════════════════════════════════════════════════════════ */
-
-            /* THE MACHINE CLASS HAS TO BE KNOWN or the steam row has no band at all — its
-             * ceiling is machine-dependent and A7 refuses a stand-in (the same note the
-             * Fahrenheit section below carries). Served and then PUT BACK: this suite
-             * shares one page and the default is the mock's own 503, which later sections
-             * read as UNKNOWN. */
             const withClass = async (fn) => {
                 await page.evalFn(() => window.__settings.capabilities(['cupWarmer']).then(() => true));
                 try {
@@ -757,15 +505,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             };
 
-            /**
-             * Open the pad on a row the way a finger does: press the value cell.
-             *
-             * IT SCROLLS FIRST, for the reason `ui-numeric-keypad.render.test.mjs` records
-             * about its own pad keys: at the 1000x600 floor the row is below the fold of
-             * the leaf's scroll region and a click at its box coordinates lands on whatever
-             * is painted there instead. Measured: the press did nothing and the pad stayed
-             * shut, at the floor only.
-             */
             const openPad = async (rowId) => {
                 const cell = `${ROW(rowId)} ui-stepper >>> #value`;
                 await page.evalFn((s) => {
@@ -801,17 +540,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             };
 
             test('F-021: the steam pad offers the WORKING band, so 63 cannot be typed into it', () => withClass(async () => {
-                /* THIS SUITE SHARES ONE PAGE and the staging band is deliberately durable
-                 * across leaf changes, so an earlier section's edits are still pending
-                 * here. Cleared first, so the only thing this test can measure is its own. */
                 await page.evalFn(() => { window.__settings.model().discard(); return true; });
                 await showLeaf('machine', 'machine-steam');
                 await openPad('machine-steam-temp');
                 const opened = await padState();
                 assert.equal(opened.open, true, 'the value cell must open the pad');
-                /* THE BAND THE PAD ACCEPTS IS THE ONE IT PRINTS. It used to accept 0–170
-                 * while printing 135–170, and `clamp` decided what a number in between
-                 * became. */
                 assert.deepEqual({ min: opened.min, max: opened.max }, { min: 135, max: 170 });
                 assert.equal(opened.hint, '135–170 °C');
 
@@ -821,7 +554,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(typed.refused, true,
                     '63 °C is inside the hole; confirming it sent targetTemperature 0');
 
-                /* AND NOTHING WAS STAGED BY THE ATTEMPT. */
                 await page.evalFn(() => {
                     const pad = document.querySelector('settings-screen').shadowRoot.getElementById('keypad');
                     pad.shadowRoot.getElementById('confirm').click();
@@ -869,9 +601,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         max: stepper.max,
                     };
                 });
-                /* THE DEFECT, VERBATIM FROM THE FINDING: "its accessible text says
-                 * 'Range 0 to 170 °C'". The stepper derived that from the two numbers it is
-                 * handed, and they ARE 0 and 170 — the min is the machine's "no steam". */
                 assert.deepEqual({ min: said.min, max: said.max }, { min: 0, max: 170 },
                     'the stepper keeps its full band: stepping down to off is a real gesture');
                 assert.equal(said.describedBy, 'range', 'the hint must still describe the group');
@@ -882,9 +611,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
             test('F-047: a row with NO hole announces its band too, and it still agrees', async () => {
-                /* THE FIX IS NOT A SPECIAL CASE FOR ONE ROW. Duration has no hole and its
-                 * derived sentence was already true; it now reads the same string the row
-                 * prints, which is what "one composer" means. */
                 await showLeaf('machine', 'machine-steam');
                 const said = await page.evalFn(() => {
                     const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
@@ -899,24 +625,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(said.announced, said.printed);
             });
 
-            /* ═══════════════════════════════════════════════════════════════
-             * F-042 — A PENDING ROW PAINTS AS PENDING
-             *
-             * The model half is pinned in `settings-leaf-model-commit-band.test.mjs`; this
-             * is the half a person sees. `view.pending` and `view.inert` are different
-             * states with the same RENDERING — disabled and dashed — because A7's answer to
-             * "I do not know" is the same in both cases, and the assertion that matters is
-             * that the renderer joins them at all.
-             *
-             * ONE ARCHETYPE IS NOW OUT OF THAT SENTENCE, and nothing below measures it.
-             * Ben's decision D08 (30 Aug 2026) took SWITCH rows out of the join: a pending
-             * switch draws a skeleton rather than a disabled control, because role=switch
-             * announces a boolean in every state it has and "disabled and off" is still
-             * "off". Everything this case measures is a STEPPER, so its assertions are
-             * untouched and true; the switch half lives in
-             * `settings-pending-switch.render.test.mjs`, where the pending window is a
-             * state a fixture can hold open rather than a race to catch.
-             * ═════════════════════════════════════════════════════════════ */
             test('F-042: pending and inert render alike, and a settled row renders neither', async () => {
                 await showLeaf('machine', 'machine-steam');
                 const settled = await page.evalFn(() => {
@@ -932,9 +640,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(row.pending, false, `${row.id} still waiting after load()`);
                 }
 
-                /* AND THE FLAG EXISTS ON EVERY ROW rather than being undefined on most,
-                 * which is what an `undefined` would make of `view.inert || view.pending`
-                 * the first time somebody reordered that expression. */
                 for (const row of settled) assert.equal(typeof row.pending, 'boolean');
 
                 /* THE INERT HALF, MEASURED ON THE GLASS: turning the master switch off
@@ -970,9 +675,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         width: el.getBoundingClientRect().width,
                     };
                 });
-                /* TWO, and the finding said three: it read the walker's concatenated
-                 * element text "Normal Two Tap Stop" as three labels. Slate's markup is
-                 * two <option>s, value 0 and value 1 (settings.js:3392-3394). */
                 assert.deepEqual(select.options, ['0=Normal', '1=Two Tap Stop']);
                 assert.ok(select.width > 100, `the select collapsed to ${select.width}px`);
             });
@@ -999,18 +701,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
             });
 
-            /* THE SAME CLAIM FOR #3, AND IT DID NOT HOLD UNTIL 24 AUG 2026.
-             *
-             * The select branch had made this round trip since cmp-sm-1; the BANK branch
-             * handed `event.detail.value` straight to the model. Nothing noticed, because
-             * every bank row's values were STRINGS — 'mm'/'ml', 'off'/'time'/'milk-temp' —
-             * and a string that survives a DOM attribute round trip is the same string.
-             *
-             * `refillKitSetting` and `heaterVoltage` are the first banks whose values are
-             * NUMBERS, and the defect showed on the wire the first time the app was driven
-             * against a machine: `POST /machine/settings/advanced {"refillKitSetting":"2"}`.
-             * It happens to survive — ReaPrime's `parseInt` ends in Dart's `int.parse`,
-             * which takes the string — which is what makes it the dangerous kind. */
             test('choosing a bank cell writes the NUMBER too, not the attribute string', async () => {
                 await showLeaf('calibration', 'calibration-hardware');
                 const wrote = await page.evalFn(async () => {
@@ -1018,10 +708,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const bank = leaf.shadowRoot.querySelector('ui-settings-row[data-row="calibration-refill-kit-mode"] ui-bank');
                     /* The cell, pressed the way a finger presses it. `ui-bank` reflects
                      * its value as an ATTRIBUTE, which is where the type is lost. */
-                    /* THE CELL IT IS NOT ON. The fixture's machine holds 2 (Auto-Detect)
-                     * and `ui-bank` fires `change` only when the value MOVES, so pressing
-                     * the lit cell asserts nothing at all. Force Off is 0 — a value whose
-                     * falsiness is its own trap, and the right one to test with. */
                     const cells = [...bank.shadowRoot.querySelectorAll('button')];
                     cells[cells.length - 1].click();
                     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -1045,7 +731,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     return {
                         caption: caption?.textContent.trim() ?? null,
                         note: note?.textContent.trim() ?? null,
-                        /* Slate draws two sibling paragraphs, not one joined string. */
                         separate: Boolean(caption && note && caption !== note),
                         noteBelow: Boolean(caption && note
                             && note.getBoundingClientRect().top >= caption.getBoundingClientRect().bottom - 1),
@@ -1060,9 +745,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('and it rides on the OPTION, so a leaf with no milk option shows none', async () => {
-                /* The condition is the item list, not a second flag: no other leaf in
-                 * the registry declares a noted option, so every other row's note is
-                 * absent by the same rule that puts this one on screen. */
                 for (const [category, leaf] of [
                     ['machine', 'machine-water-tank'], ['display', 'display-screen'],
                     ['machine', 'machine-flush'],
@@ -1078,23 +760,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             });
 
-            /* A BANK THAT SELECTS NOTHING NOW SAYS WHY (point 121).
-             *
-             * `De1HeaterVoltage` has three members and this bank offers two: `unset(-1)` is
-             * a real, shipping state — a machine nobody has told — and it cannot be a
-             * segment, because choosing it would ask a heater to run on nothing. So the row
-             * drew two unpressed keys with no explanation anywhere on the page, which is
-             * indistinguishable from a bank that failed to render.
-             *
-             * THIS IS A7 SERVED, NOT BREACHED. Nothing is substituted: the bank still
-             * selects no segment on -1, and the assertion below pins that. What is added is
-             * the absence NAMED, which is what A7 asks for — and a sentence rather than a
-             * dash, because a control's absence raises the question "what do I do about
-             * it" and only a sentence answers it. Slate had it (`settings.js:5138`).
-             *
-             * AND IT GOES AWAY THE MOMENT A VOLTAGE IS SET, which is the half that makes it
-             * a wiring test rather than a copy test: a note that is always on screen is a
-             * caption in the wrong place. */
             test('an unset mains voltage selects nothing and says so', async () => {
                 await showLeaf('calibration', 'calibration-hardware');
                 const readRow = () => page.evalFn(() => {
@@ -1137,25 +802,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
             });
 
-            /* BOTH FLOW MULTIPLIERS ARE LOOKAHEAD SECONDS (H18, points 109 and 112).
-             *
-             * SETTLED BY THE CODE ON BOTH SIDES, not by preference. `shot_sequencer.dart`
-             * computes `projectedWeight = currentWeight + (weightFlow * multiplier)`
-             * (:432-433) and `projectedVolume = _accumulatedVolume + (machine.flow *
-             * multiplier)` (:460-461); flow is a per-second rate in both, so a product that
-             * comes out as a mass or a volume makes the multiplier a TIME. ReaPrime names
-             * the identical construct `lookaheadSeconds` (`hot_water_stop.dart:112`), and
-             * Slate's own inputs carry an 's'.
-             *
-             * SO THE ROW HAD TO PRINT THE UNIT, and `appFlowMultiplier.unit` was the empty
-             * string — a number with no dimension on the one page where the dimension is
-             * the whole meaning. And the captions opened "Corrects flow derived from…",
-             * which is a calibration gain: something you turn because an instrument reads
-             * high. Neither multiplier touches the flow it is given. A user reading
-             * "corrects" would tune these against a scale error for ever.
-             *
-             * THE LEAF IS DE1-ONLY, so the machine has to be a DE1 for it to exist at all —
-             * an EMPTY served set, which is ReaPrime's own "this is not a Bengle". */
             test('both flow multipliers print seconds and say how far ahead they look', async () => {
                 await page.evalFn(() => window.__settings.capabilities([]).then(() => true));
                 await page.settle();
@@ -1187,14 +833,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `the ${which} caption does not say what the number is`);
                     assert.doesNotMatch(row.caption, /corrects flow/i,
                         `the ${which} caption still describes a gain — nothing is corrected`);
-                    /* POINT 112: the direction belongs on BOTH rows. The mechanism is
-                     * identical, and Slate states it only on the weight one — Slate being
-                     * incomplete rather than Decal being faithful. */
                     assert.match(row.caption, /higher value stops the shot earlier/i,
                         `the ${which} caption does not say which way it moves the stop`);
-                    /* POINT 111: the default is stated here because nothing else states it.
-                     * Neither field is in RESET_FIELDS and neither has a MACHINE_FALLBACKS
-                     * entry, so before this the recovery value was written down nowhere. */
                     assert.match(row.caption, /default [\d.]+ s/i,
                         `the ${which} caption does not name its default`);
                     assert.equal(row.step, 0.05,
@@ -1208,16 +848,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
             });
 
-            /* THE LEAF'S ONE HEADLINE SCALAR REACHES ITS NAV ROW (point 114, Slate's S20).
-             *
-             * "Confirming what the machine is set to cost six taps and six page loads" is
-             * Slate's own note on why this exists. Decal had the data — every value on
-             * every leaf is one view away — and slotted a bare label: a finished half with
-             * no other half.
-             *
-             * THE PENDING STATE IS THE SOURCE AND THAT IS THE LOAD-BEARING HALF. A summary
-             * read off the machine document would print 220V beside a control the user has
-             * just moved to 110V, which is worse than no summary at all. */
             test('the Voltage nav row carries the set voltage, and agrees with an unsaved change', async () => {
                 await showLeaf('calibration', 'calibration-hardware');
                 const summaryFor = (leafId) => page.evalFn((id) => {
@@ -1255,23 +885,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal((await summaryFor('calibration-hardware')).text, '220V',
                     'and Cancel takes the summary back with the control');
 
-                /* A LEAF WITH NO NOMINATED ROW DRAWS NO SUMMARY ELEMENT AT ALL — not a
-                 * dash. A column of dashes in a nav list reads as a broken screen rather
-                 * than as a set of pages that hold no single number. */
                 const bare = await summaryFor('calibration-load-cells');
                 assert.equal(bare.missing, false, 'the Load Cells row is in the same list');
                 assert.equal(bare.text, null, 'and it draws no summary element');
             });
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 3d. cmp-sm-3 — THE LEAF TITLE BLOCK: EYEBROW, AND THE LARGER TITLE
-         *
-         * ORACLE settings-calibration-load-cells [i=44] p.slate-eyebrow "Calibration"
-         * y=146 h=31, [i=45] p.slate-title "Load Cell Calibration" y=181 — 28px, one
-         * category word above it, 4px apart. The rebuild dropped the eyebrow and set
-         * the title at the 20px heading role, and nothing declared either.
-         * ═════════════════════════════════════════════════════════════════ */
 
         describe('cmp-sm-3: every leaf names its category above its title', () => {
             const header = () => page.evalFn(() => {
@@ -1315,9 +933,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await showLeaf('calibration', 'calibration-load-cells');
                 const got = await header();
                 assert.equal(got.titleTag, 'h2', 'still one h2 per leaf');
-                /* NAMED, NOT A LITERAL: --ui-text-xl is what .ui-title carries and what
-                 * the oracle measured at 28. The assertion reads the token so the
-                 * density scale can still move it. */
                 near(got.titleSize, parseFloat(await page.resolveToken('--ui-text-xl', 'font-size')),
                     'the leaf title takes .ui-title');
                 assert.ok(got.titleSize > got.rowHeadingSize,
@@ -1335,16 +950,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `the header block must be tighter than the leaf rhythm: ${got.gapToTitle} vs ${got.gapToFirstRow}`);
             });
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 3e. THE 1px SEPARATOR STAGGER (Ben-reported, measured 21 Aug 2026)
-         *
-         * Nav separators at y = 384 / 473 / 562 / 651 against sub-nav
-         * 385 / 474 / 563 / 652: one pixel, every row, both columns 89px pitch.
-         * The head track was `auto` and collapsed in the sub-nav instance, so the
-         * lists were 88px apart against a 89px pitch — 88 mod 89 = one pixel short,
-         * for ever.
-         * ═════════════════════════════════════════════════════════════════ */
 
         describe('the two nav lists share a rhythm AND an origin', () => {
             const columns = () => page.evalFn(() => {
@@ -1371,11 +976,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const got = await columns();
                 assert.ok(got.nav && got.subnav, 'both columns must exist');
 
-                /* THE COLLAPSED BRANCH SHOWS ONE COLUMN AT A TIME (§4.4's two-column
-                 * layout below 1100), so there are no two lists to line up and the
-                 * question is not asked at the floor. Asserted rather than skipped: a
-                 * geometry where BOTH are hidden would be a different bug, and a
-                 * geometry where both show is the wide branch and must be measured. */
                 if (!got.nav.showing || !got.subnav.showing) {
                     assert.notEqual(got.nav.showing, got.subnav.showing,
                         'the collapsed branch shows exactly one nav column');
@@ -1385,9 +985,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(got.nav.pitch, got.subnav.pitch, 'one pitch, by construction (T2)');
                 near(got.nav.origin, got.subnav.origin, 'the two lists start at the same y', 0.51);
 
-                /* THE REPORTED SYMPTOM, AS A NUMBER. Every separator the two lists have
-                 * in common must be the same y — not one apart, which is what a reader
-                 * sees as a stagger and what nothing in this suite could see before. */
                 const shared = Math.min(got.nav.separators.length, got.subnav.separators.length);
                 assert.ok(shared >= 3, 'not enough rows in both columns to compare');
                 assert.deepEqual(
@@ -1397,10 +994,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             });
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 4. T15 — THE ACCESSIBILITY CLUSTER
-         * ═════════════════════════════════════════════════════════════════ */
 
         describe('T15: real semantics, named switches, and no dialog', () => {
             test('EVERY switch the screen can show has an accessible name', async () => {
@@ -1444,10 +1037,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('M9: tabbing walks the leaf pane in the order the rows are drawn', async () => {
                 await showLeaf('machine', 'machine-flush');
-                /* REAL KEY EVENTS through CDP, not `.focus()` and not a synthetic click:
-                 * T15's navigation clause is that focus never moved because the old page
-                 * drove itself with `.click()`. What is asserted here is that focus DOES
-                 * move, through the rows, in DOM order. */
                 await page.evalFn(() => {
                     const stepper = document.querySelector('settings-screen').shadowRoot
                         .getElementById('leaf').shadowRoot.querySelector('ui-settings-row ui-stepper');
@@ -1469,10 +1058,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 5. C6 — THE CONTROL MOVES THE TOKENS AND MAKES NO SCROLLER
-         * ═════════════════════════════════════════════════════════════════ */
-
         describe('C6: display size drives the tokens, not a canvas transform', () => {
             const readDensity = () => page.evalFn(() => ({
                 density: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-density')),
@@ -1493,15 +1078,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 return true;
             }, value);
 
-            /* ═══════════════════════════════════════════════════════════════
-             * THE BRIGHTNESS SLIDER — MOVED HERE 28 AUGUST 2026
-             *
-             * These two assertions were written against a BESPOKE leaf and they are the
-             * whole reason that leaf could be retired safely: they pin the floor and they
-             * pin which value the control shows. `ARCHETYPE.SLIDER` made the page
-             * primitive, so the tests move to the primitive suite unchanged in what they
-             * claim — only in where they look for the control.
-             * ═══════════════════════════════════════════════════════════════ */
             const brightnessSlider = () => page.evalFn(() => {
                 const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
                 const row = leaf.shadowRoot.querySelector('ui-settings-row[data-row="display-screen-brightness"]');
@@ -1512,26 +1088,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     max: slider.max,
                     value: slider.value,
                     valueText: slider.getAttribute('value-text'),
-                    /* THE ROW CARRIES THE SENTENCE AS AN ATTRIBUTE, so it is read from the
-                     * row and not from the leaf's text: `settings-leaf.js` passes
-                     * `caption=` to <ui-settings-row>, which draws it inside its own
-                     * shadow root. Reading the leaf's textContent finds nothing and would
-                     * have failed a rule that holds. */
                     caption: (row.getAttribute('caption') || '').includes('never goes dark by accident'),
                 };
             });
 
             test('the slider FLOORS at 10, which is what its own caption promises', async () => {
-                /* A DECLARED BEHAVIOUR WITH NOTHING BACKING IT — the fork's own defect
-                 * class. The slider ran 0..100 under a caption reading "The lowest setting
-                 * stays readable, so the screen never goes dark by accident." Drag it to
-                 * the left end and the screen went dark, which is what the sentence says
-                 * cannot happen — and on a kiosk tablet the control you would need to undo
-                 * it is now invisible. Slate is explicit: BRIGHTNESS_FLOOR = 10.
-                 *
-                 * THE SENTENCE IS THE SPECIFICATION, so this asserts the caption too. The
-                 * band is `screenBrightness` in `machine-limits.js` and reaches the control
-                 * through the row's bounds, so it is stated once and typed nowhere. */
                 await page.evalFn(() => window.__settings.displayFrame(null));
                 await showLeaf('display', 'display-screen');
                 const report = await brightnessSlider();
@@ -1542,16 +1103,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the slider shows the PANEL brightness, not the stored number', async () => {
-                /* O2 AND A7 IN ONE LINE, and it survives the move to a registry row
-                 * because a ROUTE row already prefers a panel's served value over its
-                 * stored key — the same rule the wake lock below it runs on. The visible
-                 * cost of getting it wrong is real: with ReaPrime's low-battery clamp
-                 * active the panel is held at 20 and the slider went on claiming 100. */
-                /* THE FRAME IS ARMED BEFORE THE LEAF IS SHOWN. A bespoke page read its
-                 * feed during render, so arming it afterwards was enough; a REGISTRY row's
-                 * view is computed when the leaf opens, so the panel has to have answered
-                 * by then. The order is the difference between measuring the rule and
-                 * measuring the fallback. */
+
                 await page.evalFn(() => window.__settings.displayFrame({
                     brightness: 20, requestedBrightness: 100,
                 }));
@@ -1586,9 +1138,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(after.base, '1.1');
                 assert.equal(after.transform, before.transform, 'no canvas transform: C6 retires that mechanism');
 
-                /* THE TYPE SCALE, MEASURED WHERE IT LANDS. A custom property carrying a
-                 * calc() reads back as the calc() itself, so the honest question is what
-                 * the ENGINE drew: the leaf heading's rendered font-size. */
                 assert.ok(parseFloat(after.headingType) > parseFloat(before.headingType),
                     `the type scale moved with it: ${before.headingType} -> ${after.headingType}`);
             });
@@ -1602,13 +1151,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `above 1.0 the old control turned the viewport into a scroller: ${state.docScrollWidth} > ${state.docClientWidth}`);
             });
 
-            /* THE REFUSED BRANCH. `pick()` always succeeds, so nothing above ever asks
-             * what the preview does when the STORE SAID NO — quota, private mode, a
-             * wedged backend (settings-store reason BACKEND_FAILED). `ok` rides along on
-             * leaf-change for exactly this, and the listener has to read it: a refused
-             * write that still repaints the root leaves the app at a size the stored
-             * preference does not contain, and the boot-time apply reverts it later with
-             * no explanation — the units.js silent-revert class B7 exists to stop. */
             const announce = (ok) => page.evalFn((detail) => {
                 const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
                 leaf.dispatchEvent(new CustomEvent('leaf-change', {
@@ -1649,9 +1191,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the band still multiplies the choice at the short-window geometry', async () => {
-                /* At FLOOR (600px tall) the height band is 0.875. The whole point of the
-                 * split is that a chosen 1.1 becomes 0.9625, not 0.875 — "so a user choice
-                 * survives a short window" (Part 2 §5 rule 2). */
                 await showLeaf('display', 'display-screen');
                 await pick('larger');
                 await page.settle();
@@ -1661,22 +1200,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('RECORDED: the ch measure does not move with the type scale yet', async () => {
-                /* THE FINDING, PINNED RATHER THAN FIXED. `--ui-measure-wide` is `84ch`
-                 * and the token sheet's comment claims that is "what makes it survive C6:
-                 * the density and type-scale control moves --ui-text-base, and a measure
-                 * in ch moves with the type it is a measure OF". Half of that is true
-                 * today: the token IS in ch. But `ch` resolves against the FONT OF THE
-                 * ELEMENT the cap is applied to, and nothing in the chain down to the
-                 * leaf sets a token-driven font-size — `styles/document.css` gives `html`
-                 * a family and a leading and no size — so the cap is computed against the
-                 * UA's 16px and does not move.
-                 *
-                 * NOT FIXED HERE, DELIBERATELY: the remedy is one declaration on the leaf
-                 * pane (`font-size: var(--ui-text-base)`), which is another row's file and
-                 * changes the inherited type of every leaf's content. It costs nothing
-                 * visible today — on this hardware the pane is narrower than 84ch, so the
-                 * cap never binds — and it is recorded as a deferred question. This test
-                 * asserts the CURRENT behaviour so the day someone fixes it, it says so.  */
                 await showLeaf('display', 'display-screen');
                 await pick('fit-screen');
                 await page.settle();
@@ -1694,10 +1217,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 6. D11 — THE COUNT REACHES #31, WHICH OWNS THE WORDS
-         * ═════════════════════════════════════════════════════════════════ */
-
         describe('D11: the screen supplies a count and the band says the sentence', () => {
             const bandText = () => page.evalFn(() => {
                 const band = document.querySelector('settings-screen').shadowRoot.getElementById('band');
@@ -1710,25 +1229,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a stored preference never makes the band dirty', async () => {
-                /* THIS CASE WAS DRIVING A ROW THAT NO LONGER EXISTS, and it passed anyway.
-                 *
-                 * It used to call `change('help-quickstart-guide-button', true)` on the
-                 * Quickstart leaf. That toggle was DELETED with rows 267/268, and the
-                 * fixture's `change()` answers `false` and does nothing when it cannot
-                 * find the row — silently, because a driver that threw on a missing row
-                 * would be a driver no test could use to prove a row is absent. So this
-                 * case went on asserting `count === 0` on a page where nothing had been
-                 * touched: a guard that cannot fail, which is worse than no guard and is
-                 * the same rule that retired the toggle in the first place.
-                 *
-                 * THE RETURN VALUE IS NOW ASSERTED, which is the half that makes the rest
-                 * mean anything: the day THIS row is deleted the case turns red and names
-                 * itself, instead of quietly measuring an untouched screen.
-                 *
-                 * THE ROW IT DRIVES IS A PLAIN STORED SWITCH. `display-screen-saver-enabled`
-                 * is SOURCE.ROUTE with no machine door and no panel door behind it, so the
-                 * write goes to the storage router and to nothing else — which is exactly
-                 * the quantity this case is about. */
                 await showLeaf('display', 'display-screen-saver');
                 const changed = await page.evalFn(
                     () => window.__settings.change('display-screen-saver-enabled', false),
@@ -1738,12 +1238,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
                 const band = await bandText();
                 assert.equal(band.count, 0);
-                /* CLEAN IS "SAVE" WITHOUT A COUNT, not "Close" (Ben, 25 Aug 2026). He
-                 * chose Slate's header for both committing screens: Slate shows Cancel
-                 * and a filled Save whether or not anything has changed, and D11's "Close
-                 * alone at zero" was the departure. What is asserted here is unchanged —
-                 * a STORED preference writes at once and must never put a number on the
-                 * band — and the count is what says so. */
                 assert.match(band.all, /Save/, 'the band still offers Save, and #31 owns the word');
                 assert.doesNotMatch(band.all, /Save \(/, 'with no count, because nothing is staged');
             });
@@ -1783,10 +1277,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 7. D8 / D4 — THE WAY OUT, AND THE LEAF THAT KEEPS ITS ENTRY
-         * ═════════════════════════════════════════════════════════════════ */
-
         describe('D8 and the D4 boundary, on screen', () => {
             test('D8 is one button, on a settings row, keeping its own name', async () => {
                 await showLeaf('display', 'display-skin');
@@ -1816,24 +1306,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('D4 reversed: the firmware leaf carries real controls', async () => {
-                /* D4 said "no firmware-update feature, and the hand-picked file upload is
-                 * removed, not carried". Ben reversed it on 24 August 2026: "I should be
-                 * able to pick a file, but it should also have a 'latest' button that
-                 * pulls it." The note that stood in for the feature is gone with it.
-                 *
-                 * THE MOCK ANSWERS THE CATALOG 503, so what this measures is the leaf's
-                 * ABSENT state — which is the state that used to hold the note. It must
-                 * now say the machine has not answered rather than that Decal does not
-                 * do this; the controls themselves are measured against the catalog in
-                 * `test/firmware.test.mjs` and on the bench. */
                 await showLeaf('updates', 'updates-firmware-update');
                 const rows = await rowReport(page);
                 assert.deepEqual(rows, [], 'it is not a settings ROW — a catalog is a bespoke layout');
                 const seen = await page.evalFn(() => {
                     const screen = document.querySelector('settings-screen').shadowRoot;
-                    /* THE PAIR. <settings-leaf> renders the heading and the registry rows
-                     * for all thirty-seven; <settings-bespoke-leaf> is its sibling and
-                     * renders the layout the ten need. They are two elements, not one. */
                     const leaf = screen.getElementById('leaf');
                     const root = screen.getElementById('bespoke')?.shadowRoot ?? null;
                     return {
@@ -1847,27 +1324,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.doesNotMatch(seen.text, /does not send firmware/i);
             });
 
-            /* THE WHOLE CUP-WARMER PAGE DRAWS, AND IT USED TO DRAW TWO ROWS OF FIVE.
-             *
-             * This case previously asserted that under an UNKNOWN capability the leaf
-             * rendered only "Pre-warm before wake-up" and "Start this long before" — three
-             * rows carried `capability: 'cupWarmer'` and two did not, and `gateCapability`
-             * fails closed on UNKNOWN as well as ABSENT. That is a page about a warmer with
-             * no warmer on it, and this fixture's capability store is DELIBERATELY never
-             * loaded, so it was the ordinary state rather than an edge one.
-             *
-             * IT WAS A SPLIT GATE, AND ONE LEAF MUST HAVE ONE VERDICT. ReaPrime returns
-             * `cupWarmer` and `preheat` together for any `BengleInterface` and 404s both
-             * routes together for anything else (`de1handler.dart:38-54, :632-637`), so
-             * there is no machine on which three of these rows belong and two do not. The
-             * gate that remains is the route's own answer: `cup-warmer.js` publishes
-             * `status: UNSUPPORTED` on a 404 and every field goes absent with it, so a
-             * machine with no warmer draws a page of dashes — which is A7's shape for "the
-             * machine did not say", and is a state this screen has to render anyway.
-             *
-             * A3 IS STILL ASSERTED, on `machine-sleep-wake-schedules`, whose two registry
-             * rows are BOTH gated and whose bespoke half is not a row at all — see
-             * `test/settings-leaves.test.mjs`. */
             test('the capability list does not decide this leaf: five rows, or none', async () => {
                 await showLeaf('accessories', 'accessories-cup-warmer');
                 const rows = await rowReport(page);
@@ -1881,22 +1337,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 8e. AN UNSAVED EDIT IS MARKED ON ITS OWN ROW
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('a staged row says so', () => {
-            /* `data-staged` was written on every row from the day the commit model was
-             * built and NO rule in src/ or styles/ matched it — an attribute that painted
-             * nothing. So the Save button carried a count and there was no way to find out
-             * WHICH of your edits it was counting. The behaviour audit filed it as a half
-             * with no other half, and Slate has the mirror image: it designed a dirty dot
-             * (slate-components.css:747) and never wired it either.
-             *
-             * THE MARK IS A ::after ON THE HOST, so this reads the pseudo-element rather
-             * than looking for an extra node. There is no extra node, and that is the
-             * point: #29 owns its own layout, and whether a row is staged is the commit
-             * model's business, not the row's. */
             const markOn = (rowId) => page.evalFn((id) => {
                 const leaf = document.querySelector('settings-screen').shadowRoot.getElementById('leaf');
                 const row = leaf.shadowRoot.querySelector(`ui-settings-row[data-row="${id}"]`);
@@ -1925,28 +1366,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const after = await markOn('machine-flush-duration');
                 assert.equal(after.staged, true);
                 assert.notEqual(after.content, 'none', 'the staged row is marked');
-                /* ROUND, ASSERTED AS A SHAPE RATHER THAN AS ONE SPELLING OF IT.
-                 *
-                 * This read `radius === '50%'`, Slate's own literal, until 27 August 2026.
-                 * The rule now says `var(--ui-radius-pill)` and draws exactly the same dot:
-                 * ui-status-chip.js records the skin's mapping for this shape - "spec
-                 * section 3.4 records that any value greater than or equal to half the
-                 * height does the same for a pill" - and fourteen live rules in src/ round
-                 * a disc through that token, this one having been the only holdout. The
-                 * spelling changed because a bare percentage in a settings leaf trips the
-                 * leaf-local-number guard, which cannot tell a shape from a setting's
-                 * bounds.
-                 *
-                 * SO THE CLAIM IS SECTION 3.4'S OWN, which is the claim the test was always
-                 * making: a radius of at least half the box is a circle, and it stays true
-                 * whichever of the two ways the rule is written.
-                 *
-                 * IN PIXELS, AND THE UNIT IS PART OF THE ASSERTION. A computed radius comes
-                 * back as a px length or as the percentage as written, so comparing bare
-                 * numbers would read "10%" on an 8px box as a radius of ten and call a
-                 * barely-softened square a circle. Requiring px is what makes the
-                 * comparison mean what it says; a rule that went back to a percentage would
-                 * fail here and be re-argued rather than slip through. */
                 assert.match(after.radius, /px$/,
                     `the dot's radius computed as ${after.radius} — a length is what this `
                     + 'measurement can be compared against');
@@ -1990,20 +1409,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 8d. SAVE LEAVES ON SUCCESS AND STAYS ON A REFUSAL
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('the band gets you out, and a refused save does not', () => {
-            /* BEN, ON THE TABLET: "the cancel button in Settings is not working, only save
-             * can exit." The four-cell matrix is pinned in the skeleton suite, which has
-             * the band and no model; this is the half that needs a model — a DIRTY save,
-             * which has to write first and leave only if the machine took it.
-             *
-             * LEAVING ON A REFUSED WRITE would carry a person off the page with their
-             * change still staged and nothing said, which is the silent loss B7 exists to
-             * prevent. `commit()` has always reported `{ok, reason}`; this screen used to
-             * discard it, and the behaviour audit filed that as a half with no other half. */
             const press = (button) => page.evalFn(async (which) => {
                 const screen = document.querySelector('settings-screen');
                 const seen = [];
@@ -2051,36 +1457,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 8c. FAHRENHEIT — shown in the chosen unit, held in the machine's
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('a temperature is drawn in the unit the person chose', () => {
-            /* THE PREFERENCE HAD NO READER. `units.js` carried the whole conversion — four
-             * policy functions, a store, a formatter — and `createUnitsStore` had ZERO
-             * callers in src/, so every temperature in the skin was drawn in Celsius
-             * whatever the Temperature bank said. Found 26 August 2026 by sweeping every
-             * settings row for something on the other end.
-             *
-             * A MISMATCH WOULD HAVE MADE THE WIRING SILENTLY INERT, and it is worth naming
-             * because a green suite would have hidden it: the bank stores LOWERCASE 'c' /
-             * 'f' and the module's constants are uppercase, so `normaliseUnit` answered
-             * null for every value the app can actually store. It is case-insensitive now.
-             *
-             * BEN'S TWO RULES ARE BOTH ASSERTED. "Rounding to same decimal place as the
-             * original value" — 322 °F, not 321.8, on a band that steps by a whole degree.
-             * "Reverse conversion to go back to the machine" — the staged patch is exactly
-             * 161, with no floating-point residue on the wire. */
-            /* THE MACHINE CLASS HAS TO BE KNOWN, or the steam row has no band at all —
-             * its ceiling is machine-dependent and A7 refuses a stand-in, so with no
-             * served capability there is no hint element to read. */
+
             const serveClass = () => page.evalFn(() => window.__settings.capabilities(['cupWarmer'])
                 .then(() => true));
 
-            /* EACH CASE STARTS FROM THE MACHINE'S OWN VALUE. The model is shared across
-             * this file and a staged edit survives a leaf change by design — that is the
-             * commit model working — so a test that pressed + leaves 161 behind for the
-             * next one. Discarding is what "as the machine holds it" means here. */
             const pickUnit = async (unit) => {
                 await page.evalFn(() => { window.__settings.model().discard(); return true; });
                 await serveClass();
@@ -2104,12 +1485,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('Celsius is the wire\'s own unit and nothing moves', async () => {
                 await pickUnit('c');
                 await showLeaf('machine', 'machine-steam');
-                /* THE HINT LOST ITS "0 or" ON 26 AUGUST 2026 AND THE BAND DID NOT MOVE.
-                 * `steamTemp` still declares `min: 0` and `floor: 135` — the clamp, the step
-                 * and the numpad all still work the hole, and the master switch above still
-                 * writes the zero. What went is `zeroMeans`, and with it the sentence that
-                 * taught a second way to switch the heater off directly under a switch that
-                 * does it. Ben: "no need to have <130 = off, the new toggle has that now." */
                 assert.deepEqual(await steamRow(), {
                     hint: '135–170 °C', drawn: '160°C', value: 160, unit: '°C',
                 });
@@ -2121,29 +1496,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const shown = await steamRow();
                 assert.equal(shown.unit, '°F');
                 assert.equal(shown.drawn, '320°F', '160 C is 320 F exactly');
-                /* THE BAND IS SHOWN IN THE UNIT THE VALUE IS, or the label contradicts the
-                 * control beside it. Rounded to whole display units on purpose: a bound
-                 * printed as 275.4 invites a value the band would refuse.
-                 *
-                 * THIS EXPECTATION WAS "0 or 275–338 °F" UNTIL 27 AUGUST 2026, AND IT WAS
-                 * PINNING A DEFECT — read the Celsius case eleven lines above, which
-                 * asserts "135–170 °C" for the same row on the same day. One band, two
-                 * sentences, and which one you got was decided by a display preference
-                 * that has no business deciding it.
-                 *
-                 * WHERE THE SECOND SENTENCE CAME FROM. Ben removed `zeroMeans` from the
-                 * steam row on 26 August — "no need to have <130 = off, the new toggle has
-                 * that now" — so `rangeHint` stopped printing the "0 or …" clause that
-                 * taught a second way to switch the heater off directly under a switch
-                 * that does it. `displayRangeHint` re-spelled the band shape by hand off
-                 * `range.floor` instead of asking, so it never got the message. Both now
-                 * go through `bandHint` in `machine-limits.js`, which is the only author
-                 * of the shape.
-                 *
-                 * SO THE CLAUSE IS GONE FROM BOTH FACES, and the assertion below says
-                 * that rather than restating one of them: the two hints must be the same
-                 * sentence with different numbers and a different symbol, which is a
-                 * claim the old expectation could not make and would have failed. */
                 assert.equal(shown.hint, '275–338 °F');
                 await pickUnit('c');
                 await showLeaf('machine', 'machine-steam');
@@ -2169,10 +1521,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
 
                 const shown = await steamRow();
-                /* BEN'S ROUNDING RULE. The underlying number is 321.8 — one Celsius step —
-                 * and what is DRAWN carries the Celsius step's decimal places, which is
-                 * none. A tenth of a Fahrenheit degree is a precision the machine has not
-                 * got. */
                 assert.equal(shown.drawn, '322°F');
 
                 /* AND THE REVERSE. Every value a press can reach is a value the machine can
@@ -2182,10 +1530,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the switch above it still remembers the MACHINE\'s number', async () => {
-                /* A zeroSwitch stores the value it is leaving so turning it back on comes
-                 * back to the same setting. Remembering 320 because the page happened to be
-                 * in Fahrenheit would come back as 320 °C — off the top of the band — so
-                 * the round trip through the switch is the assertion. */
                 await pickUnit('f');
                 await showLeaf('machine', 'machine-steam');
                 const flip = (checked) => page.evalFn(async (want) => {
@@ -2208,24 +1552,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     { steamTargetTemperature: 160 },
                     'and back to the machine\'s own 160 — not 320, which would be off the band');
             });
-
-            /* ────────────────────────────────────────────────────────────────
-             * THE NUMPAD OVER THE ROW, WHICH IS THE OTHER CONTROL ON IT
-             *
-             * Every case above drives the STEPPER. The keypad is the second way to
-             * change the same number and it derived its own band from the RAW machine
-             * table until 27 August 2026, so on this very page it disagreed with the
-             * control it opened from. MEASURED on this fixture, Machine › Steam, with
-             * the preference set to Fahrenheit: the row's hint read "275–338 °F" and
-             * the keypad's read "0 or 135–170"; typing 300 clamped to 170.
-             *
-             * THE CLAMP IS THE HALF THAT REACHES THE MACHINE. `#onKeypadConfirm` puts
-             * the confirmed number back through `model.set()`, which converts display
-             * → machine — so a value clamped against the wrong band was wrong twice
-             * and in opposite directions. These two cases drive REAL PRESSES on the
-             * pad and read the STAGED machine field afterwards, because that field is
-             * the only place the second error is visible.
-             * ──────────────────────────────────────────────────────────────── */
 
             /** Open the numpad from a row's value cell — the gesture, not a property. */
             const openPad = async (rowId) => {
@@ -2307,18 +1633,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await showLeaf('machine', 'machine-steam');
                     await openPad('machine-steam-temp');
 
-                    /* 300 °F IS INSIDE THE BAND — 148.9 °C, between the 135 floor and the
-                     * 170 ceiling. Against the CELSIUS band it is above the ceiling and
-                     * clamps to 170, which is what shipped: the confirm handler then read
-                     * that 170 as Fahrenheit and staged 76.7 °C. Wrong twice. */
                     const clamped = await typeAndConfirm(['3', '0', '0']);
                     assert.equal(clamped, 300, '300 °F is in band, so the clamp returns it');
 
                     const after = await stagedSteam();
                     assert.equal(after.staged, true, 'confirming stages the machine field');
-                    /* AND THE MACHINE GETS CELSIUS. Computed, not written: the assertion is
-                     * that the wire carries the same temperature the person typed, and the
-                     * only honest way to say that is to convert it here the same way. */
                     const staged = await page.evalFn(() => {
                         const model = window.__settings.model();
                         const view = model.rows('machine-steam').find((v) => v.id === 'machine-steam-temp');
@@ -2336,10 +1655,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await showLeaf('machine', 'machine-steam');
                     await openPad('machine-steam-temp');
 
-                    /* 400 °F is above the band on any reading of it. What must come back is
-                     * the ceiling THE HINT PRINTED, in the unit it printed it in — not 170,
-                     * which is the same ceiling wearing the machine's unit and would land
-                     * on the machine as 76.7 °C. */
                     const clamped = await typeAndConfirm(['4', '0', '0']);
                     const shownMax = Number((await steamRow()).hint.match(/(\d+)\s*°F/)[1]);
                     assert.equal(clamped, shownMax,
@@ -2351,9 +1666,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.settle();
                 });
 
-            /* PUT THE UNIT BACK. It is a stored preference and this file's other cases
-             * read temperatures too — leaving Fahrenheit set would make the next suite's
-             * band assertions fail for a reason that has nothing to do with the band. */
             test('Celsius again, for everything after this', async () => {
                 await pickUnit('c');
                 await showLeaf('machine', 'machine-steam');
@@ -2361,20 +1673,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 8a. A VARIANT ROW SPEAKS ONE UNIT, NOT TWO
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('the hot-water cap follows its stop mode all the way down', () => {
-            /* MEASURED 26 August 2026. `machine-hot-water-volume` is one machine field
-             * behind two modes: a volume cap in millilitres, or a weight cap in grams.
-             * The variant moved the heading and the stepper's unit and stopped there, so
-             * in weight mode the row read "Weight", "0 g", and — beside them — the hint
-             * "0-255 mL · 0 = no volume cap", straight off the limits row, which is
-             * written in millilitres. Two units and two nouns on one row at one moment.
-             *
-             * THE NUMBERS DO NOT MOVE, and that is why the machine holds one field: a
-             * millilitre of water weighs a gram. Only the words follow the mode. */
             test('weight mode says grams and weight; volume mode says millilitres and volume', async () => {
                 await showLeaf('machine', 'machine-hot-water');
                 const readRow = () => page.evalFn(() => {
@@ -2391,13 +1690,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.settle();
                 };
 
-                /* THE MACHINE HAS TO SAY IT CAN STOP AT WEIGHT BEFORE WEIGHT IS REACHABLE,
-                 * and that is new on 26 August 2026 rather than a fixture detail. Ben's rule
-                 * — "weight grayed out if no scale is connected and volume selected" — was
-                 * written down as `HOT_WATER_STOP` and imported by nothing, so the page
-                 * offered Weight ungreyed on a tablet with no scale and a pour started that
-                 * way had no stop at all. The gate is the served `stopAtWeight` entry, which
-                 * is the same one the Live rail's identical option asks for. */
                 await page.evalFn(() => window.__settings.capabilities(['stopAtWeight']).then(() => true));
                 await showLeaf('machine', 'machine-hot-water');
 
@@ -2414,25 +1706,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     hint: '0–255 mL · 0 = no volume cap',
                     unit: 'mL',
                 }, 'and the whole row goes back together');
-                /* THIS SUITE SHARES ONE PAGE, and the stop mode is a MACHINE field since
-                 * 26 August 2026 — so setting it STAGES rather than storing, and a staged
-                 * field left here is a change count a later section reads. */
                 await page.evalFn(() => { window.__settings.model().discard(); return true; });
                 await page.settle();
             });
 
             test('with no scale answer the Weight cell is disabled and the row reads Volume', async () => {
-                /* THE HALF THAT WAS MISSING UNTIL 26 AUGUST 2026, and it is the fork's own
-                 * defect class in its purest form: Ben dictated the whole rule and it was
-                 * stored as an exported constant nothing imported, three lines below the
-                 * defaults that do work. The cost was concrete rather than tidy — Weight
-                 * selected, Weight offered, and no stop on the pour.
-                 *
-                 * FAIL-CLOSED ON UNKNOWN AS WELL AS ABSENT, which is the settings store's
-                 * one verdict rule: a machine that has not answered is not a machine with a
-                 * scale. This fixture's capability store is deliberately never loaded, so
-                 * `capabilities(null)` is the same state a real tablet is in for the first
-                 * moment of every boot. */
                 await page.evalFn(() => window.__settings.capabilities(null).then(() => true));
                 await showLeaf('machine', 'machine-hot-water');
                 await page.evalFn(() => { window.__settings.model().discard(); return true; });
@@ -2444,11 +1722,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         label: b.textContent.trim(),
                         disabled: b.disabled,
                     }));
-                    /* THE WRITE, THROUGH THE MODEL rather than through the fixture's own
-                     * `change()`: that helper reports whether it found a control, not what
-                     * the model decided, so asserting on its answer would pass whatever
-                     * happened. The staged patch is the honest evidence — a refused write
-                     * stages nothing. */
                     const stopRow = window.__settings.model().allRows('machine-hot-water')
                         .find((view) => view.id === 'machine-water-stop').row;
                     const result = await window.__settings.model().set(stopRow, 'weight');
@@ -2473,25 +1746,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 8b. THE STEAM ENVELOPE ARRIVES LATE, AND THE ROW MUST TAKE IT
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('a limit that depends on the machine class is read when it is known', () => {
-            /* THE SHIPPED DEFECT, measured 26 August 2026. The steam row is in the limits
-             * table only once the machine class is known, and the class is read off the
-             * SERVED capability array — an asynchronous request. `settings-model.js` took
-             * `machineLimits().value` ONCE at construction, and the screen builds its
-             * model the moment it connects, so on a normal boot the captured table was the
-             * unknown-class one. The Temperature row then drew no range, no degree sign
-             * and no clamp FOR THE WHOLE SESSION, whatever the machine answered a moment
-             * later. Nothing failed and nothing logged: A7's "no honest stand-in" is a
-             * correct behaviour for an unknown class, and it simply never stopped.
-             *
-             * WHAT IS ASSERTED IS THE ORDER. Serving the capability BEFORE the row is
-             * asked would pass against the old code too — the defect only exists in the
-             * gap between construction and the answer. So the row is read first with the
-             * mock refusing capabilities, and again after they are served. */
             test('the steam row gains its band, its unit and its clamp when the class lands', async () => {
                 await page.evalFn(() => window.__settings.capabilities(null).then(() => true));
                 await showLeaf('machine', 'machine-steam');
@@ -2515,10 +1770,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ════════════════════════════════════════════════════════════════════
-         * 9. NO CONTROL RENDERS OUTSIDE ITS PANE — every leaf, every control
-         * ═══════════════════════════════════════════════════════════════════ */
-
         describe('every control lands inside the leaf pane', () => {
             test('no control is zero-width, and none crosses either pane edge', async () => {
                 const controls = await controlBounds(page);
@@ -2534,22 +1785,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a text field takes its NAME from the row and does not print it twice', async () => {
-                /* MEASURED ON THE CURRENT TREE before the fix: row heading "ReaPrime
-                 * address", field `label` property "ReaPrime address", inner <label> text
-                 * "ReaPrime address", input aria-label NULL.
-                 *
-                 * TWO DEFECTS, ONE WORD. #29 auto-names a slotted control, and rule 1 is
-                 * "a ui-* control with its own `label` property" gets the heading written
-                 * onto that property. #4 then DRAWS any label it is given unless told to
-                 * hide it — that is the visible duplication. And because #4 sets `aria-label`
-                 * only when it is NOT drawing a visible label, the drawn label suppressed
-                 * the input's accessible name entirely: the heading is a sibling <span>, not
-                 * a <label for>, so nothing named the field at all. The audit could see the
-                 * first and not the second.
-                 *
-                 * #4 ALREADY DOCUMENTED THE RESOLUTION at its E14 note — "with `hide-label`
-                 * the name survives as `aria-label`" — and neither component was wrong on
-                 * its own; the duplication only existed between them. */
                 const fields = await page.evalFn(async () => {
                     const api = window.__settings;
                     const nav = await import('/src/lib/settings-nav.js');

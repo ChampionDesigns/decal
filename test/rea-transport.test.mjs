@@ -1,8 +1,4 @@
-// The transport core: injection, spelling, failures, conditional GETs.
-//
-// Every test here runs with an injected fetch double. There is no server, no DOM and no
-// loader hook — which is the point: the old client could not be tested without one,
-// because it computed its base URL from `window.location` at import time.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -155,33 +151,6 @@ describe('failures are data, never a manufactured answer', () => {
     });
 });
 
-/* ===========================================================================
- * A BODY THAT IS NOT JSON, READ AS WHAT IT IS
- *
- * ONE ROUTE FAMILY NEEDS THIS AND IT IS THE ACCOUNT PROXY.
- * `GET /api/v1/account/proxy/support/api/<endpoint>` "relays the upstream status code and
- * body verbatim" — the spec's own words — and types its success content
- * `application/octet-stream`, `format: binary`. The client cannot assume JSON because the
- * server does not know what it is forwarding.
- *
- * AND FOR THE TWO ENDPOINTS THIS SKIN ADDRESSES, ASSUMING JSON IS WRONG TWICE:
- *
- *   `support/api/email` answers a bare token. `'0'` is a refusal and ReaPrime's own
- *       `emailSerialMismatch` compares it as a STRING. `JSON.parse('0')` SUCCEEDS and
- *       gives the number zero — worse than throwing, because the refusal then arrives as
- *       a value every caller has to know to convert back before testing.
- *
- *   `support/api/emails` answers JSON that is sometimes malformed (`"subject": ,`). That
- *       throws, and the DECODE failure keeps only `text.slice(0, 200)`, so the body is
- *       unrecoverable from the error.
- *
- * WHY IT IS HERE AND NOT IN THE CALLER. The alternative was a second `fetch` in the
- * support store — a second transport with none of this one's base URL, deadline, abort,
- * conditional handling or write announcement, which is the duplication this module's own
- * header refuses. Reading a body as text is transport work; deciding what the text MEANS
- * is the caller's.
- * =========================================================================== */
-
 describe('expect: text — a verbatim relay is read as what it is', () => {
     test("a body of '0' stays the string it was, instead of becoming the number zero", async () => {
         const { transport } = transportWith(() => jsonResponse(200, '0'));
@@ -207,11 +176,6 @@ describe('expect: text — a verbatim relay is read as what it is', () => {
         assert.equal(asJson.problem.length <= 200, true, 'and the DECODE path keeps only a truncated copy');
     });
 
-    /* AN EMPTY BODY IS `''` AND NOT `null`, WHICH IS A DIFFERENT FACT. The JSON path leaves
-     * `null` for a bodyless response because there is no value; for a relay the empty
-     * STRING is the upstream's answer, and only the caller knows whether that means
-     * anything. Collapsing them would take the distinction away from the one place that
-     * can use it. */
     test('a bodyless 200 read as text is the empty string, not null', async () => {
         const { transport } = transportWith(() => jsonResponse(200, undefined));
         const result = await transport.get('/account/proxy/support/api/emails', { expect: 'text' });
@@ -230,9 +194,6 @@ describe('expect: text — a verbatim relay is read as what it is', () => {
         assert.deepEqual(result.problem, { error: 'Path not allowed' });
     });
 
-    /* A MISSPELLED OPTION IS A THROW AND NOT A SILENT JSON READ. `expect: 'txt'` reading
-     * as JSON would be a typo that produces a DECODE failure somewhere else entirely, and
-     * the whole reason this option exists is that a wrong read is hard to see. */
     test('an unknown expect is refused at the call, where the mistake is', async () => {
         const { transport } = transportWith(() => jsonResponse(200, 'x'));
         await assert.rejects(
@@ -346,16 +307,6 @@ describe('the data layer cannot reach a screen', () => {
     }
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * THE SIXTH MANUFACTURED ANSWER.
- *
- * `rea-errors.js` enumerates the five catch blocks in the old module that turned a
- * transport failure into a plausible value. `readBody`'s own `catch { return '' }` was a
- * sixth, inside the module whose header says they have no successor here: a body read that
- * rejected on a 200 became `{ok: true, status: 200, data: null}` — the same result shape as
- * the bodyless 202 the write routes really do return, and indistinguishable from it at the
- * call site.
- */
 describe('a body that could not be read is a failure, not an empty body', () => {
     const hangsUpMidBody = (status = 200) => ({
         status,
@@ -383,8 +334,6 @@ describe('a body that could not be read is a failure, not an empty body', () => 
     });
 
     test('on a refusal, an unread body is not reported as "no problem body"', async () => {
-        // A 409 whose body we never got is not a 409 with no reason: the reason went unread
-        // and saying so is the whole point.
         const { transport } = transportWith(() => hangsUpMidBody(409));
         const result = await transport.put('/devices/connect', { deviceId: 'x' });
         assert.equal(result.ok, false);
@@ -395,10 +344,6 @@ describe('a body that could not be read is a failure, not an empty body', () => 
 
 describe('the deadline covers the BODY, not just the headers', () => {
     test('a response that stalls after its headers times out', async () => {
-        // `fetch` resolves on the response head; the body streams afterwards. The timer used
-        // to be cleared in a `finally` on the fetch, leaving the body read running under no
-        // deadline at all — a stall there hung the caller for ever. Demonstrated at 5 s
-        // before the fix; here the 20 ms deadline must fire.
         let abortSeen = null;
         const stalls = (url, init) => ({
             status: 200,
@@ -421,8 +366,6 @@ describe('the deadline covers the BODY, not just the headers', () => {
         const { transport } = transportWith(() => jsonResponse(200, { fan: 40 }), { timeoutMs: 50 });
         const result = await transport.get('/machine/settings');
         assert.equal(result.ok, true);
-        // If the deadline were still armed this test would keep the event loop alive; node's
-        // runner would report the suite as hanging rather than passing.
     });
 });
 

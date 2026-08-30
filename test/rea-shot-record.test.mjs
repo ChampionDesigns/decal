@@ -1,18 +1,4 @@
-// The stored shot record, addressed — the non-frame half of `GET /api/v1/shots/<id>`.
-//
-// Gate 6 reads this once per shot, and every server name a stored shot uses is written
-// down here and nowhere else. What the suite pins is the A7 half, because it is the half
-// that produces PLAUSIBLE NUMBERS when it is wrong:
-//
-//   * absence is a VALUE with a reason, never a zero. `Number(absence)` is NaN on purpose.
-//   * `hasMeasurements` separates "a shot with no samples" from "a record whose samples
-//     were never sent" (a list row, `/shots/latest`) — the derivation refuses the second.
-//   * the dose has TWO named quantities with a stated preference, and it always says which
-//     one it returned. The old third rung — `workflow.profile.dose_weight`, a field
-//     `Profile.toJson` does not emit — could only ever have produced `undefined`, and is
-//     deleted rather than ported.
-//   * a workflow with no profile still yields marks with `stepNames: null`, which is not
-//     the same as a profile with no steps.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 

@@ -1,23 +1,4 @@
-/**
- * Gate D — the contract table as a build gate (SCOPE Part 8 §2).
- *
- * Three things are tested, in this order of importance:
- *
- *  1. THE CANARIES FIRE. Every check has a fixture that breaks its rule on purpose, and a
- *     case here asserting the check fails on it. A guard that silently stops covering its
- *     target is this project's most expensive recurring failure — three of them so far —
- *     and it is invisible without this.
- *  2. THE CONTROL PASSES. A file that DISCUSSES an untabled route and a retired spelling in
- *     prose must not trip anything. A false positive earns an exemption; an exemption is
- *     how coverage dies.
- *  3. THE TABLE IS TRUE. Every row is re-read against the ReaPrime handler at the pinned
- *     commit — the file exists, that file registers that path, and the symbol is in it —
- *     and the handler-body gates the wave named are asserted to be present and to say what
- *     the handler says.
- *
- * The desk check itself stays human, and passing it is necessary, not sufficient (D7).
- * Anything only the bench can settle is on the bench list, never asserted here.
- */
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
@@ -51,8 +32,6 @@ const table = (name) => JSON.parse(readFileSync(join(FIXTURES, name), 'utf8'));
 const TABLE = loadTable();
 const rules = (violations) => [...new Set(violations.map((v) => v.rule))].sort();
 
-/* ------------------------------------------------------------------ canaries */
-
 describe('Gate D canaries — every check fails on its fixture', () => {
     test('COVERAGE: a route-shaped literal with no table row', () => {
         const v = checkCoverage([fixture('unlisted-route.js')], TABLE);
@@ -85,8 +64,6 @@ describe('Gate D canaries — every check fails on its fixture', () => {
     test('SOURCE: a handler file, a registration and a symbol that are not true at the pin', () => {
         const v = checkSource(table('wrong-handler-table.json'), REA_ROOT);
         assert.deepEqual(rules(v), ['source-handler-file', 'source-handler-symbol', 'source-route-registration']);
-        // getSensors is pointed at shots_handler.dart: the file exists, and does not carry
-        // either the route or the symbol — so one wrong row raises both findings.
         const sensors = v.filter((x) => x.detail.includes('getSensors')).map((x) => x.rule).sort();
         assert.deepEqual(sensors, ['source-handler-symbol', 'source-route-registration']);
     });
@@ -96,11 +73,6 @@ describe('Gate D canaries — every check fails on its fixture', () => {
         assert.deepEqual(rules(v), ['source-worktree-missing']);
     });
 
-    // The canary for the hole this rule closes: the SOURCE half used to read handlers out of
-    // REA_ROOT — an environment variable — without ever asking what commit that tree was at,
-    // so a run against another ReaPrime checkout re-verified 46 of 50 rows against the wrong
-    // commit and surfaced only the 4 route strings that differed. This repo stands in for
-    // "a git tree that is not the pin": it is guaranteed present and guaranteed not ReaPrime.
     test('SOURCE: a worktree that is not at the pin re-verifies NOTHING', () => {
         const v = checkSource(TABLE, REPO_ROOT);
         assert.deepEqual(rules(v), ['source-worktree-commit']);
@@ -163,8 +135,6 @@ describe('Gate D control — prose is not code', () => {
     });
 });
 
-/* --------------------------------------------------------------- the real run */
-
 describe('Gate D over this repo', () => {
     test('passes, with the source half actually run', async () => {
         const report = await runGateD({ source: true });
@@ -181,8 +151,6 @@ describe('Gate D over this repo', () => {
         assert.equal(skipped.counts.reaHead, null, '--no-source read no tree, and says so');
     });
 
-    // `npm test` caught a mispointed REA_ROOT via rea-routes-freshness; `npm run gate-d` —
-    // the gate the wave's GATE agent runs — did not. It does now.
     test('a run against a tree that is not the pin FAILS, whatever the rows say', async () => {
         const report = await runGateD({ source: true, reaRoot: REPO_ROOT });
         assert.equal(report.ok, false);
@@ -205,8 +173,6 @@ describe('Gate D over this repo', () => {
         assert.ok(!/[0-9a-f]{40}/.test(source), 'gate-d.js must not carry its own copy of the commit');
     });
 });
-
-/* ------------------------------------------------------------------ the table */
 
 describe('the contract table', () => {
     test('every row carries the six contract columns Part 3 §7 names', () => {
@@ -239,8 +205,6 @@ describe('the contract table', () => {
         }
     });
 });
-
-/* -------------------------------------------------- the handler-body gates */
 
 describe('handler-body gates, re-read at the pin', () => {
     const dart = (rel) => readFileSync(join(REA_ROOT, rel), 'utf8');
@@ -339,8 +303,6 @@ describe('handler-body gates, re-read at the pin', () => {
         assert.ok(!/ledStrip\/preview/.test(src), 'and the two the old skin POSTed do NOT exist');
     });
 });
-
-/* ---------------------------------------------------------- the upstream four */
 
 describe('the ReaPrime-side contract bugs', () => {
     test('are listed, and each names a file that exists at the pin', () => {

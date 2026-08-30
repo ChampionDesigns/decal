@@ -1,30 +1,5 @@
 /**
- * editor-hidden-switch.render.test.mjs — "HIDDEN FROM THE LIBRARY" IS A REAL SWITCH (D20).
- *
- * Ben, 30 August 2026, on round 1's partial F-031 — six of the eight Settings controls
- * were built and the two switches were left dead:
- *
- *   "build the two record-level switches properly … Each needs: a store writer …, its own
- *    request on commit …, change tracked and shown (they are NOT profile-draft changes —
- *    decide the honest UI …), and tests."
- *
- * ONE OF THE TWO IS BUILT. "Machine default" is PARKED on the pin's own evidence — at
- * `2b047d02` no route writes `isDefault`, and the flag does not mean what the label says
- * (it marks a BUNDLED profile and acts as a guard against editing, purging and deleting).
- * That half is in the fix log, not in this file; a test cannot be written for a route that
- * does not exist.
- *
- * WHAT IS ASSERTED IS THE WHOLE CHAIN, because every link of it was missing:
- *   1. the switch composes, is NAMED, and reads the record it was opened on;
- *   2. a press sends ITS OWN request — `PUT /profiles/<id>/visibility` with the bare
- *      `{visibility}` field, exactly the shape the pinned handler requires;
- *   3. the switch asserts only what the SERVER answered, never the press;
- *   4. a refusal leaves the glass telling the truth, in the server's own words;
- *   5. it is NOT a draft change — the change count and the save body are untouched;
- *   6. an unseated draft gets an unavailable control and a reason, not a dead one.
- *
- * A8: nothing here reads a source file. Every assertion is a recorded request, a live
- * property, or a name computed by Chrome's own accessibility tree.
+ * "hidden from the library" is a real switch (d20).
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -39,11 +14,6 @@ const geometry = GATE_A_GEOMETRIES[0];
 
 const SWITCH = 'editor-screen >>> #field-hidden';
 
-/**
- * The path `callRoute` spells for the seated record. The colon in a ProfileRecord id
- * (`profile:<hex>`) is percent-encoded into the segment, which is what the pinned
- * handler's own `Uri.decodeComponent(id)` undoes.
- */
 const VISIBILITY_PATH = `/profiles/${encodeURIComponent('profile:seated')}/visibility`;
 const VISIBILITY_KEY = `PUT ${VISIBILITY_PATH}`;
 
@@ -210,9 +180,6 @@ describe('the library-visibility switch (D20)', () => {
         {
             record: recordWith('visible'),
             answers: {
-                /* THE FAILURE SHAPE IS THE TRANSPORT'S. `profileRefusal` reads a typed
-                 * 400 off `problem`, which is where `createReaTransport` puts a JSON
-                 * error body; `data` is the SUCCESS payload and a refusal has none. */
                 [VISIBILITY_KEY]: {
                     ok: false,
                     status: 400,
@@ -259,12 +226,6 @@ describe('the library-visibility switch (D20)', () => {
             }
         }));
 
-    /**
-     * A NEW PROFILE, staged exactly as `selector-screen.js #openNewProfile` makes it: a
-     * record object with a **null id** round a freshly seeded profile. There is a draft,
-     * so the panel composes its rows — and there is no id, so there is nothing for a
-     * visibility write to address.
-     */
     test('an UNSEATED draft gets an unavailable control and a reason', () => staged(
         { record: recordWith('visible', { id: null, metadataHash: null, compoundHash: null }) },
         async (page) => {

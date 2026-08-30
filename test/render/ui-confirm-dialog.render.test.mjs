@@ -1,47 +1,5 @@
 /**
- * ui-confirm-dialog.render.test.mjs — Wave 4 item #19's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR,
- * never source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the
- * 1000×600 floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. The row's acceptance test is "the defect cannot be
- * expressed", and the defect is P13:
- *
- *   "Closed dialogs stay in the tab order: DaisyUI's `.modal` sets `display: grid;
- *    opacity: 0` with no `visibility: hidden`, defeating the UA's
- *    `dialog:not([open]) { display: none }`. Measured 16 FOCUSABLES INSIDE
- *    `dialog:not([open])` out of 30 on the page." (§7.7 P13)
- *
- * That is invisible to a screenshot — a closed DaisyUI modal photographs as nothing
- * at all while laying out at 450×205 and holding four reachable controls. So section 1
- * mounts the selector's four confirms CLOSED and counts: boxes, tabbables, and the
- * two page controls that must still be reachable so the count is not vacuous.
- *
- * The oracle is the evidence and not the target, and the tool says so itself: these
- * elements are on the 140 layout bugs, so "matching Slate there reproduces the bug",
- * and every rect it prints is frozen 1920×1200 geometry. Quoted here as WHAT SLATE
- * DOES:
- *
- *   CITE profile-selector .modal-box [i=191] "Reset profile? KEEP Reset"
- *        rect x=735 y=454 w=450 h=205                        <- laid out while CLOSED
- *   CITE profile-selector #reset-profile-cancel [i=193] "KEEP"  rect w=100 h=58
- *   CITE profile-selector #reset-profile-confirm [i=194] "Reset" rect w=103 h=58
- *   CITE profile-selector #reset-profile-confirm [i=194] background-color =
- *        rgb(248, 113, 113) <- app.css `.bg-red-400` (FROZEN/hardcoded)
- *
- * Two answers ARE carried, and both are drilled below because a literal 28px and a
- * token 28px photograph identically:
- *
- *   CITE profile-selector .font-bold [i=192] font-size = 28px <- app.css
- *        `.text-\[28px\]` authored `28px` (FROZEN/hardcoded)   = --ui-text-xl
- *   CITE profile-selector .font-bold [i=192] color = rgb(244, 247, 248) <-
- *        slate-shell.css `#subpage-host .modal-box :is(h2, h3)` authored
- *        `var(--slate-text)` !important=yes (token-driven)     = --ui-text
- *
- * Everything about modality — trap, inert, restore, Escape, the scrim — is #18's and
- * is proven in `ui-dialog.render.test.mjs`. What is proven here is that composing a
- * body does not break it, and that the two outcomes cannot be confused.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -57,9 +15,6 @@ import {
     DRILL_LENGTH,
 } from '../harness/assertions.js';
 
-/* The compound imports #18 and #1 itself; ui-button is listed because the PAGE
- * outside the dialog mounts an invoker, and the harness waits on whenDefined for
- * every hyphenated tag it finds on the stage (the trap ui-menu.demo.js documents). */
 const MODULE = [
     '/src/components/ui-confirm-dialog.js',
     '/src/components/ui-button.js',
@@ -90,13 +45,6 @@ const AFFIRMATIVE = `
     confirm-label="Send"></ui-confirm-dialog>
 </div>`;
 
-/**
- * P13's own stage: the selector's FOUR dialogs, all closed, plus two page controls.
- * "Measured 16 focusables inside dialog:not([open]) out of 30 on the page" —
- * `layout/selector.md` V.2. Slate lays all four out (ORACLE: five `.modal-box`
- * elements with real rects in state `profile-selector`); the count below is the same
- * question asked of this component.
- */
 const FOUR_CLOSED = `
 <div id="page" style="padding: 60px">
   <button id="page-a">Filter</button>
@@ -108,7 +56,6 @@ const FOUR_CLOSED = `
   <ui-confirm-dialog id="login" question="Log in to continue?" confirm-label="Log in"></ui-confirm-dialog>
 </div>`;
 
-/** A body that cannot fit: the scroll region §4.6 calls mandatory, through a body. */
 const TALL = `
 <div id="page" style="padding: 60px">
   <ui-button id="invoker">Restore</ui-button>
@@ -203,10 +150,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. P13 — THE DEFECT, AND IT CANNOT BE EXPRESSED
-         * ============================================================== */
-
         test('P13: the selector\'s four confirms, closed, hold ZERO focusables', () => mounted(async (page) => {
             const counted = await page.evalFn(() => {
                 let tabbables = 0;
@@ -273,10 +216,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* ================================================================
-         * 2. THE SHAPE — two tracks, because a confirm has no header
-         * ============================================================== */
-
         test('the card is TWO tracks and one seam: body, then actions', () => mounted(async (page) => {
             await openByPress(page);
             const tracks = (await page.prop(NATIVE, 'grid-template-rows')).split(/\s+/);
@@ -317,10 +256,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'ORACLE #reset-profile-cancel x=937 before #reset-profile-confirm x=1052');
             near(cancel.bottom, confirm.bottom, 'and they share a line at this width');
         }));
-
-        /* ================================================================
-         * 3. THE TYPE — the two answers carried, both drilled
-         * ============================================================== */
 
         test('the question is --ui-text-xl, not the literal 28px Slate wrote', () => mounted(async (page) => {
             await openByPress(page);
@@ -376,10 +311,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             await page.setStyle('#c', { '--_ui-confirm-inline': null });
         }));
-
-        /* ================================================================
-         * 4. THE PAIR — tone is the action's paint, from the token family
-         * ============================================================== */
 
         test('the destructive action reads --ui-status-danger, never a raw red', () => mounted(async (page) => {
             await openByPress(page);
@@ -438,10 +369,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'a destructive treatment must be ASKED for, never inherited from a typo');
         }));
 
-        /* ================================================================
-         * 5. THE FOUR DIALS ARE UNTOUCHED — nothing here is selectable
-         * ============================================================== */
-
         test('the selection dials move nothing: this component grows no fifth selection idiom', () => mounted(async (page) => {
             await openByPress(page);
             const props = ['background-color', 'color', 'box-shadow', 'text-shadow'];
@@ -468,10 +395,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'confirm has no selection — so all four must be inert here, not "probably unused"');
         }));
 
-        /* ================================================================
-         * 6. THE RING, UNCLIPPED (bug L24's class), AND WHERE THE CARET GOES
-         * ============================================================== */
-
         test('the way out draws an unclipped ring', () => mounted(async (page) => {
             await openByPress(page);
             await assertFocusUnclipped(page, CANCEL);
@@ -490,10 +413,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'ui-dialog.js:928 hands the caret to the first tabbable, and the pair is authored '
                 + 'cancel-first precisely so that a stray Enter means KEEP');
         }));
-
-        /* ================================================================
-         * 7. TWO OUTCOMES, AND THEY CANNOT BE CONFUSED
-         * ============================================================== */
 
         test('pressing the affirmative action reports confirm exactly once, and closes', () => mounted(async (page) => {
             await openByPress(page);
@@ -540,10 +459,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and a refused confirm must NOT also report a cancel');
             assert.equal(await page.prop(NATIVE, 'display'), 'grid', 'still on screen');
         }));
-
-        /* ================================================================
-         * 8. THE CONTAINER FLOOR — the card's own box, never the viewport
-         * ============================================================== */
 
         test('the compound establishes no container: everything in it reads the DIALOG\'s box', () => mounted(async (page) => {
             await openByPress(page);
@@ -615,10 +530,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setStyle('#c', { '--_ui-confirm-inline': null });
         }));
 
-        /* ================================================================
-         * 9. ARIA — Appendix 15's contract, and §4.6's "or the attribute comes off"
-         * ============================================================== */
-
         test('the modal announces by its question', () => mounted(async (page) => {
             await openByPress(page);
             const aria = await page.evalFn((s) => {
@@ -668,10 +579,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(names, { cancel: 'Cancel', confirm: 'Confirm' },
                 'D2: the key IS its English text, so an unloaded store still answers with a usable word');
         }));
-
-        /* ================================================================
-         * 10. THE GALLERY'S OWN STATES, in a real browser
-         * ============================================================== */
 
         test('every gallery state mounts, opens and has something to photograph', () => browser.withPage({ geometry }, async (page) => {
             for (const state of galleryEntry.states) {

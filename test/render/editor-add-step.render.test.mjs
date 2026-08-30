@@ -1,27 +1,5 @@
 /**
- * editor-add-step.render.test.mjs — A TAP IN THE EMPTY STEPS AREA CREATES A STEP (F-033).
- *
- * SCORED AGAINST BEN'S CORRECTED LINE, 29 August 2026 (intent review, L0129):
- *
- *   "a tap in the panel's empty step area creates a new step there — including on a
- *    profile with no steps at all", and the empty area where the next step would draw
- *    should carry a small plus icon.
- *
- * WHAT WAS THERE. Three guarded presses in the empty step area, each resolving to the
- * matrix's own `div.filler`, left the matrix at three columns; no plus icon was composed
- * anywhere and the region had no press handler. And the consequence the corrected line was
- * written to catch: the only way to gain a step was the per-step "Insert step after" key,
- * which does not exist at all on a profile with no steps — no column, no action rail, no
- * way back. Ben met that end of it on 27 August ("there is not + button to add a new step
- * etc, ie I cannot add any steps").
- *
- * TWO HALVES, TESTED SEPARATELY. The matrix half is the affordance and the event it
- * dispatches; the draft half is `applyStepAction` accepting `insert-after` from index −1,
- * which is what "after no step at all" means. The end-to-end block below drives the real
- * screen over a real store, which is the only place the two meet.
- *
- * A8: every assertion is a measured box, a counted element, a recorded event or a live
- * property. Nothing reads a source file.
+ * A.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -63,16 +41,6 @@ async function addName(page) {
     return { name: node?.name?.value ?? '', role: node?.role?.value ?? '' };
 }
 
-/**
- * PRESS THE DOOR THE WAY A PERSON DOES — scrolled into the port, and CHECKED to be inside
- * the window before the press.
- *
- * The matrix is its own horizontal scrollport and the door sits at the far end of it, past
- * the last step column. `page.click` dispatches at the rect's centre and Chrome hits
- * whatever is there, which for a box outside the port is something else entirely — so the
- * press would never happen and the assertion after it would be about a gesture nobody made.
- * Same rule, and same reason, as `editor-exit-add.render.test.mjs`.
- */
 async function pressAdd(page) {
     await page.evalFn((sel) => {
         window.__h.need(sel).renderRoot.querySelector('#add-step')

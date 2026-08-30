@@ -1,11 +1,5 @@
 /**
- * weather-model.test.mjs — the corner's presentation rules, driven without a browser.
- *
- * The arithmetic these tests do NOT cover is deliberate: bucketing the forecast into
- * parts of the day belongs to `weather.reaplugin`, where the location's timezone is
- * known, and it is proven there against a synthetic forecast. What is tested here is
- * the skin's own half — which state the corner is in, how many periods each surface
- * takes, and when a cached reading has aged out.
+ * The corner's presentation rules, driven without a browser.
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,39 +1,5 @@
 /**
- * ui-nav-row.render.test.mjs — Gate A for component #24 (wave 2, item #24).
- *
- * Runs the whole rig at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth)
- * and the 1000×600 floor — asserting only on computed style, box geometry and behaviour,
- * never on source text (Part 8 §2).
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. token drill — eleven tokens retargeted on :root with the rendered value asserted
- *      to move AND to land on the token, plus the DERIVATION drill that decision C4
- *      turns on: --ui-nav-row is calc((--ui-control-h + 2 × --ui-space-3) × --ui-density)
- *      and all three inputs must move it;
- *   2. THE DIAL DRILL — assertOneSelectionTreatment on a current row against a resting
- *      sibling, plus the assertion this wave exists for: the ONLY painted differences
- *      between the two are the four properties `selectionSurface` writes, and only ONE
- *      box in the component changes at all (Part 10 §12, spec §3.9);
- *   3. focus geometry from --ui-focus-*, unclipped — inside a real clipping column, at
- *      the inset offset, which is bug L24's class;
- *   4. container behaviour — the row fills its container and reads no viewport; the label
- *      ellipsises in a 200px column instead of widening it; the 88px pitch and the 48px
- *      hit floor both hold there;
- *   5. THE THREE BUGS, asserted inexpressible — T5 (the 4px LED that wins a specificity
- *      fight), T3 (the 6px radius that wins the same kind of fight), T2 (the pitch and
- *      the separator that come from a sibling selector that cannot match);
- *   6. the aria contract (spec Appendix 15) — aria-current on the announced element, in
- *      the one state that carries it, from both spellings of the property.
- *
- * ONE GEOMETRY IS DELIBERATELY NOT GEOMETRY-INDEPENDENT, and it is the only one in the
- * component: --ui-nav-row carries × var(--ui-density), and styles/tokens.css:929-933
- * declares `@media (height < 700px) { :root { --ui-density: 0.875 } }` — the ONE global
- * query the architecture allows (CONVENTIONS §2). So the row is 88px at BENCH and 77px
- * at FLOOR by design, and the suite asserts exactly that: the arithmetic, at both
- * geometries, plus the proof that pinning --ui-density makes the two agree to the pixel.
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable. Every literal
- * below carries its CITE line; the component header carries the full set.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -51,13 +17,6 @@ import {
 
 const MODULE = ['/src/components/ui-nav-row.js'];
 
-/* #category is a REAL clipping column — ten 88px rows in a 300px box with overflow:auto,
- * which is Slate's own shape (settings.html:27, `overflow-y-auto`, ten categories) — so
- * the focus assertions are not vacuous. #subcategory is the SECOND column, and it exists
- * for one reason: T2 is "the sub-category column does not align with the category
- * column", so the pitch has to be compared across two containers that share nothing but
- * a token. #narrow is the container-floor stage. Both columns draw their seams as grid
- * gaps (CONVENTIONS §13), which is what replaces the per-row border. */
 const STAGE_CSS = `
 <style>
     #category, #subcategory {
@@ -105,23 +64,10 @@ const MARKUP = `${STAGE_CSS}
  */
 const ORACLE = {
     dark: {
-        /* CITE #accessories-btn [i=11] color = rgb(148, 161, 169) <- slate-shell.css
-         *      `#subpage-host .settings-nav-btn` authored `var(--slate-muted)` */
         restingInk: 'rgb(148, 161, 169)',
-        /* CITE #left-panel [i=6] background-color = rgb(14, 19, 23) <- slate-shell.css
-         *      `#subpage-host #settings-body > #left-panel` — the ground the transparent
-         *      row sat on, and --ui-fascia exactly */
         ground: 'rgb(14, 19, 23)',
-        /* CITE #machine-btn [i=9] background-color = rgb(176, 196, 206) <-
-         *      authored `var(--slate-selected-face)` !important */
         currentFace: 'rgb(176, 196, 206)',
-        /* CITE #machine-btn [i=9] color = rgb(18, 24, 28) <- authored
-         *      `var(--slate-selected-ink)` !important */
         currentInk: 'rgb(18, 24, 28)',
-        /* CITE #accessories-btn [i=11] box-shadow = rgb(58, 72, 82) 0px 1px 0px 0px inset
-         *      <- `ul > li + li .settings-nav-btn` authored
-         *      `inset 0 var(--slate-hairline) 0 var(--slate-line)` — the SEPARATOR ink,
-         *      = --ui-line. Carried by the container's seam gap, never by this row. */
         seam: 'rgb(58, 72, 82)',
     },
     light: {
@@ -132,26 +78,19 @@ const ORACLE = {
         seam: 'rgb(203, 208, 211)',
     },
     /* Theme-independent, from the same records. */
-    fontSize: '22px',          // CITE [i=11] font-size = 22px <- var(--slate-text-nav)
-    fontWeight: '400',         // CITE [i=11] font-weight = 400 <- var(--slate-weight-regular)
-    paddingInline: '24px',     // CITE [i=11] padding-left = 24px <- padding: 0 var(--slate-space-5)
-    borderWidth: '0px',        // CITE [i=11] border-top-width = 0px <- app.css `*, :after, :before`
-    /* CITE [i=9] font-weight = 500 <- slate-shell.css `.slate-nav-selected`, authored
-     * var(--slate-weight-medium) !important. Carried since parity surface 2 through
-     * --ui-selected-weight, the fifth dial: Slate renders 500 on all 76 of the
-     * corpus's selected nav rows, across 38 states, with no exception. */
+    fontSize: '22px',
+    fontWeight: '400',
+    paddingInline: '24px',
+    borderWidth: '0px',
     currentWeight: '500',
-    /* What Slate renders and this component deliberately does not. */
-    slateRadius: '6px',        // CITE [i=9] border-top-left-radius = 6px  (T3)
-    slateLed: 4,               // CITE [i=9] box-shadow ... 0px -4px 0px 0px inset  (T5)
-    slatePitch: 89,            // CITE .settings-nav-btn rects [0,219,260,89] ...  (T18)
+    slateRadius: '6px',
+    slateLed: 4,
+    slatePitch: 89,
 };
 
 /** The derivation decision C4 settled: 88px, and where each part of it comes from. */
 const DERIVED = { controlH: 64, space3: 12, navRow: 88 };
 
-/** The five properties `selectionSurface` writes, and the whole of the treatment.
- *  `font-weight` joined the list at parity surface 2 (base.js, --ui-selected-weight). */
 const DIAL_PROPERTIES = ['background-color', 'color', 'box-shadow', 'text-shadow', 'font-weight'];
 
 /**
@@ -199,8 +138,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 1. tokens are consumed, not copied ----------------------------- */
-
         test('drill: the pitch reads --ui-nav-row, on the host and on the button',
             () => mounted(async (page) => {
                 await assertTokenDrill(page, {
@@ -219,11 +156,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 1 / decision C4: the pitch is DERIVED, and all three inputs move it',
             () => mounted(async (page) => {
-                // T18 is "--slate-nav-row: 89px justifies itself with a derivation that is
-                // wrong on both halves", and C4's answer is not a better number, it is a
-                // derivation: calc((--ui-control-h + 2 × --ui-space-3) × --ui-density).
-                // A magic 88 would pass the --ui-nav-row drill above and fail every one of
-                // these, which is the difference the decision is about.
                 const d = await density(page);
                 const natural = (DERIVED.controlH + 2 * DERIVED.space3) * d;
                 assert.equal(await page.prop('#cat1', 'min-height'), `${natural}px`);
@@ -288,8 +220,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('drill: --ui-fascia is the ground and --ui-muted is the resting ink',
             () => mounted(async (page) => {
-                // L12's class: a component holding its own copy of the palette would paint
-                // the same and NOT move when the token moves.
                 await assertTokenDrill(page, {
                     token: '--ui-fascia',
                     value: DRILL_COLOUR,
@@ -312,9 +242,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the label names no colour, no size and no weight of its own',
             () => mounted(async (page) => {
-                // Everything it needs arrives from the button above it, which is what lets
-                // --ui-selected-ink reach it by inheritance with no second colour named
-                // anywhere in the file.
                 const label = await page.computed('#cat1 >>> #label',
                     ['color', 'font-size', 'font-weight']);
                 const row = await page.computed('#cat1 >>> #row',
@@ -322,14 +249,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(label, row, 'the label inherits its whole type from the row');
             }));
 
-        /* -- 2. THE DIAL DRILL: one selection treatment ---------------------- */
-
         test('the current row is painted by the four dials and nothing else',
             () => mounted(async (page) => {
-                // The wave's headline obligation (Part 10 §12). This checks that face and
-                // ink are the dials', that the LED and the glow MOVE when their dials move
-                // (reading a 0px LED off a 0px token proves nothing), and that a resting
-                // sibling stays unpainted.
                 const result = await assertOneSelectionTreatment(page, {
                     selected: '#current >>> #row',
                     unselected: '#cat1 >>> #row',
@@ -339,12 +260,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('NO PRIVATE SELECTED LOOK: the only differences are the five dial properties',
             () => mounted(async (page) => {
-                // This is the founding defect made inexpressible. Slate's current nav row
-                // carries a weight change (slate-shell.css:497), a ::before leading bar
-                // (:517-527) and a 4px inset LED (slate-components.css:262-268) on top of
-                // the two dials — three private expressions of one state, of which only
-                // ONE (the weight) is a value a fork can retarget. Anything of that shape
-                // here shows up as a sixth differing property.
                 const current = await page.computed('#current >>> #row', NON_DIAL_PROPERTIES);
                 const resting = await page.computed('#cat1 >>> #row', NON_DIAL_PROPERTIES);
                 const differing = Object.keys(current).filter((k) => current[k] !== resting[k]);
@@ -352,10 +267,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a current row differs from a resting one somewhere other than the five '
                     + 'dials — that is a sixth selection treatment starting');
 
-                // Parity surface 2 REVERSED what was departure 4: Slate bolds the current
-                // row to 500 and so does this, through the fifth dial rather than through
-                // a rule — which is why font-weight moved into DIAL_PROPERTIES and out of
-                // the list compared above.
                 const weights = await page.computed('#current >>> #row', ['font-weight']);
                 const restingWeight = await page.computed('#cat1 >>> #row', ['font-weight']);
                 assert.equal(weights['font-weight'], ORACLE.currentWeight,
@@ -379,8 +290,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('EXACTLY ONE BOX CHANGES: the host is inert in both states',
             () => mounted(async (page) => {
-                // Two boxes painting one state is how a second treatment starts, even when
-                // both start out identical. The host paints the ground and nothing else.
                 const currentHost = await page.computed('#current', [...DIAL_PROPERTIES, 'opacity']);
                 const restingHost = await page.computed('#cat1', [...DIAL_PROPERTIES, 'opacity']);
                 assert.deepEqual(currentHost, restingHost,
@@ -403,9 +312,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(2);
                 assert.equal(await page.prop('#cat1 >>> #row', 'background-color'), face,
                     '.current = true must select');
-                // Reflected on the host for a container to select on; rendered onto the
-                // button because the button is the element a reader announces. One
-                // property, two renderings, so they cannot disagree.
                 assert.deepEqual(
                     await page.evalFn(() => ({
                         host: document.getElementById('cat1').hasAttribute('current'),
@@ -440,8 +346,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'false, and ten rows each announcing false is noise');
             }));
 
-        /* -- the measured starting values, both themes ---------------------- */
-
         test("the resting and current paint are the oracle's measured values, in both themes",
             () => mounted(async (page) => {
                 for (const theme of ['dark', 'light']) {
@@ -463,8 +367,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(current.color, want.currentInk,
                         `${theme}: --ui-selected-ink (CITE [i=9] color)`);
 
-                    // The separator ink is unchanged even though this component never draws
-                    // it: --ui-line is what a seam gap between two rows shows.
                     assert.equal(await page.resolveToken('--ui-line', 'color'), want.seam,
                         `${theme}: CITE [i=11] box-shadow inset ink — it survives the move to a gap`);
 
@@ -500,23 +402,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(Math.round(rendered.height), Math.round(DERIVED.navRow * d),
                     'the RENDERED box, not the rule');
 
-                // The label's line box is the type times the document's leading, which is
-                // the same relation ui-list-row measured on its title (20 × 1.5 = 30).
                 const label = await page.box('#cat1 >>> #label');
                 assert.equal(Math.round(label.height), Math.round(22 * 1.5),
                     '22px × the 1.5 in styles/document.css:64 — the UA button font '
                     + 'shorthand is undone by line-height: inherit');
             }));
 
-        /* -- 5. THE THREE BUGS, asserted inexpressible ----------------------- */
-
         test('T5: the current row draws no LED, and the 4px still in the token sheet cannot reach it',
             () => mounted(async (page) => {
-                // "The selected nav row still draws a 4px LED it is explicitly not supposed
-                // to ... The fork dial --slate-selected-led is bypassed entirely."
-                // CITE #machine-btn [i=9] box-shadow = rgba(0, 0, 0, 0) 0px -4px 0px 0px
-                //      inset, color(srgb 0.690196 0.768627 0.807843 / 0.72) 0px -4px 0px
-                //      0px inset  <-  slate-components.css `.slate-nav-selected` !important
                 const shadow = await page.prop('#current >>> #row', 'box-shadow');
                 assert.doesNotMatch(shadow, new RegExp(`-${ORACLE.slateLed}px`),
                     `the current row is drawing a ${ORACLE.slateLed}px strip — that is T5`);
@@ -526,10 +419,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         + `--ui-selected-led is 0px; got ${segment}`);
                 }
 
-                // The 4px is STILL A TOKEN — tokens.css:129-138 carries this very reading
-                // as the provenance of --ui-toggle-led — and it reaches this row through
-                // nothing at all. That is what "the fork dial is bypassed" becomes when
-                // there is one dial: moving the OTHER length moves nothing.
                 const before = await page.prop('#current >>> #row', 'box-shadow');
                 await page.setToken('--ui-toggle-led', '13px');
                 assert.equal(await page.prop('#current >>> #row', 'box-shadow'), before,
@@ -552,10 +441,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T5, the mechanism: a sheet outside cannot win the specificity fight, because it cannot enter',
             () => mounted(async (page) => {
-                // T5 is a specificity fight, and a fight needs two sheets able to reach one
-                // element. The defect's own rule is injected here at higher specificity
-                // with !important on top of that — the exact shape of
-                // slate-components.css:262-268 beating slate-shell.css:496.
                 const before = await page.computed('#current >>> #row',
                     ['box-shadow', 'background-color', 'font-weight']);
                 await page.evalFn(() => {
@@ -584,10 +469,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T3: the row is square, and the rule that rounds it in Slate cannot land',
             () => mounted(async (page) => {
-                // "Nav rows are rounded despite border-radius: 0 in two places — an
-                // attribute-selector rule later in the same file wins. Measured 6px."
-                // CITE #machine-btn [i=9] border-top-left-radius = 6px <- slate-shell.css
-                //      `#subpage-host [class*="rounded-lg"]` ... !important=yes
                 const corners = [
                     'border-top-left-radius', 'border-top-right-radius',
                     'border-bottom-left-radius', 'border-bottom-right-radius',
@@ -600,8 +481,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
                 assert.notEqual('0px', ORACLE.slateRadius, 'and 6px is what Slate renders');
 
-                // The defeating rule, verbatim in shape: an attribute-substring selector
-                // with !important, written after everything.
                 await page.evalFn(() => {
                     const s = document.createElement('style');
                     s.id = 't3-pill-rule';
@@ -617,9 +496,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('T2: one pitch, two columns, and it moves as one', () => mounted(async (page) => {
-            // "The sub-category column does not align with the category column ... Measured
-            // pitch 89 vs 93." The pitch is a token here, so there is no per-column
-            // selector to get right and no `> * + *` to fail to match.
             const heights = await page.evalFn(() => {
                 const read = (sel) => [...document.querySelectorAll(sel)]
                     .map((el) => Math.round(el.getBoundingClientRect().height));
@@ -646,9 +522,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T2, the other half: no row draws a separator — the gap does (CONVENTIONS §13)',
             () => mounted(async (page) => {
-                // "the same mistake means the sub-nav has no row separators at all (measured
-                // box-shadow: none)". A gap needs no sibling selector, so N cells give N-1
-                // seams and there is nothing to render zero of.
                 const drawn = await page.evalFn(() => {
                     const out = [];
                     for (const el of document.querySelectorAll('ui-nav-row')) {
@@ -681,8 +554,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(gaps[0] > 0, `the gap must actually be drawn; got ${gaps[0]}`);
             }));
 
-        /* -- 3. focus geometry, unclipped (bug L24's class) ------------------ */
-
         test('a row inside a clipping column keeps its whole ring (L24)', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, '#cat1 >>> #row');
             assert.equal(g.outlineOffset, '-3px',
@@ -693,10 +564,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the focus ring is the ONLY focus signal (DEPARTURE 7)', () => mounted(async (page) => {
-            // slate-shell.css:471-475 repaints the row face on :focus-visible as well as
-            // :hover, because Slate's component ring reached only four classes and a nav
-            // row was not one of them. The base's ring reaches every focusable in the
-            // shadow tree, so focus is the ring and hover is the face.
             const before = await page.prop('#cat1 >>> #row', 'background-color');
             await page.focusVisible('#cat1 >>> #row');
             assert.equal(await page.prop('#cat1 >>> #row', 'background-color'), before,
@@ -738,8 +605,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 4. container behaviour, and the floor --------------------------- */
-
         test('the row fills its container and reads no viewport', () => mounted(async (page) => {
             const d = await density(page);
             const wide = await page.box('#open');
@@ -747,8 +612,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const narrow = await page.box('#squeezed');
             assert.equal(Math.round(narrow.width), 200, 'and as wide as #narrow');
 
-            // Recorded with --ui-density PINNED, so the one global height band
-            // (tokens.css:929-933) does not mask a component that reads the viewport.
             await page.setToken('--ui-density', '1');
             acrossGeometries[geometry.name] = {
                 rowHeight: Math.round((await page.box('#cat1')).height),
@@ -771,9 +634,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the button fills the host in both axes, so no cell is a hole',
             () => mounted(async (page) => {
-                // CONVENTIONS §13 trap 1: "a cell that paints nothing is a hole — the
-                // ground shows through everything not painted over it". The host paints the
-                // same fascia as a backstop, and the button covers it exactly.
                 const host = await page.box('#cat1');
                 const button = await page.box('#cat1 >>> #row');
                 assert.equal(Math.round(button.width), Math.round(host.width));
@@ -791,9 +651,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 8: the label ellipsises rather than widening the column',
             () => mounted(async (page) => {
-                // The oracle is DISQUALIFIED for responsive behaviour (Part 10 §4): Slate
-                // is frozen at 1920×1200 and its nav button has no overflow treatment at
-                // all. LAYOUT_SPEC_DRAFT.md governs.
                 const label = await page.computed('#squeezed >>> #label',
                     ['overflow-x', 'text-overflow', 'white-space']);
                 assert.equal(label['overflow-x'], 'hidden');
@@ -811,11 +668,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the row holds the 48px hit floor in a 200px column', () => mounted(async (page) => {
-            // Appendix 5 / spec §2.3: the floor is physical — "a wet fingertip is about
-            // 9mm; at this panel's density that is ~48px". The ink is 88px (77 in the
-            // compact band) so the paint IS the hit box and there is no overlay — but P4
-            // is exactly "a floor the comment claims and the box does not have", so it is
-            // the RENDERED box that is measured.
             const got = await assertHitFloor(page, '#squeezed >>> #row', { mode: 'box' });
             assert.ok(got.block >= got.floor,
                 `${got.block}px against a ${got.floor}px floor`);
@@ -827,8 +679,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('no viewport query decides anything here', () => mounted(async (page) => {
-            // The row keeps the base's container-type: inline-size and asks no width
-            // question of its own; what changes its layout is its CONTAINER.
             const props = ['min-height', 'padding-left', 'gap', 'font-size'];
             const before = await page.computed('#open >>> #row', props);
             await page.setStyle('#wide', { 'inline-size': '260px' });
@@ -847,8 +697,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'display: grid here must not have cost the containment');
             }));
 
-        /* -- 6. the aria contract (spec Appendix 15) ------------------------- */
-
         test('the state is on the element a reader announces, and the host stays role-less',
             () => mounted(async (page) => {
                 const shape = await page.evalFn(() => {
@@ -863,9 +711,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         btnTag: btn.tagName,
                         btnType: btn.getAttribute('type'),
                         btnCurrent: btn.getAttribute('aria-current'),
-                        // The accessible name comes from the SLOTTED text, which lives in
-                        // the light tree and is therefore invisible to btn.textContent -
-                        // the flattened tree is what the accessibility tree is built from.
                         btnName: btn.querySelector('slot').assignedNodes()
                             .map((n) => n.textContent).join('').trim(),
                         restingBtnCurrent: resting.shadowRoot.getElementById('row')
@@ -874,14 +719,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 });
                 assert.deepEqual(shape, {
-                    // No role: Slate's markup is <nav><ul><li><button> and the list
-                    // semantics belong to the column, not to a wrapper between ul and li.
                     hostRole: null,
                     hostTabindex: null,
                     hostCurrent: true,
-                    // Deliberately NOT aria-current on the host: it is a role-less generic
-                    // there, and it would also match the fragment's :host() half and paint
-                    // a second, invisible copy of the face under the button.
                     hostAriaCurrent: null,
                     btnTag: 'BUTTON',
                     btnType: 'button',
@@ -920,14 +760,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the disabled dial is applied ONCE — the host dims, the inner button does not',
             () => mounted(async (page) => {
-                // Fix-phase finding c2-2. This row carries BOTH spellings of disabled at
-                // once (the reflected host attribute is the paint; the native attribute
-                // on the real <button> is the refusal), and the base paints both —
-                // base.js:509 for the shadow tree, base.js:521 for the host. Without
-                // `.row:where(:disabled) { opacity: 1 }` the two multiply and the row
-                // renders at .38 × .38 = .144, three times fainter than spec §3.7's one
-                // value. The test above passed straight over it because it read opacity
-                // on the HOST only and drilled the token at the host only.
                 const host = parseFloat(await page.prop('#off', 'opacity'));
                 const inner = parseFloat(await page.prop('#off >>> #row', 'opacity'));
                 const dial = parseFloat(await page.tokenValue('--ui-opacity-disabled'));
@@ -938,17 +770,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(Math.abs(host - dial) < 1e-6,
                     `the host must carry the dial exactly, not a multiple of it (${host} vs ${dial})`);
 
-                // …and the enabled row is untouched by the guard: no accidental
-                // opacity: 1 that would defeat a consumer dimming the row itself.
                 assert.equal(parseFloat(await page.prop('#open >>> #row', 'opacity')), 1);
 
-                // Same shape as its sibling #25, which already had the line. Anything
-                // else means the two halves of the settings nav dim differently.
                 assert.equal(await page.prop('#off >>> #row', 'cursor'), 'default',
                     'a row that refuses the press must not advertise a pointer');
             }));
-
-        /* -- events ---------------------------------------------------------- */
 
         test('pressing the row emits one composed `navigate` event carrying its state',
             () => mounted(async (page) => {
@@ -995,8 +821,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'attribute dims, it does not disable (CONVENTIONS §4)');
         }));
 
-        /* -- construction routes and the shadow boundary --------------------- */
-
         test('rows built four different ways are the same row', () => mounted(async (page) => {
             const built = await page.evalFn(() => {
                 const host = document.getElementById('routes');
@@ -1042,9 +866,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('zero !important reaches the rendered result', () => mounted(async (page) => {
-            // slate-shell.css carries 268 of them and every one exists because some other
-            // sheet could reach the same element (CONVENTIONS §6). Nothing can reach in
-            // here, so a plain rule in the same root must win.
             await page.evalFn(() => {
                 const root = document.getElementById('cat1').shadowRoot;
                 const s = document.createElement('style');
@@ -1075,11 +896,6 @@ describe('the same box at both geometries', () => {
 });
 
 describe('the gallery entry this component ships', () => {
-    // The entry lives in its own file (tools/gallery/entries/ui-nav-row.entry.js) because
-    // twelve wave-2 builders cannot all append to one array under a whole-file write rule;
-    // the wave's single cross-cutting writer wires it into tools/gallery/entries.js. The
-    // ENTRY's own correctness is this builder's problem.
-
     test('every declared state mounts, settles and paints', async () => {
         const { entry } = await import('../../tools/gallery/entries/ui-nav-row.entry.js');
 

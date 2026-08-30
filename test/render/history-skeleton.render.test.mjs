@@ -1,31 +1,5 @@
 /**
- * history-skeleton.render.test.mjs — wave 5.6, the route-and-skeleton cluster:
- * `hist-skeleton`, `hist-scroll-floors`, `hist-ab-pickers`, and bugs H3, H6, H9's
- * skeleton half. (`hist-route-conversion` and H9's focus half are the OTHER suite,
- * `history-route.render.test.mjs`, because they need a shell and a route table and
- * this one needs neither.)
- *
- * ONE SUITE, FOUR ROWS, because they are claims about the same four boxes and
- * splitting them would mean mounting the screen four times to ask four questions about
- * one layout.
- *
- * A8, AND IT IS THE POINT OF THE FILE. Nothing here opens a file: every assertion is a
- * computed style or a rendered box. The header's priorities are SWEPT across four
- * widths rather than asserted at two convenient ones, the track lists are the USED ones
- * off getComputedStyle, the floor token is proved by moving a box rather than by being
- * present, and the H3 rule is proved LOAD-BEARING by taking it away and watching the
- * defect come back.
- *
- * BOTH GATE A GEOMETRIES: 1281x801 @ dsf 1.5 (the bench truth) and the 1000x600 design
- * floor. This screen's own responsive behaviour is the header's order of surrender, and
- * the two geometries sit either side of where it starts to bite.
- *
- * THE PAGES ARE STAND-INS, AND THAT IS DELIBERATE. `hist-flow-page` and `hist-data-page`
- * are another builder's rows; this suite owns the MOUNT REGION and the floors table, so
- * it mounts two stand-ins that follow the region's stated contract (§4.5's own row
- * lists, the floor token, and who owns overflow) and asserts the contract holds. What is
- * proved here is that a page written to the contract gets the box the contract promises
- * — the real pages are the pages cluster's to verify.
+ *.6, the route-and-skeleton cluster: hist-skeleton, hist-scroll-floors, hist-ab-pickers, and bugs H3, H6, H9's skeleton half.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -56,37 +30,14 @@ const near = (got, want, what, tol = 0.6) => assert.ok(
     `${what}: ${got} is not within ${tol} of ${want}`,
 );
 
-/**
- * A realistic option label. Its width is what decides where the tab bank runs out of
- * give (M10 — "the shot-picker option-text width" — is the open measurement), so the
- * label is stated once, here, and the numbers this suite records are the numbers for
- * THIS label rather than for all labels.
- */
 const SHOTS = [
     { value: 'shot-1', label: '13 Aug 14:32 · Extractamundo' },
     { value: 'shot-2', label: '13 Aug 09:07 · Lever Classic' },
 ];
 
-/**
- * The stage. Two stand-in pages, each written to the mount region's contract:
- *
- *   flow  grid-template-rows: 1.2fr 1fr, two plot regions each floored at
- *         --ui-chart-min-h, NO overflow anywhere — they resize (H1).
- *   data  grid-template-rows: auto auto minmax(0,1fr); two tables at their own
- *         min-content with no overflow; the shot list floored at
- *         --ui-history-list-min-h with overflow auto.
- *
- * Ratio tracks and tokens only: there is not a px plot height in this file, in source
- * or in a fixture, which is H1's standing rule.
- */
 function stage({ height = '100dvh', width = '100%', rows = 12 } = {}) {
     const list = Array.from({ length: rows }, (_, i) =>
         `<div class="shot-row" data-row="${i}">shot ${i}</div>`).join('');
-    /* The stand-ins' rules live in a sheet rather than in `style=` attributes for one
-     * reason, and it is the contract talking: `hidden` is how #32 hides the page that
-     * is not showing, and an INLINE display would outrank the UA's [hidden] rule (bug
-     * P13's mechanism). A real page is a custom element and gets that for free from
-     * base.js's :host([hidden]); a stand-in div has to say it. */
     return `<style>
         .page { min-block-size: 0; min-inline-size: 0; }
         .page[hidden] { display: none; }
@@ -117,9 +68,6 @@ async function mountHistory(page, options = {}) {
     await page.mount(stage(options), MODULES);
     await page.evalFn((options) => {
         const screen = document.querySelector('history-screen');
-        /* `shotOptions`, not `shots`: Gate D retires `/\.shots\b/` tree-wide (CB-21 —
-         * the list answers {items,...} and the old skin read `.shots`), and a test that
-         * kept the retired spelling alive would be the place it came back from. */
         screen.shotOptions = options;
         screen.shotA = options[0].value;
         screen.shotB = options[1].value;
@@ -129,30 +77,12 @@ async function mountHistory(page, options = {}) {
     return page;
 }
 
-/**
- * Show a page THROUGH THE TAB BAR, which is the one owner of which page shows.
- *
- * The index is ASKED OF THE BAR rather than counted here. It used to be
- * `value === 'flow' ? 0 : 1`, which was true while History had two pages and silently
- * became "the power page" the moment it had three — the tab bar is the owner, so it is
- * the thing that knows where a page sits.
- */
 async function showPage(page, value) {
     const index = await page.evalFn((v) => {
         const bar = window.__h.need('history-screen').shadowRoot.getElementById('tabs');
         return bar.tabs.findIndex((tab) => tab.value === v);
     }, value);
     assert.ok(index >= 0, `showPage: the bar has no "${value}" tab`);
-    /* SCROLLED INTO VIEW BEFORE IT IS CLICKED, and that is a MEASUREMENT rather than a
-     * convenience. `page.click` dispatches a real pointer at the element's centre, so a
-     * control outside the viewport cannot be pressed — and at the 1000x600 design floor
-     * the History band OVERFLOWS (27px with the short option label before the power page,
-     * 77px with three tabs; 201px with the long label), which puts the last tab past the
-     * right edge. That is the band's documented last resort — "the flanks overflow, never
-     * shove" — and it is M10's open budget arriving at a control: the tabs are still above
-     * --ui-hit-min in SIZE, which is what the L22 test below asserts, and what they are
-     * not at the floor is on screen. Recorded as a deferred question with both numbers
-     * rather than hidden by clicking through the DOM. */
     await page.evalFn((i) => {
         const bar = window.__h.need('history-screen').shadowRoot.getElementById('tabs');
         bar.shadowRoot.getElementById('tablist').shadowRoot
@@ -193,8 +123,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return fn(page);
         });
 
-        /* -- 1. the skeleton: §4.5's three rows ---------------------------- */
-
         test('the screen is three rows — band, compare bar, page — and the tracks are the declared ones',
             () => mounted(async (page) => {
                 const band = px(await page.resolveToken('--ui-band-h', 'block-size'));
@@ -221,8 +149,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(used[0] + used[1] + used[2] + 2 * seam, screen.height, 'the rows sum to the screen');
             }));
 
-        /* -- 2. H6: the used size IS the track size, at two heights -------- */
-
         test('H6: no box is over-constrained — the used size equals the track at two heights',
             () => mounted(async (page) => {
                 for (const height of ['100dvh', '560px']) {
@@ -237,10 +163,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     near(screen.height, stageBox.height, `the screen fills its track at ${height}`);
                     near(region.height, used[2], `the page region IS row 3 at ${height}`);
 
-                    /* THE H6 SHAPE ITSELF: a flex item whose siblings already claim
-                     * space, told it is 100% of something it is not. Read as a
-                     * consequence rather than as a declaration — no child of a flex
-                     * container may be taller than the container's content box. */
                     const overs = await page.evalFn(() => {
                         const out = [];
                         const walk = (root) => {
@@ -263,33 +185,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -- 3. H3: the header's priorities, swept ------------------------- */
-
         test('H3: the tab bank gives before the pickers collapse, and the floor is load-bearing',
             () => mounted(async (page) => {
-                /* Four widths through the crossover. The pickers hold their measure;
-                 * the bank is what shrinks, monotonically.
-                 *
-                 * THE WINDOW MOVED UP WITH THE THIRD TAB (fix run 6). At two tabs the
-                 * crossover sat inside 1050-900; at three the bank's content is 257.56
-                 * and its floor is 168 (one --ui-hit-min per page plus the gaps), so it
-                 * is ALREADY ON ITS FLOOR at 1050 and there is nothing left to give in
-                 * the old window. Re-measured, short label, both geometries:
-                 *
-                 *     width   pickerA   tab bank    band overflow
-                 *     1200    380.81    257.56      0     <- the pickers still have slack
-                 *     1150    373       223.2       0     <- the pickers freeze here
-                 *     1100    373       173.2       0
-                 *     1050    373       168         27    <- the bank is on its floor
-                 *
-                 * The sweep runs 1150-1050 rather than 1200-1050 so that every width in
-                 * it has the pickers ON their measure: above the freeze they share the
-                 * free space and the two of them differ by a flex remainder of 0.02px,
-                 * which T9's exact equality would report as a difference in measure.
-                 *
-                 * Same shape, sixty pixels further right: the pickers take the room
-                 * first, then hold their measure, then every pixel comes out of the
-                 * bank until IT hits its floor, and then the band overflows. */
                 const widths = [1150, 1130, 1100, 1050];
                 const walk = [];
                 for (const width of widths) {
@@ -316,9 +213,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 /* The pickers' own measure never moves while the bank is giving. */
                 near(walk.at(-1).pickerA, walk.at(-2).pickerA, 'the pickers are at their floor and hold');
 
-                /* AND THE RULE IS LOAD-BEARING. Take the floor away — §4.5's literal
-                 * `min-inline-size: 0` — and H3 comes back with the labels swapped:
-                 * the pickers give everything and the bank never moves. */
                 await page.evalFn(() => {
                     const root = window.__h.need('history-screen >>> history-header').shadowRoot;
                     for (const id of ['picker-a', 'picker-b']) {
@@ -337,23 +231,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'without the floor the bank never moves — which is exactly H3');
             }));
 
-        /* -- 3b. L22: the band's order of surrender has a floor ------------ */
-
         test('L22: nothing in the band shrinks under the hit floor, on either label set',
             () => mounted(async (page) => {
-                /* THIS TEST EXISTS BECAUSE THE H3 FIX HAD A DEFECT AND A FRAME FOUND
-                 * IT. The tab bank was written `flex: 0 1 auto` with no floor, on the
-                 * reasoning that it would stop at #32's own min-content. It does not:
-                 * #32 is inline-size: fit-content and shrinks its TABS with it, so at
-                 * the 1000x600 design floor the bank rendered 2 wide with two 36 x 80
-                 * tab buttons — L22, on the screen built to kill H3. Nothing in the
-                 * suite asked, because the H3 sweep measured the bank's RECT and a rect
-                 * of 2 reads as "the bank gave", which is exactly what it was asked to
-                 * do. So the claim here is about the CONTROLS, not the boxes.
-                 *
-                 * BOTH LABEL SETS, because the option text is what drives the squeeze
-                 * (M10) and a test that used only the short form would pass while the
-                 * app shipped with the long one. */
                 const min = px(await page.resolveToken('--ui-hit-min', 'width'));
                 for (const label of ['13 Aug 14:32 · Extractamundo', '13 Aug 14:32 · Extractamundo Dos! (2)']) {
                     await page.evalFn((text) => {
@@ -386,8 +265,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* -- 4. the pickers: T9, and one selection treatment --------------- */
-
         test('T9: both pickers render the same width at three widths, and the disc is the dials',
             () => mounted(async (page) => {
                 for (const width of [1200, 1050, 950]) {
@@ -406,8 +283,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                  * audit. */
                 await assertOneSelectionTreatment(page, { selected: DISC_A, unselected: DISC_B });
             }));
-
-        /* -- 5. the compare bar's presence rule ---------------------------- */
 
         test('the compare bar is on the flow page and takes no box on the data page',
             () => mounted(async (page) => {
@@ -430,8 +305,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok((await page.box(COMPARE)).height > 0, 'and it comes back with the chart page');
             }));
 
-        /* -- 6. the floors table ------------------------------------------- */
-
         test('the shot list floor is 3 x --ui-list-row, as a token that moves the box',
             () => mounted(async (page) => {
                 const row = px(await page.resolveToken('--ui-list-row', 'block-size'));
@@ -449,9 +322,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const squeezed = (await page.box('#shot-list')).height;
                 near(squeezed, floor, 'squeezed, the list sits exactly on its floor');
 
-                /* AND IT GOVERNS: move the token and the box moves with it (E8's proof —
-                 * a token that is declared, documented and connected to nothing is the
-                 * recorded failure this shape exists to catch). */
                 await page.setToken('--ui-history-list-min-h', `${floor + 40}px`);
                 await page.settle(3);
                 const moved = (await page.box('#shot-list')).height;
@@ -499,11 +369,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(tall.a > tall.b, '1.2fr over 1fr — a ratio track, not a px height');
                 near(tall.a / tall.b, 1.2, 'and the ratio is the declared one', 0.02);
 
-                /* 560px is below BOTH Gate A geometries, so this is a squeeze at
-                 * each of them rather than a stretch at one — and it is still tall
-                 * enough that the two floors do not bind, which is the state being
-                 * measured (below that the page owes H1's one-plot branch, and that
-                 * is the pages cluster's row). */
                 await page.setStyle('#stage', { 'block-size': '560px' });
                 await page.settle(4);
                 const short = await page.evalFn(() => ({
@@ -517,8 +382,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const flow = await page.metrics('#flow-page');
                 assert.equal(flow.overflowY, 'visible', 'the chart page never scrolls — it resizes');
             }));
-
-        /* -- 7. H9's skeleton half ----------------------------------------- */
 
         test('H9: a route is not modal — no aria-modal, and no inert left on a visible box',
             () => mounted(async (page) => {
@@ -549,21 +412,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(dataInert, false, 'the shown page is not inert');
             }));
 
-        /* -- 8. PARITY SURFACE 6 ------------------------------------------
-         *
-         * Three assertions, and the third is a CLASS rather than a detail.
-         *
-         * THE SLOT BLIND SPOT (surface 5's hand-forward, carried here). The provenance
-         * walk keeps an element only if it is a control, or paints, or has an OWN TEXT
-         * NODE. A shadow-root box whose only content arrives through a <slot> has no
-         * own text node, so if it paints nothing it is invisible to the corpus AT ANY
-         * SIZE — and the corpus is what every parity gate reads. This band is full of
-         * them: <ui-button>'s inner button carries the ground and the word arrives
-         * through a slot (the corpus records its text as ""), and #45's letter is
-         * slotted inside a span the walk records by its visually-hidden LABEL. A
-         * render assertion is the only guard those four words have, so this is it.
-         * ---------------------------------------------------------------- */
-
         test('parity 6 — the page region is inset --ui-space-6 on both flanks',
             () => mounted(async (page) => {
                 const want = px(await page.resolveToken('--ui-space-6', 'inline-size'));
@@ -571,20 +419,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(px(got['padding-left']), want, 'the page region pads --ui-space-6 at the lead');
                 near(px(got['padding-right']), want, 'and the same at the trail');
 
-                /* AGAINST THE RENDERED BOXES, not only the declaration: the mounted
-                 * page's own box has to START inside the screen by exactly that much,
-                 * or the padding is on a box the page does not sit in. The oracle
-                 * insets all three of its History surfaces by 28 (CITE history-viewer
-                 * #hv-page-flow [i=179] rect x=28 width=1864). */
                 const screen = await page.box(S);
                 const mountedPage = await page.box('#flow-page');
                 near(mountedPage.x - screen.x, want, 'the page starts one inset inside the screen');
                 near((screen.x + screen.width) - (mountedPage.x + mountedPage.width), want,
                     'and stops one inset short of its trailing edge');
 
-                /* AND THE INSET IS INLINE ONLY. Block padding here would widen the data
-                 * page's recorded overflow (ECM-1053) by 2 x 28, and that number is
-                 * Ben's open question. */
                 const block = await page.computed(PAGE, ['padding-top', 'padding-bottom']);
                 assert.equal(px(block['padding-top']), 0, 'no block padding: the seam is the divider');
                 assert.equal(px(block['padding-bottom']), 0, 'no block padding at the foot either');
@@ -601,10 +441,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(back.height, lg,
                     'CITE history-viewer #hv-back [i=161] rect 82x82 — a band control is tall');
 
-                /* The band's own derivation is what makes 82 the right number rather
-                 * than a bigger one: --ui-band-h is (control-lg + 2 x band-inset) x
-                 * density, so the control is exactly the band less its two insets, and
-                 * the dead space above and below is one inset each. */
                 const band = px(await page.resolveToken('--ui-band-h', 'block-size'));
                 const inset = px(await page.resolveToken('--ui-band-inset', 'block-size'));
                 const density = parseFloat(await page.resolveValue('var(--ui-density)', 'opacity'));
@@ -615,10 +451,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('parity 6 — every slot-delivered word in the band actually paints',
             () => mounted(async (page) => {
-                /* Painted text, measured as a BOX rather than read as a string: a word
-                 * whose slot never got its content still reads back as the label the
-                 * consumer set, and a zero-width box is exactly what surface 5 found
-                 * when a slotted caption rendered 0px wide and no corpus could see it. */
                 const boxes = await page.evalFn(() => {
                     const need = window.__h.need;
                     const screen = need('history-screen').shadowRoot;
@@ -687,9 +519,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(form, 'tag',
                         `#${id} names a slot for the life of the screen, so it is a TAG`);
                 }
-                /* B is the RESTING one (A carries `selected`), so it is the one that
-                 * shows the resting paint. CITE history-viewer .slate-hv-pick-tag
-                 * [i=166]: --ui-key on a --ui-line-strong ring with --ui-text ink. */
                 const got = await page.computed(`${DISC_B} >>> #disc`,
                     ['background-color', 'border-top-color', 'color']);
                 assert.equal(got['background-color'], await page.resolveToken('--ui-key', 'background-color'),
@@ -700,9 +529,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'CITE history-viewer .slate-hv-pick-tag [i=166] border-top-color');
                 assert.equal(got.color, await page.resolveToken('--ui-text', 'color'),
                     'ORACLE same element color -> --ui-text, never --ui-muted');
-                /* And still pressable — the half the `interactive` attribute keeps.
-                 * Read off the DOM: page.prop() answers a COMPUTED STYLE, so asking it
-                 * for tagName reads back "" and would pass for a span. */
                 const tag = await page.evalFn(() => window.__h.need('history-screen')
                     .shadowRoot.getElementById('disc-b').shadowRoot
                     .getElementById('disc').tagName);

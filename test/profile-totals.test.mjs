@@ -1,22 +1,5 @@
 /**
- * profile-totals.test.mjs — the editor header's four ceilings (fix run 4, `cmp-seh-3`).
- *
- * THE ONE TEST THIS FILE EXISTS FOR is the peak. Slate computed it as
- *
- *     s.pump === 'pressure' ? s.pressure : s.limiter.value        (profile-totals.js:33-35)
- *
- * so every flow step reported its LIMITER — the machine's default 9 bar on almost every
- * profile in the corpus — and a gentle flow profile said "peak 9.0 bar" on Slate's own
- * screen. Ben's roster answer names it ("PEAK MUST BE COMPUTED CORRECTLY; Slate's
- * lever-limiter misreport is the known trap"). The port composes
- * `profile-modes.js stepTargetOverlay`, which is the one owner of "what does this step
- * COMMAND", so the answer follows the model rather than a second rule written here.
- *
- * THE OTHER HALF IS ABSENCE. A term the profile does not define is omitted, never zeroed:
- * an unbounded step means no duration ceiling at all, and "max 0:00" is a limit that does
- * not exist.
- *
- * A8: every assertion is about a returned value. Nothing reads a source file.
+ * The editor header's four ceilings (fix run 4, cmp-seh-3).
  */
 
 import { test, describe } from 'node:test';
@@ -72,9 +55,6 @@ describe('the peak is what the steps COMMAND, not what their limiters allow', ()
     });
 
     test('a power step contributes its cap, because that IS its commanded pressure', () => {
-        /* `stepGraphValues` — "Power draws flow 0 and pressure AT THE CAP". This test is
-         * here so that if the model of a Power step ever changes, ONE file changes and
-         * this line is the reminder that the header follows it. */
         const totals = profileTotals(profile([step({ pump: 'power', power: 40, limiter: { value: 7, range: 0.6 } })]));
         assert.equal(totals.peakPressure, 7);
     });
@@ -114,9 +94,6 @@ describe('a term the profile does not define is omitted, never zeroed', () => {
 });
 
 describe('the terms are the oracle\'s wording, as source strings and their parameters', () => {
-    /* THE ORACLE'S OWN SENTENCE: prov-baseline editor-steps [i=6],
-     * "3 steps · max 2:00 · cap 100 mL · peak 6.0 bar". Two of these three steps are FLOW
-     * steps carrying the default 9 bar limiter, which is the trap in one line. */
     const morning = profile([
         step({ seconds: 40, volume: 100 }),
         step({ seconds: 40, pump: 'pressure', pressure: 6 }),

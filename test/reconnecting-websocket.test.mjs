@@ -1,11 +1,4 @@
-// The vendored reconnect wrapper (A11): the two local patches are the value, so they are
-// the tests. If this file is ever pointed at a maintained library instead, these must pass
-// first — the whole reason the patches exist is that a stock library drops both silently
-// and the failure surfaces as an occasional dead socket after a power cycle.
-//
-// Every test drives a FAKE socket. There is no DOM here and no global WebSocket in use,
-// which is the mechanical half of the port: as UMD this file could not even be imported
-// from a module, let alone tested.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -14,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import ReconnectingWebSocket, { CLOSED, CONNECTING, OPEN } from '../vendor/reconnecting-websocket.js';
 
 const SOURCE = readFileSync(fileURLToPath(new URL('../vendor/reconnecting-websocket.js', import.meta.url)), 'utf8');
-/** The source with comments removed — what the file DOES, rather than what it says. */
 const CODE = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 /** A WebSocket double. The server side is driven by hand. */
@@ -49,11 +41,6 @@ function fakeSocketClass(instances) {
 /** Long timeoutInterval so the library's own connection timeout never fires under a tick. */
 const OPTIONS = { reconnectInterval: 10, maxReconnectInterval: 10, timeoutInterval: 1e7, reconnectDecay: 1 };
 
-/**
- * `t` is not optional: every instance MUST be closed when its test ends. The library arms
- * a `timeoutInterval` timer on every attempt, and a pending timer keeps node alive — which
- * is a fair description of the bug patch 1 fixes, reproduced in the test runner.
- */
 function connect(t, options = {}) {
     const instances = [];
     const socket = new ReconnectingWebSocket('ws://rea.test/ws/v1/machine/snapshot', [], {
@@ -75,25 +62,14 @@ describe('mechanical: it is an ES module, and DOM-free', () => {
     });
 
     test('the source touches no document and no window', () => {
-        // The old file used document.createElement('div') as an EventTarget and
-        // document.createEvent('CustomEvent') to build events — the two reasons it could
-        // not be imported under node:test or used inside a shadow root. Both are NAMED in
-        // the comments (that is the port's own record of what changed), so the scan is
-        // over CODE with the comments stripped — a text-scan that cannot tell a mention
-        // from a call is the kind of test that fails on documentation.
         assert.equal(/\bdocument\s*\./.test(CODE), false, 'document. appears in the vendored code');
         assert.equal(/\bwindow\s*\./.test(CODE), false, 'window. appears in the vendored code');
         assert.equal(CODE.includes('createElement('), false);
         assert.equal(CODE.includes('createEvent('), false);
-        // The one permitted global read is the constructor's `options.WebSocket ||
-        // globalThis.WebSocket`, and it is guarded by the throw below — the module
-        // evaluates with no WebSocket anywhere, which is what makes it importable here.
         assert.equal(CODE.split('options.WebSocket || globalThis.WebSocket').length - 1, 1);
     });
 
     test('both LOCAL PATCH markers survive in the source', () => {
-        // Documentation is part of the deliverable here: a future edit that removes a
-        // patch must trip something.
         assert.match(SOURCE, /LOCAL PATCH 1/);
         assert.match(SOURCE, /LOCAL PATCH 2/);
     });
@@ -125,8 +101,6 @@ describe('LOCAL PATCH 1 — a close()d socket stays closed', () => {
         instances[0].serverDrop();
         assert.equal(instances.length, 1);
 
-        // The owner discards this instance IN THAT WINDOW — ws is null, so the unpatched
-        // close() closed nothing and cancelled nothing.
         socket.close();
         t.mock.timers.tick(1000);
 

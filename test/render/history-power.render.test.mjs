@@ -1,33 +1,5 @@
 /**
- * history-power.render.test.mjs — the History POWER PAGE, in a real engine at both Gate A
- * geometries. Fix run 6: Ben's reversal of D1 for this one surface, Q16's correspondence
- * marks, H2 retired FIXED rather than deferred, and the first consumers of
- * `--ui-timekey-w` / `--ui-timekey-strip-w`.
- *
- * WHAT ONLY A BROWSER CAN SAY, and it is why the DOM-free half is a separate suite
- * (`test/history-power.test.mjs` owns the points, the marks and the axes as arithmetic):
- *
- *   - THERE IS NO SECOND AXIS, AND THE ONE AXIS IS A LOG AXIS. Slate's defect was that
- *     Power was DRAWN on an axis nobody could see (`history-viewer.js:56-59` — "uplot-plot
- *     builds a y2 only if the spec asks for one and neither chart factory accepts one, so
- *     Power drew on an invisible auto-ranged axis"). This page's first answer was to build
- *     that right-hand axis for real, and Ben overruled it on 25 August 2026: "Power will be
- *     on the Pressure/Flow chart, not on the resistance / impedance chart. No second axis
- *     on these charts." So W moved to the flow page, R and Z became a matched pair, and the
- *     pair went onto ONE LOG axis — which `uplot-plot.js` has no scale type for, so it is
- *     the data in log10 against a range in log10 with the ticks formatted back. Only a
- *     rendered plot can say whether all three halves of that arrived together: the scale
- *     the traces are on, the numbers the range is in, and the text on the ticks.
- *   - THE TRAJECTORY IS DRAWN AT ALL. Its x is FLOW, which is non-monotonic, so it is not
- *     a uPlot series and no spec assertion can stand in for the canvas having a path on it.
- *   - THE TIME KEY CONSUMES ITS TOKENS. A token with no consumer and a token whose
- *     consumer ignores it are indistinguishable in source; the drill moves the value and
- *     reads the box back.
- *   - AND THE PAGE FITS. H1's branch is a container query on a height, and 436 is a number
- *     this file CHECKS against two measured card floors rather than trusts.
- *
- * A8: nothing here opens a file. Every assertion is a computed style, a rendered box, an
- * accessibility node, or a live uPlot/plot-handle object read off the running page.
+ * The History POWER PAGE, in a real engine at both Gate A geometries.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -41,14 +13,6 @@ import {
     PQ_FLOW_MAX, PQ_PRESSURE_MAX,
 } from '../../src/lib/history-power.js';
 
-/**
- * What the page module exports, read OUT OF THE PAGE rather than retyped.
- *
- * IT USED TO READ `POWER_SINGLE_PLOT_PX`, the height at which the single-plot branch took
- * over. Ben retired the branch and its "Which plot" select on 30 August 2026 (F-036), so
- * the constant is gone and this reports the export LIST instead — which lets the suite
- * ASSERT the retirement rather than merely stop mentioning it.
- */
 const authored = async (page) => JSON.parse(await page.eval(
     "import('/src/screens/history-power-page.js').then((m) => JSON.stringify("
     + '{ exports: Object.keys(m).sort(), plots: m.POWER_PLOTS.map((p) => p.id) }))',
@@ -75,7 +39,6 @@ const pageStage = (h) => `
   <history-power-page id="page-under-test"></history-power-page>
 </div>`;
 
-/** The real screen with all three real pages, as §4.5 draws it. */
 const screenStage = () => `
 <div id="stage" style="inline-size: 100%; block-size: 100dvh">
   <history-screen>
@@ -83,13 +46,6 @@ const screenStage = () => `
   </history-screen>
 </div>`;
 
-/**
- * Feed the page two real recorded shots — WITH the derived channels ReaPrime recomputes
- * on read, because the recordings predate the getters (see the route fixture's docblock
- * and `tools/mock-fixture-ledger.json`'s `upgraded` section). Nothing under `src/`
- * computes any of the three; this is the SERVER's arithmetic, applied where a server
- * would apply it.
- */
 const FEED = (offset = 0, { second = true } = {}) => `(async () => {
   const { deriveFromRecord } = await import('/src/lib/shot-derivation.js');
   const gate = (p, f, v) => ((f >= 0.3 && p >= 0.3 && Number.isFinite(v)) ? v : null);
@@ -243,7 +199,6 @@ const TAGS = `(() => {
     .filter((name) => name.includes('-')))].sort();
 })()`;
 
-/** This page's slice of the 57-item inventory. A tag outside it is scope invention. */
 const INVENTORY = ['ui-chart-card', 'ui-chart-legend', 'ui-empty-state', 'ui-select', 'ui-time-key'];
 
 for (const geometry of GATE_A_GEOMETRIES) {
@@ -266,41 +221,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return result;
         };
 
-        /* ===================================================================
-         * 1. ONE AXIS, AND IT IS A LOG AXIS — Ben's 25 August 2026 reversal
-         * =================================================================== */
-
-        /**
-         * THIS TEST USED TO ASSERT THE OPPOSITE, AND IT WAS RIGHT TO, ONCE.
-         *
-         * The page's first answer to Slate's defect was to build the right-hand axis Slate
-         * had declared a scale for and never drawn, put W on it and range it 0-15 W. That
-         * fixed a real thing: a number on screen with no scale beside it. Ben overruled the
-         * SIDE of the page it was fixed on, 25 August 2026: "Power will be on the
-         * Pressure/Flow chart, not on the resistance / impedance chart. No second axis on
-         * these charts." `POWER_AXIS_MAX` was deleted from `chart-autoscale.js` in the same
-         * commit, which is why the stale form of this suite could not even be imported.
-         *
-         * SO THE CLAIM INVERTS AND GETS SHARPER. "No y2" is not a claim a page can make by
-         * omission — `<ui-chart-card>` rebuilds its plot when `y2` MOVES, and a page that
-         * simply stopped assigning would keep the axis it drew last, which is why
-         * `history-power-page.js` sets it to null out loud. The three things asserted below
-         * are that there is no y2 SCALE (Slate had exactly that and no axis), no y2 AXIS,
-         * and no power TRACE anywhere on this canvas.
-         *
-         * AND THE AXIS THAT IS LEFT IS A LOG AXIS BUILT OUT OF A LINEAR ONE, because
-         * `uplot-plot.js` builds linear scales only. That mechanism has three halves and
-         * they can part silently: the DATA in log10, the RANGE in log10 units, and the TICK
-         * TEXT back in real numbers. Two of the three would draw a chart that looks
-         * plausible and is a decade wrong, so all three are read off the running plot.
-         *
-         *   MEASURED on the same-profile pair, both Gate A geometries, identical at each:
-         *     scale keys      x, y        — there is no y2 at all
-         *     y range         -1.30103 to -0.42651 in log10 units = 0.05 to 0.3745
-         *     y splits        -1.30103, -1, -0.69897
-         *     tick text       "0.05", "0.10", "0.20"
-         *     series          resistance, impedance, b:resistance, b:impedance
-         */
         test('there is no second axis: R and Z share ONE log axis and W is not on this chart', async () => {
             await fed(700);
             const plot = await page.eval(READ_DERIVED);
@@ -317,17 +237,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(y.side, 3, 'and it is the LEFT-hand side');
             assert.notEqual(y.show, false, 'and it is shown, not built and hidden');
 
-            /* EVERY TRACE IS ON IT, A's AND B's ALIKE. Two ratios of the same kind on one
-             * axis is the whole of the reversal; a channel quietly left on another scale
-             * would be the second axis arriving under a different name. */
             assert.deepEqual(plot.series.map((s) => s.label),
                 [...DERIVED_CHANNELS, ...DERIVED_CHANNELS.map((k) => `b:${k}`)],
                 'R and Z, then B\'s R and Z, in draw order');
             for (const s of plot.series) assert.equal(s.scale, 'y', `${s.label} is on the one axis`);
 
-            /* THE TICKS ARE LAID OUT AND THEY ARE PRINTED AS REAL NUMBERS. `formatLogTick`
-             * is what turns -1 into "0.10"; a split list with the log10 numbers still on it
-             * is the failure this half exists to catch. */
             const splits = plot.splits[plot.axes.indexOf(y)];
             const text = plot.tickText[plot.axes.indexOf(y)];
             assert.ok(Array.isArray(splits) && splits.length >= 2,
@@ -342,30 +256,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         });
 
-        /**
-         * THE RANGE IS THE RATIOS' OWN, AND NOTHING ELSE CAN MOVE IT.
-         *
-         * The old form of this test asserted `0 <= y <= 1` and that W, which peaks above the
-         * ratios, was on the other axis. Half of that claim no longer has an other axis to
-         * point at and the other half was a LINEAR bound — the axis is in log10 units now,
-         * where 0 means 1 and the old `lo === 0` would have been the range starting at a
-         * resistance of 1.
-         *
-         * WHAT SURVIVES IS THE POINT OF IT: this axis is framed by the two channels drawn on
-         * it and by Slate's own two bounds, and by nothing else. `derivedLeftRange` hugs the
-         * data by DERIVED_LOG_PAD either side and clamps to DERIVED_LOG_FLOOR / _CEIL, from
-         * BOTH shots at once so the pair share one frame. All three of those are measured
-         * here against the traces the canvas is actually holding.
-         *
-         *   MEASURED: B's impedance is the highest sample at log10 -0.67653 (0.2106), and
-         *   the range's top is -0.42651 — exactly that plus the 0.25 pad. The lowest sample
-         *   is B's resistance at -2.40632 (0.0039), which is below Slate's 0.05 floor, so
-         *   the bottom is the floor itself at -1.30103 rather than the data minus a pad.
-         *   That is the floor doing its stated job, and it means this fixture's resistance
-         *   trace runs below the visible axis — a property of the recording, not of the
-         *   page: `derivedLeftRange` clamps on purpose so one gate-corner outlier cannot own
-         *   the axis, and the clamp cuts both ways.
-         */
         test('the left axis is the two ratios\' own frame, padded and clamped to Slate\'s bounds', async () => {
             await fed(700);
             const plot = await page.eval(READ_DERIVED);
@@ -402,17 +292,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             )), 'B reaches higher than A here, so the shared frame is B\'s to set');
         });
 
-        /* ===================================================================
-         * 2. THE THREE CHANNELS ARE DRAWN, WITH THEIR HOLES
-         * =================================================================== */
-
         test('the derived traces carry the server\'s own gaps rather than a bridged line', async () => {
             const feed = await fed(700);
             assert.equal(feed.sources.resistance, 'derived');
-            /* POWER IS STILL SERVED, and this line stays for that reason. The 25 August
-             * reversal moved W to the flow page; it did not stop ReaPrime deriving it, and
-             * a derivation that quietly lost the channel would look identical on THIS page
-             * to one that has it. So the source is asserted here and the trace is not. */
             assert.equal(feed.sources.power, 'derived');
             const plot = await page.eval(READ_DERIVED);
             for (const label of DERIVED_CHANNELS) {
@@ -440,10 +322,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'is exactly what a second scale must not produce');
             }
         });
-
-        /* ===================================================================
-         * 3. THE P–Q TRAJECTORY
-         * =================================================================== */
 
         test('the trajectory\'s x is FLOW, its y is PRESSURE, and the frame holds the data', async () => {
             await fed(700);
@@ -503,10 +381,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(links.length > 0, 'and each pair is joined by a link');
         });
 
-        /* ===================================================================
-         * 4. THE #11 TIME KEY — H2, chart-C14, and two orphaned tokens
-         * =================================================================== */
-
         test('the key is an ANNOUNCED axis, not an aria-hidden decoration', async () => {
             await fed(700);
             const names = await accessibleNames(page);
@@ -549,10 +423,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ===================================================================
-         * 5. A6 — THE RAMP IS THE STYLESHEET'S, AND THE PATH READS THE SAME ONE
-         * =================================================================== */
-
         test('the strip and the path are painted from the same ten declared stops', async () => {
             await fed(700);
             const both = await page.evalFn(() => {
@@ -581,10 +451,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(both.gradient.includes(first), 'and so does the strip');
         });
 
-        /* ===================================================================
-         * 6. THE LAYOUT — H1's ratio tracks and its branch
-         * =================================================================== */
-
         test('the page fills the mount region and never scrolls', async () => {
             await fed(700);
             const read = await page.eval(READ_LAYOUT);
@@ -594,12 +460,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'NEITHER PLOT SCROLLS. They RESIZE (H1), and below two usable plots the page '
                 + 'switches branch — a scrollbar on a chart card would be the third state §4.5 '
                 + 'refuses. This is the assertion the whole ratio-track design is for.');
-            /* THE PAGE'S OWN SCROLL BOX IS ~1px TALLER THAN ITS CONTENT BOX, and that is
-             * #10's HIT OVERLAY rather than this page: `hitArea`'s overlay mode expands a
-             * chip's target with a pseudo-element OUTSIDE the chip, so it adds to every
-             * ancestor's scroll size — on the flow page too, which is why that suite reads
-             * the cards rather than the grid. Bounded rather than asserted away: a real
-             * layout overflow would be an order larger than an overlay's inset. */
             assert.ok(read.hostOverflow <= 4 && read.gridOverflow.w <= 8,
                 `the only overflow is #10's hit overlay (host ${read.hostOverflow}, `
                 + `grid ${JSON.stringify(read.gridOverflow)})`);
@@ -610,16 +470,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the two cards have DIFFERENT floors, and both are the card\'s own', async () => {
             await fed(700);
             const read = await page.eval(READ_LAYOUT);
-            /* THIS IS WHAT SURVIVES OF THE THRESHOLD TEST. It read:
-             *
-             *     assert.equal(threshold, read.floors.derived + read.floors.pq + gap,
-             *         `POWER_SINGLE_PLOT_PX (${threshold}) must equal the derived card's
-             *          floor … plus the trajectory card's … plus the gap`);
-             *
-             * — a derivation check on the constant that placed `@container (block-size <
-             * 468px)`. The branch is retired (F-036) and so is the constant; what the page
-             * still leans on is the two floors themselves, which are what decide when #grid
-             * starts to scroll. */
             assert.notEqual(read.floors.derived, read.floors.pq,
                 'the derived card carries a legend row and the trajectory card does not, so '
                 + 'their floors differ — which is why this page never shared the flow page\'s '
@@ -631,11 +481,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('F-036 — the "Which plot" select is gone from the composed tree', async () => {
             await fed(700);
             const read = await page.eval(READ_LAYOUT);
-            /* BEN, 30 AUGUST 2026: "Remove them for good." Wave 3 measured this page's
-             * picker at `display: none`, box 0x0, unfocusable, at all five viewports —
-             * while BOTH power cards painted side by side (F-036, unit L0227). The claim
-             * here is COMPOSED, not painted: a `display: none` assertion would have passed
-             * against the old tree too. */
             assert.equal(read.pickerComposed, false, '#picker is still in the tree');
             assert.equal(read.selects, 0, 'a ui-select is still composed on this page');
             assert.equal(
@@ -662,32 +507,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-036 — a short region keeps BOTH cards and spills, rather than hiding one',
             async () => {
-                /* THE TEST THAT STOOD HERE was 'below the threshold the page shows ONE plot
-                 * and a selector', and its central assertion was
-                 *
-                 *     assert.deepEqual(read.shown,
-                 *         { derived: true, trajectory: false, picker: true },
-                 *         'the default plot and the selector, rather than two unusable strips');
-                 *
-                 * followed by setting `el.plot = 'trajectory'` and asserting the two cards
-                 * swapped boxes. That is the layout Ben removed for good. The answer for a
-                 * region too short for both floors is this tree's standing §2.4 rule —
-                 * "nothing clips silently": no box in the chain declares an overflow, so
-                 * the shortfall travels outward to the document rather than putting a card
-                 * behind a fold. (A scroll container on #grid was tried and measured worse:
-                 * `overflow-y: auto` forces overflow-x to auto, #10's legend hit overlay
-                 * overhangs by 8px, and the horizontal scrollbar took 15px off the block
-                 * axis and broke the ratio ladder above.)
-                 *
-                 * THE E12 CLAIM IS CARRIED ACROSS, because it is the one thing in the old
-                 * test that was not about the branch: a surface with no box does not rebuild,
-                 * so the trajectory canvas has to be populated wherever it has a box. Here it
-                 * always has one, which is a stronger version of the same statement. */
                 await fed(700);
                 const roomy = await page.eval(READ_LAYOUT);
-                /* <= 4, NOT 0, and the tolerance is this suite's own: #10's legend hit
-                 * overlay overhangs the grid by a pixel or two at every height, which the
-                 * layout test above states in the same words. */
                 assert.ok(roomy.hostOverflow <= 4,
                     `at a height that fits, nothing but the hit overlay overflows (${roomy.hostOverflow})`);
 
@@ -698,30 +519,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'both cards keep painting — neither is put away');
                 assert.equal(read.clips.grid, 'visible', 'the grid does not clip');
                 assert.equal(read.clips.host, 'visible', 'and neither does the page');
-                /* AND NEITHER CARD IS SHRUNK BELOW ITS OWN FLOOR TO BUY THE FIT. The
-                 * derived card takes its 254; #trajectory is a flex row with
-                 * `min-block-size: 0`, so the GRID squeezes the row and the card inside it
-                 * keeps its own 202 and overhangs — visibly, into a page that clips
-                 * nothing, which is the whole difference from putting a card behind a
-                 * fold. */
                 assert.ok(read.derived.h >= read.floors.derived - 0.6,
                     `the derived card keeps its floor (${read.derived.h})`);
                 assert.ok(read.pq.h >= read.floors.pq - 0.6,
                     `and so does the trajectory card (${read.pq.h})`);
                 assert.ok(read.pq.h > read.row.h + 0.5,
                     `which means it overhangs its squeezed row (${read.pq.h} in ${read.row.h})`);
-
-                /* WHAT IS NOT ASSERTED HERE, AND IT IS RECORDED RATHER THAN HIDDEN. At this
-                 * height the derived card reports ~11px of its own internal scroll at its
-                 * floor, and the trajectory card overhangs its row by ~52. Both are
-                 * properties of the cards at and below their floors, not of this removal:
-                 * the old suite never measured them because at this height the page used to
-                 * switch to the one-plot branch, where the chosen card had a whole track to
-                 * itself. Neither is reachable in the shipped app — `app-fit.js` never
-                 * yields a design height under 1200, so this region is never shorter than
-                 * 591 — and they belong to whoever next looks at the floor arithmetic. The
-                 * ratio test above pins the honest behaviour at every height the page
-                 * really gets. */
 
                 const pq = await page.eval(READ_PQ);
                 assert.ok(pq.bands.filter((b) => b.n > 10).length === 2,
@@ -738,10 +541,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(read.key.h, read.pq.h, 'the same height as the chart it is the axis for');
             near(read.key.x + read.key.w, read.row.x + read.row.w, 'and it ends where the row does');
         });
-
-        /* ===================================================================
-         * 7. THE HONEST ABSENCE (#38)
-         * =================================================================== */
 
         test('a shot the server served no derived channel for SAYS SO', async () => {
             const feed = await fed(700, 0, FEED_RAW);
@@ -775,19 +574,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(headings.every((h) => /No shot selected/i.test(h)));
         });
 
-        /* ===================================================================
-         * 8. THE STANDING CLASSES, AND THE PAGE IN ITS SCREEN
-         * =================================================================== */
-
         test('focus rings are unclipped on every control the page owns', async () => {
-            /* THE FIRST HALF OF THIS TEST WENT WITH THE SELECT (F-036). It read:
-             *
-             *     await fed(threshold - 40);
-             *     await assertFocusUnclipped(page, 'history-power-page >>> #picker >>> #control');
-             *
-             * — staged the one-plot branch and focused the native select #7 renders inside
-             * its own shadow root. There is no such control on this page any more, and the
-             * legend chip below is now the only control the page owns. */
             await fed(700);
             await assertFocusUnclipped(page,
                 'history-power-page >>> ui-chart-legend >>> [part="item"]');
@@ -800,11 +587,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const legend = el.renderRoot.querySelector('ui-chart-legend');
                 const card = el.renderRoot.getElementById('plot-derived');
                 const before = card.plotHandle.raw.series.map((s) => s.show !== false);
-                /* THE CHIP PRESSED IS ONE THIS PAGE ACTUALLY HAS. It used to be 'power',
-                 * which stopped being a chip here on 25 August 2026 when W moved to the flow
-                 * page — and setVisible on a key the legend does not carry is a call that
-                 * silently does nothing, so the drill would have gone on "passing" by
-                 * comparing two identical arrays if the assertion below were any weaker. */
                 legend.setVisible('resistance', false, 'test');
                 const after = card.plotHandle.raw.series.map((s) => s.show !== false);
                 legend.setVisible('resistance', true, 'test');
@@ -857,10 +639,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(6);
             const heights = await page.evalFn(async () => {
                 const screen = document.querySelector('history-screen');
-                /* THE COMPARISON IS ASKED FOR FIRST (24 Aug 2026): the screen opens on one
-                 * shot and the bar is absent until then. The claim below — that the POWER
-                 * page keeps the bar while the data page does not — is about the per-page
-                 * rule and is measured with the comparison open. */
                 screen.comparing = true;
                 await screen.updateComplete;
                 const bar = screen.renderRoot.getElementById('compare');

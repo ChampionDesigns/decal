@@ -1,6 +1,4 @@
-// O5's whole risk is over-flagging: a warning that appears on a legitimate
-// profile teaches people to ignore warnings. These tests pin the boundary
-// between "provably cannot fire" and "merely unusual".
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -23,8 +21,6 @@ test('an ordinary threshold is not flagged', () => {
 });
 
 test('volume and weight exits are never flagged — they accumulate', () => {
-    // They have no comparator at all, so the zero case means "not set", which
-    // the editor already renders as an absent chip.
     assert.equal(deadExitReason({ type: 'volume', condition: 'over', value: 0 }), null);
     assert.equal(deadExitReason({ type: 'weight', condition: 'under', value: 0 }), null);
 });

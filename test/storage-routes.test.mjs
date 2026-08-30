@@ -1,5 +1,4 @@
-// The B7 routing table, checked as data. If a row is malformed the router cannot enforce
-// "one owner per setting", so these run before any behaviour test.
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -63,8 +62,6 @@ test('a routed row never carries an owner — one owner per key, and it is us', 
 });
 
 test('no logical key carries the physical prefix — the router owns prefixing', () => {
-    // The old skin had `PROFILE_FOLDER_PREF = 'slate.profileFoldersOpen'`: a physical key
-    // used as a logical one, which is exactly how a prefix change desyncs half a tree.
     for (const key of allKeys()) {
         assert.ok(!key.startsWith(STORAGE_PREFIX), `${key}: logical keys are unprefixed`);
     }
@@ -82,9 +79,6 @@ test('two rows never collide on one physical key within one layer', () => {
 });
 
 test('machine-scoped rows live in ReaPrime KV, device-scoped rows live locally', () => {
-    // SCOPE Part 3 §5: "Machine-scoped settings live in ReaPrime's KV store. Device-scoped
-    // preferences live locally." The scope field is the reason; this asserts the reason
-    // and the layer cannot drift apart.
     for (const key of allKeys()) {
         const { layer, scope } = STORAGE_ROUTES[key];
         if (layer === LAYERS.kv || layer === LAYERS.kvNumpad) {
@@ -97,18 +91,6 @@ test('machine-scoped rows live in ReaPrime KV, device-scoped rows live locally',
 });
 
 test('the keys SCOPE Part 3 §5 names as wrongly local are machine-scoped or gone', () => {
-    /* WHAT THE OLD SKIN GOT WRONG, AND WHAT THIS STILL HAS TO PROVE. SCOPE Part 3 §5 names
-     * four keys the old skin kept in localStorage that describe the MACHINE, not the tablet,
-     * so a tablet swap lost them. Three are in the KV store and the claim is unchanged.
-     *
-     * `steamStopMode` IS THE FOURTH AND IT IS RETIRED (27 August 2026), which is a stronger
-     * answer than the one this test was written to check rather than a weaker one. The
-     * finding was "this value survives the wrong thing"; the fix a year of work later is that
-     * the skin does not store the value at all — how a machine stops steaming is derived from
-     * the machine's own two fields by both surfaces that show it, so there is nothing to lose
-     * on a tablet swap and nothing to disagree about either. The row still exists and still
-     * carries the story; what it must NOT do is quietly come back as a local key, which is
-     * what the second assertion pins. */
     for (const key of ['waterTankUnit', 'experimentalFusedChannels', 'experimentalCollapseDetection']) {
         assert.equal(STORAGE_ROUTES[key].layer, LAYERS.kv, `${key} should be in the KV store`);
     }
@@ -148,8 +130,6 @@ test('identity: prefix, KV namespace and IDB name all follow the manifest id (A9
     assert.equal(KV_NAMESPACE, manifest.id);
     assert.equal(KV_NUMPAD_NAMESPACE, `${manifest.id}.numpad`);
     assert.equal(IDB_DATABASE_NAME, `${manifest.id}.shot_history`);
-    // No migration (A10): the old skin's names must not appear anywhere in the table's
-    // live half. `was:` fields record them for reviewers and are not physical keys.
     for (const key of allKeys()) {
         const row = STORAGE_ROUTES[key];
         if (row.layer === LAYERS.none) continue;
@@ -158,10 +138,6 @@ test('identity: prefix, KV namespace and IDB name all follow the manifest id (A9
 });
 
 test('the pre-paint theme stamp in index.html uses the same prefix as the router', () => {
-    // index.html hand-writes the prefix because nothing can be imported before first
-    // paint (SCOPE Part 2 §6). It is the ONE copy, and this is its only enforcement:
-    // in the old skin the same script bypassed the storage module entirely, so a prefix
-    // change would silently desync the theme from everything else.
     const html = repoFile('index.html');
     const match = html.match(/var\s+PREFIX\s*=\s*'([^']+)'/);
     assert.ok(match, 'index.html should declare the prefix in its pre-paint stamp');
@@ -170,29 +146,6 @@ test('the pre-paint theme stamp in index.html uses the same prefix as the router
     assert.equal(STORAGE_ROUTES.theme.layer, LAYERS.local, 'and the router must agree the theme is local');
 });
 
-/* ---------------------------------------------------------------------- *
- * The stamp's OTHER end of the contract: the value encoding.
- *
- * The prefix is not the only thing the hand-written stamp has to keep in step with
- * the router. Web Storage holds strings, so the web-storage backend JSON-serialises
- * every value: after one theme write localStorage holds `"dark"` WITH the quotes. A
- * stamp that read it raw set data-theme='"dark"', matched no [data-theme="dark"]
- * selector, and the theme silently reverted on every boot — the exact desync the
- * stamp's own comment warns about. So this runs the REAL script text from index.html
- * against a store the REAL backend wrote, rather than restating either half.
- * ---------------------------------------------------------------------- */
-
-/**
- * The theme stamp, out of index.html.
- *
- * SELECTED BY WHAT IT WRITES, not by being the only one. index.html carries a second
- * pre-paint script since the fit landed (src/lib/app-fit.js — it has the same "nothing
- * can be imported before first paint" reason and the same inline-copy hazard, and
- * test/app-fit.test.mjs pins it the same way). A count of one was the right assertion
- * while there was one; picking the block that stamps `data-theme` stays right however
- * many pre-paint scripts the file grows, and still fails loudly if the stamp is
- * deleted or split in two.
- */
 function preePaintStamp() {
     const html = repoFile('index.html');
     const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
@@ -252,8 +205,6 @@ test('the stamp defaults to dark when nothing is stored, and never writes (bug S
 });
 
 test('the stamp treats a corrupt value as absent, exactly as the backend does', () => {
-    // createWebStorageBackend.get() warns and reports undefined for unparseable JSON.
-    // Anything else here and the two ends disagree about what "no stored choice" is.
     for (const corrupt of ['{not json', '"', 'dark', '', '{"a":1}', '17', 'null']) {
         const storage = fakeWebStorage({ [STORAGE_PREFIX + 'theme']: corrupt });
         const backend = createWebStorageBackend({ storage, label: 'localStorage' });
@@ -273,8 +224,6 @@ test('a store that throws leaves the stamp on the default rather than unhandled'
 });
 
 test('the themes the stamp can produce are the themes the sheets define', () => {
-    // A stamp that emits a value no sheet selects is the same failure as emitting a
-    // quoted one: the palette silently falls back to the bare :root block.
     const tokens = repoFile('styles/tokens.css');
     const channels = repoFile('styles/chart-channels.css');
     const storage = fakeWebStorage();
@@ -286,11 +235,6 @@ test('the themes the stamp can produce are the themes the sheets define', () => 
 });
 
 test('nothing under src/ hand-writes a prefixed physical key — the table owns them', () => {
-    // B7, one owner per key. `PROFILE_FOLDER_PREF = 'decal.profileFoldersOpen'` in
-    // profile-folders.js was a second, hand-maintained copy of a key the table already
-    // owned — and the router REJECTS a prefixed key, so a component importing it would
-    // either throw or bypass the router entirely. Exactly the shape the old skin had.
-    // index.html is the one sanctioned copy of the prefix and has its own test above.
     const stripComments = (source) => source
         .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');

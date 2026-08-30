@@ -1,40 +1,5 @@
 /**
- * live-favourite-carry.render.test.mjs — the favourite hold-menu's two broken outcomes,
- * pinned at the OUTCOME rather than at any step along the way.
- *
- * Written 29 August 2026 for the fix campaign's cluster L. Two findings, one menu:
- *
- *   F-027  "Clear button" was scored DEAD. Every step worked — the hold opened the right
- *          menu on the right cell, the item was live, `#onFavouriteAction` routed `clear`
- *          to `setFavourite(slot, null)` — and over 10.5 s NOTHING was sent. The break was
- *          a units mismatch at the last inch: `<ui-favourites-bank>` answers with the
- *          1-based number a person reads off the disc and `setFavourite` keys the
- *          assignments map by ARRAY INDEX, so clearing the fifth slot called
- *          `setFavourite(5, …)`, hit the `0..4` range guard and was refused into a log
- *          line. On the other four it would have emptied the NEIGHBOUR.
- *
- *   F-025 / F-001  "Replace with" (and "Browse Profiles" on an empty slot) opened the
- *          selector and carried nothing, so Confirm did what Confirm always does and
- *          LOADED the profile. Ben found it by hand: "when I click confirm it doesn't
- *          change the favourite, it just loads it like the normal profile page." The fix
- *          is the one the source's own comment prescribed — a pending INTENT the selector
- *          consumes, never a write performed up front.
- *
- * THE NON-DESTRUCTIVE PROPERTY IS PART OF THE SUBJECT, not a side condition. On 28 August
- * 2026 an earlier "Replace with" cleared the slot before opening the selector and silently
- * emptied Ben's slot 3. So there are tests here for the two abandon paths — press Replace
- * and leave, press Replace and confirm nothing — and both assert that the rail is
- * UNTOUCHED. A fix for F-025 that reintroduces the up-front write fails this file.
- *
- * WHY IT IS A RENDER TEST AND NOT A UNIT ONE. The fault is the JOIN: two screens, one
- * boot, a session row written on one and read on the other. Both halves passed their own
- * suites for weeks. `test/fixtures/live-selector-carry-fixture.js` mounts them in turn on
- * a real `createAppBoot` over real memory backends, and every assertion below reads the
- * store, the router or the request log — never an internal.
- *
- * BOTH GATE A GEOMETRIES, as every render suite here: the carry is the same carry at both,
- * and a hold that misses its cell at one size is exactly the kind of thing that would hide
- * a regression at the other.
+ * The favourite hold-menu's two broken outcomes, pinned at the OUTCOME rather than at any step along the way.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -62,14 +27,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, [], 'the pair must run without throwing');
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-027 — "Clear button" empties the slot that was held
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('F-027 — clearing the FIFTH slot empties the fifth slot', () => mounted(async (page) => {
-            /* THE FIFTH IS THE ONE THE AUDIT DROVE, and it is the one the range guard ate:
-             * slot 5 as a 1-based mark is index 5 to `setFavourite`, which refuses
-             * anything outside 0..4. Nothing was sent, and the finding scored DEAD. */
             const before5 = await page.evalFn(() => window.__carry.favourites());
             assert.ok(before5[4], 'the fifth slot starts filled');
 
@@ -86,9 +44,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('F-027 — and it empties THAT slot, not the one beside it', () => mounted(async (page) => {
-            /* THE OFF-BY-ONE'S OTHER FACE. On slots one to four the old code did fire —
-             * at the neighbour. A test that only drove the fifth would call this fixed
-             * while a press on cell 2 still emptied cell 3. */
             const before2 = await page.evalFn(() => window.__carry.favourites());
             await page.evalFn(() => window.__carry.holdFavourite(1));
             await page.evalFn(() => window.__carry.pressMenuItem('clear'));
@@ -106,9 +61,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             /* THE AUDIT'S OWN MEASUREMENT, INVERTED: it watched 10.5 s and counted zero
              * requests. One POST to the rail's key is what a working clear looks like. */
-            /* THE RAIL'S KEY EXACTLY. `favouriteProfilesSeeded` is a DIFFERENT row — the
-             * first-launch latch — and it shares this one's prefix, so a substring match
-             * would count the store's own bookkeeping as a rail write. */
             const writes = await page.evalFn(() => window.__carry
                 .requests('/store/decal/favouriteProfiles')
                 .filter((r) => r.method === 'POST'
@@ -120,25 +72,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(stored, 'the key is stored');
             assert.ok(!stored['4'], 'and slot 4 is empty in the document that persisted');
         }));
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-025 / F-001 — the held slot travels, and Confirm assigns
-         * ═════════════════════════════════════════════════════════════════ */
-
-        /* ═════════════════════════════════════════════════════════════════
-         * ROUND 2 — the two words Ben changed (decisions D13 and D15)
-         *
-         * Both labels described the WIDGET rather than the act. "Clear button" is
-         * Slate's, where the thing cleared really is a button on a toolbar; here it
-         * is one of five favourites and the row left "which button?" to the reader.
-         * "Browse Profiles" implied plain browsing on a menu whose one item now
-         * FILLS the slot you held — the open question `L0444` recorded, settled by
-         * D15 as fill.
-         *
-         * THESE ARE ASSERTED ON THE MENU'S OWN ITEMS, not on the source text (a8),
-         * and by the id→label pairing rather than by position, so a reordered menu
-         * fails on the wording it actually shows.
-         * ═════════════════════════════════════════════════════════════ */
 
         test('D13 — a filled slot offers "Clear this favourite", not "Clear button"',
             () => mounted(async (page) => {
@@ -203,16 +136,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D01 — Confirm with a pending slot ASSIGNS **and LOADS** the picked profile',
             () => mounted(async (page) => {
-                /* BEN'S OVERRIDE OF ROUND 1, 29 August 2026. Round 1 built this branch as
-                 * assign-without-load and flagged it: `L0307` names the slot and not the
-                 * machine, so a trip made to change a shortcut arguably should not change
-                 * what is running. Ben's answer is that assigning a profile to a slot
-                 * LOADS it — the same thing a press on a favourite disc does — so there
-                 * is one answer to "what does picking a profile for a slot do" rather
-                 * than two that depend on which door you came through.
-                 *
-                 * IT IS ASSERTED AT THE WIRE, not at the store: the load is a POST to
-                 * /machine/profile and nothing else on this path makes one. */
                 await page.evalFn(() => window.__carry.holdFavourite(3));
                 await page.evalFn(() => window.__carry.pressMenuItem('replace'));
                 await page.evalFn(() => window.__carry.show('selector'));
@@ -228,8 +151,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the picked profile is put on the machine, exactly once — '
                     + `saw ${JSON.stringify(armed)}`);
 
-                /* AND THE SLOT IS STILL FILLED. The load is the half D01 adds; the
-                 * assignment is the half F-025 built and it must survive the addition. */
                 const held = await page.evalFn(() => window.__carry.assignments());
                 assert.equal(held['3'], picked, 'the held slot still takes the profile');
 
@@ -253,10 +174,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.clearRequests());
                 await page.evalFn(() => window.__carry.confirm());
 
-                /* THE PROVEN LINE, WORD FOR WORD: "`kv favouriteProfiles` holds the picked
-                 * profile's id at the held slot's position … with `session
-                 * pendingAssignmentIndex` naming that same slot while the selector is
-                 * open." The first half is here; the second was asserted above. */
                 const held = await page.evalFn(() => window.__carry.assignments());
                 assert.equal(held['3'], picked,
                     `slot 3 holds the picked profile — got ${JSON.stringify(held)}`);
@@ -281,10 +198,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const pending = await page.evalFn(() => window.__carry.stored('pendingAssignmentIndex'));
                 assert.equal(pending, null, 'the intent dies with the gesture that made it');
 
-                /* AND NOW THE PLAIN LOOP, UNCHANGED. A second Confirm with nothing pending
-                 * is the ordinary one: it arms the machine and goes to Live. This is the
-                 * regression guard on the whole selector — the fix must not make every
-                 * Confirm an assignment. */
                 const heldBefore = await page.evalFn(() => window.__carry.assignments());
                 await page.evalFn(() => window.__carry.show('selector'));
                 await page.evalFn(async () => window.__carry.selectRow(window.__carry.offRailId()));
@@ -322,8 +235,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('F-025 — "Browse Profiles" on an EMPTY slot fills that slot', () => mounted(async (page) => {
-            /* L0444's face of the same fault. The empty slot is made by the gesture that
-             * makes one — Clear — which is F-027's fix doing the staging for this test. */
             await page.evalFn(() => window.__carry.holdFavourite(4));
             await page.evalFn(() => window.__carry.pressMenuItem('clear'));
             const emptied = await page.evalFn(() => window.__carry.favourites());

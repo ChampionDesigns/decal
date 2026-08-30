@@ -1,33 +1,5 @@
 /**
- * ui-card-grid.render.test.mjs — Gate A for component #51 (wave 4, settings compounds).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor — and asserts only on computed style, box geometry and behaviour,
- * never on source text.
- *
- * THIS ROW CARRIES NO BUG IDS. `waves/4/ITEMS.json` #51 has `"bugs": []`, so there is
- * no "assertion per row bug id" to write and none is invented. What IS written is the
- * defect class this compound's territory can no longer express, cited: Slate builds the
- * same 2-up card grid twice in one screen with two different gaps (14px on
- * settings-display-skin, 12px on settings-accessories-usb-charger — rect arithmetic
- * quoted in ui-card-grid.js), which is §7.5 T20 ("Fourteen distinct gap-[Npx] literals
- * pass through the shell's rhythm rules untouched") and T14 ("Seven contradictory
- * declaration pairs"). Sections 6 and 7 below make both inexpressible by measurement
- * rather than by assertion-on-source: two instances in one page, two column modes and
- * two geometries all produce one gap, and that gap tracks one token.
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. structure — one box, no cell constructed, no control of its own;
- *   2. token drill — the one gap token, on both axes, and the track expression proved
- *      to read the same slot rather than a second copy of the number;
- *   3. dial drill, in its NEGATIVE form — selection does not exist in this component,
- *      so the drill is that the four dials move nothing here and still reach the cell;
- *   4. focus-unclipped — a slotted cell's ring, which the grid must not clip;
- *   5. container floor — the §2.3-case-4 cell floor, the 2-up → 1-up crossover derived
- *      from tokens, and no overflow at any width;
- *   6. T20 / T14 dead: one gap, everywhere, from one token;
- *   7. T1 / T21 dead: the grid declares no measure of its own;
- *   8. the aria contract, and the `columns` fallback.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -37,9 +9,6 @@ import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
 import { assertTokenDrill, assertFocusUnclipped, DRILL_COLOUR, DRILL_LENGTH } from '../harness/assertions.js';
 import { entry as galleryEntry } from '../../tools/gallery/entries/ui-card-grid.entry.js';
 
-/* #8 is wave 1 and long finished, so mounting real cards as the cells is safe here in
- * a way importing a SIBLING builder's wave-4 component would not be. The row is
- * "small | #8" (SCOPE.md:1643) and the cells are what makes that dependency real. */
 const MODULE = ['/src/components/ui-card-grid.js', '/src/components/ui-card.js'];
 
 const SKINS = '#skins';
@@ -47,12 +16,6 @@ const UPDATES = '#updates';
 const GRID = '#skins >>> #grid';
 const UPDATES_GRID = '#updates >>> #grid';
 
-/* A DEFINITE CONTAINER IS THE WHOLE FIXTURE. The component reads its own container
- * (spec §2.1 Rule 1), so every number below is a function of #wrap's inline size and of
- * nothing else — which is exactly what the geometry loop is here to prove. #page's
- * padding exists so a focus ring drawn OUTSIDE a cell at the grid's edge has somewhere
- * to be: without it the ring at the left column would sit at a negative x and the
- * clipping check would be measuring the document, not this component. */
 const MARKUP = `
 <style>
     #page { padding: 24px; }
@@ -88,8 +51,6 @@ const MARKUP = `
     </div>
 </div>`;
 
-/** At dsf 1.5 lengths snap to device pixels (CONVENTIONS §10), so rendered lengths are
- *  compared as numbers with a tolerance, never by string equality. */
 function near(got, want, what, tol = 0.75) {
     assert.ok(
         Math.abs(got - want) <= tol,
@@ -129,10 +90,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(env.dpr, geometry.deviceScaleFactor);
             assert.equal(env.w, geometry.width);
         }));
-
-        /* ===================================================================
-         * 1. IT IS A LAYOUT AND NOTHING ELSE
-         * =================================================================== */
 
         test('the shadow tree is one grid box and a slot — no cell, no control, no surface',
             () => mounted(async (page) => {
@@ -181,10 +138,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(c1.x > c0.x + 100, 'the first two cells are side by side, in two tracks');
             }));
 
-        /* ===================================================================
-         * 2. TOKEN DRILL — ONE GAP TOKEN, BOTH AXES, ONE SLOT
-         * =================================================================== */
-
         test('the column gap is --ui-space-3', () => mounted(async (page) => {
             await assertTokenDrill(page, {
                 token: '--ui-space-3', value: DRILL_LENGTH,
@@ -201,9 +154,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the track expression reads the gap SLOT, not a second copy of the number',
             () => mounted(async (page) => {
-                /* If the crossover arithmetic carried its own 12, the tracks would not
-                 * move when the token does — and the grid would be 2px wrong forever
-                 * after any spacing change. (900 - 12) / 2 = 444; (900 - 37) / 2 = 431.5. */
                 const before = tracks(await page.prop(GRID, 'grid-template-columns'));
                 await page.setToken('--ui-space-3', DRILL_LENGTH);
                 const after = tracks(await page.prop(GRID, 'grid-template-columns'));
@@ -216,10 +166,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(after[0], 431.5, 'track at the 37px drill gap');
                 near(restored[0], 444, 'track after restoring the token');
             }));
-
-        /* ===================================================================
-         * 3. DIAL DRILL, NEGATIVE FORM — selection does not exist here
-         * =================================================================== */
 
         test('the four dials move nothing in this component', () => mounted(async (page) => {
             const props = ['background-color', 'color', 'box-shadow', 'text-shadow', 'border-top-width'];
@@ -238,27 +184,16 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the dials still reach the CELL through the grid', () => mounted(async (page) => {
-            /* The grid host sits in the inheritance path :root → body → #wrap →
-             * ui-card-grid → the cell. Declaring a dial on :host would cut the cell off
-             * from the one selection mechanism; this is the assertion that it does not. */
             await page.setToken('--ui-selected-face', DRILL_COLOUR);
             const seen = await cssVar(page, '#c0', '--ui-selected-face');
             await page.setToken('--ui-selected-face', null);
             assert.equal(seen, DRILL_COLOUR, 'the cell sees the dial the grid never touched');
         }));
 
-        /* ===================================================================
-         * 4. FOCUS, UNCLIPPED — bug L24's class
-         * =================================================================== */
-
         test('a slotted cell keeps the one focus ring and the grid does not clip it',
             () => mounted(async (page) => {
                 await assertFocusUnclipped(page, '#pick');
             }));
-
-        /* ===================================================================
-         * 5. CONTAINER FLOOR — spec §2.3 case 4, and the crossover
-         * =================================================================== */
 
         test('the cell floor holds, the crossover is 2 × floor + gap, and nothing ever overflows',
             () => mounted(async (page) => {
@@ -296,9 +231,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the floor is a documented hook: moving --_ui-card-grid-min moves the crossover',
             () => mounted(async (page) => {
-                /* At 900 the resting floor (280) leaves two 444px tracks. Raise the floor
-                 * above half the container and the same container is 1-up — the consumer
-                 * contract for a cell that needs more room than a skin card. */
                 await page.setStyle(SKINS, { '--_ui-card-grid-min': '460px' });
                 const raised = tracks(await page.prop(GRID, 'grid-template-columns'));
                 await page.setStyle(SKINS, { '--_ui-card-grid-min': null });
@@ -311,10 +243,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the column count is the CONTAINER\'s answer, never the item count',
             () => mounted(async (page) => {
-                /* auto-fill, not auto-fit: one card in a 900px container is still a 2-up
-                 * grid with an empty second track. auto-fit would collapse it, making the
-                 * layout change meaning when somebody adds a sibling — the shape spec
-                 * §2.3 bans by name for selectors, for this reason. */
                 const one = tracks(await page.prop('#single >>> #grid', 'grid-template-columns'));
                 assert.equal(one.length, 2, 'a single cell still sits in a 2-up grid');
                 near(one[0], 444, 'and the tracks are the container\'s halves');
@@ -322,10 +250,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the intrinsic-sizing slot collapses visibly, and the documented remedy fixes it',
             () => mounted(async (page) => {
-                /* #8's departure 4, inherited with the base's container-type: a bare flex
-                 * item offers no inline size to fill, so the host resolves to 0 and the
-                 * content overflows VISIBLY rather than being clipped (spec §2.4). One
-                 * declaration at the call site is the whole remedy. */
                 const collapsed = await page.box('#collapsed');
                 const remedied = await page.box('#remedied');
                 near(collapsed.width, 0, 'a bare flex item has no container inline size to fill');
@@ -333,10 +257,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the degenerate case is visible, never a silent clip');
                 assert.ok(remedied.width > 200, `flex: 1 1 0 gives the grid a container (${remedied.width}px)`);
             }));
-
-        /* ===================================================================
-         * 6. T20 / T14 — one gap, and two instances cannot disagree
-         * =================================================================== */
 
         test('one gap value: both axes, both column modes, both instances',
             () => mounted(async (page) => {
@@ -357,8 +277,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the rendered row pitch is the cell plus one gap and nothing else',
             () => mounted(async (page) => {
-                /* Slate's measured pitch is 110 for a 96 card (14) and 96 for an 84 card
-                 * (12). Here the pitch is whatever the cells need plus the one gap. */
                 const gap = parseFloat(await page.prop(GRID, 'column-gap'));
                 const c0 = await page.box('#c0');
                 const c2 = await page.box('#c2');
@@ -366,9 +284,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('cells in a row are equal height by construction', () => mounted(async (page) => {
-            /* #c1 wraps to several lines and #c0 does not. Slate's ten skin cards are all
-             * h=96 only because their content is uniform; align-items: stretch is what
-             * makes that a contract rather than a coincidence. */
             const c0 = await page.box('#c0');
             const c1 = await page.box('#c1');
             assert.ok(c1.height > 40, 'the long cell really is the taller content');
@@ -376,11 +291,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the flow is row-major, as the oracle measures it', () => mounted(async (page) => {
-            /* CITE settings-display-skin .slate-card [i=49] rect x=629 y=479 …
-             * CITE settings-display-skin .slate-card [i=54] rect x=1236 y=479 …
-             * CITE settings-display-skin .slate-card [i=59] rect x=629 y=589 …
-             * across, then down. Geometry FROZEN at 1920×1200 — quoted as reading order,
-             * never as a width target. */
             const [c0, c1, c2] = [await page.box('#c0'), await page.box('#c1'), await page.box('#c2')];
             near(c0.y, c1.y, 'the first two cells share a row');
             assert.ok(c1.x > c0.x, 'the second cell is to the right of the first');
@@ -399,14 +309,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(u1.y > u0.y);
             }));
 
-        /* ===================================================================
-         * 7. T1 / T21 — no silent second measure
-         * =================================================================== */
-
         test('the grid declares no measure of its own', () => mounted(async (page) => {
-            /* T1 is a leaf 63px wider than every other leaf and T21 a third live width
-             * "documented nowhere". The leaf measure belongs to the leaf pane (spec §4.4);
-             * a layout that also capped its width would be the fourth. */
             for (const sel of [SKINS, GRID, UPDATES, UPDATES_GRID]) {
                 const box = await page.computed(sel, ['max-inline-size', 'inline-size', 'margin-inline-start']);
                 assert.equal(box['max-inline-size'], 'none', `${sel} caps nothing`);
@@ -416,10 +319,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(skins.width, 900, 'the grid is exactly its container');
             near(updates.width, 900, 'and so is the second one');
         }));
-
-        /* ===================================================================
-         * 8. THE ARIA CONTRACT AND THE `columns` FALLBACK
-         * =================================================================== */
 
         test('a label makes it a named group; without one it is not a role at all',
             () => mounted(async (page) => {
@@ -470,16 +369,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(probe.onGrid, 'number', 'the component owns a name nothing standard does');
             }));
 
-        /* ===================================================================
-         * 9. THE GALLERY ENTRY IS THE COMPONENT, and its numbers are measured
-         * =================================================================== */
-
         test('every gallery state mounts, and the widths its notes claim are the widths it renders',
             () => mounted(async (page) => {
-                /* The entry's states are the capture battery's filenames, so a state
-                 * that throws or lies about its own geometry becomes a wrong baseline
-                 * rather than a red test. Expected track counts come from the state's
-                 * own hostStyle against the crossover, not from a table written twice. */
                 for (const state of galleryEntry.states) {
                     const width = parseFloat(state.hostStyle?.['inline-size'] ?? '900px');
                     await page.mount(
@@ -506,8 +397,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('no @media and no viewport unit can be at work — the same container gives the same layout at both geometries',
             () => mounted(async (page) => {
-                /* The loop runs this at 1281 and at 1000 wide. A 900px container answers
-                 * 444|444 at both, so nothing here reads the viewport (spec §2.1 Rule 1). */
                 const got = tracks(await page.prop(GRID, 'grid-template-columns'));
                 assert.equal(got.length, 2);
                 near(got[0], 444, `two 444px tracks at a 900px container, viewport ${geometry.width}`);

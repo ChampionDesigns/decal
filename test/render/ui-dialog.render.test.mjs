@@ -1,44 +1,5 @@
 /**
- * ui-dialog.render.test.mjs — Wave 3 item #18's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR,
- * never source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the
- * 1000×600 floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. The row's subject is not a card with a shadow; it is
- * the claim §4.6 makes about every overlay in the old app — "Modality is real, or the
- * attribute comes off ... no inert, no aria-hidden, no focus trap, no focus restore"
- * (H9, O8). Every one of those is invisible to a screenshot: a dialog with a perfect
- * scrim and no trap photographs exactly like a dialog with one. So the four claims are
- * driven as INPUT and read as OUTCOME:
- *
- *   trap     — real CDP Tab and Shift+Tab presses, and where the caret lands after
- *              each one. The browser's own cycle wraps THROUGH document.body (measured
- *              in the wave-0 probe: five controls, six steps); the assertion is that
- *              every stop of a full cycle is inside the dialog.
- *   inert    — a real focus() call and a real hit-tested click on a background
- *              control, and whether either did anything. Then the same two again
- *              after closing, because a page left permanently inert is the failure
- *              mode this machinery has that a missing trap does not.
- *   restore  — press the invoker, press Escape, read where the caret is.
- *   Escape   — including two SIBLING dialogs, which is the case Slate's numpad could
- *              not defend (numpad-modal.js:252-268 owns the key on one propagation
- *              path; two siblings share none).
- *
- * The token half is drilled rather than compared: a scrim written as a literal and a
- * scrim reading --ui-scrim photograph identically, which is O6's whole shape ("eight
- * scrim colours, six blur radii, no z-index scale, no motion tokens").
- *
- * ALMOST EVERY STARTING VALUE IS A SOURCE READ, because the oracle has almost none:
- * `prov_query.py find --cls numpad-modal-overlay | slate-dialog | notes-modal-overlay |
- * slate-sheet-actions` returns 0 elements in 0 of 49 states — no captured state has an
- * overlay open — and ::backdrop is outside the probe's 18-property surface in any case
- * (styles/tokens.css:41). The exception is the numpad's CARD, which is captured, and
- * its three probed answers each back an assertion below: width 820px, border-top-left-
- * radius 12px, box-shadow rgba(0, 0, 0, 0.52) 0px 24px 70px 0px in dark. They are
- * quoted at those assertions and the full citations are in the component's header.
- * Colours and lengths are asserted against the resolved token, never against a hex, so
- * the suite is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -61,12 +22,6 @@ const MODULE = [
     '/src/components/ui-icon-button.js',
 ];
 
-/**
- * The default page. An invoker to press and to give the caret back to, a control
- * BEHIND the dialog inside a transformed z-index: 10000 pane (S8's exact shape), a
- * plain button outside for the inert measurements, and — for S7 — the same ui-button
- * markup twice, once on the page and once in the dialog's footer.
- */
 const MARKUP = `
 <div id="page" style="padding: 60px">
   <ui-button id="invoker">Set time</ui-button>
@@ -88,7 +43,6 @@ const MARKUP = `
   </ui-dialog>
 </div>`;
 
-/** A body that cannot fit: the scroll region §4.6 calls mandatory. */
 const TALL = `
 <div id="page" style="padding: 60px">
   <ui-button id="invoker">Open</ui-button>
@@ -120,12 +74,6 @@ const SIBLINGS = `
   </ui-dialog>
 </div>`;
 
-/**
- * A LIGHTER OVERLAY INSIDE THE DIALOG — finding cross-2's stage. A `ui-menu` in the
- * body is the ordinary shape of a profile dialog, and it is the case Appendix 13's
- * "the top-most overlay acts" was never asserted against: `OPEN_DIALOGS` cannot see a
- * menu, so one Escape used to close the dialog UNDERNEATH the open menu.
- */
 const WITH_MENU = `
 <div id="page" style="padding: 60px">
   <ui-button id="invoker">Open</ui-button>
@@ -155,12 +103,6 @@ const WITH_TOAST = `
 </div>
 <ui-toast id="t"></ui-toast>`;
 
-/**
- * A dialog three levels down, one of them a shadow boundary — what a real screen
- * looks like. `probe-shell` is defined in the page before the mount because
- * `innerHTML` does not run scripts and the harness waits on `whenDefined` for every
- * hyphenated tag it finds (the trap `ui-menu.demo.js` documents).
- */
 const SHELL_DEFINITION = `(() => {
     if (customElements.get('probe-shell')) return true;
     class ProbeShell extends HTMLElement {
@@ -262,14 +204,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. CLOSED IS CLOSED — and P13's shape, one component over.
-         *    "Closed dialogs stay in the tab order: DaisyUI's .modal sets
-         *    display: grid; opacity: 0 with no visibility: hidden, defeating the
-         *    UA's dialog:not([open]) { display: none }. Measured 16 focusables
-         *    inside dialog:not([open]) out of 30 on the page."
-         * ============================================================== */
-
         test('a closed dialog renders nothing, holds no focusables, and inerts nobody', () => mounted(async (page) => {
             assert.equal(await page.exists(DIALOG), true, 'the element is there');
             assert.equal(await page.prop(DIALOG, 'display'), 'none',
@@ -285,10 +219,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const box = await page.box('#d');
             near(box.height, 0, 'a display: contents host contributes no box');
         }));
-
-        /* ================================================================
-         * 2. §4.6's SKELETON, line by line
-         * ============================================================== */
 
         test('the open dialog is the three-row grid §4.6 specifies, with the body as the only 1fr', () => mounted(async (page) => {
             await openByPress(page);
@@ -374,10 +304,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }, TALL));
 
-        /* ================================================================
-         * 3. THE SCRIM — O6's eight colours and six radii, once
-         * ============================================================== */
-
         test('the scrim is the real ::backdrop, painted from --ui-scrim and --ui-scrim-blur', () => mounted(async (page) => {
             await openByPress(page);
             const backdrop = await page.computed(DIALOG, ['background-color', 'backdrop-filter'], { pseudo: '::backdrop' });
@@ -449,10 +375,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(style['column-gap'], await page.resolveValue('var(--ui-space-4)', 'column-gap'));
         }));
 
-        /* ================================================================
-         * 4. MOTION — the family that had no consumer
-         * ============================================================== */
-
         test('the fade is --ui-dur × --ui-ease on the card and on the scrim', () => mounted(async (page) => {
             await openByPress(page);
             const card = await page.computed(DIALOG, ['transition-duration', 'transition-timing-function', 'transition-property']);
@@ -474,10 +396,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'CONVENTIONS §11: an animating component carries its own reduced-motion rule');
             await page.send('Emulation.setEmulatedMedia', { features: [] });
         }));
-
-        /* ================================================================
-         * 5. THE TRAP  (H9, O8)
-         * ============================================================== */
 
         test('Tab cycles inside the dialog and never lands on the page — the measured body step is gone', () => mounted(async (page) => {
             await openByPress(page);
@@ -548,10 +466,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await activePath(page), first);
         }));
 
-        /* ================================================================
-         * 6. INERT  (H9's "every control behind them stays focusable")
-         * ============================================================== */
-
         test('the background is inert while the dialog is open: focus is refused and a real click does nothing', () => mounted(async (page) => {
             await openByPress(page);
 
@@ -619,10 +533,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the marks are ours and must not outlive the component that made them');
         }));
 
-        /* ================================================================
-         * 7. FOCUS RESTORE
-         * ============================================================== */
-
         test('closing puts the caret back on the invoker', () => mounted(async (page) => {
             await openByPress(page);
             assert.match(await activePath(page), /ui-dialog#d/);
@@ -670,10 +580,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(await activePath(page), /button#outside/,
                 'without a captured target the caret would land on document.body — §4.6\'s defect by the other door');
         }));
-
-        /* ================================================================
-         * 8. ESCAPE  (Appendix 13 item 13)
-         * ============================================================== */
 
         test('Escape closes, and says why', () => mounted(async (page) => {
             await openByPress(page);
@@ -735,13 +641,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, SIBLINGS));
 
         test('the duplicate `cancel` the stack exists for is refused by everyone but the top-most', () => mounted(async (page) => {
-            // THE MECHANISM, DRIVEN DIRECTLY. numpad-modal.js:252-256: "Desktop Chrome
-            // can synthesize a separate native cancel for every open top-layer dialog
-            // from one Escape key." THIS Chrome does not — measured, by removing the
-            // top-most guard and re-running the sibling test above, which still passed.
-            // A guard that nothing in the rig can falsify is a guard that has silently
-            // stopped covering its target (Gate C's named failure mode), so the
-            // duplicate is dispatched by hand instead of waited for.
             await page.evalFn((s) => { window.__h.need(s).open = true; return true; }, '#outer');
             await page.settle(2);
             await page.evalFn((s) => { window.__h.need(s).open = true; return true; }, '#inner');
@@ -761,10 +660,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await isOpen(page, 'inner'), false);
             assert.equal(await isOpen(page, 'outer'), true);
         }, SIBLINGS));
-
-        /* ================================================================
-         * 8b. A NESTED OVERLAY OWNS ITS OWN ESCAPE  (finding cross-2)
-         * ============================================================== */
 
         const MENU_MODULE = [...MODULE, '/src/components/ui-menu.js'];
 
@@ -820,10 +715,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the stand-down is about the gesture\'s path, not about a menu existing');
             }, WITH_MENU, { modules: MENU_MODULE }));
 
-        /* ================================================================
-         * 8c. A RE-PARENTED DIALOG  (finding cmodality-2)
-         * ============================================================== */
-
         test('a moved dialog is still open, still presented, and still traps',
             () => mounted(async (page) => {
                 await openByPress(page);
@@ -848,9 +739,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the property said open, the top layer said closed and nothing announced the difference: '
                 + 'the app believed a dialog was on screen with nothing on screen');
 
-                /* The listener that carries the trap is attached ONCE, in
-                 * firstUpdated(), and removed on disconnect — so the caret used to walk
-                 * out to document.body on the second Tab. */
                 await page.click('#b1');
                 const walk = [];
                 for (let i = 0; i < 5; i += 1) {
@@ -880,10 +768,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(JSON.parse(await page.eval('JSON.stringify(window.__esc)')), [],
                 'including the stopPropagation half of Appendix 13\'s ownership');
         }));
-
-        /* ================================================================
-         * 8d. A LIVE REGION IS NOT BACKGROUND  (finding cross-1)
-         * ============================================================== */
 
         const TOAST_MODULE = [...MODULE, '/src/components/ui-toast.js'];
 
@@ -946,10 +830,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, WITH_TOAST, { modules: TOAST_MODULE }));
 
         test('a closed dialog announces nothing at mount; one that mounts open announces once', () => mounted(async (page) => {
-            // Lit puts every property set before the first update into
-            // changedProperties with an old value of undefined, so the naive
-            // "announce whenever open changed" fires open: false for every dialog on
-            // a screen the moment it mounts — before anything has happened.
             const seen = await page.eval(`(() => {
                 window.__evts = [];
                 document.addEventListener('open-change', (e) => window.__evts.push(e.detail));
@@ -979,11 +859,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a close the component did not ask for is noticed — el.dialog.close() is public API', () => mounted(async (page) => {
-            // `dialog` is exposed because wave 5.2 integrates real bodies into this
-            // shell and a body may close the thing it sits in. Without the native
-            // `close` listener the property would say open while the top layer says
-            // closed, and the inert marks would never be released — the page would
-            // stay dead with nothing on screen to explain it.
             await openByPress(page);
             await page.eval("(() => { document.getElementById('d').dialog.close(); return true; })()");
             await page.settle(3);
@@ -992,10 +867,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and the page is released');
             assert.match(await activePath(page), /ui-button#invoker/, 'and the caret comes home');
         }));
-
-        /* ================================================================
-         * 9. BACKDROP DISMISSAL  (O8's "no backdrop dismiss")
-         * ============================================================== */
 
         test('a press on the scrim closes the dialog', () => mounted(async (page) => {
             await openByPress(page);
@@ -1014,9 +885,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await openByPress(page);
             const box = await page.box(DIALOG);
             const head = await page.box(HEAD);
-            // The 1px gap IS the dialog's own background showing through, so the click
-            // targets the dialog element exactly as a backdrop click does. Only the
-            // coordinates tell them apart.
             await page.dispatch(DIALOG, 'click', {
                 clientX: box.left + 40,
                 clientY: head.bottom + 0.5,
@@ -1033,12 +901,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await isOpen(page), true);
         }));
 
-        /* finding cmodality-1. Every backdrop test above presses and releases at ONE
-         * point, so none of them could tell a dismissal from a DRAG that merely ended
-         * outside — and a click whose two ends straddle the card edge is dispatched at
-         * the dialog with the RELEASE's coordinates. An ordinary text selection, or a
-         * flick in the scrolling body that runs past the end of a list, threw the
-         * dialog and whatever was unsaved in it away. Both ends have to be outside. */
         test('a press that STARTS in the card and ends past its edge does not close it',
             () => mounted(async (page) => {
                 await openByPress(page);
@@ -1063,10 +925,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(2);
                 assert.equal(await isOpen(page), true, 'the release point is inside the card');
             }));
-
-        /* ================================================================
-         * 10. THE STRUCTURAL DEFECTS: S7, S8, O6, O13
-         * ============================================================== */
 
         test('S7: a button in the dialog is the same size as the same button on the page', () => mounted(async (page) => {
             await openByPress(page);
@@ -1129,10 +987,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 '§4.6: "Modality is real, or the attribute comes off." Every test above is what earns it.');
         }));
 
-        /* ================================================================
-         * 11. THE ABSENT CELLS, AND THE CONTAINER QUERY
-         * ============================================================== */
-
         test('with no header and no actions there is ONE track and no hairline against nothing', () => mounted(async (page) => {
             await openByProperty(page);
             const tracks = (await page.prop(DIALOG, 'grid-template-rows')).split(/\s+/);
@@ -1158,18 +1012,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.prop(BODY, 'padding-top'), wide, 'and back');
         }));
 
-        /* ================================================================
-         * 12. THE RING, UNCLIPPED  (bug L24's class)
-         * ============================================================== */
-
         test('a control inside the scrolling body draws an unclipped ring', () => mounted(async (page) => {
             await openByPress(page);
-            // A COMPONENT control, not the plain <button> beside it: the base's one
-            // ring lives inside each component's shadow root, so a bare light-DOM
-            // button in a slotted body wears the UA's 1px default and there is no
-            // token ring to assert on. That is a property of the architecture, not of
-            // this dialog — CONVENTIONS §3a — and it is why every real body slots
-            // components rather than raw controls.
             await assertFocusUnclipped(page, '#body-btn >>> #btn');
         }));
 
@@ -1177,10 +1021,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await openByPress(page);
             await assertFocusUnclipped(page, '#cancel >>> #btn');
         }));
-
-        /* ================================================================
-         * 13. THE GALLERY'S OWN STATES, in a real browser
-         * ============================================================== */
 
         test('every gallery state mounts, opens and has something to photograph', () => browser.withPage({ geometry }, async (page) => {
             for (const state of galleryEntry.states) {

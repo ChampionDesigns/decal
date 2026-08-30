@@ -1,17 +1,5 @@
 /**
- * ui-locked-value-gallery-entry.test.mjs — the wave-1 #43 gallery entry, checked
- * against the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array
- * and the run's rule is whole-file writes; sixteen wave-1 builders appending to it in
- * parallel is fifteen lost entries. Each builder therefore writes
- * `tools/gallery/entries/<tag>.entry.js` and the GATE agent wires them in (import +
- * spread, or a manifest). This file is what makes that hand-off safe: it asserts the
- * shape the gallery needs BEFORE the wiring, so a malformed entry is a red test here
- * rather than a battery photographing an empty stage.
- *
- * `test/render/ui-locked-value.render.test.mjs` takes the other half — it mounts the
- * component in a real browser at both standard geometries.
+ * The wave-1 #43 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -43,17 +31,12 @@ test('state ids are unique, because they are capture filenames', () => {
 });
 
 test('the module path resolves from tools/gallery/, which is where gallery.js imports it', async () => {
-    // gallery.js does `import(entry.module)` and lives in tools/gallery/, so the path
-    // is relative to THAT directory, not to the entry file's own.
     const resolved = new URL(entry.module, new URL('../tools/gallery/', import.meta.url));
     const info = await stat(resolved);
     assert.ok(info.isFile(), `${entry.module} does not resolve to a file`);
 });
 
 test('the container states are the point of this entry, and they carry a hostStyle', () => {
-    // The component owns no width (departure 1), so "what does it look like" is a
-    // question about its CONTAINER. An entry whose narrow/wide states lost their
-    // hostStyle would photograph the same box three times and prove nothing.
     const sized = entry.states.filter((s) => s.hostStyle && s.hostStyle['inline-size']);
     assert.ok(sized.length >= 3, 'at least three states must pin a container width');
 

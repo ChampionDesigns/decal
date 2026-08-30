@@ -1,27 +1,5 @@
 /**
- * editor-rename.render.test.mjs — THE RENAME DIALOG'S TWO SILENT FAILURES.
- *
- * **F-050** — a SEATED profile renamed to an empty or whitespace-only title dismissed the
- * dialog exactly as a successful rename dismisses it. `#onRenameConfirm` called
- * `hide('confirm')` one line BEFORE it checked whether it had a body, and with the reason
- * `'confirm'`, so the dismissal was indistinguishable from an accepted rename and the early
- * return happened behind a closed dialog with nothing left to render a refusal into.
- * Declining to send the empty title is the RIGHT call — ReaPrime answers one with a typed
- * 400 — so what is asserted here is that the refusal is now VISIBLE, not that a request is
- * made.
- *
- * **F-041** — an UNSEATED draft (the "New profile" door opens `{id: null, profile}`) took
- * the text and did nothing at all: `commitPlan` routes RENAME to `saveInPlace`, which
- * returns early on a null record id. No request, no refusal, no toast. Every profile
- * created in Decal therefore landed on the server titled "New profile". The fix applies the
- * typed title to the WORKING DRAFT instead, so the first save carries it.
- *
- * THEY ARE THE SAME VISIBLE FAULT AND TWO DIFFERENT MECHANISMS, which is why FINDINGS.md
- * numbers them separately and why the blocks below never share a stage: one needs a seated
- * record with a real id, the other needs a record whose id is null.
- *
- * A8: every assertion is a live property, a recorded transport call, or Chrome's own
- * rendering. Nothing reads a source file.
+ * The rename dialog's two silent failures.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -153,12 +131,6 @@ describe('a seated profile renamed to nothing is REFUSED, out loud (F-050)', () 
 });
 
 describe('a NEW profile can be named before its first save (F-041)', () => {
-    /**
-     * THE UNSEATED STATE, staged exactly as `selector-screen.js #openNewProfile` makes it:
-     * a record object with a **null id** wrapped round a freshly seeded profile. It is
-     * "seated" as far as `commitPlan` is concerned — there is an object — which is why the
-     * rename routed to `saveInPlace` and was swallowed there rather than refused anywhere.
-     */
     const staged = (fn) => browser.withPage({ geometry }, async (page) => {
         await mountEditor(page);
         await seatProfile(page, {

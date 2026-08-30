@@ -1,31 +1,4 @@
-// GATE 6 — the ONE derivation, over the live buffer and over a stored record.
-//
-// The gate's whole claim is that there is one walk and one set of rules, reached by two
-// entry points: `deriveFromBuffer` rides the buffer's own single traversal, and
-// `deriveFromRecord` mirrors that loop over `GET /api/v1/shots/<id>`. The test that both
-// paths agree is what keeps that honest, and it is the centrepiece here.
-//
-// What else is pinned, all of it a rule the bench or the contract taught:
-//
-//   * A7 — nothing is substituted, integrated or guessed. A refused record says WHY
-//     ('notAShotRecord', 'measurementsNotServed', 'noPouringSample'), and a meta-only
-//     payload is never drawn as an empty shot.
-//   * The preinfusion / extraction split, and the SETTLED-WEIGHT rule that makes
-//     preinfusion + extraction == total exactly — drip-down after the pump stops is
-//     attributed to extraction, which is why the settled weight is taken from EVERY
-//     sample and not only the in-shot ones.
-//   * The scalars are bounded to the part of the shot that was actually pouring: peak
-//     flow AFTER first drop, because the raw peak is usually the pump filling an empty
-//     puck and says nothing about the extraction.
-//   * A target of ZERO is not a target (the firmware sentinel), and a stamp that cannot
-//     be read is UNPLACEABLE — counted, never given a made-up one (B4).
-//
-// AND THE FIXTURES ARE RECORDINGS. The second half of this file walks the three real shot
-// bodies in `tools/rea-fixtures/` rather than more samples of my own construction: a
-// hand-built row can only contain what its author already believed, and every one of those
-// recordings carries `machine.weight` — the key `633f6f68` deleted — at a couple of hundred
-// grams. A derivation that kept the old machine-vs-scale gravimetric branch would report that
-// as a yield off a real file, and nothing built by hand here would ever have shown it.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -163,11 +136,6 @@ describe('a record that is not a shot is REFUSED, and says why', () => {
 });
 
 describe('the trace ends where the pump does (Ben, 25 August 2026)', () => {
-    /* "We should copy Slate, shouldn't record pouringDone." Slate's chart filter is
-     * ['preinfusion', 'pouring'] and nothing else, so the drip-down after the pump stops is
-     * not plotted. What it must NOT change is the weight: `settledWeight` is read from
-     * every sample and not only the in-shot ones, which is what makes
-     * preinfusion + extraction == total. */
     const withTail = [
         sample(0, { substate: 'preinfusion', pressure: 1, flow: 1, weight: 0, frame: 0, volume: 0 }),
         sample(1000, { substate: 'pouring', pressure: 6, flow: 2, weight: 10, frame: 1, volume: 10 }),
@@ -186,9 +154,6 @@ describe('the trace ends where the pump does (Ben, 25 August 2026)', () => {
 
     test('and the settled weight is still read from the tail', () => {
         const d = deriveFromRecord({ ...RECORD, measurements: withTail });
-        /* 36.4 arrives on a sample the chart does not draw. Dropping the substate from the
-         * PLOT must not drop it from the WEIGHT — the yield is the settled number, and the
-         * settling happens after the pump stops. */
         assert.equal(d.phases.total.weight, 36.4);
         const parts = d.phases.preinfusion.weight + d.phases.extraction.weight;
         assert.ok(Math.abs(parts - d.phases.total.weight) < 1e-9,
@@ -283,18 +248,6 @@ describe('the phase table and the settled-weight rule', () => {
         assert.equal(scalars.yieldSource, 'annotation', 'and the annotated one is NOT the same source');
     });
 
-    /**
-     * THE TARE, AND THE NUMBER THAT CANNOT EXIST.
-     *
-     * The ordinary workflow is cup on the platform, tare, pull — so a buffer that opened
-     * before the tare holds the CUP's weight in its early samples, and `piEnd` (the sample
-     * before the first pouring tick) lands on the wrong side of the re-zero. Measured on
-     * the 15 Hz loop proof over the 2026-08-15 recording: preinfusion 181.6 g, extraction
-     * −159.9 g, total 21.7 g — rendered in the foot band at both geometries, with the
-     * suite green because the rendered cells and gate 6 agreed. They agreed on a negative
-     * mass of coffee. The subtraction is only meaningful inside one reference frame, and
-     * a tare is a new one.
-     */
     test('a boundary tare splits the weights across two reference frames, never negative', () => {
         const tared = deriveFromRecord({
             ...RECORD,
@@ -315,28 +268,6 @@ describe('the phase table and the settled-weight rule', () => {
         assert.equal(tared.availability.weightRebased, true,
             'the derivation saw the boundary tare');
 
-        /* IT USED TO BLANK BOTH ROWS, and Ben saw the result on the glass: "The Weight
-         * values are not populating correctly." A dash is not an answer when the machine
-         * measured something. The rows are now Slate's own three (2c4fb42): preinfusion
-         * is the peak before the tare, extraction is the tracked stop-at-weight with
-         * nothing subtracted from it, and Total is the sum — what is physically in the
-         * cup.
-         *
-         * THIS FIXTURE IS THE CASE SLATE ANSWERS IN FIRMWARE, and the number says so.
-         * The tare lands at the BOUNDARY, so every preinfusion sample carries the
-         * untared cup and there is no low point inside the window to measure the pour
-         * from. 181.7 g is the cup, reported as preinfusion, and no arithmetic here can
-         * tell it from 181.7 g of water — the two series are identical. Slate's answer
-         * is `ben/scale-weight-signed`: a tare at the espresso button (S_HeaterUp entry)
-         * so the cup is zeroed BEFORE heat-up. Three tares per shot, each earning its
-         * place: button, preinfusion start, frame-N boundary. With that firmware this
-         * window carries water and this number is the pour.
-         *
-         * WHAT THE ALGORITHM DOES DEFEND AGAINST is the tare landing INSIDE the window,
-         * which is the ordinary case on the two websockets: the machine snapshot and the
-         * scale snapshot are separate feeds, so the first preinfusion frames commonly
-         * still carry the pre-tare reading. `peakFromLow` measures from the series' low
-         * point, which IS the tare, and discards that head however long it is. */
         assert.equal(tared.phases.preinfusion.weight, 181.6875,
             'preinfusion is the peak reached before the tare, latched');
         assert.equal(tared.phases.extraction.weight, 21.7,
@@ -351,15 +282,6 @@ describe('the phase table and the settled-weight rule', () => {
     });
 
     test('the stale pre-tare head is discarded when the tare lands INSIDE preinfusion', () => {
-        /* THE CASE THE ALGORITHM IS FOR, and the one the two websockets produce. The
-         * firmware tares on entry to PreInfuse, but the machine snapshot and the scale
-         * snapshot arrive on SEPARATE sockets, so the first preinfusion frames still
-         * carry the PRE-tare reading — the whole cup. Slate measured a ~40 g pour as over
-         * 200 g this way (30d394b).
-         *
-         * The series is [stale-high…, ~0 at the tare, climbing…]. Measuring the peak only
-         * from the LOW POINT discards the head without needing to know how many samples
-         * it spans, and it is still a peak, so it rides out skew at the far end too. */
         const skewed = deriveFromRecord({
             ...RECORD,
             annotations: { actualDoseWeight: 18.2 },
@@ -501,28 +423,10 @@ describe('availability says WHY a channel is empty', () => {
 });
 
 describe('THE ONE DERIVATION: the buffer path and the record path agree', () => {
-    /**
-     * THE LIVE SHAPE. `addSample` deliberately does not write `volume` — ReaPrime computes
-     * it in its recorder and the snapshot socket does not carry it — so the comparison is
-     * run over samples in the shape the live path can actually hold. That is not a
-     * weakening: `availability.volume` is the channel that says so, and it is asserted
-     * below in both directions.
-     */
     const LIVE = MEASUREMENTS.map(({ volume, ...row }) => row);
     const LIVE_RECORD = { ...RECORD, measurements: LIVE };
 
     test('the ONE channel the server does not send live is INTEGRATED, and says which it is', () => {
-        /* THIS TEST USED TO PIN AN EMPTY COLUMN. `volume` is a recorder field: the
-         * snapshot socket carries none, so the live series was all nulls and the Live
-         * band's VOLUME column was blank on every running shot and stayed blank until the
-         * shot was stored — Ben, 23 Aug 2026: "the phase is tracking weight well but not
-         * tracking volume at all".
-         *
-         * The old app integrates flow over the samples, live and stored alike
-         * (`shotData.js:376-382`), and the two numbers agree to about one part in a
-         * hundred on the recorded shot. So the integral fills a sample that carries no
-         * volume, the SERVER'S value still wins where there is one, and `availability`
-         * goes on reporting which of the two a reader is looking at. */
         const buffer = createShotBuffer();
         buffer.noteShotState(shotStateFrame(SHOT_STATE.PREHEATING));
         for (const row of MEASUREMENTS) buffer.addSample(row);   // volume offered...
@@ -550,11 +454,6 @@ describe('THE ONE DERIVATION: the buffer path and the record path agree', () => 
         assert.deepEqual([...live.axis.t], [...stored.axis.t], 'one time axis, one origin rule');
         assert.equal(live.axis.originRule, stored.axis.originRule);
 
-        /* Both sides are fed LIVE — the same measurements with `volume` removed — because
-         * `volume` is the one channel that CANNOT agree: the recorder persists it, the
-         * snapshot socket does not carry it, and the buffer stores what it saw rather than
-         * integrating flow to fill the gap in (A7). The asymmetry has its own test above;
-         * this one is about the derivation, so it is given samples both paths can hold. */
         for (const key of SERIES_KEYS) {
             assert.deepEqual([...live.series[key].y], [...stored.series[key].y], `series ${key} diverged`);
             assert.deepEqual([...live.series[key].x], [...stored.series[key].x], `series ${key} x diverged`);
@@ -566,8 +465,6 @@ describe('THE ONE DERIVATION: the buffer path and the record path agree', () => 
 
     test('the two paths report their SOURCE decision differently, and that is the point', () => {
         const buffer = createShotBuffer({
-            // B6's hook, wired the way live-stores.js wires it: the selector reads an
-            // ADDRESSED sample, and the buffer holds what it decided.
             chooseSources: ({ sample }) => chooseSources(readStoredMeasurement(sample)),
         });
         buffer.noteShotState(shotStateFrame(SHOT_STATE.PREHEATING));
@@ -641,12 +538,6 @@ describe('the series helpers a comparison view needs', () => {
 
 const FIXTURE_DIR = fileURLToPath(new URL('../tools/rea-fixtures/', import.meta.url));
 
-/**
- * The by-id shot bodies. `/shots/latest` sits in the same directory and is deliberately NOT
- * in this list — `ShotsHandler._getLatestShot` answers `toJsonWithoutMeasurements()`, so a
- * body with no measurements is that route's correct shape rather than a short recording, and
- * it is asserted on its own terms below.
- */
 const RECORDED = readdirSync(FIXTURE_DIR)
     .filter((name) => name.startsWith('api__v1__shots__') && !name.includes('latest') && !name.includes('~'))
     .sort()
@@ -727,11 +618,6 @@ describe('the recorded shots, walked as they came off the bench', () => {
             });
 
             test('THE METRICS BLOCK CANNOT RENDER BLANK: the scalars ARE the series it sits under', () => {
-                // The old tree's shot-metrics.js took a flat channel map, the app passed it a
-                // series bundle, and the whole block rendered blank while the chart above it drew
-                // correctly — a caller-contract mismatch its own unit test hid by hand-building
-                // the shape the app never passed. There is no shape to pass here: one walk
-                // produces both, so the only thing left to assert is that they agree.
                 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
                 const pressures = got.series.pressure.y.filter(finite);
                 assert.ok(pressures.length > 0, 'a recorded espresso shot has pressure readings');
@@ -755,8 +641,6 @@ describe('the recorded shots, walked as they came off the bench', () => {
                     assert.equal(preinfusion.volume + extraction.volume, total.volume);
                 }
 
-                // The same recording through the LIVE path. `addSample` does not write
-                // `volume`, so both sides are fed the shape the live path can hold.
                 const live = body.measurements.map(({ volume, ...row }) => row);
                 const asRecord = { ...body, measurements: live };
                 const buffer = createShotBuffer();
@@ -886,12 +770,6 @@ describe('A7, proved by behaviour: a dead name is never a fallback', () => {
         const bare = deriveFromRecord(recordOf([0, 1000].map((ms) => machineRow(ms))));
         assert.ok(bare.series.power.y.every((v) => v === null),
             'pressure 9 and flow 2 are both present and 0.1·P·F is still not computed here');
-        /* VOLUME IS THE ONE EXCEPTION AND IT IS A DELIBERATE ONE. The rule this test
-         * states — the skin consumes channels, it does not compute them — still governs
-         * power, the fused pair and the estimator's channels, none of which the skin can
-         * derive from what it is served. Flow integrated over time IS a volume, the old
-         * app has always drawn it that way, and the alternative measured out as an empty
-         * column on every live shot. `availability.volume` is what keeps the two apart. */
         assert.ok(bare.series.volume.y.some((v) => typeof v === 'number'),
             'flow IS integrated, because a served flow makes a volume');
         assert.equal(bare.availability.volume, false,
@@ -991,11 +869,6 @@ describe('a refusal is frozen the whole way down', () => {
     });
 
     test('and so is the AXIS — the arrays, not just the object around them', () => {
-        /* `Object.freeze` is one level deep, and "the whole way down" was true of
-         * `series` and false of `axis` one field away: `axis.t.push(99)` on a refusal
-         * SUCCEEDED and yielded [99], while the same array on an accepted derivation
-         * throws. `axis.t` is what every chart indexes into (the card's `#xs`), so it is
-         * the last field that may differ between the two shapes. */
         const empty = emptyShotDerivation('noSamples');
         assert.ok(Object.isFrozen(empty.axis), 'the axis object');
         assert.ok(Object.isFrozen(empty.axis.t), 'axis.t');

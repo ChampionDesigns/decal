@@ -1,24 +1,5 @@
 /**
- * history-contract.test.mjs — wave 5.6, item `hist-contract-check`.
- *
- * Part 3 §7 / DECISIONS.md:144-157: contract checking is a BUILD ACTIVITY, done with the
- * handler source open in the next pane while the caller is written. Gate D re-reads every
- * row's handler at the pin on its own. What this suite adds is the half Gate D cannot see:
- * that the routes the History screen ACTUALLY REACHES are the routes the table says it
- * reaches, that nothing else is touched, and that the three claims the wave makes about
- * those routes are true when the calls run.
- *
- * THE ROUTES ARE ENUMERATED BY DRIVING THE STORE, never by scanning its source. A text scan
- * would pass a store that named a route id in a comment and called something else, and it
- * would be an A8 violation besides. A recording transport cannot be fooled.
- *
- * THREE CLAIMS THAT NEEDED THE HANDLER OPEN, and each is asserted here:
- *   1. the paginated list is the ONLY ETag-conditional shots route, so If-None-Match goes
- *      there and nowhere it is not served;
- *   2. the enjoyment write is a deep-merge PATCH — the smallest body — and the mock's
- *      REFUSAL is the honest answer to it, because the success body is a typed document;
- *   3. duration and yield are absent from the list payload, verified at the ReaPrime
- *      serializers, and that absence is a recorded finding rather than a stub.
+ *.6, item hist-contract-check.
  */
 
 import { test, describe } from 'node:test';
@@ -44,14 +25,6 @@ const RECORD = JSON.parse(readFileSync(
 const ROW = (id) => TABLE.rest.find((r) => r.id === id) ?? null;
 const GENERATED = (id) => REST_ROUTE_BY_ID[id] ?? null;
 
-/**
- * EVERY ROUTE THIS SCREEN TOUCHES — path, verb, handler symbol and file, all read at the pin.
- *
- * `calls` says whether the History screen ADDRESSES the route or merely depends on knowing
- * what it does. A route on this list that is not called is on it because a claim was made
- * about it — "the list is the only conditional one" is a claim about the other three — and a
- * claim about a route is a row.
- */
 const HISTORY_ROUTES = [
     {
         id: 'getShots', verb: 'GET', path: '/api/v1/shots',
@@ -110,11 +83,6 @@ async function exerciseEveryAction() {
     await store.readPage({ offset: 20 });
     await store.loadShot(RECORD.id);
     await store.loadShot(RECORD.id);            // cached: must not call again
-    /* AND CONCURRENT CALLERS JOIN ONE REQUEST. The memo only fills when a fetch has
-     * RESOLVED, so two asks inside one tick each used to issue their own — 221 KB and a
-     * full gate-6 walk twice, for the shot this store promises to fetch and walk once.
-     * Reachable the moment two surfaces want the same shot, which the History screen now
-     * does: it opens on the newest one, and a person can pick that same one. */
     await Promise.all([store.loadShot('shot-second'), store.loadShot('shot-second')]);
     await store.setEnjoyment(RECORD.id, 72);
     await store.setEnjoyment(RECORD.id, null);  // clearing is a value, not an absence
@@ -236,11 +204,6 @@ describe('the paginated list is the only conditional shots route', () => {
     });
 
     test('two callers asking for one shot at once cost ONE request', async () => {
-        /* The store's own promise is one fetch and one gate-6 walk per id, and the memo
-         * only fills when a fetch has RESOLVED — so two asks inside one tick each issued
-         * their own. 221 KB and a full walk, twice. The History screen made it reachable
-         * the day it started opening on the newest shot: a person picking that same shot
-         * asks for it again while the first read is still in the air. */
         let calls = 0;
         const transport = {
             request: async () => {
@@ -390,16 +353,6 @@ describe('the enjoyment round-trip, as the handler is written', () => {
     });
 });
 
-/**
- * AGAINST THE CAPTURE MOCK, which answers from ReaPrime's own recorded bodies.
- *
- * What is available here and what is not is itself a contract finding. `tools/mock_rea.py`
- * derives its answer to a mutating verb from the same table Gate D holds the client to, and
- * where a row's success body is a TYPED DOCUMENT it refuses with 501 rather than invent one —
- * "a mock that invents one teaches the client a server that does not exist". `PUT /shots/<id>`
- * returns `ShotRecord.toJson`, so the refusal is the honest answer and a set-then-re-read
- * assertion is NOT available. The request shape is, and that is what is asserted.
- */
 describe('the enjoyment round-trip against the mock', () => {
     let server = null;
     let base = null;
@@ -448,8 +401,6 @@ describe('the enjoyment round-trip against the mock', () => {
         assert.equal(failure.status, 501);
         assert.match(JSON.stringify(failure.problem), /no stateable response/,
             'a canned success here would teach the client a server that does not exist');
-        // The refusal names the verb and the path, which is the request shape reaching the
-        // route — the half of the round trip that IS available on this instrument.
         assert.equal(failure.problem.verb, 'PUT');
         assert.equal(failure.problem.path, `/api/v1/shots/${RECORD.id}`);
     });

@@ -1,14 +1,4 @@
-// Sensor discovery: polled, capability-gated, and RE-RUN ON SOCKET CLOSE.
-//
-// The machine-swap test is the one that matters. `estimator-link.js` fails it today: it
-// never re-discovers, so after a swap it dials a dead sensor id for ever while
-// sensors_handler answers {"error":"not found"} and closes, and every consumer falls back
-// to the derived channel with nothing surfaced.
-//
-// FIXTURES ARE CONTRACT-CHECKED (Gate B rule 4): the listing is `SensorsHandler.addRoutes`
-// GET /api/v1/sensors -> [{id, info}] with `info` = SensorInfo.toJson
-// {name, vendor, data: [{key, type, unit}], commands}; the error envelope is
-// `_handleSensorSnapshot`'s literal {"error":"not found"} followed by a close.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -327,15 +317,6 @@ describe('stop', () => {
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * RULE 2 IS BOUNDED NOW.
- *
- * "The close IS the signal. It costs one GET" is right for the case it was written for — a
- * machine swap — and had no bound for the case it was not: the listing and the socket
- * DISAGREEING. `sensors_handler.dart` shares `_controller.sensors` between the listing and
- * the upgrade, so a deregistration mid-flight leaves an id the GET still carries and the
- * socket refuses. Both handlers re-armed at 0 ms and discovery re-attached at once.
- */
 describe('re-discovery is bounded when the listing and the socket disagree', () => {
     const attachOnce = async (h) => {
         h.discovery.subscribe(SENSOR_KIND.PUCK_ESTIMATOR, () => {});

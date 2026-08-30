@@ -1,9 +1,4 @@
-// The time axis (B4): plot what ReaPrime stamps, invent no correction.
-//
-// The first suite is evidence, not behaviour. B4's whole justification is a fact about
-// ReaPrime — that it stamps at decode and discards the machine's own sample clock — and
-// that fact is checked against the parser at the pinned commit, so the day R4 lands this
-// test goes red and the rule is REVISITED rather than quietly outlived.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -185,15 +180,6 @@ describe('buildTimeAxis: nothing is resampled, filled, sorted or clamped', () =>
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * THE RULE TRAVELS WITH THE ORIGIN.
- *
- * "An explicit origin is honoured" above asserts the seconds and never the rule, which is
- * where it went wrong: a supplied origin was hard-labelled `firstSample`, and the ONE
- * caller that will ever supply one is the shot buffer — whose held origin is
- * `firstPouringSample` for every espresso shot. The header of this module says the rule
- * "changes what the chart means", so reporting the wrong one is not cosmetic.
- */
 describe('a supplied origin never invents the rule that chose it', () => {
     const base = Date.parse('2026-08-17T09:15:00.000Z');
     const at = (ms) => new Date(base + ms).toISOString();

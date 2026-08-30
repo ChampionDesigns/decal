@@ -1,64 +1,5 @@
 /**
- * dialog-contract.render.test.mjs — wave 5.2, the contract-and-modality cluster.
- *
- * ITEMS: `dialog-contract-block`, `real-modality`, `nested-dialog-escape`,
- * `p13-closed-dialog-tab-order` (waves/5.2/ITEMS.json).
- *
- * WHAT THIS SUITE IS FOR, AND WHY IT IS NOT `ui-dialog.render.test.mjs`.
- * The wave-3 suite proves #18's contract on ONE instance: a bare `<ui-dialog>` with a
- * hand-written body. That is the component's own row. This phase's claim is larger and
- * is the reason Overlays is sequenced before the selector — SCOPE.md Part 10 §12,
- * wf-w5p2-overlays: "one dialog contract with real modality proven across EVERY BODY,
- * before the selector consumes four dialogs on its first day". So the subject here is
- * not the shell in isolation; it is the shell as the SINGLE POINT OF TRUTH under every
- * body that exists, plus the two behaviours no single-instance fixture can express:
- *
- *   the contract block   §4.6 / Part 5 §2's skeleton — inline-size, max-block-size,
- *                        the three-row grid, `body: overflow-y auto — MANDATORY`, and
- *                        the `::backdrop` — read off SIX instances and required to be
- *                        the same numbers each time. O6 is "seven hand-rolled dialogs
- *                        … eight scrim colours, six blur radii"; six instances that
- *                        agree is the mechanical opposite of that, and a body that
- *                        restated any line of the contract would show up here as a
- *                        disagreement rather than as a code review note.
- *
- *   real modality        O8/H9: "every overlay claims aria-modal=true and none
- *                        isolates anything". Proven per instance, as INPUT and
- *                        OUTCOME: real CDP Tab presses, a real focus() and a real
- *                        hit-tested click on a control behind the scrim, and where the
- *                        caret is after Escape. Plus the census the bug is named for —
- *                        exactly one box on the page claims aria-modal, and it is the
- *                        one that earned it.
- *
- *   nested Escape        Appendix item 13, "the one thing the old numpad got right".
- *                        The wave-3 suite covers two SIBLING dialogs and a `ui-menu`
- *                        nested in a body. Neither is the case Appendix 13 actually
- *                        names: a numpad opened FROM INSIDE the exit-condition dialog,
- *                        one dialog physically inside the other's body. That is the
- *                        fixture here, and the three questions it settles are which
- *                        dialog Escape belongs to, whose trap is in force, and whether
- *                        the outer's `inert` marks survive the inner's release.
- *
- *   P13                  "closed dialogs stay in the tab order … measured 16 focusables
- *                        inside dialog:not([open]) out of 30 on the page". A closed
- *                        `<ui-dialog>` was already asserted to hold nothing tabbable;
- *                        what was never asserted is the number the bug is written in —
- *                        walk the WHOLE document's tab order with every dialog closed
- *                        and count what is reachable.
- *
- * BOTH GATE-A GEOMETRIES, CONVENTIONS §10: 1281×801 @ dsf 1.5 and the 1000×600 floor.
- *
- * NO ORACLE, AND THIS IS THE MEASURED REASON. `prov_query.py find --cls
- * numpad-modal-overlay | slate-dialog | notes-modal-overlay` returns 0 elements in 0 of
- * 49 captured states: no captured state has an overlay open, and `::backdrop` is
- * outside the probe's 18-property surface in any case. Every starting value below is
- * either a SOURCE read (cited at the assertion) or a token resolved in the page, never
- * a hex and never a literal length, so the suite is true in both themes.
- *
- * THE PHASE BUILDS NO MACHINERY (Part 10 §12): #18 and all five bodies exist from
- * waves 3 and 4. Two bodies §4.6 names — the exit-condition dialog and the lever dialog
- * — do not exist and are not numbered by the 57-component inventory; they belong to
- * later phases, so the contract is proven on the five that do exist.
+ *.2, the contract-and-modality cluster.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -68,11 +9,6 @@ import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
 import { assertTokenDrill, pressBackdrop, DRILL_COLOUR, DRILL_LENGTH } from '../harness/assertions.js';
 import { limitsFor } from '../../src/lib/machine-limits.js';
 
-/* #53 reads its range from the machine-limits port and renders an `unavailable`
- * panel with one tab stop until a screen hands it a table — so an un-armed numpad
- * would prove the contract on an empty box. The table is passed in as an argument
- * rather than written into the page, so the ONE table is the one this file imported
- * (ui-numeric-keypad.render.test.mjs:156-166). */
 const BENGLE_LIMITS = limitsFor('bengle');
 
 /* The library #18 composes, plus the two controls every fixture puts on the page. */
@@ -91,13 +27,6 @@ const SHEET_FIELDS = JSON.stringify([
     { name: 'awake', label: 'Keep Awake For', layout: 'inline' },
 ]).replace(/"/g, '&quot;');
 
-/**
- * The page every instance is mounted into: an invoker to press and to hand the caret
- * back to, a control BEHIND the scrim for the two inert measurements, and — for S7 —
- * the same `ui-button` markup that sits in the dialog's footer, on the page beside it.
- * A 64px dialog button that is 1.5× the 64px button next to it is S7 exactly; with one
- * coordinate space the two boxes are the same box.
- */
 const page = (contents) => `
 <div id="page" style="padding: 40px">
   <ui-button id="invoker">Open</ui-button>
@@ -106,19 +35,6 @@ const page = (contents) => `
   ${contents}
 </div>`;
 
-/**
- * The six instances of the ONE contract.
- *
- *   `host`   the element a screen calls show() on — the shell itself for a slotted
- *            body, the compound for #19 and #53, which own their #18 internally and
- *            forward show/hide to it (ui-confirm-dialog.js:365-380,
- *            ui-numeric-keypad.js:617-629).
- *   `shell`  the `<ui-dialog>` element, wherever it lives. Every other selector is
- *            derived from it, so the same assertions read all six.
- *   `cancel` the non-primary `ui-button` in the footer — the same component as
- *            `#page-btn`, which is what makes the S7 comparison a comparison.
- *   `inside` what an `anchorPath` looks like when the caret is within this instance.
- */
 const INSTANCES = [
     {
         id: 'shell #18',
@@ -247,19 +163,6 @@ after(async () => { await browser?.close(); });
 for (const geometry of GATE_A_GEOMETRIES) {
     describe(`the dialog contract @ ${geometry.name} (${geometry.width}×${geometry.height} @ dsf ${geometry.deviceScaleFactor})`, () => {
 
-        /* ================================================================
-         * 1 + 2. THE CONTRACT BLOCK, AND REAL MODALITY, ON EVERY INSTANCE
-         *
-         * Part 5 §2, "Contract (skeleton for every dialog)":
-         *
-         *   <x-dialog>          native <dialog>, top layer
-         *     inline-size:      min(<intrinsic>, 100% - 2*var(--ui-space-6))
-         *     max-block-size:   calc(100% - 2*var(--ui-space-5))
-         *     grid-rows:        auto minmax(0,1fr) auto   header / body / actions
-         *       body: overflow-y auto — MANDATORY
-         *     backdrop:         var(--ui-scrim) + blur(var(--ui-scrim-blur))
-         * ============================================================== */
-
         for (const instance of INSTANCES) {
             describe(instance.id, () => {
 
@@ -303,10 +206,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             body: await p.box(BODY),
                             actions: await p.box(ACTIONS),
                         };
-                        /* `.is-empty { display: none }` (ui-dialog.js:589) — a cell with
-                         * nothing in it is not a grid item, so a confirm dialog with no
-                         * header is two tracks and not three with an empty one and a
-                         * hairline drawn against nothing (ui-dialog.js:431-436). */
                         const cells = [boxes.head, boxes.body, boxes.actions].filter((b) => b.height > 0.5);
                         assert.equal(tracks.length, cells.length,
                             `§4.6's template is one track per cell; tracks=${tracks.join(' ')}`);
@@ -338,11 +237,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.ok(natural.height <= geometry.height - 2 * space5 + 0.51,
                             `the cap is a maximum and it holds unforced: ${natural.height} > ${geometry.height - 2 * space5}`);
 
-                        /* DRILLED, not compared: `calc(100% - 48px)` and
-                         * `calc(100% - 2 * var(--ui-space-5))` compute identically, and
-                         * only one of them moves when the token does. 120px puts the cap
-                         * below every instance's natural height but well above the card's
-                         * own floor (its min-content header + actions, §4.6). */
                         await p.setToken('--ui-space-5', '120px');
                         await p.settle(3);
                         const cap = geometry.height - 240;
@@ -378,10 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             'the intrinsic arm of the min() must already respect the window clamp');
                         near(natural.left, (geometry.width - natural.width) / 2, 'centred by `inset: 0; margin: auto`');
 
-                        /* Ask for a card wider than the window: the clamp must bind, and
-                         * bind at the token — this is the arm S7's two coordinate spaces
-                         * made meaningless in the old app, where the dialog was measured
-                         * against the canvas and not the window. */
                         await p.setStyle(SHELL, { '--_ui-dialog-inline': '4000px' });
                         await p.settle(3);
                         const wide = await p.box(NATIVE);
@@ -421,10 +311,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     () => mounted(async (p) => {
                         await open(p);
 
-                        /* S7 — "Modals live in a different coordinate space from the UI
-                         * that opens them: a 64px dialog button is 1.5× the 64px rail
-                         * button beside it" (time-picker-modal.css:2-3). The same
-                         * component, once on the page and once in the footer. */
                         const inside = await p.box(CANCEL);
                         const outside = await p.box('#page-btn >>> #btn');
                         near(inside.height, outside.height,
@@ -432,10 +318,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             + '1.5× — a scale is uniform, so one axis settles it, and the labels are not '
                             + 'the same on every body');
 
-                        /* O7/O17's MECHANISM, not their symptoms. The inverse-scale hack
-                         * (notes-modal.js:121-143) and `env()` evaluated inside the canvas
-                         * (notes-modal.css:33) both need a scaled ancestor to exist. There
-                         * is none, so neither defect can be written. */
                         const chain = await p.evalFn((s) => {
                             const out = [];
                             let node = window.__h.need(s);
@@ -452,10 +334,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.deepEqual(chain, [],
                             'O7/O17 die with the canvas: nothing on the path from the card to <html> is scaled');
 
-                        /* S8 — "the transform makes #scaled-content the containing block
-                         * for position: fixed … and its z-index: 10000 paints BELOW a body
-                         * child at 9999". The top layer is not on the z scale, so the card
-                         * declares no z-index at all (tokens.css:458-459). */
                         assert.equal(await p.prop(NATIVE, 'z-index'), 'auto',
                             'S8: a dead number on a top-layer box would read as load-bearing');
                     }));
@@ -485,9 +363,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         }
                         assert.equal(walk[count], walk[0], 'after one full cycle the caret is back where it started');
 
-                        /* The census the bug is named for. "Every overlay claims
-                         * aria-modal=true and none isolates anything" — here exactly one
-                         * box claims it, and the four claims above are what earns it. */
                         const claimants = await p.evalFn(() => window.__h.deepAll(document)
                             .filter((el) => el.getAttribute && el.getAttribute('aria-modal') === 'true')
                             .map((el) => window.__h.anchorPath(el)));
@@ -496,34 +371,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.match(claimants[0], /dialog#dialog$/,
                             'and it is the native <dialog> the platform makes modal, not a div');
                     }));
-
-                /* THE THREE TESTS BELOW WERE ONE, AND THE ONE PROVED LESS THAN IT READ
-                 * — finding c-modality-1. It asserted `inert`, refused a focus(), then
-                 * clicked `#outside`, pressed Escape and read `open`/`inert` back. Two
-                 * things were wrong with that shape, both MEASURED:
-                 *
-                 *   the click could not fail.  A modal <dialog>'s ::backdrop covers the
-                 *   viewport, so the press never reaches `#outside` whatever `inert`
-                 *   says. Re-run with the mark taken off by hand (`inert === false`,
-                 *   `open === true`), the handler still did not run — at every instance
-                 *   and both geometries. The assertion was measuring top-layer coverage
-                 *   and reporting it as isolation, which is exactly the standard
-                 *   section 3 holds the nested `cancel` to at :809-814.
-                 *
-                 *   the click was the CLOSE.  A press outside the card is a backdrop
-                 *   dismissal (`ui-dialog.js:1120-1127`), so where it landed clear of
-                 *   the card the dialog was already shut before Escape was pressed:
-                 *   `{open: false, inert: false}` measured straight after the click at
-                 *   bench for all six instances, and at the floor for #18 and #19. The
-                 *   Escape and the two reads after it were then vacuous — and at the
-                 *   floor, where a tall card covers the point, they were NOT, so the
-                 *   test proved a different thing at each geometry without saying so.
-                 *
-                 * Split, each half now proven by the cause it names: the focus refusal
-                 * with the measurement of WHICH mechanism refuses it (both do, and the
-                 * next test says so), coverage as coverage, and the two release paths —
-                 * backdrop and Escape — each asserted where it is the only thing that
-                 * closed the dialog. */
 
                 test('modality is real: the page behind is dead to focus, and the MARK is what kills it',
                     () => mounted(async (p) => {
@@ -538,24 +385,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         })()`);
                         assert.equal(after, before, 'a focus() call on a background control must do nothing');
 
-                        /* WHICH MECHANISM REFUSED IT — MEASURED, and not the one the
-                         * old assertion implied. The falsification was run: take the
-                         * mark off `#outside` by hand and repeat the same focus(). The
-                         * caret STILL does not land, at every instance and both
-                         * geometries, because a native modal <dialog> already renders
-                         * the rest of the document inert on its own account ("blocked
-                         * by a modal dialog"). So on this fixture the component's
-                         * `inert` walk and the platform's modal blocking cover
-                         * `#outside` together and neither is separable from the other
-                         * by removing it.
-                         *
-                         * That is asserted here rather than left implicit, because the
-                         * alternative is an assertion that reads as proof of the walk
-                         * and is nothing of the kind (finding c-modality-1). What the
-                         * walk is independently good for is what §4.6 asks for by name
-                         * — the mark itself, read above — and its RELEASE, which the
-                         * two close tests below prove and which a component that
-                         * forgot would fail. */
                         const unmarked = await p.eval(`(() => {
                             const o = document.getElementById('outside');
                             o.inert = false;
@@ -574,13 +403,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     () => mounted(async (p) => {
                         await open(p);
 
-                        /* WHY no handler runs, asserted rather than assumed: the point
-                         * `#outside` occupies resolves to the open dialog. That is the
-                         * top layer, not `inert` — measured, this holds with the mark
-                         * removed too — so it is asserted as coverage and `inert` keeps
-                         * its own test above. Both are needed: coverage without the
-                         * mark leaves the page reachable by Tab, and O8 is the census
-                         * of overlays that had neither. */
                         const atPoint = await p.eval(`(() => {
                             const r = document.getElementById('outside').getBoundingClientRect();
                             const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -601,10 +423,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await open(p);
                         await p.recordEvents(SHELL, ['close-request']);
 
-                        /* O8 is "no Escape, no focus trap, NO BACKDROP DISMISS and no
-                         * `inert`" (§7.7:1225) — the dismissal is the fixed behaviour,
-                         * so it is driven deliberately, at a point computed to be off
-                         * the card, instead of falling out of a press aimed elsewhere. */
                         const point = await pressBackdrop(p, NATIVE);
 
                         const events = await p.recordedEvents();
@@ -631,10 +449,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.match(await activePath(p), /ui-button#invoker/,
                             '§4.6: "no focus restore" is the half of the modality gap a screenshot cannot see');
 
-                        /* The ESCAPE path's own release, proven where Escape is the only
-                         * thing that closed the dialog. The old shape read this back
-                         * after a click that had already dismissed it, so the backdrop
-                         * path was measured twice and this one never. */
                         assert.equal(await p.evalFn(() => document.getElementById('outside').inert === true), false,
                             'the marks come off on the Escape path too, not only on the backdrop one');
                         await p.click('#outside');
@@ -642,20 +456,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     }));
             });
         }
-
-        /* ================================================================
-         * 3. NESTED DIALOGS — Appendix item 13, the case it actually names.
-         *
-         * "The numpad's bounded, scrollable card and its ESCAPE OWNERSHIP for
-         * nested dialogs (numpad-modal.js:252-268) — the only overlay that
-         * handles a short viewport, and a real fix to a real problem."
-         *
-         * The inner dialog is a light-DOM descendant of the outer's body slot,
-         * which is what "a numpad opened over the exit-condition dialog" is: the
-         * two share a propagation path, an inert walk and a flat tabbable list,
-         * and every one of those is a way for the outer to act on the inner's
-         * gesture.
-         * ============================================================== */
 
         describe('nested dialogs', () => {
 
@@ -855,12 +655,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('a `cancel` delivered to the OUTER is refused while the inner is open', () => mounted(async (p) => {
                 await openBoth(p);
-                /* THE MECHANISM, DRIVEN DIRECTLY. numpad-modal.js:252-256: "Desktop
-                 * Chrome can synthesize a separate native cancel for every open
-                 * top-layer dialog from one Escape key." This Chrome does not, so the
-                 * duplicate is dispatched by hand rather than waited for — a guard
-                 * nothing in the rig can falsify is a guard that has stopped covering
-                 * its target (Gate C's named failure mode). */
                 const result = await p.dispatch('#outer >>> #dialog', 'cancel', {});
                 await p.settle(2);
                 assert.equal(result.defaultPrevented, true,
@@ -876,23 +670,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
         });
 
-        /* ================================================================
-         * 4. P13 — CLOSED DIALOGS LEAVE THE TAB ORDER
-         *
-         * "Closed dialogs stay in the tab order: DaisyUI's .modal sets
-         * display: grid; opacity: 0 with no visibility: hidden, defeating the UA's
-         * dialog:not([open]) { display: none }. Measured 16 FOCUSABLES INSIDE
-         * dialog:not([open]) OUT OF 30 ON THE PAGE" (§7.7 P13, generated app.css,
-         * layout/selector.md V.2).
-         *
-         * Part 5 §2: "P13 also belongs to this phase's contract even though it is
-         * filed under the selector … native <dialog> semantics, never a
-         * display: grid; opacity: 0 reimplementation."
-         *
-         * The fixture is the selector's own first day: six closed dialogs — one of
-         * every body that exists — on a page with three real controls.
-         * ============================================================== */
-
         describe('P13 — a page of closed dialogs', () => {
 
             const ALL_MODULES = [
@@ -904,11 +681,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 '/src/components/ui-notes-editor.js',
             ];
 
-            /**
-             * The page's own controls in tab order, then the browser's own step through
-             * `document.body` — the whole of what may be reachable, and the cycle the
-             * real Tab walk below must reproduce exactly, twice.
-             */
             const PAGE_CYCLE = [
                 /button#p1$/,
                 /ui-button#p2 ▸ button#btn$/,
@@ -956,16 +728,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
   </ui-dialog>
 </div>`;
 
-            /**
-             * Every element in the document — piercing every shadow root — that the
-             * browser would call focusable, whose flat-tree ancestry passes through a
-             * CLOSED overlay. Split into candidates (the population P13 counts) and
-             * those that are actually rendered (the ones that would be reachable).
-             *
-             * The walk is the FLAT one: a slotted body is a light-DOM child of the
-             * `<ui-dialog>` host and a DOM-tree walk would never reach the `<dialog>`
-             * that is hiding it.
-             */
             const CENSUS = `(() => {
                 function flatParent(el) {
                     if (el.assignedSlot) return el.assignedSlot;
@@ -1001,9 +763,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             const mounted = (fn) => browser.withPage({ geometry }, async (p) => {
                 await p.mount(CLOSED, ALL_MODULES);
-                /* Armed but closed: an un-armed #53 renders its `unavailable` panel and
-                 * would contribute one candidate instead of a full pad, which would make
-                 * the census weaker than the page P13 was measured on. */
                 await p.evalFn((t) => { document.getElementById('np').limits = t; return true; }, BENGLE_LIMITS);
                 await p.settle(4);
                 assert.deepEqual(p.pageErrors, [], 'six closed dialogs must mount without throwing');
@@ -1053,9 +812,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('the whole document\'s tab order is the page\'s own three controls, and it closes on itself',
                 () => mounted(async (p) => {
-                    /* THE GROUND TRUTH: real CDP Tab presses, twice round. A closed
-                     * dialog that leaked would show up as a stop the page never
-                     * declared — which is exactly how the 16 were found. */
                     const walk = [];
                     for (let i = 0; i < 8; i += 1) {
                         await p.press('Tab');
@@ -1066,9 +822,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             `the tab order entered a closed dialog: ${stop}`);
                     }
 
-                    /* The whole cycle, named: three controls and the browser's own step
-                     * through document.body — which no modal is in force to remove.
-                     * Twice round, so the period is the claim and not one lucky lap. */
                     walk.forEach((stop, i) => assert.match(stop, PAGE_CYCLE[i % PAGE_CYCLE.length],
                         `stop ${i + 1} of the document's tab order is not the ${(i % PAGE_CYCLE.length) + 1}th `
                         + `thing the page declares: ${stop}`));

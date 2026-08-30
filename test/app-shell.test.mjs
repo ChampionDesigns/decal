@@ -1,25 +1,5 @@
 /**
- * app-shell.test.mjs — the application shell without a browser.
- *
- * Wave 5.1, item `live-app-shell`. Three things are testable here and are tested here
- * rather than in the rendering suite, because they are logic and a browser makes logic
- * SLOWER to test, not better:
- *
- *   the route table and the router's string half   (src/lib/app-routes.js)
- *   the theme, including both halves of bug S11    (src/lib/theme.js + index.html)
- *   the boot SEQUENCE — what it opens, in what order, and what it does when a
- *   step fails                                     (src/lib/app-boot.js)
- *
- * plus the standing contract check for the endpoints the boot touches: every route this
- * screen's boot causes a request or a socket on is a row in `src/data/CONTRACTS.json`,
- * stamped at the pinned commit (DECISIONS.md:144-157 — contract checking is a BUILD
- * activity, done at the moment the screen is built).
- *
- * THE TWO COPIES OF THE THEME PRECEDENCE ARE COMPARED, NOT RESTATED. `index.html`'s
- * pre-paint stamp cannot import anything (nothing is importable before first paint), so
- * the precedence exists twice on purpose. This file runs the REAL script text out of
- * `index.html` against the same inputs it hands `resolveTheme()` and asserts the two
- * agree — which is the only way a duplicated rule stays one rule.
+ * The application shell without a browser.
  */
 
 import { test, describe } from 'node:test';
@@ -48,10 +28,6 @@ import { STORAGE_PREFIX, LAYERS } from '../src/lib/storage-routes.js';
 const repo = (relative) => fileURLToPath(new URL(`../${relative}`, import.meta.url));
 const repoFile = (relative) => readFileSync(repo(relative), 'utf8');
 
-/* ===========================================================================
- * The route table and the router's string half
- * ======================================================================== */
-
 describe('app-routes', () => {
     test('the table is well formed and Live is the default', () => {
         assertRouteTable(ROUTES);
@@ -59,31 +35,17 @@ describe('app-routes', () => {
         assert.deepEqual(routeIds(ROUTES), ['live', 'selector', 'settings', 'editor', 'history']);
         assert.equal(ROUTES.live.tag, 'live-screen');
         assert.equal(ROUTES.live.module, 'src/screens/live-screen.js');
-        // Wave 5.3. The row and the screen land together, which is what the next test
-        // checks for every row rather than for this one.
         assert.equal(ROUTES.selector.tag, 'selector-screen');
         assert.equal(ROUTES.selector.module, 'src/screens/selector-screen.js');
-        // Wave 5.4, by the same rule.
         assert.equal(ROUTES.settings.tag, 'settings-screen');
         assert.equal(ROUTES.settings.module, 'src/screens/settings-screen.js');
-        // Wave 5.5, by the same rule.
         assert.equal(ROUTES.editor.tag, 'editor-screen');
         assert.equal(ROUTES.editor.module, 'src/screens/editor-screen.js');
-        // Wave 5.6, by the same rule, and the last application of it: History is a
-        // ROUTE (LAYOUT_SPEC_DRAFT.md §4.5, "not a display:flex toggle"), so it has a
-        // row here exactly like the other four rather than a toggle inside Live.
         assert.equal(ROUTES.history.tag, 'history-screen');
         assert.equal(ROUTES.history.module, 'src/screens/history-screen.js');
     });
 
     test('nothing is planned any more, and nothing is both built and planned', () => {
-        // THE LIST IS EMPTY AS OF WAVE 5.6, and this test says so in the one way that
-        // cannot be read two ways. The disjointness check below is now VACUOUS — an
-        // empty list contains nothing — so asserting only that would be a test that
-        // passes because there is nothing to check, which is the shape this tree keeps
-        // catching. The first assertion is therefore about the LIST, and it fails the
-        // day a sixth screen is named without being built AND the day someone deletes
-        // the mechanism instead of emptying it.
         assert.deepEqual([...PLANNED_ROUTE_IDS], [],
             'every screen src/screens/README.md names is built; `history` was the last to leave');
         assert.ok(Array.isArray(PLANNED_ROUTE_IDS), 'the mechanism stays — a sixth screen is named here first');
@@ -95,9 +57,6 @@ describe('app-routes', () => {
     });
 
     test('the module a route names is a file that exists', () => {
-        // The route table is the shell's only link to a screen. A row pointing at a file
-        // nobody wrote resolves to a boot error at runtime and to nothing at all in a
-        // review, which is the failure mode this one line removes.
         for (const id of routeIds(ROUTES)) {
             const source = repoFile(ROUTES[id].module);
             assert.match(
@@ -120,9 +79,6 @@ describe('app-routes', () => {
     });
 
     test('hashFor and routeIdFromHash are each other\'s inverse', () => {
-        // The spread of PLANNED_ROUTE_IDS is kept although it is empty today: the pair
-        // has to hold for a planned name too, and that is exactly when the next wave
-        // adds one.
         for (const id of [...routeIds(ROUTES), ...PLANNED_ROUTE_IDS]) {
             assert.equal(hashFor(id), `${ROUTE_HASH_PREFIX}${id}`);
             assert.equal(routeIdFromHash(hashFor(id)), id);
@@ -139,13 +95,6 @@ describe('app-routes', () => {
         assert.equal(empty.match, ROUTE_MATCH.DEFAULTED);
         assert.equal(empty.requested, null);
 
-        // THE PLANNED EXAMPLE HAS RUN OUT, and this is where it is recorded rather
-        // than quietly deleted. `settings` was this test's example until wave 5.4 built
-        // it, `editor` until 5.5, and `history` until 5.6 — each moved out of
-        // PLANNED_ROUTE_IDS in the same change that added its ROUTES row, which is the
-        // rule working. With the list empty there is no input left that answers
-        // `planned: true`, so what is asserted now is the state that replaced it:
-        // `history` MATCHES, and a typo still defaults without claiming to be planned.
         const wasPlanned = resolveRoute('#/history');
         assert.equal(wasPlanned.id, 'history', 'the last planned name is now a built route');
         assert.equal(wasPlanned.match, ROUTE_MATCH.MATCHED);
@@ -157,14 +106,6 @@ describe('app-routes', () => {
         assert.equal(typo.planned, false);
         assert.equal(typo.requested, 'liev');
 
-        // THE MECHANISM IS STILL LIVE WITH NO NAMES IN THE LIST — and it is PROVED here,
-        // on a table and a planned list of this file's own, not asserted about the
-        // shipping pair. The shipping list being empty is the fact above, and a fact
-        // cannot exercise a branch: with nothing planned there is no hash that reaches
-        // `planned: true`, so the day a sixth screen is named the branch would be
-        // running for the first time in production. `resolveRoute` takes BOTH tables as
-        // arguments for this reason, and the defaults are the shipping pair, so what
-        // runs below is the same function the app runs with two names substituted.
         const table = { live: ROUTES.live, history: ROUTES.history };
         const planned = ['roaster'];
 
@@ -174,15 +115,11 @@ describe('app-routes', () => {
         assert.equal(wasNamedFirst.requested, 'roaster');
         assert.equal(wasNamedFirst.planned, true, 'and the shell can say the screen is coming');
 
-        // One letter different, and that is the whole point of the list: a name in
-        // NEITHER the table nor the list is a typo, and gets no such promise.
         const typoOnTheSameTable = resolveRoute('#/rooster', table, { planned });
         assert.equal(typoOnTheSameTable.match, ROUTE_MATCH.DEFAULTED);
         assert.equal(typoOnTheSameTable.requested, 'rooster');
         assert.equal(typoOnTheSameTable.planned, false);
 
-        // A built route is never planned even when someone lists it as both — the
-        // disjointness rule as BEHAVIOUR, where the test above states it as a rule.
         const built = resolveRoute('#/history', table, { planned: ['history'] });
         assert.equal(built.match, ROUTE_MATCH.MATCHED);
         assert.equal(built.planned, false);
@@ -203,10 +140,6 @@ describe('app-routes', () => {
         for (const bad of [null, undefined, '', 42, {}, 'nope']) assert.equal(routeFor(bad), null);
     });
 });
-
-/* ===========================================================================
- * The theme — and both halves of bug S11
- * ======================================================================== */
 
 /** A `documentElement` double: the two methods the controller is allowed to use. */
 function fakeRoot(initial = null) {
@@ -256,8 +189,6 @@ describe('theme', () => {
     });
 
     test('the controller adopts the stamp and does not re-decide it (no flash)', () => {
-        // The panel prefers light and nothing is stored — a fresh resolution would say
-        // light. The stamp says dark. The controller must agree with the SCREEN.
         const root = fakeRoot('dark');
         const theme = createThemeController({ root, media: fakeMedia(true) });
         assert.equal(theme.theme, 'dark');
@@ -323,8 +254,6 @@ describe('theme', () => {
     });
 
     test('the attribute is written only when it changes', async () => {
-        // Every no-op write fires plot-surface.js's MutationObserver on the root and
-        // costs a palette rebuild on the 15 Hz path (chart-C9's class).
         const root = fakeRoot('dark');
         const theme = createThemeController({ root, storage: fakeStorage({ [THEME_KEY]: 'dark' }) });
         await theme.hydrate();
@@ -348,14 +277,6 @@ describe('theme', () => {
         assert.equal(theme.following(), false);
     });
 
-    /**
-     * BUG S15, asserted rather than assumed. The test above pins the leak (S10's class:
-     * added once, handed back). S15 is a different failure with the same smell —
-     * `scaling.js:39-41, 48-86` re-binds its handlers INSIDE the handler, so every
-     * resize adds another one and the work grows without bound (`src/lib/theme.js:220`
-     * names it as the reason this listener is owned). The distinguishing question is
-     * therefore what the count does after the event FIRES, which nothing asked before.
-     */
     test('and firing it does not re-bind: the count is flat across events (bug S15)', () => {
         const media = fakeMedia(false);
         const root = fakeRoot('dark');
@@ -382,15 +303,6 @@ describe('theme', () => {
     });
 });
 
-/* ===========================================================================
- * The pre-paint stamp — the copy that cannot import this module
- * ======================================================================== */
-
-/**
- * The theme stamp, selected by what it writes rather than by being the only pre-paint
- * script — index.html carries a second one since the fit landed (src/lib/app-fit.js).
- * Same change, same reason, in test/storage-routes.test.mjs.
- */
 function preePaintStamp() {
     const blocks = [...repoFile('index.html').matchAll(/<script>([\s\S]*?)<\/script>/g)]
         .map((m) => m[1])
@@ -456,15 +368,6 @@ describe('the pre-paint theme stamp', () => {
         assert.ok(html.includes("setAttribute('data-theme', stored || DEFAULT_THEME)"));
     });
 
-    /**
-     * BUG S14, asserted rather than assumed. "Dead shell markup: `#profile_modal` (its
-     * opener does call showModal() but has no callers), `.subpage-fullscreen-toggle`,
-     * `class="toast-buttom"`" (§7.1 S14). Retiring it is a STRUCTURAL claim — the
-     * document holds one mounted element and nothing that no code reaches — and a
-     * structural claim asserted by nobody is a claim nobody can keep. The three names
-     * are checked by name because that is what regressed: a copied fragment brings its
-     * dead ids with it, and the typo'd class is invisible until someone reads the CSS.
-     */
     test('the document carries no dead shell markup (bug S14)', () => {
         const html = repoFile('index.html');
         const body = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
@@ -477,10 +380,6 @@ describe('the pre-paint theme stamp', () => {
         }
     });
 });
-
-/* ===========================================================================
- * The boot sequence
- * ======================================================================== */
 
 /** A WebSocket double. Records the URL; nothing opens by itself. */
 function fakeSocketFactory() {
@@ -496,9 +395,6 @@ function fakeSocketFactory() {
             },
             removeEventListener(type, fn) { listeners.get(type)?.delete(fn); },
             close() { this.closed = true; },
-            /** RECORDED, NOT DISCARDED. Until 26 August 2026 nothing in the skin ever
-             *  sent on a socket, so a fake that threw away every send cost nothing. The
-             *  display channel carries `setBrightness` now and this is how a test sees it. */
             sent: [],
             send(payload) { this.sent.push(payload); },
             /** Drive the channel from the test side. */
@@ -510,7 +406,6 @@ function fakeSocketFactory() {
     };
     factory.sockets = sockets;
     factory.urls = () => sockets.map((s) => s.url);
-    /** The socket for one path, so a test can drive it or read what it was sent. */
     factory.forPath = (needle) => sockets.find((s) => String(s.url).includes(needle)) ?? null;
     factory.sentOn = (needle) => (factory.forPath(needle)?.sent ?? []).map((p) => {
         try { return JSON.parse(p); } catch { return p; }
@@ -574,19 +469,6 @@ describe('app-boot', () => {
         assert.equal(state.route.tag, 'live-screen');
         assert.deepEqual(loaded, ['src/screens/live-screen.js']);
 
-        /* The eight channels the live layer opens, by their own table's paths — the boot
-         * spells no path of its own.
-         *
-         * THE EIGHTH IS THE WEATHER PLUGIN'S, and it is built rather than tabled: the
-         * address layer's `pluginEndpoint` row is a TEMPLATE, so `pluginEndpointPath` is
-         * the declared builder and the only thing allowed to fill it in. It is bounded —
-         * three attempts — so a machine without the plugin stops dialling and the corner
-         * is simply absent, which is why an eighth socket is not an eighth dependency.
-         *
-         * THE TANK JOINED THEM ON 23 Aug 2026. Ben: "Tank just shows as -, no water level
-         * being shown." The tile had been built and dashed since the band was made, and
-         * its own note named the gap exactly: the channel was tabled, and no feed in
-         * live-stores.js attached it. */
         assert.deepEqual(createSocket.urls().sort(), [
             WS_CHANNELS.devices.path,
             WS_CHANNELS.display.path,
@@ -603,67 +485,6 @@ describe('app-boot', () => {
         await boot.workflowSettled();
         await boot.cupWarmerSettled();
 
-        /* FIVE READS, EACH ONCE, EACH ON ITS OWN TABLED ROUTE AND EACH OWNED BY ONE STORE.
-         *
-         * The second one arrived with `live-capability-gates-ghc` (wave 5.1). The
-         * capability store will not fetch `machine/info` — "one store, one route", its own
-         * rule — and BOTH R3 gates answer from that body, so until a store owned the feed
-         * `groupHeadController()` and `profileModes()` were pinned at `unknown` for ever.
-         * `machine-info-store.js` owns it and the boot hands the BODY to
-         * `applyMachineInfo`, so neither store learned the other's route.
-         *
-         * THE THIRD IS THE LIVE RAIL'S, and it is the read whose absence made the rail
-         * dead. `<live-screen>` declares `targets` and nothing set them, so every stepper,
-         * every preset cell and the keypad's Confirm rendered disabled on any machine —
-         * and the one handler that writes `targets` sat behind those very controls. The
-         * ten numbers live on ONE document, the workflow (DQ-707), and `workflow-store.js`
-         * owns it. Asked on the start path beside the other two and gated on nothing: the
-         * rail renders its dashes until it lands, which is what it renders when there is
-         * nothing to say.
-         *
-         * THE FOURTH AND FIFTH ARRIVED WITH BEN'S LIVE-COMPOSITION RULING (22 Aug 2026),
-         * and they are the same shape of gap the third was. `<live-screen>` declared
-         * `favourites`, `profileName`, `storedDerivation` and `shotId` and nothing under
-         * src/ ever wrote any of them (DQ-1-D: "profileName + favourites have NO OWNER …
-         * P-1's shape twice more"), so the header's five favourite slots rendered as five
-         * numbered blanks and the chart and the foot band said "no shot yet" on a machine
-         * with 321 stored shots. The listing owns the first, the shots store the second.
-         * NEITHER IS MACHINE-GATED — profiles and stored shots outlive the machine being
-         * switched on — which is why they do not appear in the re-read set below.
-         *
-         * THE SHOTS PAGE IS ASKED AT limit=1, deliberately: the Live page wants one thing
-         * from the list (the newest shot's id, `items[0]` at order=desc) and the page's
-         * own `total` answers "how many are there" whatever the limit is.
-         *
-         * THE SIXTH IS THE MAT, and it is LAST because it is the only one that waits.
-         * Slate's header carries a Warmer control (#cupwarmer-toggle-btn [i=9]) and
-         * Decal's had none, with `src/stores/cup-warmer.js` written whole and called
-         * from nowhere — the same finished-half-with-no-other-half as the two above.
-         * It chains on the capability read rather than racing it, because the store's
-         * sequence is A3's ("the capability list first, the handler's own 404 second
-         * and authoritative") and an unchained read sees `entries()` null, reads that
-         * as "not known yet" and asks for the PRE-HEAT route as well on every boot.
-         * With the list in hand and only `cupWarmer` on it, that second request is
-         * correctly not made — which is what makes this list six entries and not seven.
-         *
-         * IT IS MACHINE-GATED, unlike the fourth and fifth, so it DOES appear in the
-         * re-read set below: a mat state read off the machine that just left is exactly
-         * the stale answer `invalidate()` exists for.
-         *
-         * AND A SEVENTH SINCE 27 AUGUST 2026 — ReaPrime's own preferences, `GET /settings`.
-         * It is here for ONE FIELD: `stopHotWaterAtWeight` is what decides whether a
-         * hot-water pour ends on millilitres or on the scale, and it is therefore what the
-         * Live rail's stop caption says and what the unit beside its number means. The rail
-         * used to answer that from a KV row of its own (`hotWaterStopMode`), which is two
-         * stores for one fact and could disagree with the Settings page — measured
-         * disagreeing on the recorded mock, whose machine holds the field true while the
-         * rail printed "Volume stop" and "240 mL". The store is the shell's rather than the
-         * settings screen's for the same reason the cup warmer's is: two constructions of one
-         * store break B7 as thoroughly as two keys would.
-         *
-         * IT IS NOT MACHINE-GATED. `GET /api/v1/settings` is ReaPrime's document, not
-         * `withDe1`'s, so it answers with or without a machine — which is why it is asked
-         * once at start and does NOT appear in the re-read set below. */
         assert.deepEqual(fetchImpl.calls, [
             { url: 'http://127.0.0.1:8080/api/v1/machine/capabilities', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/machine/info', method: 'GET' },
@@ -784,18 +605,6 @@ describe('app-boot', () => {
         boot.destroy();
     });
 
-    /* ───────────────────────────────────────────────────────────────────────────
-     * THE TWO MACHINE-SHAPED ANSWERS ARE RE-ASKED WHEN THE MACHINE CHANGES.
-     *
-     * Both reads run inside `withDe1`, so both answer 500 with no machine connected —
-     * the ordinary way an app opens. The boot read therefore lands on `unavailable`,
-     * `applyMachineInfo(null)` is applied, and until this wiring existed NOTHING re-read
-     * either one: `refresh()` and `forget()` had no caller anywhere under `src/`. A user
-     * who connected a machine after opening the app — including through this cluster's
-     * own picker — kept `groupHeadController()` at `unknown` and never saw the GHC strip
-     * for the whole session.
-     * ─────────────────────────────────────────────────────────────────────────── */
-
     /** A devices frame with (or without) a CONNECTED machine, as the aggregator writes one. */
     const machineFrame = (id) => ({
         devices: id === null ? [] : [{ id, name: 'a machine', type: 'machine', state: 'connected' }],
@@ -827,8 +636,6 @@ describe('app-boot', () => {
         await boot.capabilitiesSettled();
         await boot.machineInfoSettled();
         await boot.cupWarmerSettled();
-        // The re-read is started from a subscriber, so the promises above may be the ones
-        // it replaced. One more turn of all three is enough for the second set.
         await boot.capabilitiesSettled();
         await boot.machineInfoSettled();
         // The mat's read CHAINS on the capability read, so it settles a turn after it.
@@ -845,40 +652,14 @@ describe('app-boot', () => {
         assert.equal(boot.machineInfo.get().status, 'unavailable', 'the documented 500 — no machine to ask');
         assert.equal(boot.capabilities.groupHeadController().capability, 'unknown',
             'and the R3 gate is fail-closed on it');
-        /* SEVEN at boot, not two: the rail's workflow read joined the pair (DQ-707 — the
-         * Live rail's ten targets live on that document and nothing read it, which is why
-         * every rail control rendered disabled), the profile listing and the shots page
-         * joined it with Ben's Live-composition ruling, the cup warmer joined it with
-         * the header's restored Warmer control, and ReaPrime's own preferences joined it
-         * on 27 August 2026 with the rail's hot-water stop condition. All seven are asked on
-         * the same path and gated on nothing. */
         assert.equal(fetchImpl.calls.length, 7, 'one set at boot');
 
-        // The user connects a machine. ReaPrime publishes it on the devices socket, which
-        // is the ONE event that changes both answers.
         fetchImpl.state.connected = true;
         const devices = devicesSocket(createSocket);
         devices.emit('open', {});
         devices.emit('message', { data: JSON.stringify(machineFrame('m-1')) });
         await settle(boot);
 
-        /* ELEVEN: the seven above plus the FOUR machine-shaped answers, re-asked once each —
-         * capabilities, the workflow, machine info and the cup warmer. The listing, the
-         * shots page and ReaPrime's preferences are NOT re-asked, and that is the decision
-         * rather than an omission — a profile library, a stored-shot history and the app's
-         * own settings belong to the box, not to the machine that has just been switched on,
-         * so re-reading them on a connect would be requests that cannot change their answer.
-         *
-         * `stopHotWaterAtWeight` IS ON THE BOX SIDE OF THAT LINE even though it is about the
-         * machine's behaviour, and the test of which side a read is on is not what the value
-         * describes — it is WHOSE DOCUMENT it is. `GET /api/v1/settings` is ReaPrime's own
-         * and answers with no machine attached; the four re-read routes all go through
-         * `withDe1` and answer 500 without one.
-         *
-         * THE MAT IS ON THE MACHINE SIDE OF THAT LINE, which is the whole reason it is
-         * in this set: a warmer state read off the machine that just left is exactly
-         * the stale answer the store's `invalidate()` exists to prevent, and the
-         * header would otherwise paint the previous machine's ON. */
         assert.equal(fetchImpl.calls.length, 11,
             'the four MACHINE answers were re-asked, and exactly once each — the rail\'s '
             + 'targets belong to the machine that is here now, so a swap re-reads them too');
@@ -936,8 +717,6 @@ describe('app-boot', () => {
         await settle(boot);
         const asked = fetchImpl.calls.length;
 
-        // The socket closes. The VALUE survives, marked stale (the deletion rule) — so the
-        // frame still names the machine it named, and nothing here has learned otherwise.
         devices.emit('close', {});
         await settle(boot);
 
@@ -956,20 +735,6 @@ describe('app-boot', () => {
     });
 
     test('the shell builds ONE cup-warmer store, and the settings screen takes it', () => {
-        /* B7 BROKEN BY CONSTRUCTION RATHER THAN BY A SECOND KEY, and that is what made it
-         * invisible: two instances of one store each behave correctly on their own.
-         *
-         * `app-boot.js` hoisted a cup-warmer store for the Live header's Warmer button, and
-         * `settings-model.js` went on building its own for the settings page's door — while
-         * still carrying a comment saying the store had "no caller anywhere in src/". The
-         * boot's copy is refreshed at boot and on `machineChanged` and nothing else, so
-         * changing the mat target on the Settings page and pressing Save left the Live
-         * header showing the OLD setpoint until the machine reconnected.
-         *
-         * A SOURCE ASSERTION AND AN ANTI-PIN, which is the shape this file is ledgered for:
-         * it fires when a second construction comes back and never when a live value moves.
-         * `settings-model.js` cannot be imported here — it addresses its dependencies
-         * through the page's importmap — so the count is read where it is written. */
         const boot = repoFile('src/lib/app-boot.js');
         const shell = repoFile('src/screens/settings-model.js');
         assert.equal((boot.match(/createCupWarmerStore\(/g) ?? []).length, 1,
@@ -998,17 +763,6 @@ describe('app-boot', () => {
         },
     });
 
-    /* THE SCREEN-SAVER SETTING DID NOT SURVIVE A RELOAD, AND THIS IS WHY.
-     *
-     * `createAppBoot` defaults `local` and `session` to memory and used to say "No row
-     * this build ships reads a `local` key through this router". The screen-saver rows
-     * then shipped as `layer: local`, so the write answered ok, the saver changed, and the
-     * value was gone at the next load. Measured on the bench tablet 28 August 2026: 23
-     * keys in localStorage and exactly one of them the skin's.
-     *
-     * Asserted through `boot.storage` on a real logical key rather than on the shape of
-     * the backends map, because the defect was never in the map — it was that nothing
-     * carried a Window to it. */
     test('bootFromWindow writes a local-layer setting to the window it was given', async () => {
         const store = new Map();
         const win = fakeWindowFor(store);
@@ -1048,8 +802,6 @@ describe('app-boot', () => {
         const source = repoFile('src/lib/app-boot.js');
         const body = source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
         const ambient = [...body.matchAll(/\b(globalThis|window|document|localStorage|navigator)\b/g)];
-        // Every remaining mention must be inside bootFromWindow, which is the last
-        // function in the file. Cheap, and it is what keeps the module node-testable.
         const boundary = body.indexOf('export function bootFromWindow');
         assert.ok(boundary > 0);
         for (const match of ambient) {
@@ -1059,19 +811,7 @@ describe('app-boot', () => {
     });
 });
 
-/* ===========================================================================
- * THE REAPRIME ADDRESS — the other key nothing read
- * ======================================================================== */
-
 describe('the stored ReaPrime address decides which machine the app talks to', () => {
-    /* THE FIELD DID NOTHING. Connection > Machine has offered a `ReaPrime address` since
-     * the settings screen was built; it wrote the routed key and nothing read it, so a
-     * tablet pointed at another host kept talking to the one that served the page.
-     *
-     * IT IS READ IN `bootFromWindow` and nowhere else — the one function that touches
-     * ambient state, and the only place that CAN read this key: the storage router's KV
-     * layers are addressed at the very machine this value names, which is why the routing
-     * table calls it a `local` row and says "Cannot live in the store it addresses." */
     const windowWith = (stored, hostname = 'page-host') => ({
         location: { hostname, protocol: 'http:' },
         fetch: async () => ({ ok: true, status: 200, json: async () => ({ capabilities: [] }) }),
@@ -1111,22 +851,7 @@ describe('the stored ReaPrime address decides which machine the app talks to', (
     });
 });
 
-/* ===========================================================================
- * THE PANEL — the half the brightness slider was missing
- * ======================================================================== */
-
 describe('the tablet\'s brightness reaches the panel', () => {
-    /* FOUND 26 AUGUST 2026 by sweeping every settings row for something on the other end.
-     * The Brightness page wrote `lastBrightness` into device-scoped storage; nothing
-     * outside that page read it, and nothing in the skin had ever sent `setBrightness` on
-     * `/ws/v1/display`. The channel was declared and its shape check was written — there
-     * was simply no call site, so dragging the slider changed a number on the page and
-     * nothing else.
-     *
-     * THE HANDLER'S FAILURE MODE IS SILENCE, which is why the shape matters more than
-     * usual: `display_handler.dart` takes `brightness is int && 0..100` and answers a
-     * non-integer with a log line and NO reply. A caller that sends 80.5 gets exactly what
-     * it gets for a value that worked. */
     /** The KV read the restore starts is a promise chain; let it land. */
     const settleReads = async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); };
 
@@ -1157,17 +882,6 @@ describe('the tablet\'s brightness reaches the panel', () => {
     });
 
     test('the wake lock is TAKEN and RELEASED on the same socket the feed owns', async () => {
-        /* THE SWITCH WROTE A KEY NOTHING READ. `wakeLockEnabled` had a row on the Wake Lock
-         * page, a route in `storage-routes.js` and a default of true — and a sweep of
-         * `src/` on 26 August 2026 found those three declarations and NO reader at all.
-         * Meanwhile the skin carried FOUR ways to take the lock and called none: two
-         * commands on this channel, and a REST pair in the generated table.
-         *
-         * THE SOCKET PAIR IS THE RIGHT ONE, and the setting's own footnote is why: it
-         * promises "The wake lock releases by itself when the connection to the machine
-         * drops", and `display_handler.dart` tracks `overrideRequested` PER SOCKET and
-         * releases it in both `onDone` and `onError`. Over REST that sentence would be
-         * false, because a REST-taken lock outlives the page that asked for it. */
         const { boot, createSocket } = bootWith();
         await boot.start();
         openDisplay(createSocket);
@@ -1207,16 +921,6 @@ describe('the tablet\'s brightness reaches the panel', () => {
     });
 
     test('there is NO restore at boot, which is Q13\'s answer', async () => {
-        /* A restore lived in `app-boot` for about an hour on 26 August 2026 — it read
-         * `lastBrightness` when the display socket opened and sent it, so the preference
-         * would survive a reload. `overlay-hygiene.test.mjs` refused it and was right.
-         *
-         * ReaPrime RESTORES BRIGHTNESS ITSELF when it sees an awake machine at requested
-         * brightness 0, and with a fully black screensaver that makes two restore paths on
-         * the wake edge — of which exactly one side may drive. The skin drives the DIM and
-         * stands back on the RESTORE. A socket opening after a sleep IS that edge.
-         *
-         * So a boot sends NOTHING on this channel, whatever is stored. */
         const kv = createMemoryBackend({ lastBrightness: 42 });
         const { boot, createSocket } = bootWith({ backends: { kv } });
         await boot.start();
@@ -1236,10 +940,6 @@ describe('the tablet\'s brightness reaches the panel', () => {
         boot.destroy();
     });
 });
-
-/* ===========================================================================
- * The contract check for what the boot touches (DECISIONS.md:144-157)
- * ======================================================================== */
 
 describe('the boot\'s contract surface', () => {
     const table = JSON.parse(repoFile('src/data/CONTRACTS.json'));
@@ -1262,15 +962,11 @@ describe('the boot\'s contract surface', () => {
             assert.ok(row, `${id} must be in the socket table`);
             assert.equal(row.checkedCommit, pin, `${id} was checked at a different commit`);
             assert.equal(row.status, 'consumed');
-            // And the path the boot dials is the path the table records, because both
-            // come from the same WS_CHANNELS row.
             assert.equal(WS_CHANNELS[id].path, row.path);
         }
     });
 
     test('the shell names no route string and no route id of its own', () => {
-        // Gate D scans for these; this is the same rule stated where the shell can see
-        // it, because the shell is exactly the file most tempted to spell a path.
         for (const file of ['src/lib/app-boot.js', 'src/components/app-root.js', 'src/lib/app-routes.js']) {
             const body = repoFile(file).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
             assert.equal(/['"`]\/(api|ws)\/v1/.test(body), false, `${file} spells a ReaPrime path`);

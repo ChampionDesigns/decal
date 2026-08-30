@@ -1,12 +1,5 @@
 /**
  * The Live rail's values, read off the workflow and written back.
- *
- * WHAT THESE PIN. The rail did not work: `targets` and `limits` had no writer, so every
- * stepper, preset cell and the keypad's Confirm rendered disabled on any machine, and the
- * one handler that writes `targets` sat behind the controls that being unwritten had
- * disabled. These assert the mapping against the SHIPPED FIXTURE rather than a hand-made
- * object, because the fixture is a recording of what a real machine serves — a mapping
- * that passes against an invented document proves nothing about the rail.
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -39,11 +32,6 @@ test('every rail key the fixture carries is read, with the served number', () =>
     assert.equal(targets.flushDuration, 5);
 });
 
-/* THE REGRESSION THIS FILE EXISTS TO PREVENT, and it was written the wrong way first.
- * The fixture's steps read 83.5 / 75 / 75. The old app prints 83.5 (`app.js:1479`,
- * `profileManager.js:552` — `steps[0].temperature`, no agreement test). A rule that
- * required the steps to agree printed the DASH here: a control reading empty where the
- * thing it replaces reads a number. */
 test('brew temperature is the first step, exactly as the old app reads it', () => {
     assert.equal(brewTempOf(WORKFLOW), 83.5);
     assert.equal(targetsFrom(WORKFLOW).brewTemp, 83.5);
@@ -70,51 +58,7 @@ test('a non-number is not a target — the machine holds numbers', () => {
 });
 
 test('every rail key is sourced, and the two that are not are named', () => {
-    /* LIMIT_KEYS is the authority for what a rail row may ask for. A key in that table
-     * that this module cannot source is a row that renders unavailable for ever, so the
-     * gap must be deliberate and visible rather than discovered on the glass. */
     const unsourced = LIMIT_KEYS.filter((k) => !WORKFLOW_TARGET_KEYS.includes(k));
-    /* TWO BECAME EIGHT ON 24 AUG, AND EIGHT BECAME SIXTEEN ON 26 AUG 2026. Every one of
-     * the eight new ones is a SETTINGS-ONLY row that no Live rail control asks for, which
-     * is the honest shape of this gap: the module sources what the RAIL needs from
-     * `GET /workflow`, and the limits table also carries rows for pages the rail has
-     * nothing to do with. The eight and where they live:
-     *
-     *   cupWarmerTarget, preWarmLead   the cup-warmer page, on its own door
-     *   fanThreshold                   Calibration > Fan Threshold
-     *   flowCalibration                Calibration > Flow Multiplier
-     *   hotWaterDuration, hotWaterFlow the Hot Water page
-     *   sleepAfter                     the sleep policy, on the presence door
-     *   screensaverCycle, waterAlertLevel   two skin-stored preferences
-     *
-     * `hotWaterDuration` IS THE ONE WORTH A SECOND LOOK, because unlike the rest it IS on
-     * the workflow document — `hotWaterData.duration`, which the workflow door now reads.
-     * It is unsourced HERE because this module is the RAIL's reader and the rail has no
-     * hot-water duration control. Two readers of one document, each for its own surface,
-     * is the arrangement; a key appearing in both would be the mistake.
-     *
-     * `tankTemp` IS THE SAME SHAPE, older: the document carries `profile.tank_temperature`,
-     * the rail has no tank control, and the profile field is the value that OVERWRITES the
-     * machine's threshold rather than a reading of it.
-     *
-     * AND SIXTEEN BECAME EIGHTEEN ON 27 AUGUST 2026 — the settings pass added two bands to
-     * `machine-limits.js` and this census is the file that has to be told, which is the
-     * whole point of asserting an exact list rather than a count. Both are the same shape
-     * as the eight above, a settings row the rail does not carry:
-     *
-     *   hotWaterLookahead   Hot Water > Flow multiplier. The lead the stop-at-weight
-     *                       sequencer works to (`hot_water_sequencer.dart:117` reads it as
-     *                       `lookaheadSeconds`). `settings-leaves.js` machine-hot-water-
-     *                       lookahead is the row; the rail has no hot-water page.
-     *   screenBrightness    Display > Brightness. A TABLET setting, not a machine one at
-     *                       all — `settings-bespoke-leaf.js` reads the band to gray the
-     *                       slider's ends, and `GET /workflow` could not carry it if it
-     *                       wanted to.
-     *
-     * THE ARITHMETIC IN THE SENTENCE ABOVE SAID FIFTEEN AND THE LIST HELD SIXTEEN, from
-     * the 26 August edit onwards. Corrected here rather than left, because a census whose
-     * own prose miscounts its own list is the one comment in the file a reader cannot
-     * check at a glance. */
     assert.deepEqual(unsourced.sort(), [
         'appFlowMultiplier', 'calibrationWeight', 'cupWarmerTarget', 'fanThreshold',
         'flowCalibration', 'heaterIdleTemp', 'heaterPh1Flow', 'heaterPh2Flow',

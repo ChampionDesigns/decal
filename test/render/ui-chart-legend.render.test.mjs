@@ -1,47 +1,5 @@
 /**
- * ui-chart-legend.render.test.mjs — Gate A for component #10 (wave 3, item #10).
- *
- * Runs the whole rig at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth)
- * and the 1000×600 floor — asserting only on computed style, box geometry and behaviour,
- * never on source text (Part 8 §2).
- *
- * THE FIVE THINGS THIS SUITE EXISTS TO PROVE, in the order they appear:
- *
- *   1. A6 — ONE SOURCE FOR CHANNEL COLOUR. A single drill on `--ui-channel-pressure`
- *      moves the swatch's computed `stroke` AND puts drill-coloured pixels on the chart
- *      card's canvas, in the same assertion. Two readers, one token: that is the whole
- *      claim, and it is worthless asserted on either half alone. The legend's swatch is
- *      the ONE place in the rewrite where a chart colour is visible to
- *      `getComputedStyle` — the traces live in a canvas, where §6.2's "CSS is the single
- *      source for chart colour" can only be checked by counting pixels.
- *
- *   2. §6.2's named defect — the swatch's weight is the SERIES' weight. Slate draws
- *      `border-top: 3px` for every entry (slate-components.css:868) whether the line it
- *      stands for is 3px or 2px. Here a major chip measures --ui-chart-stroke and a
- *      minor chip --ui-chart-stroke-minor, both drilled, and the two are asserted to
- *      DIFFER — an implementation that read one token for both would pass every
- *      value assertion and fail that one.
- *
- *   3. chart-C10 — the legend is part of the layout. With a real recorded shot in a real
- *      `ui-chart-card`, the plot's canvas is asserted to match the plot box AFTER the
- *      legend has taken its row, and again after the legend wraps to a second row. A
- *      plot "born sized to a box it no longer occupies" is exactly what those two
- *      measurements catch.
- *
- *   4. The control half. Slate's legend toggles on tap and isolates on double tap
- *      (uplot-legend.js:1-16). Both are asserted through the browser's own hit test, and
- *      the bound-chart path is asserted on PIXELS: hiding the pressure series removes the
- *      pressure colour from the canvas. A legend that painted its chip and left the trace
- *      alone would be invisible to every screenshot gate.
- *
- *   5. The floor. Ten chips at 1000×600 in a 320px container: every chip stays inside its
- *      container, none is shorter than --ui-legend-chip-h, the row grows by whole chip
- *      rows, and the hit overlay never reaches the plot.
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable, each with its
- * CITE line. The three departures that move a measured value (font token, min-height,
- * hit floor) are asserted AS departures, with both numbers named, so a silent drift back
- * to Slate's value is a red test too.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -68,12 +26,6 @@ const WITH_CARD = ['/src/components/ui-chart-legend.js', '/src/components/ui-cha
  */
 const SHOT_URL = '/tools/rea-fixtures/api__v1__shots__cd020a51-f353-4ffb-8389-72c931640181.json';
 
-/**
- * The Live set in the card's own draw order (ui-chart-card.js:146-152), with Slate's own
- * words for labels — the oracle's captured text, "Pressure (bar)", "Flow (mL/s)",
- * "GFlow (g/s)", "Target Pressure", "Target Flow". They are DATA here, handed in already
- * translated, which is the component's law: it authors no word.
- */
 const ITEMS = [
     { key: 'pressure', label: 'Pressure (bar)' },
     { key: 'targetPressure', label: 'Target Pressure', minor: true, dash: 'dash' },
@@ -82,7 +34,6 @@ const ITEMS = [
     { key: 'weightFlow', label: 'GFlow (g/s)', minor: true },
 ];
 
-/** Ten entries is Slate's own count per expanded page — `find --cls` returned 10 twice. */
 const TEN = [
     ...ITEMS,
     { key: 'power', label: 'Power (W)' },
@@ -114,12 +65,6 @@ const MARKUP = `
 </div>
 `;
 
-/**
- * THREE chips for the card stage, not five: at 760px the five-chip row wraps, and the
- * point of the layout tests below is to measure ONE row's cost first and then make it
- * wrap on purpose. (That wrap was the first run's surprise — five of Slate's own labels
- * do not fit a 760px card at either geometry, which is §6.1 rule 5 arriving early.)
- */
 const CARD_ITEMS = ITEMS.slice(0, 3);
 
 /** A card with the legend in its own reserved row — the layout contract, assembled. */
@@ -220,15 +165,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(env, { dpr: dsf, w: geometry.width, h: geometry.height });
         }));
 
-        /* ================================================================
-         * 1. A6 — the swatch and the trace read the SAME token
-         * ============================================================== */
-
         test('ONE drill on --ui-channel-pressure moves the swatch AND the canvas', () => withCard(async (page) => {
-            /* The identity claim, in one assertion. `read` returns both halves, so a
-             * component that copied the colour into a private property would move the
-             * swatch and leave the canvas — or vice versa — and the deepEqual on the
-             * pair would fail even though each half moved. */
             const both = async (p) => {
                 await p.evalFn((s) => { window.__h.need(s).drawNow(); return true; }, '#c');
                 return {
@@ -265,9 +202,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a derivation KEY and a channel NAME resolve to the same colour', () => mounted(async (page) => {
-            /* chart-tokens.js:70-92: twelve of the fourteen SERIES_KEYS are not spelled
-             * like their channel name, and the failure when they are used as one is
-             * silent. `weightFlow` here must land on --ui-channel-weight-flow. */
             const expected = await page.resolveToken('--ui-channel-weight-flow', 'stroke');
             assert.equal(await page.prop(swatchLine('weightFlow'), 'stroke'), expected);
             assert.notEqual(expected, 'rgb(0, 0, 0)', 'and it is a real colour, not the initial value');
@@ -286,17 +220,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the fallback is currentColor, so the mark is still there');
         }));
 
-        /* ================================================================
-         * 2. §6.2 — the swatch's weight is the SERIES' weight
-         * ============================================================== */
-
         test('a major swatch is --ui-chart-stroke and a minor one --ui-chart-stroke-minor', () => mounted(async (page) => {
             const major = await page.prop(swatchLine('pressure'), 'stroke-width');
             const minor = await page.prop(swatchLine('targetPressure'), 'stroke-width');
 
-            /* SOURCE styles/tokens.css:526-527 — 3px / 2px, spec §3.8's own numbers
-             * (slate-tokens.css:108-109 / expanded-layout.js:23-24, "same number, two
-             * sources"). */
             assert.equal(major, '3px', 'the major stroke token');
             assert.equal(minor, '2px', 'the minor stroke token');
             assert.notEqual(major, minor,
@@ -323,9 +250,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the swatch carries the plot\'s OWN dash table, not a CSS keyword', () => mounted(async (page) => {
-            /* §6.2: "The dash table is one exported constant." CSS `dashed` cannot tell
-             * [9,9] from [9,3,3,3]; stroke-dasharray can, and it is read from the same
-             * DASH_PATTERNS the canvas draws with (chart-axis.js:78-83). */
             const asCss = (pattern) => pattern.map((n) => `${n}px`).join(', ');
 
             assert.equal(await page.prop(swatchLine('targetPressure'), 'stroke-dasharray'),
@@ -351,10 +275,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 3. THE CHIP'S PAINT — every value an oracle answer
-         * ============================================================== */
-
         test('the chip is Slate\'s chip, token for token', () => mounted(async (page) => {
             const got = await page.computed(chip('pressure'), [
                 'font-size', 'font-weight', 'border-top-left-radius', 'border-top-width',
@@ -362,36 +282,23 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'letter-spacing', 'min-height', 'opacity',
             ]);
 
-            /* CITE expanded-charts .slate-chart-legend-item [i=176] font-size = 17px
-             *      <- authored `var(--slate-text-base)` — DEPARTURE 1 reads
-             *      --ui-chart-legend, the §3.8 token, which is also 17px. */
             assert.equal(got['font-size'], '17px');
-            /* CITE … font-weight = 500 <- authored `var(--slate-weight-medium)` */
             assert.equal(got['font-weight'], '500');
-            /* CITE … border-top-left-radius = 6px, border-top-width = 1px,
-             *        padding-left = 12px, gap = 8px  (all via a shorthand) */
             assert.equal(got['border-top-left-radius'], '6px');
             assert.equal(got['border-top-width'], '1px');
             assert.equal(got['padding-left'], '12px');
             assert.equal(got['padding-right'], '12px');
             assert.equal(got['column-gap'], '8px');
-            /* CITE … box-shadow = none, text-transform = none, letter-spacing = normal,
-             *        opacity = 1  — the chip has no decoration of its own. */
             assert.equal(got['box-shadow'], 'none');
             assert.equal(got['text-transform'], 'none');
             assert.equal(got['letter-spacing'], 'normal');
             assert.equal(got.opacity, '1');
-            /* DEPARTURE 2. CITE … height = 44px <- authored `var(--slate-chip-height)`.
-             * Carried as a FLOOR so a long label wraps inside a chip that grows instead
-             * of spilling out of a fixed box (§2.4: nothing clips silently). */
             assert.equal(got['min-height'], '44px', 'the oracle\'s 44px, as a floor');
         }));
 
         test('the chip renders at Slate\'s 44px when the words fit', () => mounted(async (page) => {
             const box = await page.box(chip('pressure'));
             near(box.height, 44, 'CITE expanded-charts .slate-chart-legend-item height = 44px', 0.6);
-            /* The oracle's widths are its own font's; what is asserted here is the shape
-             * that produced them — every chip as wide as its words and no wider. */
             const wide = await page.box(chip('targetPressure'));
             assert.ok(wide.width > box.width,
                 'a longer label makes a wider chip: the oracle reads nine distinct widths '
@@ -430,10 +337,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the paint is the same in both themes, because it is all tokens', () => mounted(async (page) => {
-            /* CITE themes expanded-charts .slate-chart-legend-item: 15 of 18 properties
-             * identical across themes; 3 differ — background-color, border-top-color,
-             * color — and all three are token swaps. So a theme flip must move exactly
-             * those three and nothing else. */
             const props = ['background-color', 'color', 'border-top-color', 'font-size',
                 'font-weight', 'border-top-left-radius', 'padding-left', 'min-height'];
             const start = await page.evalFn(() => document.documentElement.getAttribute('data-theme'));
@@ -452,10 +355,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setTheme(start);
         }));
 
-        /* ================================================================
-         * 4. THE CONTROL — tap toggles, double tap isolates
-         * ============================================================== */
-
         test('every chip is a pressed button in a named group', () => mounted(async (page) => {
             const host = await page.evalFn((s) => {
                 const el = window.__h.need(s);
@@ -471,8 +370,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
             }, '#legend');
 
-            /* DEPARTURE 5 — bug chart-C14's second clause, "the legend has no group role
-             * or accessible name" (uplot-legend.js:31). */
             assert.equal(host.role, 'group');
             assert.equal(host.name, 'Chart key');
             assert.equal(host.chips, ITEMS.length);
@@ -480,9 +377,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(host.pressed, ['true'], 'and every series starts drawn');
             assert.deepEqual(host.labels, ITEMS.map((i) => i.label),
                 'the words are the consumer\'s, in the plot\'s draw order');
-            /* The swatch is aria-hidden because the LABEL carries the name — unlike bug
-             * chart-C14's first clause, where the aria-hidden gradient key was the
-             * trajectory's ONLY axis legend (index.html:521). */
             assert.equal(host.swatchesHidden, true);
         }));
 
@@ -526,10 +420,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 chip('pressure'));
             assert.equal(pressed, 'false');
 
-            /* SOURCE slate-components.css:857-862, read read-only (the corpus never
-             * captured an off chip): background transparent, colour --slate-muted, and
-             * the swatch at .35 — "A hidden series stays readable — it is a control you
-             * can turn back on, not a thing that has gone away." */
             assert.equal(state['background-color'], 'rgba(0, 0, 0, 0)');
             assert.equal(state.color, await page.resolveToken('--ui-muted', 'color'));
             assert.equal(await page.prop(`${chip('pressure')} .swatch`, 'opacity'), '0.35');
@@ -547,11 +437,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the off chip is NOT painted with the four selection dials', () => mounted(async (page) => {
-            /* CONVENTIONS §4: the dials mark the ONE chosen thing. Every chip here is
-             * aria-pressed="true" at rest, so a legend that imported `selectionSurface`
-             * would paint the whole row as selected and leave the exceptional state — a
-             * series turned off — as the only undecorated one. This asserts the fragment
-             * stayed out, in both directions. */
             const face = await page.resolveToken('--ui-selected-face', 'background-color');
             const resting = await page.computed(chip('pressure'), ['background-color', 'box-shadow']);
             assert.notEqual(resting['background-color'], face,
@@ -575,11 +460,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(await pressed(), ['false', 'false', 'true', 'false', 'false'],
                 'isolate: everything but flow goes off');
 
-            /* A SECOND GESTURE, not a third tap: the window closes between them, which
-             * is what a person does. DEPARTURE 7 is what makes this pass — Slate reaches
-             * its own restore branch only from a third CONSECUTIVE tap, because the
-             * pair's first tap has already toggled the series by the time the second asks
-             * whether it is alone. MEASURED before the fix: this left flow isolated. */
             await sleep(420);
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
@@ -592,9 +472,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const pressed = () => page.evalFn((s) => [...window.__h.need(s).renderRoot.querySelectorAll('button')]
                 .map((b) => b.getAttribute('aria-pressed')), '#legend');
 
-            /* Three taps with no gap: isolate, then restore. That is Slate's chain
-             * (uplot-legend.js:62-78) and DEPARTURE 7 deliberately does not touch it —
-             * the third tap's predecessor was an isolate, so there is nothing to undo. */
             for (let i = 0; i < 3; i += 1) await page.dispatch(chip('flow'), 'click', { detail: 1 });
             assert.deepEqual(await pressed(), ['true', 'true', 'true', 'true', 'true']);
         }));
@@ -614,9 +491,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const pressed = () => page.evalFn((s) => [...window.__h.need(s).renderRoot.querySelectorAll('button')]
                 .map((b) => b.getAttribute('aria-pressed')), '#legend');
 
-            /* A keyboard-activated click carries detail 0. Slate's isolate runs off
-             * Date.now() inside the same click handler, so two quick Enters isolate a
-             * series a keyboard user cannot see coming. */
             await page.focusVisible(chip('flow'));
             await page.press('Enter');
             await page.press('Enter');
@@ -635,9 +509,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(ink.height, 44, 'the ink stays Slate\'s 44px', 0.6);
             assert.ok(hit.block >= 48 - 0.5,
                 `and the hit box reaches ${hit.floor}px — Slate leaves this chip 4px short`);
-            /* `max(100%, --ui-hit-min)` on an absolutely-positioned ::before resolves the
-             * percentage against the button's PADDING box, so the inline extent is the
-             * ink less its two 1px borders. Named rather than fudged. */
             assert.ok(hit.inline >= ink.width - 2.5,
                 `the inline axis covers the ink (${hit.inline} vs ${ink.width})`);
         }));
@@ -710,10 +581,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'type-roles.js\'s .ui-numeric modifier, composed rather than re-declared');
         }));
 
-        /* ================================================================
-         * 5. THE ROW, AT BOTH GEOMETRIES AND AT THE FLOOR
-         * ============================================================== */
-
         test('the row wraps rather than clipping, and no chip escapes its container', () => mounted(async (page) => {
             const container = await page.box('#narrow');
             const chips = await page.evalFn((s) => [...window.__h.need(s).renderRoot.querySelectorAll('button')]
@@ -732,18 +599,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a wrapped row costs whole chip rows, and says so in the flow', () => mounted(async (page) => {
-            /* §6.1 rule 5's complaint is that a second chip row costs ~52px SILENTLY.
-             * The cost is asserted here and its visibility to the card's observer in
-             * section 6: the legend is a plain block in the flow, so growing it grows
-             * the row it sits in. */
             const wide = await page.box('#legend');
             near(wide.height, 44, 'one row of chips is one chip tall', 0.6);
 
             const tight = await page.box('#tight');
             const chipRows = await page.evalFn((s) => new Set([...window.__h.need(s).renderRoot
                 .querySelectorAll('button')].map((b) => Math.round(b.getBoundingClientRect().top))).size, '#tight');
-            /* row-gap is --ui-space-2 (8px), Slate's own `gap: var(--slate-space-2)
-             * var(--slate-space-3)` (slate-components.css:836). */
             const expected = chipRows * 44 + (chipRows - 1) * 8;
             assert.ok(Math.abs(tight.height - expected) <= 2 * chipRows,
                 `${chipRows} rows of 44px chips with 8px gaps ≈ ${expected}px, measured ${tight.height}px`);
@@ -777,10 +638,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
              + 'able to see this component grow.');
         }));
 
-        /* ================================================================
-         * 6. chart-C10 — the legend IS the layout, with a real shot
-         * ============================================================== */
-
         test('the card reserves the row, and the plot is sized to what it actually has', () => withCard(async (page) => {
             const filled = await page.evalFn((s) => window.__h.need(s).hasAttribute('has-legend'), '#c');
             const empty = await page.evalFn((s) => window.__h.need(s).hasAttribute('has-legend'), '#bare');
@@ -800,9 +657,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const cost = barePlot.height - plot.height;
             assert.ok(cost >= legend.height - 1,
                 `the plot gave up ${cost.toFixed(1)}px for a ${legend.height.toFixed(1)}px legend`);
-            /* THE 78px, RE-COSTED. 44 of chip plus the card's own 8px below it — Slate's
-             * 78 was 44 + 8 + 8 of legend padding + 18 of host margin, three declarations
-             * in two files (§6.1 rule 4). */
             near(cost, 52, 'one row of legend costs 52px against Slate\'s 78', 1.5);
         }));
 
@@ -811,8 +665,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const beforePlot = await page.box('#c >>> .plot');
             near(before.width, beforePlot.width, 'starting sized correctly', 1.5);
 
-            /* Narrow the STAGE, not the viewport — a component reads its own container
-             * (§2.1 Rule 1). Ten chips at 380px is several rows. */
             await page.evalFn((s, items) => {
                 document.getElementById('stage').style.inlineSize = '380px';
                 window.__h.need(s).items = items;
@@ -836,9 +688,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the hit overlay never reaches the plot', () => withCard(async (page) => {
-            /* DEPARTURE 3's risk: a 48px overlay on a 44px chip spills 2px each way. If
-             * that spill reached the plot well it would steal the crosshair's top 2px —
-             * invisible to every screenshot. */
             const overlay = await page.evalFn((s) => {
                 const el = window.__h.need(s);
                 const button = el.renderRoot.querySelector('button');
@@ -854,10 +703,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a bound legend hides the TRACE, not just the chip', () => withCard(async (page) => {
-            /* The strongest form this can take: drill the pressure channel so its pixels
-             * are countable, then press the chip and assert they are gone. A legend that
-             * painted its chip and left the canvas alone passes every other test in this
-             * file and this one fails. */
             await page.setToken('--ui-channel-pressure', DRILL_COLOUR);
             await page.settle();
             await page.evalFn((s) => { window.__h.need(s).drawNow(); return true; }, '#c');
@@ -878,15 +723,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setToken('--ui-channel-pressure', null);
         }));
 
-        /* ================================================================
-         * 7. THE GALLERY'S OWN STATES, mounted
-         * ============================================================== */
-
         test('every gallery state mounts and shows what it claims', () => browser.withPage({ geometry }, async (page) => {
-            /* The entry is a string of markup until something mounts it. This is the half
-             * `test/ui-chart-legend-gallery-entry.test.mjs` cannot do: it checks the
-             * shape, this checks that the shape renders. A state that photographs as an
-             * empty stage is a baseline that is wrong forever (gallery README). */
             for (const state of ENTRY.states) {
                 const got = await mountState(page, state);
                 assert.deepEqual(page.pageErrors, [], `state ${state.id} threw on mount`);

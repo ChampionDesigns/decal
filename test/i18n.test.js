@@ -1,5 +1,4 @@
-// The reactive mechanism (D2). No DOM: the store and its controller are plain JS,
-// which is the point — a component reads a value, nobody walks a document.
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -94,8 +93,6 @@ test('subscribers are notified on every language change and can unsubscribe', ()
 });
 
 test('every subscriber sees the change — the shadow-boundary property', () => {
-  // Two components in unrelated shadow roots hold no reference to each other; both
-  // read the same module-level store, so one set() re-renders both.
   const store = new Translations();
   const a = fakeHost();
   const b = fakeHost();

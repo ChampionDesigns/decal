@@ -1,15 +1,4 @@
-// The x-axis tick ladder and THE dash table — Gate 5.
-//
-// Two things that look like formatting and are not:
-//
-//   * the tick ladder is why a 20 s shot and a 2 minute shot get a comparable NUMBER of
-//     labels. A fixed dtick gave the short shot two and the long one twelve, and 7 s and
-//     25 s ticks are not readable intervals for a shot at any width.
-//   * `ruleDash` exists because an EMPTY dash array means SOLID and `|| default` destroys
-//     it: "a detector event is a thing the puck did, drawn unbroken; `|| default` would
-//     have made it dashed like the boundaries it must be told apart from".
-//
-// `plotWidthPx` is CSS px, never canvas px — bug chart-C12, the one pixel ratio.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 

@@ -1,52 +1,5 @@
 /**
- * ui-screensaver.render.test.mjs — Wave 4 item #57's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and REAL input, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600 floor
- * (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS FOR. A screensaver fails in ways a screenshot cannot show, and all
- * of its worst failures are silent:
- *
- *   * it blanks when it should not have — Slate's lenient matcher folded every absence
- *     into the empty string, and the thing it would have matched on was blanking the
- *     screen;
- *   * it stays blanked when the machine has gone (reaprime#519 — the DE1 dropped off BLE
- *     while asleep and the tablet stayed dark for the rest of the session, recoverable
- *     only by a brightness slider the user could not see);
- *   * hiding the overlay emits a machine command (the 46 ms race: PUT sleeping at
- *     15:53:55.035, PUT idle at 15:53:55.081, the second one being the overlay's own
- *     teardown);
- *   * two things blank the screen and the winner depends on ordering (D10, and Q13 on
- *     the wake edge).
- *
- * Every one of those is a behaviour assertion below, and three of them are assertions
- * that something does NOT happen. The pictures — black rectangle, unobscured panel —
- * are the easy half.
- *
- * THE ORACLE IS DISQUALIFIED, mechanically, and the tool says so itself:
- *
- *     prov_query.py find --cls slate-screensaver
- *       -> corpus prov-baseline (dark); searched 49 state(s); found 0 element(s) in 0 state(s)
- *       -> "The corpus has no answer for this element: read the Slate source read-only"
- *
- * So no assertion here reproduces a measured Slate value. Sources are: the Step 0 token
- * set, `ui.js:1403-1431` read read-only, the port's own constants, and the decisions
- * (D10, Q13) named in the component header.
- *
- * NO ROW BUG TO RETIRE, and that is checked rather than assumed: `LAYOUT_SPEC_DRAFT.md`
- * §7's inventory row for this component (`:928` — "| 57 | Screensaver | ui.js:1408-1412 |
- * |") carries an EMPTY bug column, and `ITEMS.json`'s `#57` row has `"bugs": []`. There
- * is therefore no per-bug assertion to write; what replaces it is the three
- * defect-SHAPE assertions above, each named against the incident it comes from.
- *
- * NO DIAL DRILL. Item #57 has no selection state of any kind — no `aria-pressed`,
- * `aria-selected`, `aria-checked` or `aria-current`, and the four
- * `--ui-selected-*` dials are not read anywhere in the component. `assertOneSelectionTreatment`
- * is therefore not applicable rather than skipped: the wave rule is "no component may own
- * a PRIVATE selection look", and having none at all satisfies it. The sheet audit at the
- * end asserts the component names no dial, so a private selection look cannot appear here
- * later without failing.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -66,11 +19,6 @@ const PANEL = '<div id="panel" style="position:fixed; inset:0;'
 const ASLEEP = `${PANEL}
 <ui-screensaver id="s1" machine-state="sleeping" brightness-supported></ui-screensaver>`;
 
-/**
- * A CLOCK saver, and an IMAGE saver, both on a sleeping machine with a panel that CAN be
- * dimmed. These exist because of what the dim used to do to them — see the three tests
- * under "only a Black saver dims".
- */
 const CLOCK = `${PANEL}
 <ui-screensaver id="s1" machine-state="sleeping" brightness-supported clock></ui-screensaver>`;
 
@@ -88,11 +36,6 @@ const TWO = `${PANEL}
 <ui-screensaver id="s1" machine-state="sleeping" brightness-supported></ui-screensaver>
 <ui-screensaver id="s2" machine-state="sleeping" brightness-supported></ui-screensaver>`;
 
-/**
- * The same two, with a second parent to move one INTO. A re-parent is `remove()` then
- * `appendChild()` — an ordinary thing for a screen to do — and it is the one route by
- * which an element can be painting the blank while the owner slot says otherwise.
- */
 const TWO_AND_A_PARENT = `${PANEL}
 <div id="host-a">
   <ui-screensaver id="s1" machine-state="sleeping" brightness-supported></ui-screensaver>
@@ -113,12 +56,6 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/**
- * This component's OWN stylesheet, out of the shadow root's adopted sheets, read from
- * the CSSOM rather than from the file — Gate A asserts on the rendered result, so a rule
- * renamed in the template but not in the CSS fails the same way as one never written.
- * Identified by the one private property only this file declares.
- */
 const SHEET_AUDIT = `(() => {
     const host = document.getElementById('s1');
     const sheets = Array.from(host.shadowRoot.adoptedStyleSheets);
@@ -181,10 +118,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -------------------------------------------------------------------
-         * D10, THE PICTURE. "Fully black, one owner — the skin" (SCOPE.md:218).
-         * ----------------------------------------------------------------- */
-
         test('a confirmed sleep paints a fully black box over the whole layout viewport',
             () => mounted(async (page) => {
                 const host = await page.computed('#s1', ['position', 'z-index', 'display', 'background-color']);
@@ -192,12 +125,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the blank pins itself; a screen does not have to wrap it');
                 assert.equal(host.display, 'block');
 
-                /* --ui-z-blackout is 400 — ABOVE --ui-z-toast (300). On Slate's own
-                 * numbers the screensaver is z-index 10000 (ui.js:1412), the fullscreen
-                 * prompt is 10000 (index.html:645) and the app toast is 10001
-                 * (index.html:657), so a notice paints ON a blanked screen there.
-                 * Asserted as the token AND as the number, so a literal creeping back
-                 * fails here. */
                 assert.equal(host['z-index'], await page.resolveToken('--ui-z-blackout', 'z-index'));
                 assert.equal(host['z-index'], '400');
 
@@ -245,9 +172,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.evalFn(() => document.getElementById('s1').hasAttribute('popover')), false,
                     'a panel-scoped blank must not take the whole window with it');
 
-                /* THE CONTAINER FLOOR: it fills the box it was given, exactly, and does
-                 * not leak outside it — at both geometries, with no width query anywhere
-                 * (spec §2.1 Rule 1). */
                 const stage = await page.box('#stage');
                 const box = await page.box('#s1');
                 near(box.width, stage.width, 'the blank fills its container inline');
@@ -257,10 +181,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(await page.box('#s1 >>> #blank').then((b) => b.width), stage.width,
                     'the press target is the whole blank');
             }, IN_PANEL));
-
-        /* -------------------------------------------------------------------
-         * THE TOKEN DRILL — the required one, on the token D10 introduced.
-         * ----------------------------------------------------------------- */
 
         test('the ground is --ui-blackout and nothing else (token drill)',
             () => mounted(async (page) => {
@@ -277,10 +197,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     property: 'background-color',
                 });
             }));
-
-        /* -------------------------------------------------------------------
-         * WHAT MUST NOT BLANK. Three inputs, one answer, and it is the safe one.
-         * ----------------------------------------------------------------- */
 
         test('an awake machine, an unknown name and an absence all leave the screen alone',
             () => mounted(async (page) => {
@@ -314,9 +230,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#s1', 'display'), 'none',
                     'a sleep with the feature off paints nothing');
 
-                /* D10's second mechanism: the black box and the panel dim leave from the
-                 * same branch, so a switched-off screensaver can never leave a dimmed
-                 * panel with no overlay on it — a black screen the user cannot press. */
                 await page.recordEvents('#s1', ['ui-screensaver-dim', 'ui-screensaver-blank']);
                 await page.evalFn(() => document.getElementById('s1').setAttribute('machine-state', 'idle'));
                 await page.settle(2);
@@ -334,21 +247,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#s1', 'display'), 'block');
             }, DISABLED));
 
-        /* -------------------------------------------------------------------
-         * D10 — ONE OWNER, ENFORCED. Two blankers is the bug the decision names.
-         * ----------------------------------------------------------------- */
-
         test('a second screensaver is REFUSED the blank, and says so', () => mounted(async (page) => {
             const one = await page.prop('#s1', 'display');
             const two = await page.prop('#s2', 'display');
             assert.equal(one, 'block', 'the first claimant holds the blank');
             assert.equal(two, 'none', 'exactly one piece of software may blank the screen (D10)');
 
-            /* The slot itself, read through the module's own accessor: one owner, and it
-             * is the element that is actually painting. `blankingOwner()` is a getter
-             * with no setter, and the slot behind it is a const single-entry array — a
-             * module-scope `let` here would be CARRY_FORWARD.md §6 pattern C and
-             * test/store.test.mjs fails the tree on one. */
             const owner = await page.evalFn(async () => {
                 const m = await import('/src/components/ui-screensaver.js');
                 return {
@@ -368,20 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(2);
             assert.equal(await page.prop('#s2', 'display'), 'none', 'still refused');
 
-            /* CHANGED 29 AUGUST 2026, audit F-013. The refusal used to be read off the
-             * `ui-screensaver-blank` event:
-             *
-             *     const refusal = seen.find((e) => e.type === 'ui-screensaver-blank'
-             *         && e.detail && e.detail.reason === 'not-owner');
-             *     assert.ok(refusal, `the refusal must be reported, not silent — …`);
-             *     assert.equal(refusal.detail.active, false);
-             *
-             * That emit was heard nowhere in `src/` and is removed. THE REFUSAL IS STILL
-             * NOT SILENT — it is readable on the element, which is where a consumer was
-             * always going to have to look: `active` is false, `display` is none (three
-             * lines up), and the exported `blankingOwner()` names the element that did
-             * take the slot (asserted above). What is asserted here now is the pair the
-             * removal has to keep true: refused, and DIMS NOTHING. */
             const seen = await page.recordedEvents();
             assert.equal(await page.evalFn(() => document.getElementById('s2').active), false,
                 'the refused element does not believe it blanked');
@@ -413,16 +303,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, TWO));
 
         test('a RE-PARENTED screensaver still cannot blank beside the owner', () => mounted(async (page) => {
-            /* THE HOLE THIS CLOSES. `disconnectedCallback` releases the slot and leaves
-             * `active` alone, so before the fix a moved element came back painting a
-             * full-screen blank it did not own, and the next claimant was handed the
-             * empty slot and raised beside it. Two blankers, from an `appendChild`. */
             assert.equal(await page.prop('#s1', 'display'), 'block', 'the first claimant paints');
             assert.equal(await page.prop('#s2', 'display'), 'none', 'the second is refused');
 
-            /* 1. THE ORDINARY MOVE — remove and insert run back to back, so the slot is
-             *    free again by the time the element is connected. It keeps the blank it
-             *    was already painting, and it keeps the slot with it. */
             await page.evalFn(() => {
                 document.getElementById('host-b').appendChild(document.getElementById('s1'));
                 return true;
@@ -448,10 +331,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 .filter((el) => getComputedStyle(el).display !== 'none').length);
             assert.equal(painting, 1, 'two blankers is inexpressible (D10), re-parent or not');
 
-            /* 2. THE MOVE THAT LOST THE RACE — parked out of the document long enough
-             *    for the other one to take the slot legitimately. Coming back, the
-             *    parked element must put the blank DOWN and say so, exactly as a
-             *    refused raise does. */
             await page.evalFn(() => {
                 window.__parked = document.getElementById('s1');
                 window.__parked.remove();
@@ -481,11 +360,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and it does not take the slot from under it either',
             );
 
-            /* CHANGED 29 AUGUST 2026, audit F-013 — the same substitution as the D10
-             * test above, on the re-parenting route. Old assertion:
-             *     const refusal = seen.find((e) => e.type === 'ui-screensaver-blank'
-             *         && e.detail && e.detail.reason === 'not-owner');
-             *     assert.ok(refusal, …); assert.equal(refusal.detail.active, false); */
             const seen = await page.recordedEvents();
             assert.equal(await page.evalFn(() => document.getElementById('s1').active), false,
                 'the returning element does not believe it blanked');
@@ -494,10 +368,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(seen, [],
                 'and it announces nothing at all, whichever way it was refused (F-013)');
         }, TWO_AND_A_PARENT));
-
-        /* -------------------------------------------------------------------
-         * THE PANEL HALF, AND Q13.
-         * ----------------------------------------------------------------- */
 
         test('the dim goes out with the blank, once, and carries the port\'s integer',
             () => mounted(async (page) => {
@@ -517,40 +387,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(dims[0].detail.brightness, 0);
                 assert.equal(Number.isInteger(dims[0].detail.brightness), true);
 
-                /* CHANGED 29 AUGUST 2026, audit F-013. This used to assert the ORDER of
-                 * two events:
-                 *
-                 *     const order = seen.map((e) => e.type);
-                 *     assert.ok(order.indexOf('ui-screensaver-blank') < order.indexOf('ui-screensaver-dim'),
-                 *         `the paint leads the command — saw ${order.join(', ')}`);
-                 *
-                 * WHICH WOULD NOW PASS VACUOUSLY, and that is the reason it is replaced
-                 * rather than deleted: `indexOf` returns -1 for the removed name, and
-                 * -1 < 0 is true, so the line would go on reporting success about an
-                 * event that no longer exists. What it was really guarding — that the
-                 * dim does not go out on its own — is asserted directly instead: the
-                 * paint is up, and the dim is the ONLY thing this element said about it.
-                 * (The paint-leads-the-command ordering is still enforced in the source:
-                 * `#raise()` sets `active` before `#applyDisplay` is reached.) */
                 assert.equal(await page.prop('#s1', 'display'), 'block',
                     'the dim went out with the blank up, not instead of it');
                 assert.deepEqual(seen.map((e) => e.type), ['ui-screensaver-dim'],
                     `the dim is the whole of what this element says (F-013) — saw ${JSON.stringify(seen)}`);
             }));
 
-        /* ── ONLY A BLACK SAVER DIMS (26 August 2026) ────────────────────────
-         *
-         * `SCREENSAVER_BRIGHTNESS` is 0 and `#applyDisplay` sent it for every saver, which
-         * was correct for exactly as long as black was the only saver there was. Ben
-         * reversed D10 on 26 August ("Row 2 should be the screen saver type: Black, Image
-         * or Clock") and this function was not revisited — so the moment the shell actually
-         * BOUND the dim, an Image saver would have painted a JPEG onto a panel at zero
-         * brightness and a Clock saver a faint clock onto the same. Both drawn, both
-         * invisible, both costing the panel what a lit screen costs.
-         *
-         * Image and Clock send NOTHING rather than a smaller number: a partial dim would
-         * need a RESTORE to come back from, and this component deliberately has neither a
-         * restore nor a remembered pre-sleep brightness (Q13, A7). */
         test('a CLOCK saver blanks and asks for no dim at all',
             () => mounted(async (page) => {
                 await page.recordEvents('#s1', ['ui-screensaver-dim', 'ui-screensaver-blank']);
@@ -579,9 +421,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('and switching a sleeping saver TO black spends the dim it was holding',
             () => mounted(async (page) => {
-                /* The dim is EARNED on the sleep edge and spent when the saver can use it,
-                 * so turning the clock off while the machine is still asleep dims then
-                 * rather than waiting for the next sleep. */
                 await page.recordEvents('#s1', ['ui-screensaver-dim']);
                 await page.evalFn(() => document.getElementById('s1').setAttribute('machine-state', 'idle'));
                 await page.settle(2);
@@ -631,11 +470,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
                 assert.equal(await page.prop('#s1', 'display'), 'none', 'the overlay came down');
 
-                /* CHANGED 29 AUGUST 2026, audit F-013 — TIGHTENED, not relaxed. It read:
-                 *     assert.equal(seen.filter((e) => e.type !== 'ui-screensaver-blank').length, 0, …)
-                 * which excused the blank report because one was expected here. With the
-                 * report retired there is nothing to excuse, so the assertion becomes the
-                 * flat one it always wanted to be: the wake edge says NOTHING. */
                 const seen = await page.recordedEvents();
                 assert.deepEqual(seen, [],
                     'ReaPrime restores autonomously on awake-with-brightness-0 '
@@ -650,10 +484,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(vocabulary.filter((n) => /restore/i.test(n)), [],
                     'the absence is structural, not a disabled branch');
             }));
-
-        /* -------------------------------------------------------------------
-         * THE ONE GESTURE. Nothing that is not a wake may emit a wake.
-         * ----------------------------------------------------------------- */
 
         test('a press on a sleeping machine wakes it once, with the generated name',
             () => mounted(async (page) => {
@@ -672,10 +502,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#s1', 'display'), 'none',
                     'the overlay comes down with the press, not with the confirmation');
 
-                /* THE 46 ms RACE, INVERTED AND CLOSED. The machine still honestly reports
-                 * `sleeping` for the next frame or three, because the PUT has not round
-                 * tripped. Re-raising on those frames flashes the blank back into the
-                 * user\'s face as they reach for the machine. */
                 await page.evalFn(() => {
                     const el = document.getElementById('s1');
                     el.setAttribute('machine-state', 'idle');
@@ -693,11 +519,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.recordEvents('#s1', ['ui-screensaver-wake', 'ui-screensaver-blank']);
                 await page.evalFn(() => {
                     const el = document.getElementById('s1');
-                    /* The overlay has to still be UP when the press lands, which means
-                     * pressing in the same task as the state change — Lit's update is
-                     * async, so a real CDP click would arrive after the overlay had
-                     * already come down and would test nothing. A synthetic event is
-                     * exactly what is meant here (harness `dispatch`'s own case). */
                     el.machineState = 'idle';
                     el.shadowRoot.getElementById('blank').click();
                 });
@@ -712,10 +533,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the wake suppression is time-bounded: an unconfirmed wake cannot latch the blank off',
             () => mounted(async (page) => {
-                /* The port's own graceMs parameter, shortened so the suite does not wait
-                 * three seconds. Long enough that a CDP round trip cannot outrun it —
-                 * a grace of 80 ms expires inside `settle()` itself, which made the
-                 * first version of this test assert on the state AFTER the one it meant. */
                 await page.evalFn(() => document.getElementById('s1').setAttribute('grace-ms', '600'));
                 await page.settle(2);
                 await page.recordEvents('#s1', ['ui-screensaver-dim', 'ui-screensaver-blank']);
@@ -736,10 +553,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the panel was never restored, so it must not be dimmed a second time');
             }));
 
-        /* -------------------------------------------------------------------
-         * THE SURFACE: focus, name, keyboard.
-         * ----------------------------------------------------------------- */
-
         test('the press target takes the one focus ring, drawn INSIDE the blank',
             () => mounted(async (page) => {
                 await assertFocusUnclipped(page, '#s1 >>> #blank');
@@ -751,10 +564,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the blank announces what pressing it does, and Enter does it',
             () => mounted(async (page) => {
-                /* Slate binds click on a bare div (ui.js:1431): no name, no role, no
-                 * keyboard. Appendix 15's contract is about SELECTION state and does not
-                 * apply here — there is none — but a control with no accessible name is a
-                 * defect on any surface. */
                 const named = await page.evalFn(() => {
                     const el = document.getElementById('s1').shadowRoot.getElementById('blank');
                     return { tag: el.tagName.toLowerCase(), text: el.textContent.trim() };
@@ -770,10 +579,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the whole screen is the wake affordance, so it must be reachable '
                     + 'without a pointer');
             }));
-
-        /* -------------------------------------------------------------------
-         * THE STORE SEAM — Gate 2, end to end through the real address layer.
-         * ----------------------------------------------------------------- */
 
         test('attachScreensaver drives the blank from a real feed store, absences included',
             () => mounted(async (page) => {
@@ -824,26 +629,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(result.afterDetach, 'none', 'detach really unsubscribes');
             }));
 
-        /* -------------------------------------------------------------------
-         * THE OTHER HALF OF THE SEAM — the SETTINGS store, and the decided default.
-         * ----------------------------------------------------------------- */
-
-        /* FOUND ON BEN'S TABLET, 28 AUGUST 2026 (Decal 0.1.41): a fully black screen on
-         * an AWAKE device. `settings.value('screensaverType')` answered `'image'` — which
-         * is what the Settings page draws — while this element sat at `clock: false,
-         * image: ''` and had spent the Black saver's dim to 0 underneath it.
-         *
-         * `attachScreensaver` fed the element from `settings.subscribe(key, fn)`, and that
-         * publishes the STORED value. The store calls `defaultFor` in exactly one place and
-         * it is `value()` (`settings-store.js:250-271`); `subscribe` is `:284` and does
-         * not. There is no subscribe-shaped reader of the resolved value at all, which is
-         * why the comment that used to sit at the call site — "the settings store resolves
-         * that for us — a subscriber sees the default, not undefined" — read as a citation
-         * and was false.
-         *
-         * `wall-clock.js:70-71` had already written the mechanism down, for `clockFormat`,
-         * two lines away in the same subscription list. Fixing the key that was noticed is
-         * not fixing the mechanism, so the pin below reads FOUR keys and not one. */
         test('attachScreensaver reads the DECIDED default, not the stored absence',
             () => mounted(async (page) => {
                 const result = await page.evalFn(async () => {
@@ -855,9 +640,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         import('/src/lib/settings-defaults.js'),
                     ]);
 
-                    /* A REAL STORE OVER AN EMPTY BACKEND — the bench state, and the only
-                     * state in which the defect is visible. A double would have had to
-                     * reproduce the very asymmetry under test. */
                     const memory = new Map();
                     const backend = {
                         kind: 'memory',
@@ -908,10 +690,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 });
 
-                /* THE FIRST DELIVERY IS THE ONE THAT MATTERS: `subscribe` fires
-                 * synchronously with what the cell holds, which for an untouched tablet is
-                 * nothing at all. Everything below was decided in `settings-defaults.js`
-                 * and none of it had ever run. */
                 assert.equal(result.table.type, 'image', 'the premise: Ben decided Image');
                 assert.equal(result.sync.clock, false, 'Image is not Clock');
                 assert.notEqual(result.sync.image, '',
@@ -936,11 +714,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a settings store missing value() is refused, not quietly worked around',
             () => mounted(async (page) => {
-                /* THE OLD GUARD WAS `typeof settings.subscribe === 'function'` and nothing
-                 * else, so a partial store went on working — with every preference back at
-                 * whatever a missing value coerces to, which is the Black saver. The
-                 * failure mode of this function is a black screen, so its precondition is
-                 * not something to be lenient about. */
                 const thrown = await page.evalFn(async () => {
                     const { attachScreensaver } = await import('/src/components/ui-screensaver.js');
                     const el = document.getElementById('s1');
@@ -952,27 +725,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.match(String(thrown), /must provide value\(\)/);
             }));
 
-        /* -------------------------------------------------------------------
-         * THE SHEET ITSELF.
-         * ----------------------------------------------------------------- */
-
         test('the component\'s own sheet: no width query, no !important, no @font-face, no dial',
             () => mounted(async (page) => {
                 const sheet = JSON.parse(await page.eval(SHEET_AUDIT));
                 assert.equal(sheet.ownSheets, 1, 'the component must contribute exactly one sheet');
                 assert.deepEqual(sheet.important, [], 'zero !important (CONVENTIONS §6)');
-                /* THE CLAIM IS THE SENTENCE, AND THE ASSERTION USED TO BE WIDER THAN IT
-                 * (24 Aug 2026). It read `deepEqual(sheet.atRules, [])` — no at-rule of
-                 * ANY kind — while the sentence beside it named two: a width query and a
-                 * @font-face. Those are the two that would be wrong here, and neither is
-                 * what a `prefers-reduced-motion` query is.
-                 *
-                 * The clock's drift made the difference visible. CONVENTIONS §11: the base
-                 * carries no reduced-motion rule and says it "belongs in each animating
-                 * component", so an animating component that had none would be the defect —
-                 * and this assertion forbade the fix. `ui-progress-track.js` draws the same
-                 * distinction in its own words: "Not a width query: §2.1 Rule 1 bans a
-                 * component reading the VIEWPORT, and this reads a user preference." */
                 for (const rule of sheet.atRules) {
                     assert.doesNotMatch(rule, /width|height|orientation|aspect-ratio/,
                         `${rule}: a blank that covers the screen needs no breakpoint`);
@@ -989,15 +746,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(!sheet.tokens.includes(dial),
                         `${dial}: #57 has no selection state, so it must not own a selection look`);
                 }
-                /* Internals are private (§7): a --ui- name here could be mistaken for a
-                 * missing public token by the integrity check. */
                 assert.ok(sheet.tokens.every((t) => t.startsWith('--ui-')),
                     `every token read must be a public --ui-* name: ${sheet.tokens.join(', ')}`);
             }));
-
-        /* -------------------------------------------------------------------
-         * THE GALLERY ENTRY IS PART OF THE DELIVERABLE, so it is proved here.
-         * ----------------------------------------------------------------- */
 
         test('every gallery state mounts and paints what its title claims', () => mounted(async (page) => {
             assert.equal(galleryEntry.id, 'ui-screensaver');

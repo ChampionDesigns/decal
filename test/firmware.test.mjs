@@ -1,22 +1,5 @@
 /**
- * firmware.test.mjs — SENDING THE MACHINE A NEW IMAGE.
- *
- * WHY THERE IS A SURFACE AT ALL. D4 removed it: "no firmware-update feature, and the
- * hand-picked file upload is removed, not carried. A control that flashes firmware from
- * an arbitrary file is worse than no control." Ben reversed it on 24 August 2026 — "I
- * should be able to pick a file, but it should also have a 'latest' button that pulls
- * it."
- *
- * WHAT D4 WAS PROTECTING AGAINST IS STILL REFUSED, and it is proved by BEHAVIOUR rather
- * than by reading this store's source: the apply call's body is asserted whole, so a
- * `force` appearing in it fails here. A8 refuses the source-text spelling of the same
- * claim, and A8 is right — a spelling is not a request.
- *
- * THE ROUTES, at the pin 2b047d02 (`FirmwareHandler`):
- *   GET    /machine/firmware         the bundled catalog + this machine's build
- *   POST   /machine/firmware         raw bytes, answering NDJSON progress
- *   POST   /machine/firmware/apply   {artifactId}, answering the same NDJSON
- *   DELETE /machine/firmware         cancel
+ * Sending the machine a new image.
  */
 
 import { test, describe } from 'node:test';
@@ -101,10 +84,6 @@ describe('"latest" is the server\'s recommendation and nothing else', () => {
         await store.load();
         await store.installLatest();
         const apply = transport.calls.find((c) => c.path === '/machine/firmware/apply');
-        /* THE WHOLE BODY, so a `force` appearing here fails this test. That flag flashes
-         * an image the machine's own validator called inapplicable, and a control
-         * labelled Latest that sent it would be D4's own sentence arrived at from the
-         * other side. */
         assert.deepEqual(apply.body, { artifactId: 'de1-1358' });
         assert.equal(store.get().flash.state, FLASH_STATE.DONE);
     });
@@ -182,10 +161,6 @@ describe('a file goes up as bytes', () => {
     });
 
     test('neither install carries a deadline', async () => {
-        /* A flash runs for minutes. The transport's default would abort it mid-write,
-         * which on this route is the one failure that can leave a machine unbootable —
-         * and abandoning the response cancels the update on the machine's side too
-         * (`progressController.onCancel`). */
         const transport = recordingTransport({
             'GET /machine/firmware': ok(CATALOG),
             'POST /machine/firmware': streams([{ status: 'done', progress: 1 }]),

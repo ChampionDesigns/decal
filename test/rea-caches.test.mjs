@@ -1,10 +1,4 @@
-// The two caches that pay, and the one that lies.
-//
-// The interesting assertions here are the negative ones: that only two caches exist, that
-// neither answers from an expired entry, and that neither answers at all on the error
-// path. The old module's `getDe1Settings` did the opposite — "return cached data if
-// available, even if expired, to avoid breaking functionality" — which is a stale value
-// standing in for a dead server, indistinguishable on screen from a live one (A7).
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -41,9 +35,6 @@ function harness({ plan, now }) {
         return plan(url, init, calls.length);
     };
     const transport = createReaTransport({ fetch: fetchImpl, baseUrl: BASE });
-    // The transport is returned as well, because the third route that invalidates these
-    // caches — PUT /workflow — is deliberately NOT this client's to call: it is written by
-    // whoever owns the workflow screen, over the same transport.
     return { calls, transport, client: createDe1SettingsClient(transport, { now }) };
 }
 
@@ -96,17 +87,12 @@ describe('exactly two caches exist', () => {
     });
 
     test('createTtlCache is called from exactly one module', () => {
-        // Not style policing: a third TTL cache appearing anywhere in src/ is the failure
-        // this register exists to make visible.
         const dir = new URL('../src/', import.meta.url);
         const hits = grep(dir, /createTtlCache\(/);
         assert.deepEqual(hits, ['data/rea-cache.js', 'data/rea-de1-settings.js']);
     });
 
     test('reatsettingscache is nowhere in the tree as code', () => {
-        // Prose and provenance strings may name it — src/lib/storage-routes.js records
-        // "delete reatsettingscache" as the trace for a storage row, and that record is
-        // the point. What must not exist is the identifier in an executable position.
         assert.deepEqual(
             grep(new URL('../src/', import.meta.url), /reatsettingscache/i, { dropStrings: true }),
             [],
@@ -245,14 +231,6 @@ describe('read-through and write-through', () => {
     });
 });
 
-/**
- * Every path under `dir` (recursively, .js only) whose CODE matches `re`.
- *
- * Comments are stripped first, and deliberately so: rea-cache.js names
- * `reatsettingscache` in prose to record why it does not exist, and a scanner that cannot
- * tell prose from code produces a false positive, a false positive earns an exemption,
- * and an exemption is how coverage dies (the same rule as test/rea-dead-names.test.mjs).
- */
 function grep(dir, re, { dropStrings = false } = {}) {
     const root = fileURLToPath(dir);
     const out = [];
@@ -270,15 +248,6 @@ function grep(dir, re, { dropStrings = false } = {}) {
     return out.sort();
 }
 
-
-/* ────────────────────────────────────────────────────────────────────────────────────
- * THE THIRD INVALIDATING ROUTE.
- *
- * This module reasoned carefully about invalidating BOTH settings caches on either
- * settings write, and did not mention `PUT /api/v1/workflow` at all — which changes five of
- * the nine values `GET /machine/settings` returns. Kept, the 60 s cache reproduced exactly
- * the staleness defect `reatsettingscache` was deleted for.
- */
 describe('PUT /workflow invalidates the settings caches', () => {
     test('a workflow write drops both caches, so the next read goes to the machine', async () => {
         const now = clock();
@@ -296,8 +265,6 @@ describe('PUT /workflow invalidates the settings caches', () => {
         await client.readSettings();
         assert.equal(reads(), 2, 'the cache is doing its job');
 
-        // The workflow write, on the SAME transport, from somewhere else entirely — the
-        // workflow screen, which has no reason to know these caches exist.
         await transport.put('/workflow', { rinseData: { flow: 4.5, targetTemperature: 92, duration: 5 } });
 
         await client.readSettings();
@@ -319,11 +286,6 @@ describe('PUT /workflow invalidates the settings caches', () => {
 
     test('the invalidating set is data, and names every route with its handler', () => {
         const routes = DE1_SETTINGS_INVALIDATING_WRITES.map((r) => `${r.method} ${r.route}`);
-        /* THREE BECAME FOUR ON 24 AUG 2026. `DELETE /machine/settings/reset` is the
-         * fourth, and it belongs here for the reason the third does: it changes values
-         * these caches hold and it is not this client's own write path. F3/Q1 had
-         * excluded the route entirely; the reset leaf adopted it when every one of the
-         * SEVEN values `applySettingsDefaults` writes became a control on a page. */
         assert.deepEqual(routes, [
             'POST /machine/settings',
             'POST /machine/settings/advanced',
@@ -333,10 +295,6 @@ describe('PUT /workflow invalidates the settings caches', () => {
 
         const reset = DE1_SETTINGS_INVALIDATING_WRITES.find((r) => r.route === '/machine/settings/reset');
         assert.equal(reset.handlerFile, 'lib/src/services/webserver/de1handler.dart');
-        /* SEVEN VALUES, AND THE ROUTE'S NAME OVERSTATES IT: this is not a factory reset.
-         * Five of the seven are keys of the two documents these caches hold; the other
-         * two — `flowEstimation` and the fan — reach the machine by their own routes and
-         * are named in the row so the next reader does not have to open the handler. */
         assert.deepEqual(reset.changes, [
             'fan', 'steamPurgeMode',
             'heaterIdleTemp', 'heaterPh1Flow', 'heaterPh2Flow', 'heaterPh2Timeout',
@@ -369,8 +327,6 @@ describe('PUT /workflow invalidates the settings caches', () => {
     });
 
     test('the DE1 controller really does write those five setters from the workflow path', () => {
-        // Read at the pin, not assumed: _applyUpdate -> updateWorkflowSettings -> the three
-        // _write*Settings helpers, whose setters back five of the nine GET reads.
         const handler = readFileSync(join(REA_ROOT, 'lib/src/services/webserver/workflow_handler.dart'), 'utf8');
         assert.match(handler, /_de1controller\.updateWorkflowSettings\(/);
         const controller = readFileSync(join(REA_ROOT, 'lib/src/controllers/de1_controller.dart'), 'utf8');

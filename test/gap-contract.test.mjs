@@ -1,20 +1,5 @@
 /**
- * gap-contract.test.mjs — wave 5.6, item `hist-shot-list-derivation`.
- *
- * THE CONTRACT THE HISTORY PORT'S RESAMPLER MUST PASS, exercised BOTH WAYS:
- *
- *   * POSITIVE — the shipped gap policy (`alignChannels`, whose `bridgeUnspoken` carries the
- *     two-meanings-of-null comment) satisfies every case. A contract nothing can satisfy is
- *     a specification of an impossible function, and this is how we know it is not one.
- *
- *   * NEGATIVE — the defect it exists to prevent fails it, on the exact cases it should and
- *     not on the others. A contract nothing can fail is not a contract. The defective
- *     function is transcribed INTO THIS TEST, as a canary, in the shape the old History
- *     viewer's `resampleOnto` has: it is the thing the port must not be, so it lives here
- *     and not under src/.
- *
- * A8: nothing here reads a `.js` file or asserts on its text. Every claim is made by
- * EXECUTING a function and comparing the column that comes out.
+ *.6, item hist-shot-list-derivation.
  */
 
 import { test, describe } from 'node:test';
@@ -32,17 +17,6 @@ import {
 } from '../src/lib/gap-contract.js';
 import { alignChannels, bridgeUnspoken } from '../src/lib/chart-align.js';
 
-/**
- * THE DEFECT, TRANSCRIBED — the canary, and the only resampler in this repository.
- *
- * The old History viewer's `resampleOnto`, in its own shape. Its fault is one branch: when
- * the next source sample carries a non-number it writes the PREVIOUS reading into the slot
- * rather than leaving it empty, so a gated instant inherits a value the channel never gave —
- * and the walk's left edge then sits on the null, so the first real reading after the gate is
- * skipped as well. It invents data and loses data with the same line.
- *
- * It is here so the contract can be shown to bite. Nothing imports it.
- */
 function holdLastValueAcrossGaps(axis, srcX, srcY) {
     const out = new Array(axis.length).fill(null);
     if (!srcX.length) return out;
@@ -73,8 +47,6 @@ describe('the gap contract is well formed', () => {
             assert.equal(c.expect.length, c.axis.length, `${c.id}: the expectation is not the axis's length`);
             assert.ok(!ids.has(c.id), `${c.id}: duplicate case id`);
             ids.add(c.id);
-            // The channel under test never speaks outside the axis, so an aligner forming a
-            // union produces exactly the axis the case names.
             for (const x of c.source.x) {
                 assert.ok(c.axis.includes(x), `${c.id}: source instant ${x} is not on the axis`);
             }
@@ -127,8 +99,6 @@ describe('the shipped gap policy satisfies the contract', () => {
     });
 
     test('bridgeUnspoken bridges only between two real readings', () => {
-        // The primitive directly, on the union shape it is written for: slot 1 was never
-        // spoken about and lies between two readings; slot 3 was spoken as null.
         const x = [0, 1, 2, 3, 4];
         const col = [10, null, 30, null, 50];
         const spoken = [true, false, true, true, true];
@@ -164,9 +134,6 @@ describe('the contract bites on the defect it exists to prevent', () => {
     });
 
     test('the same defect loses the first real reading after a gate', () => {
-        // Both halves on one source: slot 1 gains a value the channel never gave, and slot 3
-        // — a real reading of 40 — is dropped, because by then the walk's left edge is on the
-        // null. The contract's expectation is the honest column.
         const column = holdLastValueAcrossGaps([0, 1, 2, 3], [0, 1, 2, 3], [10, null, null, 40]);
         assert.deepEqual(column, [10, 10, null, null]);
         const wanted = GAP_CONTRACT.find((c) => c.id === 'never-bridge-a-gated-null').expect;

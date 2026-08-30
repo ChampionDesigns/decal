@@ -1,36 +1,5 @@
 /**
- * ui-menu.render.test.mjs — Wave 3 item #21's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. #21 carries two bugs, and both of them are invisible
- * to a screenshot of a menu that fits:
- *
- *   O2  — "slate-shell.css:935-954 re-declares the context menu UNSCOPED and later,
- *         and box-shadow: none kills its elevation". A menu with the right shadow
- *         written as a literal and a menu reading --ui-elev-2 photograph identically.
- *         Only a token drill separates them, so the drill is here.
- *   O11 — "A context menu taller than the viewport loses its LAST items: top is
- *         clamped to >= 12, the menu has no overflow rule, and the page cannot
- *         scroll." A forty-item menu is photographed as a full menu whether or not
- *         its last eleven rows exist. So the assertion is that the last row can be
- *         REACHED — End, then the row's box inside the scrollport — and that the
- *         surface's own bottom edge is inside the window at both geometries.
- *
- * The third thing no screenshot sees is the dismissal contract. Spec §4.6: "Every
- * overlay in the old app claims aria-modal=true and none of them isolates the page:
- * no inert, no aria-hidden, no focus trap, no focus restore ... Escape is not the
- * gap; isolation and focus are." So Escape, the outside click and Tab are each
- * driven through CDP and each checked for where the caret ended up, not for whether
- * the menu disappeared.
- *
- * EVERY STARTING VALUE IS A SOURCE READ, because the oracle has none: all three of
- * `prov_query.py find --cls context-menu | context-menu-item | pe-chip-add-menu`
- * return "0 elements in 0 states" — no captured state has a menu open. Colours and
- * lengths are asserted against the resolved token, never against a hex, so the suite
- * is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -64,13 +33,6 @@ const ITEMS = [
 /** Forty rows: O11's menu, and taller than either standard geometry. */
 const MANY = Array.from({ length: 40 }, (_, i) => ({ id: `row-${i}`, label: `Row ${i + 1}` }));
 
-/**
- * The default page. A ui-button trigger (the row's "composes #1"), a plain button
- * after it so the Tab walk has somewhere to land, a button UNDER the menu so the
- * backdrop's swallowed click is a measurement rather than a claim, and #dialogish —
- * what a select handler focuses when it opens something, which is the case ':206
- * the consumer's handler may open a dialog' names.
- */
 const MARKUP = `
 <div id="page" style="padding: 120px 260px">
   <ui-menu id="m" label="Profile actions" items="${attr(ITEMS)}">
@@ -99,12 +61,6 @@ const NARROW = `
   <ui-menu id="m" items="${attr(ITEMS)}"><button id="trig" slot="trigger" style="inline-size: 100%">Actions</button></ui-menu>
 </div>`;
 
-/**
- * A stage that OWNS the coordinate space. `contain: layout` is measured (in the
- * component's header) to make an ancestor the containing block for a fixed child, so
- * this is the case the position pass solves for — and the one the gallery uses so
- * eight open menus sit in eight stages instead of one corner.
- */
 const CONTAINED = `
 <div id="stage" style="contain: layout; position: relative; margin: 140px 90px; block-size: 320px">
   <ui-menu id="m" items="${attr(ITEMS)}"><button id="trig" slot="trigger">Actions</button></ui-menu>
@@ -189,10 +145,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. CLOSED IS CLOSED, AND THE TRIGGER SAYS SO
-         * ============================================================== */
-
         test('at rest there is no surface, no backdrop, and nothing fixed on the page', () => mounted(async (page) => {
             assert.equal(await page.exists(surfaceOf()), false, 'a closed menu renders no surface');
             assert.equal(await page.exists('#m >>> #backdrop'), false, 'a closed menu renders no backdrop');
@@ -200,9 +152,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the trigger announces the popup on #1\'s inner control, and NOT on its role-less host', () => mounted(async (page) => {
-            // aria-haspopup/aria-expanded belong on the thing announced as a button and
-            // on nothing else. ui-button's host is a role-less generic and the button is
-            // one shadow root down, published as `control` (ui-button.js:242-244).
             const read = () => page.evalFn((s) => {
                 const host = window.__h.need(s);
                 const inner = host.control;
@@ -226,17 +175,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, 'the open state must reach the element that carries the button role');
         }));
 
-        /**
-         * The reason the attributes are not ALSO on the host, asserted where it is
-         * decided rather than where it is authored: in the accessibility tree.
-         *
-         * Writing both was the shipped behaviour until this test existed. Measured then,
-         * with the menu open: `expanded` appeared on exactly one node either way (a
-         * role-less generic DROPS aria-expanded, so that copy never did anything), but
-         * the popup appeared TWICE — on the real button, and on an unnamed `generic`,
-         * which Chrome exposes anyway. An unnamed generic announcing a popup beside the
-         * button is bug L23's shape, and it is what this asserts is gone.
-         */
         test('the accessibility tree announces exactly ONE popup and one expanded state', () => mounted(async (page) => {
             await openByPress(page);
             await page.send('Accessibility.enable');
@@ -249,9 +187,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     name: n.name?.value ?? null,
                 }));
 
-            // The CDP property is spelled `hasPopup`, not `haspopup` — the attribute's
-            // spelling does not survive into the AX tree, and filtering on the attribute
-            // name matches nothing and passes vacuously.
             const popups = carrying('hasPopup');
             assert.equal(popups.length, 1,
                 `exactly one node may announce the popup, got ${JSON.stringify(popups)} — a second, `
@@ -266,9 +201,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a trigger that upgrades LATE leaves no attributes behind on its host', () => mounted(async (page) => {
-            // updated() re-syncs on every update and `el.control` is undefined until
-            // ui-button upgrades, so the first sync can legitimately write to the host.
-            // What must not survive is that write once the control appears.
             const state = await page.evalFn((s) => {
                 const host = window.__h.need(s);
                 // Force the pre-upgrade shape the timing produces, then re-sync.
@@ -303,12 +235,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(state.after, { hostPopup: null, hostExpanded: null, innerPopup: 'menu' },
                 'once the control answers, the host copy must be REMOVED, not merely stopped');
         }));
-
-        /* ================================================================
-         * 2. ANCHORED — the geometry Slate computes in JS, on the token scale
-         *    SOURCE context-menu.js:27-53 (MARGIN 8, VIEWPORT_PADDING 12,
-         *    centre on the anchor, flip when below will not fit).
-         * ============================================================== */
 
         test('the surface sits one --ui-space-2 below the trigger, centred on it', () => mounted(async (page) => {
             await openByPress(page);
@@ -359,11 +285,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, RIGHT));
 
         test('the anchor gap is read from --ui-space-2, not written into the JS', () => mounted(async (page) => {
-            // One owner per dimension (spec §2.3): Slate writes MARGIN = 8 and
-            // VIEWPORT_PADDING = 12 as JS constants (context-menu.js:3-4), so the
-            // spacing scale and the menu's geometry can drift apart with nothing to
-            // notice. Here the two numbers are declared in the cascade and READ BACK by
-            // the position pass — which is only provable by moving the token.
             const reopen = async (p) => {
                 await p.evalFn((sel) => { window.__h.need(sel).open = false; return true; }, '#m');
                 await p.settle(1);
@@ -400,10 +321,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, RIGHT));
 
         test('inside a 380px container the menu keeps its own minimum and its anchor', () => mounted(async (page) => {
-            // The container-query rule cuts the other way here: a component reads its
-            // own container, and this one's rows are token-sized, so a 380px column
-            // does not shrink a 220px menu. SOURCE context-menu.css:15 AND
-            // profile-editor-v3.css:847, which both declare min-width: 220px.
             await openByPress(page);
             const trigger = await page.box('#trig');
             const surface = await page.box(surfaceOf());
@@ -415,11 +332,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }, NARROW));
 
         test('inside a contain: layout stage the menu still lands under its anchor', () => mounted(async (page) => {
-            // MEASURED in the component header: contain/transform/filter/backdrop-filter/
-            // will-change all make an ancestor the containing block for a fixed child.
-            // This is Slate's §3.7 bug ("sealed inside #scaled-content") as a test: the
-            // position pass parks the surface at (0,0), reads where that landed, and
-            // subtracts — so the numbers below are anchor-relative in either space.
             await openByPress(page);
             const gap = parseFloat(await page.resolveValue('var(--ui-space-2)', 'width'));
             const edge = parseFloat(await page.resolveValue('var(--ui-space-3)', 'width'));
@@ -429,12 +341,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             near(surface.top, trigger.bottom + gap, 'a contained ancestor moved the menu off its anchor');
 
-            // And the clamp moves with the coordinate space, which is the half that
-            // makes this more than a no-op. Centred on this trigger the surface would
-            // start at trigger.centre - 110 = 9.9px, which is OUTSIDE the stage; the
-            // clamp box is the containing block, so it lands on the stage's own edge
-            // padding instead. Clamping a fixed box to the window while it lives in
-            // another coordinate space is clamping in the wrong space.
             near(surface.left, stage.left + edge, 'the clamp did not follow the containing block');
             assert.ok(surface.right <= stage.right - edge + 0.5,
                 `the surface runs past its stage: ${surface.right} vs ${stage.right - edge}`);
@@ -452,10 +358,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(items.length, 4, 'all four rows render');
             assert.ok(items[3].height >= 1, 'the last row has no height, so something is clipping it');
         }, CLIPPED));
-
-        /* ================================================================
-         * 3. O2 — THE ELEVATION IS A TOKEN
-         * ============================================================== */
 
         test('O2: the floating surface carries --ui-elev-2, and it is the token', () => mounted(async (page) => {
             await openByPress(page);
@@ -506,17 +408,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'z-index',
                 expected: '4242',
             });
-            // The backdrop rides the same token, one step behind by tree order rather
-            // than by a second z value nobody would keep in step.
             assert.equal(
                 await page.prop('#m >>> #backdrop', 'z-index'),
                 await page.prop(surfaceOf(), 'z-index'),
             );
         }));
-
-        /* ================================================================
-         * 4. O11 — BOUNDED AND SCROLLABLE, AND THE LAST ROW IS REACHABLE
-         * ============================================================== */
 
         const withMany = (fn) => mounted(async (page) => {
             await page.evalFn((s, items) => { window.__h.need(s).items = items; return true; }, '#m', MANY);
@@ -543,8 +439,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(metrics.scrollbarInline > 0,
                 `the scroll region shows no scrollbar (gutter ${metrics.scrollbarInline}px) — spec §2.4 bans hiding it`);
 
-            // The bug, driven: End focuses the last row, and the row is then INSIDE the
-            // scrollport rather than painted somewhere below the window.
             await page.press('End');
             const path = await activePath(page);
             assert.match(path, /button$/, `End did not land on a row: ${path}`);
@@ -577,8 +471,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the cap is computed from the space beside the anchor, not from a constant', () => withMany(async (page) => {
-            // The order of surrender, step 2: the menu is capped to the room that side
-            // has. Move the anchor down and the cap must shrink with it.
             const before = (await page.box(surfaceOf())).height;
             await page.press('Escape');
             await page.setStyle('#page', { 'padding-block-start': `${Math.round(geometry.height / 2)}px` });
@@ -587,10 +479,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(after < before - 1,
                 `the cap did not follow the anchor: ${before}px then ${after}px with half the window gone`);
         }));
-
-        /* ================================================================
-         * 5. THE ROWS — SOURCE slate-shell.css:944-953 + context-menu.css:66-83
-         * ============================================================== */
 
         test('a row is a control-height row on the token type scale', () => mounted(async (page) => {
             await openByPress(page);
@@ -625,9 +513,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the row geometry does not move between the two standard geometries', () => mounted(async (page) => {
-            // Rule 1 from the other end: this component has no width query, and the rows
-            // are token-sized, so the same numbers must come out of a 1281px window and
-            // a 1000px one. The loop this test sits in is what makes that a measurement.
             await openByPress(page);
             const boxes = await itemBoxes(page);
             const control = parseFloat(await page.resolveValue('var(--ui-control-h)', 'width'));
@@ -665,10 +550,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await isOpen(page), true, 'a disabled row must not close the menu either');
         }));
 
-        /* ================================================================
-         * 6. THE SEPARATOR IS A GAP (CONVENTIONS §13, departure 2)
-         * ============================================================== */
-
         test('a separator draws the seam utility\'s 1px gap, not a bordered element', () => mounted(async (page) => {
             await openByPress(page);
             assert.equal(await page.count('#m >>> .group'), 2, 'the separator splits the rows into two groups');
@@ -691,10 +572,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, '#m >>> .group');
             near(groups[1].top - groups[0].bottom, seam, 'the measured gap between groups is one seam');
         }));
-
-        /* ================================================================
-         * 7. THE KEYBOARD WALK, DRIVEN THROUGH CDP
-         * ============================================================== */
 
         test('a press opens the menu and puts the caret on the first row', () => mounted(async (page) => {
             await openByPress(page);
@@ -736,10 +613,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the focus ring is the base\'s one ring, in the inset offset, unclipped', () => mounted(async (page) => {
-            // Opened by PROPERTY, not by press: assertFocusUnclipped sends a real Tab to
-            // establish keyboard modality, and a Tab with the caret inside the menu is
-            // part of the dismissal contract three tests below. Opened declaratively the
-            // caret is on the body, so the Tab lands on the trigger and the menu stays up.
             await openByProperty(page);
             const g = await assertFocusUnclipped(page, itemsOf());
             assert.equal(g.outlineOffset, await page.resolveValue('var(--ui-focus-offset-inset)', 'outline-offset'),
@@ -748,10 +621,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the focus fill is --ui-key-on, and it is a token', () => mounted(async (page) => {
-            /* NOT page.focusVisible: it sends a real Tab, and a Tab with the caret
-             * inside the menu is the dismissal contract two tests down — the second
-             * call would assert against a menu it had just closed. ArrowDown from the
-             * trigger gives the same keyboard modality and lands on the first row. */
             const prepare = async (p) => {
                 if (!(await p.exists(surfaceOf()))) await openByProperty(p);
                 await p.evalFn((s) => { const t = window.__h.need(s); (t.control || t).focus(); return true; }, '#trig');
@@ -771,10 +640,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 prepare,
             });
         }));
-
-        /* ================================================================
-         * 8. THE DISMISSAL CONTRACT — spec §4.6's missing half
-         * ============================================================== */
 
         test('Escape closes the menu and gives the caret back to the trigger', () => mounted(async (page) => {
             await openByPress(page);
@@ -802,23 +667,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'a closed menu must not swallow the key');
         }));
 
-        /**
-         * WHY THIS PRESSES #after AND NOT #beneath, and why the precondition pierces.
-         *
-         * This test used to press #beneath and assert `document.elementFromPoint` came
-         * back matching /ui-menu/. Both were wrong, and they hid each other. MEASURED at
-         * both geometries: the open surface is 220x203 at (205, 192) and #beneath's
-         * centre is (292.8, 236.5) — INSIDE it. The press was landing on the "Rename"
-         * ROW, and the menu was closing with reason 'select'. The empty `__hits` proved
-         * only that a row had eaten the click, which is not what the test claims.
-         *
-         * The precondition could not catch it because elementFromPoint returns the HOST
-         * `ui-menu` for anything inside its shadow root — backdrop and row alike — so
-         * /ui-menu/ matched either way. It pierces now, and names the backdrop.
-         *
-         * #after sits beside the trigger, above the surface's top edge, and under the
-         * fixed backdrop: the case the test was always about.
-         */
         test('an outside press closes the menu, restores focus, and is swallowed', () => mounted(async (page) => {
             await page.eval('window.__hits = []; document.getElementById("after").addEventListener('
                 + '"click", () => window.__hits.push("after")); true');
@@ -853,11 +701,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(await activePath(page), /ui-button#trig/, 'and the caret comes back');
         }));
 
-        /**
-         * The row press the old test was accidentally performing, asserted deliberately.
-         * A press inside the surface is a SELECT, not a dismissal, and the two must stay
-         * distinguishable now that three different reasons can close this menu.
-         */
         test('a press on a row selects it rather than dismissing', () => mounted(async (page) => {
             await page.eval('window.__oc = []; window.__sel = [];'
                 + 'const m = document.getElementById("m");'
@@ -902,13 +745,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(seen[0].focusAtDispatch, /ui-button#trig/);
         }));
 
-        /* THE OTHER HALF OF THE SAME CONTRACT, and the half the assertion above cannot
-         * see: focusAtDispatch is read SYNCHRONOUSLY inside the handler, so it stays
-         * true even when the component takes the caret back a microtask later. It did:
-         * the close left its return target set and updated() focused it a second time,
-         * after the handler had run. ':206 the consumer's handler may open a dialog,
-         * and it must be able to move focus LAST' — so the test is where the caret is
-         * when everything has settled, not where it was mid-dispatch. */
         test('a select handler that moves focus KEEPS it — no second focus afterwards', () => mounted(async (page) => {
             await page.eval(`(() => {
                 const menu = document.getElementById('m');
@@ -957,25 +793,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             ]);
         }));
 
-        /**
-         * The toggle, and the WORD it closes with.
-         *
-         * The backdrop is fixed and inset 0, so it covers the trigger: a second press
-         * lands on the backdrop, not on the button, and `#onTriggerClick`'s close branch
-         * is unreachable. Measured before the hit test existed, the pair of reasons was
-         * ['trigger', 'outside'] — the menu closed correctly and lied about why, so a
-         * consumer keying a re-open guard off detail.reason could not tell a toggle from
-         * a dismissal. Both halves are asserted: the reason, and that the press is still
-         * swallowed (the toggle must not fall through and re-open).
-         */
         test('a second press on the trigger closes it, and says so', () => mounted(async (page) => {
             await page.eval('window.__oc = []; document.getElementById("m").addEventListener('
                 + '"open-change", (e) => window.__oc.push(e.detail)); true');
             await openByPress(page);
 
-            // The precondition, measured: the thing on top of the trigger is the menu's
-            // own backdrop, so this press is caught by the backdrop and the test is
-            // about classification rather than about who gets the click.
             const trig = await page.box('#trig');
             const topmost = await page.evalFn(
                 (x, y) => window.__h.anchorPath(document.elementFromPoint(x, y)),
@@ -994,16 +816,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a press outside still reports an outside dismissal', () => mounted(async (page) => {
-            // The other side of the same hit test: narrowing 'outside' to 'trigger' must
-            // not swallow the ordinary case.
             await page.eval('window.__oc = []; document.getElementById("m").addEventListener('
                 + '"open-change", (e) => window.__oc.push(e.detail)); true');
             await openByPress(page);
 
-            // A point that clears BOTH the trigger and the open surface. Pressing
-            // #beneath will not do: the menu opens downward over it, so that press lands
-            // on a ROW and closes with 'select' — measured, and the reason this test
-            // uses coordinates rather than an element.
             const trig = await page.box('#trig');
             const surface = await page.box(surfaceOf());
             const x = 8;
@@ -1024,9 +840,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a declarative open does not steal the caret', () => mounted(async (page) => {
-            // The gallery opens eight menus on one page. A component that focuses a row
-            // on every property-driven open turns that into eight elements fighting over
-            // the caret, and the last one wins.
             await page.evalFn((s) => { window.__h.need(s).control.focus(); return true; }, '#trig');
             const before = await activePath(page);
             await openByProperty(page);
@@ -1034,10 +847,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ===========================================================================
- * THE GALLERY ENTRY — shape, and every state rendered once
- * =========================================================================== */
 
 test('the gallery entry has the shape entries.js documents', () => {
     assert.equal(galleryEntry.id, 'ui-menu', 'the entry id is the tag name and the capture prefix');
@@ -1068,19 +877,6 @@ test('every gallery state mounts, and every open one draws a surface', async () 
         }
     });
 });
-
-/* ---------------------------------------------------------------------------
- * THE ENTRY'S ONE IMPORT — the trap the test above cannot see
- *
- * The suite mounts its own page naming BOTH modules (MODULE, :50), so it stays green
- * whatever `entry.module` points at. gallery.js gets ONE import (gallery.js:46-51, :78)
- * and then blocks on `customElements.whenDefined()` for every hyphenated tag on the
- * stage (:86-88) — so an entry whose single module does not define every tag its states
- * mount never resolves, never sets `gallerySettled`, and throws nothing while it does
- * it. MEASURED before the .demo.js shim existed: `ui-menu--closed` and
- * `ui-menu--open-below` sat unsettled for the full 8,000 ms probe with zero page errors,
- * while `ui-menu--plain-trigger` (a bare `<button>` trigger) settled in 146 ms.
- * ------------------------------------------------------------------------- */
 
 test('the entry\'s module defines every custom tag its states mount', async () => {
     const galleryDir = new URL('../../tools/gallery/', import.meta.url);

@@ -1,18 +1,4 @@
-// The dead-surface exclusion list, made executable.
-//
-// src/data/EXCLUDED.md is the record of what was deliberately NOT built and why. A record
-// that only a person can enforce is a record a later wave walks past — and the specific
-// failure this guards against is the helpful one: a builder who needs a presence pane
-// finds `signalHeartbeat` in the old module, sees a real route behind it, and ports it
-// without noticing that the reason it is missing is that IT WAS NEVER CALLED.
-//
-// So the scan is deliberately narrow. It covers symbols and paths where re-introduction
-// is unambiguously wrong: routes ReaPrime does not serve, a parameter no handler reads,
-// duplicate implementations, and the wrappers whose defect IS their absence of a caller.
-// It does NOT cover the beans and grinders routes, which are real and which a future
-// screen will legitimately call through the generated client — what is excluded there is
-// fifteen hand-written wrappers with no callers, and a name scan cannot tell those apart
-// from honest use. That distinction is in EXCLUDED.md, in words, where it belongs.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -66,7 +52,6 @@ function jsFiles(root, rel = '') {
     return out.sort();
 }
 
-/** Hits in one source: excluded symbols outside comments and strings, paths outside comments. */
 export function excludedHits(source) {
     const code = stripComments(source, { dropStrings: true });
     const withStrings = stripComments(source);

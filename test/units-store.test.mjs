@@ -1,10 +1,4 @@
-// The units store: the four policy functions, and the one-owner rule that kills the
-// silent revert.
-//
-// The old suite covered the pure half only, and the pure half was never the bug. The bug was
-// `setTempUnit` writing two stores with a swallowed rejection while `initUnits` read the
-// other one first. So half of this file is the STORE: a failed write must not leave a
-// preference showing that nothing persisted, and no write may ever reach a second layer.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -138,22 +132,6 @@ describe('step formatting', () => {
 });
 
 describe('unit validation', () => {
-    /* THIS TEST PINNED THE THING THAT MADE THE MODULE INERT, and that is worth writing
-     * down rather than quietly editing.
-     *
-     * It asserted `normaliseUnit('f') === null` — the module's constants are uppercase, so
-     * lowercase was "not a unit". Meanwhile the settings bank has always stored LOWERCASE:
-     * its items are `{value: 'c'}` and `{value: 'f'}`, and Ben's decided default is `'c'`.
-     * The two never met, because until 26 August 2026 `createUnitsStore` had zero callers
-     * and nothing in the app read the preference at all.
-     *
-     * So the first thing that read it would have got null for every value the app can
-     * actually store, fallen back to Celsius, and drawn Celsius for ever — with this test
-     * green, asserting the very behaviour that broke it.
-     *
-     * FIXED IN THE MODULE, NOT THE BANK. Those values are already in people's storage and a
-     * migration to change a letter's case buys nothing. What still answers null is anything
-     * that is not one of the two, which is the claim this test was always making. */
     test('C and F in either case; anything else is null, not a silent Celsius', () => {
         assert.deepEqual(TEMP_UNITS, ['C', 'F']);
         assert.equal(normaliseUnit('F'), 'F');

@@ -1,32 +1,5 @@
 /**
- * live-preset-cells.render.test.mjs — the two preset banks on the Live rail, at the
- * OUTCOME.
- *
- * Written 29 August 2026 for the fix campaign's cluster L. Two findings, one row of cells:
- *
- *   F-022  `kv steamFlowPresetIndex` — "Which steam-flow preset is armed on this machine",
- *          a declared registry row — had NO WRITER anywhere in `src/`. The audit swept a
- *          whole run's request log: over 96 KV writes, three keys ever written, and this
- *          one READ four times a boot and written zero times by anything, ever. So the
- *          fact the table declares could never be held.
- *
- *   F-026  Hold a preset cell → "Enter value" → type a number → Confirm, and the number
- *          went to the SETTING rather than into the cell. The bank was unchanged before
- *          and after a reload, and the keypad was byte-for-byte the one the stepper's own
- *          readout opens — two controls doing one job, with the hold-only one doing the
- *          job the visible one already does. Ben's intent review left Reading A standing:
- *          the typed number goes into the CELL.
- *
- * WHAT THIS SUITE WILL NOT ASSERT, and the reason is in the component. `ui-preset-bank.js`
- * argues at length — quoting Slate's own `steam-mode.js:57-75` — that the highlight is
- * DERIVED from the machine's current value and must never be painted from a persisted
- * index, because the old skin's boot path did the reverse and "silently reset a hand-dialed
- * flow on every app load". So there is no test here that a stored index MOVES the mark.
- * What is tested is that the two agree: applying a cell writes the key AND lights that
- * cell, and stepping away clears the key AND unlights it.
- *
- * BOTH GATE A GEOMETRIES, on the shared carry fixture (a real `createAppBoot`, a real
- * storage router, a scripted fetch with no server behind it).
+ * The two preset banks on the Live rail, at the OUTCOME.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -57,10 +30,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await fn(page);
             assert.deepEqual(page.pageErrors, [], 'the rail must run without throwing');
         });
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-022 — the armed steam-flow cell is recorded, and stays true
-         * ═════════════════════════════════════════════════════════════════ */
 
         test('F-022 — a TAP on a flow cell writes steamFlowPresetIndex', () => mounted(async (page) => {
             const before = await page.evalFn(() => window.__carry.stored('steamFlowPresetIndex'));
@@ -107,9 +76,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.tapPreset('steamFlow', 1));
                 assert.equal(await page.evalFn(() => window.__carry.stored('steamFlowPresetIndex')), 1);
 
-                /* THE HALF THAT KEEPS TWO REPRESENTATIONS OF ONE FACT SAFE. A key that
-                 * only ever gained a value would claim a preset is armed while the row on
-                 * the glass — which paints from the machine's own number — shows none. */
                 await page.evalFn(async () => {
                     const screen = window.__h.q('live-screen');
                     screen.dispatchEvent(new CustomEvent('target-change', {
@@ -134,10 +100,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a fix for a key with no writer must not answer with a key with no row');
             }));
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-026 — "Enter value" edits the CELL that was held
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('F-026 — the keypad opened by the hold is headed for the CELL',
             () => mounted(async (page) => {
                 await page.evalFn(() => window.__carry.holdPreset('drinkWeight', 0));
@@ -145,10 +107,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const pad = await page.evalFn(() => window.__carry.keypad());
                 assert.equal(pad.open, true, 'the pad opens');
-                /* THE EVIDENCE FOR THE FINDING'S READING B WAS THE HEADING: the pad was
-                 * "byte-for-byte the keypad the stepper's own readout opens", headed with
-                 * the SETTING's name and range. Ben left Reading A standing, so the pad now
-                 * says which cell it is about and starts from that cell's number. */
                 assert.equal(pad.value, String(DRINK[0]), 'starting from the cell\'s own number');
                 assert.match(pad.heading, /preset/i, `the heading names the cell: "${pad.heading}"`);
             }));
@@ -169,9 +127,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(stored, [28, DRINK[1], DRINK[2], DRINK[3]],
                     'and the whole bank persisted with the new cell in it');
 
-                /* THE OTHER HALF OF THE FINDING. What used to fire was
-                 * `PUT /api/v1/workflow {"context":{"targetYield":28}}` and a profile
-                 * metadata write — the SETTING. Neither may fire now. */
                 const target = await page.evalFn(() => window.__h.q('live-screen').targets.drinkWeight);
                 assert.equal(target, targetBefore, 'the Drink target is untouched');
                 const workflow = await page.evalFn(() => window.__carry.requests('/api/v1/workflow')
@@ -180,9 +135,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('F-026 — the stepper\'s OWN readout still edits the setting', () => mounted(async (page) => {
-            /* THE COHERENCE ARGUMENT, AS A TEST. The entry's Reading A only makes the menu
-             * coherent if the two controls stop being duplicates — so the visible one has
-             * to keep doing the visible thing. */
             await page.evalFn(async () => {
                 const screen = window.__h.q('live-screen');
                 const stepper = screen.shadowRoot.querySelector('ui-stepper[data-key="drinkWeight"]');
@@ -211,22 +163,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(stored, [FLOW[0], FLOW[1], FLOW[2], 1.4],
                     'the fourth cell is 1.4 and the other three are the shipped ones');
             }));
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-051 — a stored bank is believed, or it is not used at all
-         * ═════════════════════════════════════════════════════════════════
-         *
-         * The rail used to build every bank through
-         * `held.map(Number).filter(Number.isFinite)`, and that one line lied twice:
-         * `Number(null)` is 0 and 0 is finite, so a stored null DREW AS A ZERO and was a
-         * zero in the model too — with nothing recording that the two documents differed;
-         * and `Number("x")` is NaN, which `filter` DROPPED, so a four-cell bank silently
-         * became a three-cell one.
-         *
-         * THE FOUR LEGS BELOW ARE THE FINDING'S OWN TABLE, measured one document at a
-         * time against `drinkOutPresets`, read-only, with no gesture — and driven here the
-         * same way: seed the KV row, boot, read what the row drew.
-         */
 
         /** Seed one document, boot on it, and read the cells that were drawn. */
         const drawnWith = async (page, stored) => {
@@ -263,10 +199,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-051 — a numeric STRING is refused too: coercion was the fault',
             () => mounted(async (page) => {
-                /* `Number("31")` is the same call that made `Number(null)` a zero, so the
-                 * string is refused with the null. THE VALUE IS DELIBERATELY NOT ONE OF
-                 * THE SHIPPED FOUR: with `'30'` the coercing version drew 30 and so does
-                 * the shipped bank, and the assertion would have passed against the bug. */
                 const drawn = await drawnWith(page, ['31', 36, 40, 50]);
                 assert.deepEqual(drawn, DRINK.map(String), 'the shipped bank is drawn');
                 assert.notEqual(drawn[0], '31', 'the string was not quietly turned into a number');

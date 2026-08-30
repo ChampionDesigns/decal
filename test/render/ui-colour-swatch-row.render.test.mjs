@@ -1,56 +1,5 @@
 /**
- * ui-colour-swatch-row.render.test.mjs — Wave 4 item #52's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR, never
- * source text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the 1000x600 floor
- * (CONVENTIONS §10, Part 8 §2).
- *
- * WHAT THIS SUITE IS REALLY FOR. Row #52's own sentence is about one token — "Selected
- * treatment via --ui-border-w-strong, not a private 3px" — and the reason that line
- * exists is measurable and worse than it sounds. In Slate, EVERY declaration that was
- * meant to style a colour swatch loses the cascade to the generic Settings button reset
- * (`slate-shell.css:716-724`, four properties marked !important), including all three
- * declarations of `.slate-swatch.is-selected`. Measured, mechanically, through prov_query:
- *
- *   CITE settings-accessories-lighting .slate-swatch [i=58] border-top-width = 1px  <-
- *        slate-shell.css  `#subpage-host #settings-content-area :is(button,
- *        [role="button"]):not(.toggle):not(.slate-stepper > *):not(.slate-bank-item)`
- *        authored `1px`  !important=yes  (FROZEN/hardcoded)
- *   CITE settings-accessories-lighting .slate-swatch [i=58] border-top-color: dark
- *        rgb(58, 72, 82) / light rgb(203, 208, 211)  <-  slate-shell.css (the same rule)
- *        !important=yes  (token-driven)   — that is --slate-line, i.e. the exact ring
- *        P30's comment says is "invisible in every sense" against a black swatch
- *   CITE settings-accessories-lighting .slate-swatch [i=58] border-top-left-radius = 6px
- *        <-  slate-shell.css (the same rule)  !important=yes  — against an authored
- *        `border-radius: 50% !important` on `.slate-swatch` itself
- *   CITE settings-accessories-lighting .slate-swatch [i=58] box-shadow = none  <-
- *        slate-shell.css (the same rule)  authored `none`  !important=yes  — which is
- *        what kills `.is-selected`'s canvas halo
- *   CITE `prov_query.py find --cls slate-swatch` -> found 10 element(s) in 1 state(s),
- *        all 64 x 64 at y = 816, x = 629 / 707 / 785 / 863 / 941 / 1019 / 1097 / 1175 /
- *        1253 / 1331 — a 78px pitch, so a 14px gap (authored `gap-[14px]`, bug T20)
- *   CITE `prov_query.py find --cls is-selected` -> 3 element(s) in 3 state(s), all of
- *        them editor tabs at 143 x 80. No swatch in any of the 49 states is selected, so
- *        the selected swatch is UNMEASURED (Part 10 §4's carve-out) and its two source
- *        rules are read read-only: `slate-shell.css:1986-1994`, `:1996-2001`.
- *
- * Slate's rects are frozen 1920x1200 captures, quoted as what Slate does and never as a
- * responsive target (LAYOUT_SPEC_DRAFT governs responsive behaviour). Colours are
- * asserted against resolved tokens, never hexes, so the suite is true in both themes —
- * except the SAMPLE's fill, which is data and is asserted against the caller's own hex.
- *
- * So the load-bearing sections are the ones a component that had quietly kept a private
- * look could not pass:
- *   §3  the four dials on the pressed swatch, then all four turned neutral — the state in
- *       which a fifth treatment stops hiding behind the shipped dial values.
- *   §3  a document sheet full of !important aimed at every class here, appended AFTER the
- *       component: it reaches nothing. That is the mechanism of Slate's failure, run
- *       against this implementation.
- *   §4  the highlight is DERIVED and READ-ONLY (`settings.js:4269-4272`): a press moves
- *       the machine, not the paint.
- *   §5  the sample survives selection. A selection treatment that painted over the swatch
- *       would erase the row's subject, which is why the button and the chip are two
- *       elements.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -69,20 +18,13 @@ import {
 
 const MODULE = ['/src/components/ui-colour-swatch-row.js'];
 
-/* Five of Slate's ten LED presets (`settings.js:3829-3833`), including the black one P30
- * is about. Hex strings are DATA — the strip's colour, not the skin's palette. */
 const PALETTE = '[{"hex":"#000000","label":"Off"},{"hex":"#FFAA55","label":"Warm White"},'
     + '{"hex":"#FF7A00","label":"Amber"},{"hex":"#0CA581","label":"Green"},'
     + '{"hex":"#7A3FF2","label":"Purple"}]';
 
-/* The machine is wearing Amber, which is index 2. Lower case on purpose: the palette
- * writes `#FF7A00` and the machine answers `#ff7a00`, and they are one colour — the
- * comparison half of `resolveLedPresetHex` (`settings.js:3843`), carried. */
 const LIT = `<ui-colour-swatch-row id="lit" label="LED colour presets" value="#ff7a00"
     swatches='${PALETTE}'></ui-colour-swatch-row>`;
 
-/* The state Slate's own Lighting capture is in: a hand-picked colour, so no preset
- * matches and nothing is lit. A first-class state, not an error. */
 const NONE = `<ui-colour-swatch-row id="none" label="LED colour presets" value="#1b9e5a"
     swatches='${PALETTE}'></ui-colour-swatch-row>`;
 
@@ -90,9 +32,6 @@ const NONE = `<ui-colour-swatch-row id="none" label="LED colour presets" value="
 const ABSENT = `<ui-colour-swatch-row id="absent" label="LED colour presets"
     swatches='${PALETTE}'></ui-colour-swatch-row>`;
 
-/* A stated stage width, so every measured box is the CONTAINER's answer and not the
- * viewport's — the two geometries must produce identical numbers (spec §2.1 Rule 1). The
- * padding is so the outset focus ring has somewhere to be that is not the body's edge. */
 const MARKUP = `
     <style>
       #stage { display: grid; gap: 24px; inline-size: 700px; padding: 24px; }
@@ -126,12 +65,6 @@ const SWATCHES = (rowId) => `(${((id) => {
     }));
 }).toString()})(${JSON.stringify(rowId)})`;
 
-/**
- * Everything worth comparing between a pressed swatch and a resting one that the four
- * dials do NOT own — minus the two border properties row #52 explicitly hands to
- * --ui-border-w-strong. Carried from ui-preset-bank.render.test.mjs:118 on purpose: one
- * library, one list, so the selection surfaces cannot be held to standards that drift.
- */
 const NON_DIAL_PROPERTIES = [
     'font-weight', 'font-size', 'font-family', 'letter-spacing', 'text-transform',
     'border-top-color', 'border-top-left-radius', 'border-bottom-left-radius',
@@ -162,17 +95,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(env.w, geometry.width);
         }));
 
-        /* ===================================================================
-         * 1. SHAPE AND ARIA — Appendix 15's contract, and T15's absences
-         * =================================================================== */
-
         test('APPENDIX 15: one aria spelling, aria-pressed, and exactly one is true',
             () => mounted(async (page) => {
-                /* "The aria-*-driven state selectors ... the right contract for a Lit
-                 * component's reflected properties" (Appendix 15); spec §3.9's state
-                 * contract; and Slate's own spelling on this row (`settings.js:3903`),
-                 * which is the one thing about the swatch Slate got right. Accessibility
-                 * state and visual state are the SAME state, so they cannot drift. */
                 const swatches = await page.eval(SWATCHES('lit'));
                 assert.equal(swatches.length, 5, 'five presets, five swatches');
                 assert.deepEqual(
@@ -192,10 +116,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('every swatch has an accessible name, and it is the caller\'s or the colour',
             () => mounted(async (page) => {
-                /* T15's family on this screen — "aria-label on role-less divs", "four of
-                 * twenty switches have no accessible name". An icon-only or colour-only
-                 * control is named with the visuallyHidden fragment, never display:none,
-                 * so the name is real text in the accessibility tree (CONVENTIONS §5a). */
                 const swatches = await page.eval(SWATCHES('lit'));
                 assert.deepEqual(
                     swatches.map((s) => s.name),
@@ -208,10 +128,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the group carries the row\'s name, and the role-less host gives its own up',
             () => mounted(async (page) => {
-                /* Bug T15 symptom 1, "aria-label on role-less divs": Chrome exposes a name
-                 * on a role-less element anyway, so a copy left on the host announces the
-                 * row twice. Slate's preset container has no role and no name at all — the
-                 * "Presets" heading above it is associated with nothing. */
                 await page.mount(
                     `<ui-colour-swatch-row id="named" aria-label="LED colour presets"
                         value="#ff7a00" swatches='${PALETTE}'></ui-colour-swatch-row>`,
@@ -246,15 +162,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(strays, [], 'the swatches are the row');
             }));
 
-        /* ===================================================================
-         * 2. GEOMETRY — the measured 64, the touch floor, the container
-         * =================================================================== */
-
         test('the swatch carries Slate\'s measured 64 x 64, from --ui-control-h',
             () => mounted(async (page) => {
-                /* CITE find --cls slate-swatch -> 10 elements, all 64 x 64. --ui-control-h
-                 * IS 64px (styles/tokens.css:88), so the number is carried through the
-                 * token rather than restated. */
                 const controlH = parseFloat(await page.resolveValue('var(--ui-control-h)', 'width'));
                 near(controlH, 64, '--ui-control-h is Slate\'s swatch size');
                 for (const i of [0, 2, 4]) {
@@ -265,18 +174,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the hit floor is reached by the ink itself — no overlay needed', () => mounted(async (page) => {
-            /* Appendix 5's utility is for a leaf whose INK is smaller than the floor. This
-             * one is not: 64 > 48 on both axes, so `.hit-overlay` would be three copies of
-             * correct becoming four. Measured on the rendered box, not on the rule. */
             await assertHitFloor(page, swatch('lit', 0), { mode: 'box' });
             await assertHitFloor(page, swatch('lit', 4), { mode: 'box' });
         }));
 
         test('the touch floor survives a fork shrinking the control token', () => mounted(async (page) => {
-            /* CONVENTIONS §11: density multiplies vertical rhythm only, "never
-             * --ui-control-h and never --ui-hit-min, because ergonomics is physical". The
-             * size is max(--ui-control-h, --ui-hit-min) so the second half of that sentence
-             * is enforced rather than trusted. */
             const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
             await page.setToken('--ui-control-h', '20px');
             await page.settle(2);
@@ -287,10 +189,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('T20: the gap is --ui-space-3, not Slate\'s 14px literal', () => mounted(async (page) => {
-            /* CITE find --cls slate-swatch: x = 629, 707, 785 … — a 78px pitch on a 64px
-             * swatch, so a 14px gap, authored `gap-[14px]` (`settings.js:3897`). Bug T20:
-             * "Fourteen distinct gap-[Npx] literals pass through the shell's rhythm rules
-             * untouched." Disqualified, so the row takes the spacing scale. */
             const space3 = parseFloat(await page.resolveValue('var(--ui-space-3)', 'width'));
             near(space3, 12, '--ui-space-3');
             const gap = await page.computed(group('lit'), ['column-gap', 'row-gap']);
@@ -304,9 +202,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('CONTAINER FLOOR: in a narrow leaf it wraps — it does not shrink and does not scroll',
             () => mounted(async (page) => {
-                /* Spec §2.1 Rule 1 (own container, never the viewport) and §2.4 (nothing is
-                 * silently removed). Wrapping IS the container response here, so the
-                 * numbers below must be identical at both geometries. */
                 await page.setStyle('#stage', { 'inline-size': '300px' });
                 await page.settle(2);
 
@@ -330,8 +225,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('no component rule uses a viewport query', () => mounted(async (page) => {
-            /* Spec §2.1 Rule 1: "No component writes @media (width…)." Read off the live
-             * CSSOM rather than the source text. */
             const media = await page.evalFn(() => {
                 const sheets = document.getElementById('lit').shadowRoot.adoptedStyleSheets || [];
                 const out = [];
@@ -346,19 +239,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'container queries only — the two height bands live on :root');
         }));
 
-        /* ===================================================================
-         * 3. TOKENS AND DIALS — the row's whole claim
-         * =================================================================== */
-
         test('TOKEN DRILL: the ring, its weight, the radius, the gap and the size are all tokens',
             () => mounted(async (page) => {
                 await assertTokenDrill(page, {
                     token: '--ui-line-strong', selector: swatch('lit', 0), property: 'border-top-color',
                 });
-                /* `expected` is stated for the two border widths because the harness's
-                 * token probe carries no border-style, so a bare border-width resolves to
-                 * 0px there and would fail the landing check for the wrong reason. The
-                 * swatch has a real solid border, so the drill value lands verbatim. */
                 await assertTokenDrill(page, {
                     token: '--ui-border-w', value: DRILL_LENGTH, expected: DRILL_LENGTH,
                     selector: swatch('lit', 0), property: 'border-top-width',
@@ -387,16 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P30 APPLIED: the resting ring is --ui-line-strong, which Slate\'s measures is not',
             () => mounted(async (page) => {
-                /* CITE settings-accessories-lighting .slate-swatch [i=58] border-top-color:
-                 * dark rgb(58, 72, 82) / light rgb(203, 208, 211) <- slate-shell.css
-                 * `#subpage-host #settings-content-area :is(button, [role="button"]):not(...)`
-                 * !important=yes — that is --slate-line. `.slate-swatch`'s own rule asks for
-                 * 2px of --slate-line-strong and says why: "a colour swatch is a sample, so
-                 * its ring must be legible against BOTH the swatch and the page.
-                 * --slate-line-strong clears 3:1 on either, which the old outline colour did
-                 * not: preset 0 is #000000 and sat behind a 2.0:1 ring on a near-black
-                 * canvas, invisible in every sense." It loses on specificity, so the ring
-                 * P30 replaced is the ring that renders. Here the fix lands. */
                 const strong = await page.resolveToken('--ui-line-strong', 'border-top-color');
                 const line = await page.resolveToken('--ui-line', 'border-top-color');
                 assert.notEqual(strong, line, 'the two weights are different inks, or this test proves nothing');
@@ -408,18 +283,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the selected ring is STRICTLY heavier than the resting one — Slate\'s is not',
             () => mounted(async (page) => {
-                /* Row #52: "Selected treatment via --ui-border-w-strong, not a private 3px."
-                 * Slate's 3px is `slate-shell.css:1997`, and it carries no !important, so it
-                 * loses to `border-width: 1px !important` in the generic reset — as do
-                 * `.is-selected`'s border-color and its `box-shadow: 0 0 0 3px
-                 * var(--slate-canvas)` (CITE [i=58] box-shadow = none <- the same reset,
-                 * authored `none` !important=yes). All three declarations of the selected
-                 * state are dead, so a selected preset and an unselected one are the same
-                 * pixels. */
-                /* Resolved as a WIDTH, not a border-width: the harness's probe has no
-                 * border-style, so a border-width resolves to 0px on it whatever the
-                 * token says. The two numbers below are the tokens; the two after them
-                 * are the rendered borders. */
+
                 const rest = parseFloat(await page.resolveValue('var(--ui-border-w)', 'width'));
                 const strong = parseFloat(await page.resolveValue('var(--ui-border-w-strong)', 'width'));
                 assert.ok(strong > rest, `--ui-border-w-strong (${strong}) must be heavier than --ui-border-w (${rest})`);
@@ -432,10 +296,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the radius is the pill token, not the 6px the reset imposes', () => mounted(async (page) => {
-            /* CITE [i=58] border-top-left-radius = 6px <- the generic reset, !important=yes,
-             * against `.slate-swatch`'s own `border-radius: 50% !important`. Both are
-             * important, and the reset's :not() arguments make it more specific, so the
-             * circle never renders. Here the shape is one token. */
             const pill = await page.resolveValue('var(--ui-radius-pill)', 'border-top-left-radius');
             const six = await page.resolveValue('var(--ui-radius)', 'border-top-left-radius');
             assert.notEqual(pill, six);
@@ -454,15 +314,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('WITH ALL FIVE DIALS NEUTRAL, only the border weight separates pressed from resting',
             () => mounted(async (page) => {
-                /* THE TEST THIS ROW EXISTS TO PASS. Turn the dials off and any private rule
-                 * becomes the only thing left painting. What may remain is exactly one
-                 * property — border-width — because row #52 says so by name; everything else
-                 * must be identical.
-                 * The fifth dial (parity surface 2, --ui-selected-weight) is neutralised to
-                 * the resting weight, exactly as the face goes transparent and the ink goes
-                 * currentColor: neutral means "the value the resting state already has".
-                 * A swatch carries no text, so the weight paints nothing here — but it is
-                 * turned off with the rest so this test keeps measuring what it claims to. */
                 await page.setToken('--ui-selected-face', 'transparent');
                 await page.setToken('--ui-selected-ink', 'currentColor');
                 await page.setToken('--ui-selected-led', '0px');
@@ -499,10 +350,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('SLATE\'S MECHANISM, RUN HERE: a document sheet of !important reaches nothing',
             () => mounted(async (page) => {
-                /* This is the exact failure measured on `.slate-swatch`: another sheet,
-                 * later and more specific, marked !important, silently deleting a
-                 * component's whole selected treatment. Nothing can reach into a shadow
-                 * root, so load order stops being a mechanism (CONVENTIONS §6). */
                 const props = ['background-color', 'color', 'border-top-width',
                     'border-top-color', 'border-top-left-radius', 'box-shadow'];
                 const before = await page.computed(swatch('lit', 2), props);
@@ -550,16 +397,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(bad, [], 'zero !important, base rules included (spec §2.1 Rule 3)');
         }));
 
-        /* ===================================================================
-         * 4. THE HIGHLIGHT IS DERIVED AND READ-ONLY
-         * =================================================================== */
-
         test('a press publishes an intent carrying the HEX, and moves no paint',
             () => mounted(async (page) => {
-                /* SOURCE `settings.js:4269-4272` (read-only): the selection is recomputed
-                 * from the current colour, never written by the press. A colour the machine
-                 * refuses must not light — which is also what makes D7's latest-wins writer
-                 * safe, since a write that loses leaves the row showing what the strip has. */
                 await page.recordEvents('#lit', ['swatch-select', 'change']);
                 await page.click(swatch('lit', 4));
                 await page.settle(2);
@@ -580,13 +419,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the row issues no request of its own, so no route can be wrong here',
             () => mounted(async (page) => {
-                /* D7's second lesson is "check every route at build time, against the
-                 * handler as written" — and the cheapest way to pass it is to have no
-                 * route. The old skin's cross-state preview called two endpoints that
-                 * exist nowhere in ReaPrime and swallowed every 404 (`settings.js:4110`,
-                 * "preview is a nicety"); they are excluded surface (src/data/EXCLUDED.md).
-                 * The four REAL ledStrip routes are the screen's, through the generated
-                 * client. This component's whole output is one event. */
                 await page.evalFn(() => {
                     window.__net = [];
                     const realFetch = window.fetch;
@@ -617,8 +449,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('nothing is lit when the machine\'s colour matches no preset', () => mounted(async (page) => {
-            /* Slate's own captured Lighting state, and the honest one:
-             * CITE find --cls is-selected -> 3 elements in 3 states, all editor tabs. */
             const swatches = await page.eval(SWATCHES('none'));
             assert.deepEqual(swatches.map((s) => s.pressed), ['false', 'false', 'false', 'false', 'false']);
             const index = await page.evalFn(() => document.getElementById('none').activeIndex);
@@ -670,17 +500,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and the buttons inside do not carry it a second time: .38 x .38 = .14 is the trap');
         }));
 
-        /* ===================================================================
-         * 5. THE SAMPLE IS DATA, AND SELECTION DOES NOT EAT IT
-         * =================================================================== */
-
         test('the sample carries the caller\'s colour, through the boundary as a property',
             () => mounted(async (page) => {
-                /* CITE settings-accessories-lighting .slate-swatch [i=58] background-color =
-                 * rgb(0, 0, 0) <- <inline> authored `rgb(0, 0, 0)` !important=no — the fill
-                 * is per-element data in Slate too. Here it arrives as --_ui-swatch-fill, a
-                 * private property, so the token-integrity check can never mistake a
-                 * machine colour for a palette value. */
                 const wanted = await Promise.all(['#000000', '#FFAA55', '#FF7A00', '#0CA581', '#7A3FF2']
                     .map((hex) => page.resolveValue(hex, 'background-color')));
                 for (const [i, want] of wanted.entries()) {
@@ -712,10 +533,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(inner.width, outer.width - 2 * (seat + border), 'the sample sits inside seat + ring');
         }));
 
-        /* ===================================================================
-         * 6. FOCUS — bug L24's class
-         * =================================================================== */
-
         test('FOCUS UNCLIPPED: the ring is the token ring and nothing clips it',
             () => mounted(async (page) => {
                 await assertFocusUnclipped(page, swatch('lit', 0));
@@ -736,10 +553,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
     });
 }
 
-/* ===========================================================================
- * THE GALLERY ENTRY — shape, and every state on screen
- * =========================================================================== */
-
 test('the gallery entry has the shape entries.js documents', () => {
     assert.equal(galleryEntry.id, 'ui-colour-swatch-row', 'the entry id is the tag name and the capture prefix');
     assert.equal(galleryEntry.module, '../../src/components/ui-colour-swatch-row.js',
@@ -755,10 +568,6 @@ test('the gallery entry has the shape entries.js documents', () => {
 });
 
 test('no gallery state names a route, and none carries the retired steam table', () => {
-    /* Two of the wave's stated blocks, checked where a builder is most likely to
-     * reproduce one — example data. There is no route here at all (the four real
-     * ledStrip routes are the screen's, and the two preview wrappers exist nowhere in
-     * ReaPrime), and no LED value may be mistaken for a steam limit. */
     for (const state of galleryEntry.states) {
         assert.ok(!/\/api\/|fetch\(|ledStrip/i.test(state.html),
             `gallery state ui-colour-swatch-row--${state.id} names a route`);

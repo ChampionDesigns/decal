@@ -1,8 +1,4 @@
-// The generated enum and the two classifications made from it.
-//
-// The bugs on trial here are both live in the old skin and both among the 31 contract
-// bugs: an invented state (`ready`) that reads like a rule, and a missing one
-// (`schedIdle`) that cuts the post-shot review window short every morning.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -54,9 +50,6 @@ describe('the enum comes from ReaPrime', () => {
 
 describe('the names the hand copy invented', () => {
     test("'ready' is not a state in either direction", () => {
-        // api.js: `READY: 'ready'` with the comment "Not in the official API doc, but used
-        // in app.js for shot completion logic". It never arrives on a frame and cannot be
-        // requested. Anything comparing against it is dead weight dressed as a rule.
         assert.equal(isMachineState('ready'), false);
         assert.equal(MACHINE_STATES.includes('ready'), false);
         assert.equal(Object.hasOwn(MACHINE_STATE, 'READY'), false);
@@ -75,9 +68,6 @@ describe('the names the hand copy invented', () => {
 
 describe('the schedIdle busy-classification fix', () => {
     test('a scheduled-idle machine does NOT end the post-shot review window', () => {
-        // THE FIX. The old test was `state !== 'idle' && state !== 'ready' && state !==
-        // 'heating'`, so schedIdle — the ordinary resting state of a machine on a wake
-        // schedule — classified as busy and review ended on the frame after the pour.
         assert.equal(endsPostShotReview(MACHINE_STATE.SCHED_IDLE), false);
         assert.equal(endsPostShotReview('schedIdle'), false);
     });
@@ -94,19 +84,12 @@ describe('the schedIdle busy-classification fix', () => {
     });
 
     test('an UNRECOGNISED state is treated as busy, never as neutral', () => {
-        // A7 in miniature: this layer does not invent a state to stand in for one it does
-        // not recognise, and it does not default to the harmless-looking answer. A name the
-        // server SENT is an answer — a machine doing something this build has no word for
-        // is still a machine doing something.
         assert.equal(endsPostShotReview('ready'), true, "the invented name buys nothing now");
         assert.equal(endsPostShotReview('somethingNewUpstream'), true);
         assert.equal(isMachineState('somethingNewUpstream'), false, 'and it is separately visible as unknown');
     });
 
     test('a MISSING state decides nothing — it does not dismiss the review window', () => {
-        // The regression this replaces: `!REVIEW_NEUTRAL.has(state)` answered `true` for an
-        // absence, so a dead machine feed ended the post-shot review the user was reading.
-        // The old fold got this half right (`slate-live-model.js`'s leading `state &&`).
         for (const nothing of [undefined, null, '', 42, {}]) {
             assert.equal(postShotReviewVerdict(nothing), REVIEW_VERDICT.UNKNOWN, String(nothing));
             assert.equal(endsPostShotReview(nothing), false, String(nothing));
@@ -114,8 +97,6 @@ describe('the schedIdle busy-classification fix', () => {
     });
 
     test('the address layer\'s own absence is an absence here too', () => {
-        // readMachineSnapshot(null).state is a NO_READING sentinel — an object, not a name.
-        // It reached this predicate and was classified busy.
         const absent = readMachineSnapshot(null).state;
         assert.equal(postShotReviewVerdict(absent), REVIEW_VERDICT.UNKNOWN);
         assert.equal(endsPostShotReview(absent), false);
@@ -132,9 +113,6 @@ describe('pouring', () => {
     test('espresso pours only in the pouring substates', () => {
         assert.equal(isPouring('espresso', 'preinfusion'), true);
         assert.equal(isPouring('espresso', 'pouring'), true);
-        /* Ben, 25 Aug 2026: "We should copy Slate, shouldn't record pouringDone." The
-         * trace ends where the pump does; the settled weight is still read from every
-         * sample, so the phase table and the yield are unchanged. */
         assert.equal(isPouring('espresso', 'pouringDone'), false);
     });
 

@@ -1,64 +1,5 @@
 /**
- * ui-compare-bar.render.test.mjs — Wave 4 item #44's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never source
- * text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the 1000x600 floor
- * (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS FOR. Row #44 carries one bug id, H8, and consumes a port whose own
- * suite already pins the policy arithmetic (test/alignment-offset.test.mjs, 18 tests). So
- * nothing here re-tests a clamp or a format string in isolation; what is measured is the
- * three things only a browser can answer:
- *
- *  1. H8, TWICE. "The align bar's height is set by the 64px Reset button, not the 44px
- *     slider beside it" (LAYOUT_SPEC_DRAFT.md:1211, slate-components.css:151). §1 asserts
- *     the two siblings are now the SAME height, and then makes the defect inexpressible:
- *     it forces the Reset host to 200px and asserts the strip does not move a pixel. In
- *     Slate that grows the bar; here the bar states its own block-size.
- *
- *  2. THAT THE POLICY REACHED THE CONTROL. The port is data; a compound can consume it
- *     and still render a slider with the browser's default 0..100 range and step 1 (the
- *     measured failure #23's own header describes for step="NaN"). §2 reads the range off
- *     the rendered input and drives it.
- *
- *  3. THAT ONE STRING IS PRINTED IN BOTH PLACES. The readout and the slider's
- *     aria-valuetext are one formatAlignmentOffset call — "no two controls can disagree"
- *     (history-viewer.js:1146). §3 drives the slider and reads both.
- *
- * ============================ ORACLE ==========================================
- * Disqualification check first (prov_query.py --help, SCOPE Part 10 §4). Disqualified
- * for exactly two questions: the bar's HEIGHT (bug H8 — matching Slate reproduces it) and
- * everything responsive (98.4% of Slate's geometry is frozen at 1920x1200; the layout
- * spec governs, spec §4.5). Every other value asserted below is quoted:
- *   CITE find --cls slate-compare-bar -> "found 1 element(s) in 1 state(s)",
- *        history-viewer #hv-align-bar [i=172] <div id="hv-align-bar"
- *        class="slate-compare-bar"> text "A solid B dashed Align B 0.0 s Reset"
- *        rect x=28 y=136 w=1864 h=90
- *   CITE history-viewer #hv-align-bar [i=172] background-color = rgb(14, 19, 23)
- *        <- slate-live.css `#history-viewer-overlay .slate-compare-bar` (token-driven)
- *   CITE history-viewer #hv-align-bar [i=172] gap = 24px <- authored `var(--slate-space-5)`
- *   CITE history-viewer #hv-align-bar [i=172] padding-left = 24px
- *   CITE history-viewer #hv-align-bar [i=172] border-top-left-radius = 6px
- *   CITE history-viewer #hv-align [i=176] height = 44px <- slate-live.css authored `44px`
- *        (FROZEN/hardcoded)                                        — H8's first number
- *   CITE history-viewer #hv-align-reset [i=178] height = 64px <- (no declaration —
- *        inherited or initial value) (token-driven)                — H8's second number
- *   CITE history-viewer .slate-compare-offset-label [i=175] color = rgb(148, 161, 169)
- *        <- authored `var(--slate-muted)`;  font-size = 15px <- `var(--slate-text-cap)`;
- *        text-transform = uppercase;  rect 71 x 23
- *   CITE history-viewer #hv-align-value [i=177] width = 84px;  color = rgb(244, 247, 248)
- *        <- authored `var(--slate-text)`;  font-size = 17px <- `var(--slate-text-base)`
- *   CITE history-viewer #hv-align-reset [i=178] color = rgb(148, 161, 169) <-
- *        slate-components.css `.slate-btn:disabled…` authored `var(--slate-muted)`
- *        !important=yes — the captured state has Reset DISABLED at offset 0
- * Colours are asserted against RESOLVED TOKENS, never against a hex, so every assertion
- * is true in both themes.
- *
- * NOT TESTED HERE, deliberately: a selection dial drill. This component has a value and
- * an enablement, never a selected state (#23 says the same of itself: "a slider has a
- * value, not a selected state"), so there is no aria-pressed/-selected/-checked/-current
- * to bind a dial to and Appendix 15's contract has nothing to reach. §6 asserts that
- * absence rather than leaving it unstated.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -79,9 +20,6 @@ import {
     formatAlignmentOffset,
 } from '../../src/lib/alignment-offset.js';
 
-/* One module. It side-effect imports #23 and #1 — the row's two stated dependencies —
- * and if either import is dropped this file fails first, with <ui-slider> never
- * upgrading and every box in §1 coming out wrong. */
 const MODULE = ['/src/components/ui-compare-bar.js'];
 
 const COMPARING = '<ui-compare-bar id="bar" has-comparison></ui-compare-bar>';
@@ -130,10 +68,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -----------------------------------------------------------------
-         * 1. BUG H8 — THE BAR IS NOT SIZED BY THE WRONG SIBLING
-         * ----------------------------------------------------------------- */
-
         test('H8: slider and Reset are the SAME height, and it is the stated row',
             () => mounted(async (page) => {
                 const row = parseFloat(await page.resolveValue('var(--ui-control-h)', 'block-size'));
@@ -149,9 +83,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + `(#hv-align [i=176]) beside 64px of Reset (#hv-align-reset [i=178]); `
                     + `here they are ${slider.height} and ${reset.height}.`,
                 );
-                /* The ink did NOT grow with the box: --_ui-hit-box moves the target,
-                 * --_ui-hit-ink keeps the track at --ui-space-2, which is the whole
-                 * point of the hit-area utility (CONVENTIONS §5). */
                 const ink = parseFloat(await page.resolveValue('var(--ui-space-2)', 'block-size'));
                 const pad = parseFloat(await page.prop(TRACK, 'padding-top'));
                 near(track.height, row, 'the range input IS the hit box', 1);
@@ -168,8 +99,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 near(withGiant, before, 'a 200px Reset must not move the bar', 0.51);
 
-                /* And the other direction: take the Reset away entirely and the strip is
-                 * still the strip. In Slate this is 90px -> 70px. */
                 await page.setStyle(RESET, { display: 'none' });
                 const without = (await page.box(BAR)).height;
                 await page.setStyle(RESET, { display: null });
@@ -189,9 +118,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('H8: the strip height is a token drill, not a literal',
             () => mounted(async (page) => {
-                /* --ui-control-h is the ONE row token. Move it and the strip moves with
-                 * it; expectLanding is off because the strip is the row PLUS padding and
-                 * border, so 37px is a component of the value, not the value. */
                 const drilled = await assertTokenDrill(page, {
                     token: '--ui-control-h',
                     value: DRILL_LENGTH,
@@ -208,10 +134,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     1,
                 );
             }));
-
-        /* -----------------------------------------------------------------
-         * 2. THE PORTED POLICY REACHED THE CONTROL
-         * ----------------------------------------------------------------- */
 
         test('the range, the step and the centre origin are the port\'s, on the real input',
             () => mounted(async (page) => {
@@ -340,10 +262,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(seen.readout, '0.0 s');
             }, OFFSET));
 
-        /* -----------------------------------------------------------------
-         * 3. ONE STRING, TWO PLACES
-         * ----------------------------------------------------------------- */
-
         test('the readout and the slider\'s aria-valuetext are the same string',
             () => mounted(async (page) => {
                 const seen = JSON.parse(await page.eval(`(async () => {
@@ -372,10 +290,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the zero form is Slate\'s own: CITE history-viewer '
                     + '.slate-compare-offset [i=174] text "Align B 0.0 s"');
             }));
-
-        /* -----------------------------------------------------------------
-         * 4. THE PAINT IS TOKENS — DRILLS
-         * ----------------------------------------------------------------- */
 
         test('token drill: the strip\'s ground is --ui-fascia', () => mounted(
             (page) => assertTokenDrill(page, {
@@ -449,19 +363,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        /* -----------------------------------------------------------------
-         * 5. FOCUS, UNCLIPPED (bug L24's class)
-         * ----------------------------------------------------------------- */
-
         test('focus ring on the slider is the one ring and nothing clips it',
             () => mounted((page) => assertFocusUnclipped(page, TRACK), OFFSET));
 
         test('focus ring on Reset is the one ring and nothing clips it',
             () => mounted((page) => assertFocusUnclipped(page, RESET_BUTTON), OFFSET));
-
-        /* -----------------------------------------------------------------
-         * 6. STATE, ARIA AND WHAT IS DELIBERATELY ABSENT
-         * ----------------------------------------------------------------- */
 
         test('no selection treatment exists here — a slider has a value, not a state',
             () => mounted(async (page) => {
@@ -541,10 +447,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(withKey, { hasKey: true, display: 'flex' });
         }));
 
-        /* -----------------------------------------------------------------
-         * 7. CONTAINER FLOOR (spec §2.1 Rule 1, §2.4)
-         * ----------------------------------------------------------------- */
-
         test('the container rule reads the HOST, not the viewport', () => mounted(async (page) => {
             const wide = await page.prop(CAPTION, 'display');
             assert.notEqual(wide, 'none', 'at full width the caption is drawn');
@@ -577,10 +479,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the strip states its overflow rather than hiding a squeezed control '
                     + '(spec §2.4; "the old app\'s default answer everywhere was hidden")');
             }));
-
-        /* -----------------------------------------------------------------
-         * 8. EVERY GALLERY STATE RENDERS
-         * ----------------------------------------------------------------- */
 
         test('every gallery state mounts, and every one is a strip of the stated height',
             () => browser.withPage({ geometry }, async (page) => {

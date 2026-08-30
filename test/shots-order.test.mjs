@@ -1,22 +1,5 @@
 /**
- * shots-order.test.mjs — the shots page comes back in TIME order, whatever the wire says.
- *
- * Written 30 August 2026, round 4 of the fix campaign, from Ben's report on the tablet:
- * "when I tap the previous shot button it doesn't show the previous but some other shot,
- * like the order is all messed up".
- *
- * THE ORDER MODEL THIS FILE PINS. Every surface that walks the shot list walks it BY
- * POSITION — the Live band's arrows step an integer index, the History list paints rows in
- * order, the comparison pickers offer them as handed. So the meaning of "the next row" is
- * whatever the published array's order means. Until `orderShots` that was the wire's array
- * order and nothing checked it; now it is the shot's own `timestamp`, in the direction the
- * store asked for, with arrival order as the tie-break.
- *
- * THE ID IS NOT AN ORDERING KEY and there is a test below that says so: a shot id is a
- * content hash on a real machine, so a list sorted by id is a list in no order at all.
- *
- * Pure `node:test` — no browser, no fixture, no source text. The same rules exercised
- * through real presses on real controls are in `test/render/live-shot-order.render.test.mjs`.
+ * The shots page comes back in TIME order, whatever the wire says.
  */
 
 import { test, describe } from 'node:test';
@@ -55,8 +38,6 @@ describe('orderShots — the window in time order', () => {
         const wire = [NEWEST, MIDDLE, OLDEST];
         const out = orderShots(wire, SHOT_ORDER.NEWEST_FIRST);
         assert.deepEqual(ids(out), ['a', 'b', 'c']);
-        /* The RECORDS themselves, not copies: the store publishes what it was handed and
-         * `derivations` is keyed by id off these same objects. */
         assert.equal(out[0], NEWEST);
     });
 
@@ -91,18 +72,12 @@ describe('orderShots — the window in time order', () => {
     });
 
     test('ties are not broken by the id — a content hash is not a clock', () => {
-        /* `zzz` sorts after `aaa` by string and BEFORE it by arrival. An implementation
-         * that reached for the id would answer aaa,zzz here and be wrong about a fact it
-         * cannot know: ReaPrime ids are uuids/hashes and carry no time. */
         const later = shot('zzz', '2026-08-29T08:40:00.000000');
         const earlier = shot('aaa', '2026-08-29T08:40:00.000000');
         assert.deepEqual(ids(orderShots([later, earlier])), ['zzz', 'aaa']);
     });
 
     test('sub-millisecond neighbours tie, and the tie is resolved by arrival', () => {
-        /* `Date.parse` keeps three decimal places of ReaPrime's six, so these two are one
-         * instant as far as the field can say. The honest answer is the order they came
-         * in, not a guess from digits the parser threw away. */
         const first = shot('us-first', '2026-08-29T08:40:00.000100');
         const second = shot('us-second', '2026-08-29T08:40:00.000900');
         assert.deepEqual(ids(orderShots([second, first])), ['us-second', 'us-first']);

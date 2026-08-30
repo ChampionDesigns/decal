@@ -1,22 +1,5 @@
 /**
- * base-fixture.render.test.mjs — the end-to-end proof of the Gate A rig, and the
- * pattern every Wave 1+ rendering suite copies.
- *
- * It runs the whole path: a static server on an ephemeral port serving the real
- * repo root, headless Chrome on an ephemeral debug port with a fresh profile, the
- * base-element conventions fixture mounted through index.html's own importmap, at
- * BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600 floor — asserting
- * only on computed style, box geometry and behaviour.
- *
- * Every assertion here is one of Gate A's four standing ones (Part 8 §2) pointed at
- * the fixture item #2 built for exactly this purpose. Nothing in this file reads a
- * source file, and nothing in it names a value that is not either a token or a
- * physical constant.
- *
- * WHY BOTH GEOMETRIES ON EVERY TEST. The bench truth is 1281×801 at dpr 1.5; the
- * floor is where a component has to prove it reads its own container. Running the
- * same assertions at both is what makes "the geometry is emulated" a fact rather
- * than a flag that was set once and never checked.
+ * The end-to-end proof of the Gate A rig, and the pattern every.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -59,12 +42,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- standing assertion 1: tokens are consumed, not copied --------- */
-
         test('drill: --ui-control-h moves the control\'s rendered height', () => mounted(async (page) => {
-            // A real --ui- token from styles/tokens.css (64px, the Slate stepper's
-            // measured min-height), read through a geometry property rather than a
-            // colour — a component that hard-codes 64px passes every colour drill.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-control-h',
                 value: '91px',
@@ -84,16 +62,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 value: DRILL_COLOUR,
                 selector: sel,
                 property: 'outline-color',
-                // The ring only exists while the element is keyboard-focused, and a
-                // token change does not survive a re-focus for free — so re-establish
-                // it before every read.
                 prepare: (p) => p.focusVisible(sel),
             });
         }));
 
         test('drill: --ui-text moves inherited ink across the shadow boundary', () => mounted(async (page) => {
-            // Custom properties are the ONLY styling that crosses a shadow boundary
-            // (Part 2 §4; A6). This is that mechanism, asserted rather than assumed.
             await assertTokenDrill(page, {
                 token: '--ui-text',
                 value: DRILL_COLOUR,
@@ -102,15 +75,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- standing assertion 2: one selection treatment ------------------ */
-
         test('the selected control is painted by the four dials and nothing else', () => mounted(async (page) => {
             const result = await assertOneSelectionTreatment(page, {
                 selected: 'base-fixture >>> #tab',
                 unselected: 'base-fixture >>> #tab-off',
             });
-            // Slate's own dials, carried unchanged (slate-tokens.css:188-191, spec §3.9):
-            // the face IS --ui-steel, so the two resolve to the same colour.
             assert.equal(result.face, await page.resolveToken('--ui-steel', 'background-color'));
         }));
 
@@ -124,12 +93,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a selected element keeps a resting shadow declared in the composition slot', () => mounted(async (page) => {
-            // box-shadow is a WHOLE-VALUE property: selectionSurface's declaration
-            // replaces the element's entire shadow list. The seam between two items in
-            // a one-piece bank is an inset shadow (--ui-seam-ink, oracle record
-            // editor-review[9] .slate-bank-item), so ui-bank — component #2 — would
-            // lose its seam the moment an item turned selected. The fragment prepends
-            // --_ui-rest-shadow instead, and this is that, rendered.
             const seamInk = await page.resolveToken('--ui-seam-ink', 'background-color');
             const off = await page.prop('base-fixture >>> #seam-off', 'box-shadow');
             const on = await page.prop('base-fixture >>> #seam-on', 'box-shadow');
@@ -144,19 +107,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('an unselected element with no slot set is unchanged by the composition', () => mounted(async (page) => {
-            // The default path must paint exactly what it painted before the slot
-            // existed: a transparent no-op plus the (0px) LED.
             const on = await page.prop('base-fixture >>> #tab', 'box-shadow');
             assert.ok(/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(on), `expected a transparent no-op segment: ${on}`);
         }));
 
-        /* -- standing assertion 3: scroll floors and stated overflow -------- */
-
         test('a squeezed region stops at its floor and shows a scrollbar', () => mounted(async (page) => {
             const m = await assertScrollFloor(page, {
                 selector: '#mount',
-                // Ask for 120px against a 200px floor: the floor must win, and the
-                // overflow must become a scrollbar rather than a silent clip.
                 squeeze: {
                     'overflow-y': 'auto',
                     'min-block-size': '200px',
@@ -168,8 +125,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(m.scrollbarInline >= 1, `expected a scrollbar gutter, got ${m.scrollbarInline}px`);
         }));
 
-        /* -- standing assertion 4: focus geometry, unclipped (bug L24) ------ */
-
         test('the focus ring is the token ring, unclipped, outset', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, 'base-fixture >>> #plain');
             assert.equal(g.outlineOffset, '2px', '--ui-focus-offset');
@@ -178,16 +133,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the third place a focusable can be: SLOTTED IN, and it gets the same ring',
             () => browser.withPage({ geometry }, async (page) => {
-                /* Review finding cross-3. The base's focusable list is scoped to the
-                 * shadow tree and a slotted node is light DOM, so before
-                 * `::slotted(:focus-visible)` existed a bare slotted button fell back
-                 * to the UA's own ring - MEASURED at BENCH inside <ui-card>:
-                 * outline-style `auto`, outline-color rgb(16, 16, 16), outline-width
-                 * 1px. A sixth treatment, in the layer that exists to end the five
-                 * (§3.6). Twelve of wave 1's fourteen elements expose a slot.
-                 *
-                 * Mounted here rather than in the shared MARKUP so no other assertion's
-                 * geometry moves. */
                 await page.mount(
                     '<base-fixture><button id="loose" type="button">Slotted</button></base-fixture>',
                     FIXTURE,
@@ -212,16 +157,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the same ring survives a clipping parent by going inset', () => mounted(async (page) => {
-            // Bug L24's exact shape: a control inside `overflow: hidden`. The fixture
-            // re-declares --_ui-focus-offset for that subtree, so the ring is drawn
-            // inside the element and the clipper cannot reach it.
             const g = await assertFocusUnclipped(page, 'base-fixture >>> #clipped');
             assert.equal(g.outlineOffset, '-3px', '--ui-focus-offset-inset');
             assert.ok(g.clippers.length >= 1, 'the fixture must actually have a clipping ancestor, or this is vacuous');
             assert.equal(g.clippers[0].overflowY, 'hidden');
         }));
-
-        /* -- the hit-area utility, ink separate from floor (spec §2.3) ------ */
 
         test('a 20px keycap has a 48px hit box on both axes', () => mounted(async (page) => {
             const hit = await assertHitFloor(page, 'base-fixture >>> #keycap');
@@ -250,20 +190,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* -- a component reads its own container, never the viewport -------- */
-
         test('the container query follows the host, not the viewport', () => mounted(async (page) => {
-            // The inversion is the proof: at a 1281-wide viewport a 380px host reports
-            // the narrow layout, and at a 1000-wide viewport a 900px host reports the
-            // wide one. A component keyed on @media would get both backwards.
             await page.setStyle('base-fixture', { 'inline-size': '380px' });
             assert.equal(await page.prop('base-fixture >>> #container-probe', 'block-size'), '10px');
 
             await page.setStyle('base-fixture', { 'inline-size': '900px' });
             assert.equal(await page.prop('base-fixture >>> #container-probe', 'block-size'), '40px');
         }));
-
-        /* -- zero !important, proved by the override winning ---------------- */
 
         test('a component rule beats the base rules with no !important anywhere', () => mounted(async (page) => {
             const box = await page.computed('base-fixture >>> #override', ['box-sizing', 'width']);
@@ -274,11 +207,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         /* -- base styles come FIRST, however the subclass spelled its array ---- */
 
         test('the :host opt-out works even when the subclass ALSO spreads the base styles', () => {
-            // The other leg of zero-!important. :host rules cannot be wrapped in
-            // :where() — they carry a real (0,1,0) — so the opt-out only works because
-            // the base comes first. Lit's own dedupe keeps the LAST copy of a repeated
-            // sheet, which would put the base last for the belt-and-braces spelling and
-            // silently un-do the opt-out. Both elements must report `normal`.
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(
                     '<base-fixture-intrinsic id="plainOptOut">E</base-fixture-intrinsic>'
@@ -295,10 +223,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('the disabled dial reaches the HOST, not only the shadow tree', () => {
-            // `:where([disabled])` is a shadow-tree selector and cannot match the host.
-            // The ordinary Lit spelling reflects `disabled` onto the host, so without
-            // its own :host() rule "every disabled control dims" is false for the most
-            // common shape in the library.
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(
                     '<base-fixture-spread id="hostOff">E</base-fixture-spread>'
@@ -316,10 +240,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
     });
 }
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the two standard geometries genuinely differ
- * ------------------------------------------------------------------------- */
 
 test('the bench and the floor are different renderings of the same fixture', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {

@@ -1,63 +1,5 @@
 /**
- * editor-editing.render.test.mjs — wave 5.5, rows `chart-preview`, `editor-dialogs` and
- * `numpad-flows`, at both Gate A geometries (BENCH 1281×801 @ dsf 1.5, FLOOR 1000×600 @
- * dsf 1).
- *
- * ===========================================================================
- * A8 — NOTHING HERE READS A FILE
- * ===========================================================================
- * Part 5 §5: "the old editor is pinned by tests that regex-match the stylesheet's source
- * text for the 1920×1200 lock and the 64px literals — tests that made the defects
- * UNREMOVABLE … no test anywhere may match source text." Every claim below is a computed
- * style, a measured box, a counter the component itself keeps, a real hit-tested press,
- * a real CDP key, or Chrome's own accessibility tree. The assertions go through
- * `test/harness/editor.js`, which opens no file either.
- *
- * ===========================================================================
- * WHAT EACH BLOCK PROVES
- * ===========================================================================
- * 1. E12, and it is the one that needs an INSTRUMENT rather than an opinion. #9 keeps
- *    two counters — `buildCount` (uPlot constructions) and `paintCount` (draws that
- *    actually ran) — so "no rebuild on every ± press" is countable. The block drives N
- *    edits with the preview showing (zero constructions, the data different each time),
- *    N more with the preview on a HIDDEN tab (zero constructions AND zero paints), and
- *    then proves the instrument is alive by making a theme change rebuild. A counter
- *    that cannot move is E8's defect wearing a test. The theme is E12's OTHER rebuild
- *    trigger — uPlot bakes its colours in at construction — and it reaches the card
- *    without passing through <editor-preview> at all, so it gets its own block: a
- *    retheme on a hidden tab must cost zero builds, zero paints and no reallocated
- *    canvas, and must land, in the theme on screen, the moment the panel has a box.
- *
- * 2. chart-C6 as a CENSUS: every canvas in the mounted editor lives inside a
- *    `ui-chart-card`, and the editor contributes exactly one chart. The tree has no
- *    "guard that lists them all" to add a row to — Gate C ships four guards
- *    (colour-literal, font-face, important, private-palette) and none is chart-shaped —
- *    so the census is the enforcement this screen carries, and the absence is a recorded
- *    deferred question rather than a silently skipped item.
- *
- * 3. chart-C5: the palette is read from CSS. Every channel colour the plot was BUILT
- *    from equals the computed value of its token on the card, and moving a token moves
- *    what the next build reads. Slate's six hex literals have no way in.
- *
- * 4. O6/O8 per dialog INSTANCE: one native <dialog> in the composed tree, a scrolling
- *    body, a background that is really inert (a press on the matrix behind the dialog
- *    changes nothing), a trap the Tab key cannot walk out of, Escape closing through the
- *    shell's own stack, and the caret restored to the control that was pressed. Plus the
- *    ARBITRATION, driven through the three public routes because no gesture can reach a
- *    second overlay: opening one closes whatever else the region had open, a refused
- *    open closes nothing, and O5 — the exit dialog may not seed or permit a threshold
- *    `exit-validity.js` proves can never end its step.
- *
- * 5. The lever preset invariant: P0 is unchanged across EVERY preset — the locked box's
- *    reading is identical, the draft has exactly two keys, and the emitted event carries
- *    no pressure of any spelling.
- *
- * 6. B2 through the numpad: the keypad's own range hint is `numpadRange()` of the entry
- *    the door handed it, for a matrix cell and for a settings field, and a field the door
- *    refuses opens nothing and reports why. Plus O9 (the backspace has a real accessible
- *    name) and O10 (the title's size is a token and there is no inline size on it),
- *    asserted on an ARMED keypad — an unarmed #53 renders its unavailable panel and
- *    measuring that would prove nothing about the pad.
+ *.5, rows chart-preview, editor-dialogs and numpad-flows, at both Gate A geometries (BENCH 1281×801 @ dsf 1.5, FLOOR 1000×600 @ dsf 1).
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -95,12 +37,6 @@ const valueCell = (row, index) => `${matrixCell(row, index)} > ui-stepper >>> #v
 /** Where the caret is, as an anchor path — the harness's own deep walk. */
 const activePath = (page) => page.eval('window.__h.anchorPath(window.__h.deepActiveElement())');
 
-/**
- * The plot's canvas, in both coordinate systems. DEVICE px is what a rebuild bakes in
- * (uPlot sizes from the host it is constructed into), so a construction with no box is
- * visible here as a canvas that collapses to a couple of pixels; CSS px is what the
- * viewer sees. Both are read off the engine — nothing here reads a file (A8).
- */
 const canvasSize = (page) => page.evalFn((sel) => {
     const canvas = window.__h.need(sel).renderRoot.querySelector('canvas');
     if (!canvas) return null;
@@ -134,10 +70,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await mountEditing(page, options);
             return fn(page);
         });
-
-        /* =====================================================================
-         * 1. THE PREVIEW IS A #9 INSTANCE, AND IT IS THE ONLY CHART (chart-C6)
-         * =================================================================== */
 
         describe('the preview chart', () => {
             test('chart-C6 — every canvas in the editor is inside a ui-chart-card, and there is one card',
@@ -256,9 +188,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 () => mounted(async (page) => {
                     await selectPanel(page, 'review');
                     const before = await chartCounts(page);
-                    /* FLIP AWAY FROM WHATEVER THE PAGE IS ON. The harness mounts on the
-                     * dark theme, so asking for dark again is a no-op that would make
-                     * this test pass for the wrong reason if it asserted the inverse. */
                     const current = await page.eval("document.documentElement.getAttribute('data-theme')");
                     await page.setTheme(current === 'light' ? 'dark' : 'light');
                     await page.settle(6);
@@ -271,13 +200,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('E12 — a theme change while the preview is HIDDEN neither rebuilds nor paints, and lands when it is shown',
                 () => mounted(async (page) => {
-                    /* THE OTHER REBUILD TRIGGER. The data gate above covers ± presses,
-                     * numpad commits and mode changes; uPlot also bakes its axis and grid
-                     * colours in AT CONSTRUCTION, so a retheme is a construction too —
-                     * and it reaches the card through the surface's own observer on the
-                     * document root, without passing through <editor-preview> at all.
-                     * Ungated it allocated a 2×2 device / 0×0 CSS canvas on a hidden tab,
-                     * which is §7.4 E12's "fresh 1×1 canvas" down the theme path. */
                     await selectPanel(page, 'review');
                     await page.settle(3);
                     await selectPanel(page, 'steps');
@@ -377,10 +299,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }));
         });
 
-        /* =====================================================================
-         * 2. THE TWO DIALOGS — O6, O8, AND THE PRESET INVARIANT
-         * =================================================================== */
-
         describe('the editor dialogs', () => {
             const openLever = async (page) => {
                 await page.evalFn((sel) => window.__h.need(sel).openLever({ index: 0 }), EDITOR.overlays);
@@ -396,42 +314,18 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         return {
                             total: all.length,
                             open: all.filter((el) => el.open).length,
-                            /* THE O6 CLAIM ITSELF, asked directly: every native dialog on
-                             * the page is inside a #18. Seven implementations became one
-                             * component, and a <dialog> whose shadow host is anything else
-                             * is the second machinery coming back. */
                             foreign: all.filter((el) => hostOf(el) !== 'UI-DIALOG')
                                 .map((el) => `${hostOf(el) || 'document'}#${el.id}`),
                         };
                     });
                     assert.deepEqual(count.foreign, [],
                         'a native dialog that is not inside a ui-dialog is a second machinery (O6)');
-                    /* THE OVERLAY REGION HOLDS THREE OVERLAYS — the keypad and the two
-                     * dialogs — and each contributes exactly ONE native dialog, closed
-                     * until it is asked for. O6's defect is seven IMPLEMENTATIONS, not
-                     * three instances of one: every one of these is #18. */
                     const overlays = await page.evalFn((sel) => (
                         window.__h.need(sel).renderRoot.querySelectorAll('*').length > 0
                             ? [...window.__h.need(sel).renderRoot.children].length
                             : 0
                     ), EDITOR.overlays);
-                    /* THE OVERLAYS' THREE, PLUS THE SCREEN'S OWN ONE. `<editor-screen>`
-                     * gained a rename dialog with the header's identity block (cmp-seh-3,
-                     * fix run 4) — the pencil's minimal name editor, driving the same save
-                     * path the band does. It is a #18 like the other three (asserted
-                     * above), it is closed until the pencil is pressed, and it lives in
-                     * the screen rather than in the overlay region because it is the
-                     * screen's own affordance and takes no track either way. */
-                    /* AND ITS SECOND, 23 Aug 2026: the DISCARD guard. Cancel appears only
-                     * at a dirty count and used to do nothing at all, which left a dirty
-                     * editor with no way out except saving a version nobody wanted. The
-                     * guard is what makes Cancel safe to wire, and it is a #18 like the
-                     * other four. */
-                    /* AND ITS THIRD, 24 Aug 2026: PREVIOUS VERSIONS. Ben — "Can we add it
-                     * to the editor as well, could be useful to be able to undo a change
-                     * etc." It is a #18 like the other five, closed until the header
-                     * control is pressed, and it reads the LIBRARY store rather than
-                     * calling the lineage route itself. */
+
                     assert.equal(count.total, overlays + 3,
                         `each overlay must own one #18 and no second machinery, and the screen owns `
                         + `the rename and the discard guard: ${count.total} dialogs for ${overlays} `
@@ -536,18 +430,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `the lever event carries more than the feel: ${JSON.stringify(change)}`);
                 }, { steps: [{ ...LEVER_STEP }] }));
 
-            /* THE READING IS ANNOUNCED, not merely displayed — the half the invariant
-             * above cannot see. #43 makes its slotted glyphs aria-hidden the instant a
-             * `label` is set, so a label repeating the caption ALREADY beside the box
-             * announced that caption and hid the one value this dialog exists to protect.
-             * The invariant above reads `textContent`, which stayed correct the whole
-             * time; only Chrome's tree is a witness to what a screen reader is told.
-             *
-             * NOT a role-filtered walk: a visually-hidden reading is StaticText inside a
-             * generic box and carries no role of its own, so `accessibleNames` — right for
-             * "what is this control called" — cannot see it either way, which is exactly
-             * how this survived. The expected string is READ OFF THE RENDERED BOX rather
-             * than typed, so the number stays the step's and the unit stays the door's. */
             test('the P0 reading reaches the accessibility tree, not just the screen',
                 () => mounted(async (page) => {
                     await openLever(page);
@@ -566,12 +448,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('THE ROUTES ARBITRATE — opening one overlay closes whatever else this region had open',
                 () => mounted(async (page) => {
-                    /* "Exactly one open" was a property of the DRIVE and not of the code:
-                     * the three public routes each showed their own overlay, so a
-                     * composition root could stack three simultaneously-open native
-                     * dialogs. #18 survives that state, but this region must not permit
-                     * it. Driven through the public routes, which is the only way in — the
-                     * page under an open #18 is inert, so no gesture can reach a second. */
                     await page.evalFn((sel) => window.__h.need(sel).openLever({ index: 0 }), EDITOR.overlays);
                     await page.settle(4);
                     let state = await overlayState(page);
@@ -630,11 +506,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.evalFn((sel) => window.__h.need(sel).openExitCondition({ index: 0 }), EDITOR.overlays);
                     await page.settle(4);
 
-                    /* THE STEP HAS NO EXIT, so every number below is one this dialog
-                     * INVENTED. `exit-validity.js` is the module its own header cites:
-                     * "a falls-below threshold floors at one increment rather than zero,
-                     * so the dead state cannot be dialled in at all". No bound and no
-                     * increment is typed here — both are read from the door (B2). */
                     const seeded = await page.evalFn(async (sel) => {
                         const dialog = window.__h.need(sel);
                         const stepper = dialog.renderRoot.querySelector('#value');
@@ -682,13 +553,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                     await page.click(`${EDITOR.exitDialog} >>> #confirm`);
                     await page.settle(3);
-                    /* BY THE EVENT NAME, which is now a field no payload can reach. This
-                     * filtered on `slot` while the recorder's discriminator lived under
-                     * `type` and this event's detail carried its own `type` (the exit
-                     * channel) that won the spread — `slot` was the part of the address
-                     * that survived. The recorder now writes `event` last (harness
-                     * `record()`), so the row is addressable by what it IS, and `type`
-                     * below is unambiguously the channel. */
                     const change = (await editorEvents(page))
                         .filter((e) => e.event === 'exit-condition-change').pop();
                     assert.ok(change, 'confirming the exit dialog reported nothing');
@@ -725,14 +589,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(report.offered.length > 0, 'a step with no offered exit type is not editable');
                 }));
 
-            /* THE ONE OUTCOME, ASSERTED AS ITSELF, and nothing in this wave did that.
-             * The suite tested the dialog's bounds and its dead-state seeding; the event
-             * it reports was reachable only SIDEWAYS, by `slot`, because the recorder's
-             * discriminator lived under `type` and this detail carries its own `type`
-             * (the exit channel) that won the spread. A filter on the event name matched
-             * nothing and matched it silently. Both halves are pinned here: the frame
-             * field survives the payload, and `type` is the CHANNEL, not the event name.
-             * If the recorder ever regresses, the length check below is what goes red. */
             test('the exit dialog reports ONE outcome, and it carries the whole address',
                 () => mounted(async (page) => {
                     await page.evalFn((sel) => window.__h.need(sel).openExitCondition({ index: 0 }), EDITOR.overlays);
@@ -767,10 +623,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }));
         });
 
-        /* =====================================================================
-         * 3. THE NUMPAD FLOWS — B2 THROUGH THE KEYPAD, O9, O10
-         * =================================================================== */
-
         describe('the numpad flows', () => {
             test('a matrix value cell opens an ARMED keypad whose hint is the table\'s own entry',
                 () => mounted(async (page) => {
@@ -799,10 +651,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('the routes survive a RE-PARENT: reconnecting re-attaches the listeners',
                 () => mounted(async (page) => {
-                    /* `updated()` attaches only when `source` CHANGES and the disconnect
-                     * detaches unconditionally, so a re-parent with `source` untouched
-                     * left every editing gesture unrouted — `source` still truthy, the
-                     * press opening nothing, and no error anywhere to find it by. */
                     const cell = valueCell('temperature', 0);
                     await page.click(cell);
                     await page.settle(4);
@@ -939,35 +787,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }));
         });
 
-        /* =====================================================================
-         * 5. NO DEAD RULE IN THE EDITING SURFACES' OWN SHEETS  (E4, and P9)
-         *
-         * §7.4 E4: "Eight CSS rules whose selectors cannot match, eight
-         * emitted-but-unstyled classes, and a dead `data-pe-mode` attribute hook."
-         *
-         * The five roots this stage mounts — the matrix, the preview, the overlay
-         * region and the two dialogs. The shell's other four are scanned in
-         * `editor-skeleton.render.test.mjs`; together the two cover all nine of
-         * the editor's components, which is E4's whole surface.
-         *
-         * THE STATES ARE ENTERED, NOT ASSUMED. `.cell > ui-locked-value` matches
-         * only on a step that HOLDS its target, so the stage below is seeded with
-         * one; the dialogs' rows only exist while a dialog is open, so both are
-         * opened. A rule judged at rest is a live rule reported dead, and a
-         * deletion is the next thing that happens to it.
-         *
-         * THE TWO DIALOGS SHARE ONE SHEET (`dialogRows`, in
-         * `editor-dialog-parts.js`), and the scan keys sheets by identity — so
-         * `.note`, which only the lever dialog emits, counts as live for both
-         * rather than reading as dead in the exit dialog.
-         *
-         * OUT OF SCOPE, DELIBERATELY: `ui-numeric-keypad`'s own sheet. The keypad
-         * is #53, a wave-4 library component rather than one of the editor's nine,
-         * and its `.previous` block is armed by a `previous` property this screen
-         * never sets. Scanning it here would report a wave-4 component's
-         * unarmed state as an editor defect.
-         * =================================================================== */
-
         test('E4: no rule in the five editing sheets is unmatchable, in any state',
             () => mounted(async (page) => {
                 const HOSTS = [
@@ -997,24 +816,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.press('Escape');
                 await page.settle(3);
 
-                /* AND THE STEP NAME BEING EDITED, which is the state this sweep did not
-                 * enter — so `.head-line > .name` and `.cell > ui-text-field` were reported
-                 * dead while the field they style is live the moment a name is tapped.
-                 * That is the exact failure mode the paragraph above warns about ("a rule
-                 * judged at rest is a live rule reported dead, and a deletion is the next
-                 * thing that happens to it"), and it very nearly was. */
                 await page.evalFn((sel) => { window.__h.need(sel)._editing = 0; }, EDITOR.matrix);
                 await page.settle(4);
                 census.add(await scanRules(page, HOSTS), 'name-editing');
                 await page.evalFn((sel) => { window.__h.need(sel)._editing = null; }, EDITOR.matrix);
                 await page.settle(3);
 
-                /* AND THE MATRIX WITH NO STEPS AT ALL (audit F-033). `button.filler.empty`
-                 * is the add door's zero-step face: on a profile with no steps there is no
-                 * column, no action rail and therefore no "Insert step after" key, so that
-                 * one rule styles the ONLY control on the screen and the only way out of
-                 * the dead end Ben reported on 27 August. It can match in no other state.
-                 * Exactly the case the paragraph above is about. */
                 await page.evalFn((sel) => {
                     const matrix = window.__h.need(sel);
                     window.__heldSteps = matrix.steps;
@@ -1044,29 +851,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${where} declares a selector twice at the same condition (P9)`);
                 }
             }, {
-                /* A HOLDING STEP, so the locked-value rule has something to select, and
-                 * a lever step so the lever dialog opens onto its own rows. Values only
-                 * — B2: no bound is stated here.
-                 *
-                 * AND A PLAIN FLOW STEP, added at parity surface 4 and by this test's
-                 * own instruction. The matrix now carries five channel-ink rules keyed
-                 * on data-channel, and the four steps above reach only four of them: a
-                 * HOLDING step draws #43 in the Target cell rather than a stepper, so
-                 * the seed had no flow TARGET anywhere and E4 reported
-                 * ui-stepper[data-channel="flow"] dead. It is the commonest cell in the
-                 * screen — editor--steps photographs two of them — which is exactly the
-                 * case this test's own header warns about: "a rule judged at rest is a
-                 * live rule reported dead, and a deletion is the next thing that happens
-                 * to it". The state set gets the step; the rule stays.
-                 *
-                 * AND A POWER STEP, 25 August 2026, by the same instruction and the same
-                 * mechanism. The head cell gained a mode line with a tone per pump, so
-                 * `.mode[data-tone="power"]` became a real rule — and POWER was the one
-                 * mode no seeded step carried, so E4 reported it dead the first time the
-                 * suite ran after the wiring. It is authorable on this machine (the
-                 * served caps are 15, all four bits), so the seed grows rather than the
-                 * rule going. Its limiter is soft-MANDATORY: ProfileStepPower.fromJson
-                 * throws for a null or zero one. */
                 steps: [
                     matrixStep({ transition: 'hold' }),
                     matrixStep({ pump: 'pressure', pressure: 9 }),

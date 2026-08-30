@@ -1,20 +1,5 @@
 /**
- * settings-store.test.mjs — the spine every settings leaf reads and writes through
- * (wave 5.4, item b7-storage-routing).
- *
- * Two laws are under test here and they pull in opposite directions, which is why they get
- * one suite:
- *
- *   B7  — one store per setting. A write goes to exactly one layer, and a FAILED write
- *         surfaces instead of silently losing the setting. That is the units.js defect
- *         (`units.js:52-58,:106-115`): two stores, a swallowed catch, and a boot read of
- *         the other one first, so a rejected put lost the preference AND overwrote the
- *         good copy next boot.
- *   A3  — capability gating through the served array, FAILING CLOSED. Both ABSENT and
- *         UNKNOWN hide a surface. UNKNOWN is the one that bites: the mock answers
- *         /api/v1/machine/capabilities with 503 by design (wave 5.1 REPORT), so `entries`
- *         stays null and every gate reads UNKNOWN, not ABSENT. A gate written against
- *         ABSENT alone renders every machine page against the mock.
+ * The spine every settings leaf reads and writes through (.4, item b7-storage-routing).
  */
 
 import { test, describe } from 'node:test';
@@ -61,13 +46,6 @@ function harness({ kvFails = false, capabilities = null } = {}) {
 const capabilitiesAnswering = (verdict) => ({ capability: () => verdict });
 
 const GATED_KEY = 'cupWarmerTarget';   // capability: 'cupWarmer'
-/* A machine-scoped, ungated KV row — the sample machine-scoped KV key.
- *
- * IT WAS `steamStopMode` UNTIL 27 AUGUST 2026, when that row was RETIRED: the Live rail
- * stopped keeping a copy of the steam stop mode and started deriving it from the machine,
- * so the key had no reader left and a `layer: 'none'` row makes the router throw. Nothing
- * in this file was ever about steam — what it needs is one machine-scoped ungated key, and
- * the tank's display unit is one. */
 const KV_KEY = 'waterTankUnit';        // machine-scoped, ungated
 const LOCAL_KEY = 'theme';             // device-scoped
 
@@ -125,18 +103,6 @@ describe('reads — absent is a real answer', () => {
         assert.deepEqual(seen, [undefined, 'dark']);
     });
 
-    /* THE REGRESSION THIS FILE DID NOT HAVE, found on 24 Aug 2026 by a render test that
-     * visited a leaf twice.
-     *
-     * `store.set` THROWS when it is handed the object it already holds — that is pattern
-     * F wearing a disguise, and the guard is right. A backend that answers with the SAME
-     * REFERENCE it was given (the memory backend does, and so would any cache) makes an
-     * ordinary re-read look exactly like that mistake, so `load()` blew up on the second
-     * visit to the leaf.
-     *
-     * IT HAD NEVER FIRED because every routed key held a PRIMITIVE, and `set` treats an
-     * equal primitive as a genuine no-op. `keyboardBindings` is the first object-valued
-     * routed key; it arrived with the rebinding editor. */
     test('re-reading an OBJECT value is a no-op, not the pattern-F throw', async () => {
         const { settings, backends } = harness();
         const bindings = Object.freeze({ espresso: 'x' });
@@ -165,20 +131,6 @@ describe('reads — absent is a real answer', () => {
     test('loadLeaf reads exactly the keys that leaf owns', async () => {
         const { settings } = harness();
         const results = await settings.loadLeaf('display-screen-saver');
-        /* FOUR SINCE 26 AUG 2026, and three of the four changed name or shape.
-         *
-         * `screensaverClock` WAS A SWITCH AND IS NOW A CHOICE. It went in on 24 August as
-         * "a faint clock on the black screen", a second boolean beside `screensaverEnabled`
-         * — and two booleans for one question is how a screen ends up in a state neither of
-         * them describes. It is `screensaverType` now: black, image or clock, one value.
-         *
-         * `screensaverCycleSeconds` BECAME MINUTES, on Ben's band: "Make that a stepper, 1
-         * to 10 minutes." Slate's own control is 2-600 SECONDS, which answers a different
-         * question — two seconds is a slideshow, and this is a screen saver.
-         *
-         * `screensaverImages` IS LIVE AGAIN. D10 made this skin's screensaver fully black
-         * and retired the list; the type choice brings the picture back, so the images the
-         * person chose are a key this leaf owns once more. */
         assert.deepEqual(
             results.map((r) => r.key).sort(),
             ['screensaverCycleMinutes', 'screensaverEnabled', 'screensaverImages', 'screensaverType'],
@@ -198,18 +150,11 @@ describe('writes — one layer, and a failure that surfaces', () => {
     });
 
     test('A FAILED WRITE DOES NOT CHANGE THE SHOWN VALUE', async () => {
-        // The whole point. A settings row that shows a value it did not persist is the
-        // silent revert wearing a new coat.
         const { settings } = harness({ kvFails: true });
         await settings.load(KV_KEY);
         const outcome = await settings.set(KV_KEY, 'weight');
         assert.equal(outcome.ok, false);
         assert.equal(outcome.reason, WRITE_REFUSAL.BACKEND_FAILED);
-        /* THE ASSERTION IS "NOT THE REFUSED VALUE", NOT "EMPTY". Since O3 (26 Aug 2026)
-         * every key Ben decided has a default, so an unset key reads as that default
-         * rather than as nothing — which is the point of O3 and does not weaken this
-         * test's claim. `storedValue` is the raw read, and it is what proves nothing was
-         * persisted. */
         assert.notEqual(settings.value(KV_KEY), 'weight', 'the store showed a value it never stored');
         assert.equal(settings.storedValue(KV_KEY), undefined, 'and nothing reached a backend');
     });
@@ -242,10 +187,6 @@ describe('writes — one layer, and a failure that surfaces', () => {
     });
 
     test('a null write DELETES rather than storing the string "null"', async () => {
-        // ReaPrime's handler does `jsonDecode(body) ?? body` (kv_store_handler.dart:41,:47)
-        // and jsonDecode('null') is null, so a null body lands the four characters 'null'
-        // in the store and reads back present and truthy. The router routes null to
-        // remove(); this proves the settings store rides that path rather than around it.
         const { settings, backends } = harness();
         await settings.set(KV_KEY, 'weight');
         const outcome = await settings.set(KV_KEY, null);
@@ -307,10 +248,6 @@ describe('A3 capability gating — fail CLOSED', () => {
     });
 
     test('a hidden surface cannot DELETE either — remove() takes the same gate', async () => {
-        // remove() is a write. Against the mock the capabilities endpoint answers 503 by
-        // design (wave 5.1 REPORT), so every gated key reads UNKNOWN, and an ungated
-        // remove() would send DELETE /api/v1/store/decal/cupWarmerTarget to a machine
-        // that never advertised cupWarmer — the exact case claim 5 is written against.
         for (const verdict of [CAPABILITY.ABSENT, CAPABILITY.UNKNOWN]) {
             const { settings, backends } = harness({ capabilities: capabilitiesAnswering(verdict) });
             const outcome = await settings.remove(GATED_KEY);

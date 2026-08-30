@@ -1,45 +1,5 @@
 /**
- * ui-stop-button.render.test.mjs — Wave 4 item #47's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR, never
- * source text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the 1000x600 floor
- * (CONVENTIONS §10, SCOPE Part 8 §2).
- *
- * WHAT THIS SUITE IS REALLY FOR. #47 is a safety control, and the two ways a safety
- * control fails are both invisible in a screenshot: it is there when it should not be,
- * or it is there and the press goes nowhere. So the load-bearing tests are the presence
- * contract (§1), the press contract (§7) and the four standing assertions — and each one
- * is written so that it could not pass against the implementations this row replaces:
- *
- *   §1  ABSENT, not hidden. Slate's own words for why: "no cost at all when nothing is
- *       running: the control does not exist then" (ui.js:3559-3561). A `display: none`
- *       button is still a focusable in the tree — P13's shape, "16 focusables reachable
- *       inside closed dialogs".
- *   §3  the token drill on all five values the Slate rule names, so a hard-coded red or
- *       a hard-coded 64 turns red here rather than at a fork.
- *   §4  the four selection dials driven to drill values move ZERO pixels. A momentary
- *       command has no selected state; the founding defect was thirteen selection
- *       components and six looks.
- *   §5  the one focus ring, unclipped, in both offsets — bug L24's class, and the reason
- *       the inset offset exists at all.
- *   §6  the container floor and the fluid display step, measured at both viewports and
- *       identical, which is what "reads its own container, never the viewport" means
- *       (spec §2.1 Rule 1).
- *   §8  a document sheet with !important aimed at every selector either implementation
- *       uses reaches NOTHING. Slate's entire look for this control lived in a SCREEN
- *       sheet (`#main-page .slate-rail-stop`, slate-live.css:1775-1795); the shadow
- *       boundary is what ends that, and it is asserted rather than assumed.
- *   §9  state is an attribute, never an inline style — bug L11's mechanism ("Two dimming
- *       systems fight over the rail … Inline wins"), made inexpressible.
- *
- * ORACLE. `prov_query.py find --cls slate-rail-stop`, `--id ghc-stop-btn-rail` and
- * `--id ghc-stop-btn` each return "found 0 element(s) in 0 state(s)" across all 49
- * states: the abort target ships `hidden` and no capture ever ran a machine. That is the
- * documented carve-out ("states outside the 49 … have no corpus answer at all"), so the
- * paint is a read-only source read of slate-live.css:1773-1797 whose TOKENS are cited
- * from elsewhere in the corpus — see the component header for the five CITE lines. Every
- * colour here is asserted against a resolved token, never a hex, so the suite is true in
- * both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -57,16 +17,8 @@ import {
 
 const MODULE = ['/src/components/ui-stop-button.js'];
 
-/* The gallery's own loader, imported by absolute URL exactly as the harness server
- * serves it. Its relative imports resolve to /src/components/, so this is the one
- * module that defines every tag the entry's states put on a stage. */
 const GALLERY_MODULE = ['/tools/gallery/entries/ui-stop-button.demo.js'];
 
-/* Slate's rail is 430px wide at its frozen 1920x1200 capture and the rows it covers are
- * 268x64 (`find --cls slate-stepper` -> 85 elements in 16 states, every one 268x64 at
- * x=134). 430 is quoted as a real point on --ui-rail-w's clamp(320px, 26%, 460px), never
- * as a target: the stage states a width so that every measured number is the CONTAINER's
- * answer and the two viewport geometries must produce identical ones. */
 const RAIL = 430;
 
 const MARKUP = `
@@ -92,10 +44,6 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/** Everything a selection treatment could possibly move, plus the resting paint it would
- *  have to beat. Carried from ui-preset-bank / ui-tab-bar / ui-stepper on purpose: one
- *  library, one list, so the components that HAVE no selection are held to the same
- *  standard as the ones that do. */
 const SELECTION_SURFACE_PROPERTIES = [
     'background-color', 'background-image', 'color', 'box-shadow', 'text-shadow',
     'opacity', 'border-top-width', 'border-top-color', 'border-top-left-radius',
@@ -156,10 +104,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(env.w, geometry.width);
         }));
 
-        /* ===================================================================
-         * 1. PRESENCE — the control does not exist while nothing is running
-         * =================================================================== */
-
         test('idle: no button, no focusable, no box — absent rather than hidden',
             () => mounted(async (page) => {
                 const shape = JSON.parse(await page.eval(`JSON.stringify(${SHAPE('idle')})`));
@@ -204,20 +148,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(shape.inlineStyles, 0);
             }));
 
-        /* ===================================================================
-         * 2. THE PAINT IS THE MEASURED PAINT, EXPRESSED IN TOKENS
-         * =================================================================== */
-
         test('the fill and the ink are --ui-status-danger on --ui-on-primary',
             () => mounted(async (page) => {
-                /* CITE settings-machine-sleep---wake-schedules .slate-btn [i=72]
-                 *      color = rgb(230, 102, 97) <- slate-components.css .slate-btn-danger
-                 *      authored var(--slate-danger) (token-driven)
-                 *      [prov-light: rgb(181, 28, 35)]  = --ui-status-danger
-                 * CITE settings-machine-sleep---wake-schedules .slate-btn [i=100]
-                 *      color = rgb(246, 251, 253) <- slate-components.css .slate-btn-primary
-                 *      authored var(--slate-on-primary) [prov-light: rgb(248, 252, 253)]
-                 * and slate-live.css:1787-1788 pairs exactly those two on this control. */
                 const got = await page.computed(btn('live'), ['background-color', 'color']);
                 assert.equal(got['background-color'], await page.resolveToken('--ui-status-danger', 'background-color'));
                 assert.equal(got.color, await page.resolveToken('--ui-on-primary', 'color'));
@@ -225,11 +157,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the box is --ui-control-h tall, square-cornered and borderless',
             () => mounted(async (page) => {
-                /* CITE settings-maintenance-machine-descaling .slate-btn [i=43]
-                 *      min-height = 64px <- slate-components.css .slate-btn authored
-                 *      var(--slate-control-height) (token-driven) = --ui-control-h.
-                 * slate-live.css:1783-1786: height: var(--slate-control-height);
-                 * border: 0; border-radius: 0. */
                 const got = await page.computed(btn('live'), [
                     'min-height', 'border-top-width', 'border-bottom-width',
                     'border-left-width', 'border-top-left-radius', 'border-top-right-radius',
@@ -245,11 +172,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the type is the display step at --ui-weight-medium, tracked by --ui-tracking-cap',
             () => mounted(async (page) => {
-                /* CITE expanded-charts #grind-value [i=21] font-size = 27px <-
-                 *      slate-components.css .slate-stepper-value authored
-                 *      var(--slate-display-xs) (token-driven) = --ui-display-xs.
-                 * The .04em departure was reversed at parity surface 0; the tracking is
-                 * Slate's own .12em, read from --ui-tracking-cap. */
                 const got = await page.computed(btn('live'), ['font-size', 'font-weight', 'letter-spacing', 'text-transform']);
                 assert.equal(got['font-weight'], await page.tokenValue('--ui-weight-medium'));
                 const size = parseFloat(got['font-size']);
@@ -259,10 +181,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the caps are the translated word, not a transform that would shout in a '
                     + 'language whose casing rules say otherwise (D2)');
             }));
-
-        /* ===================================================================
-         * 3. TOKEN DRILL — five values, five tokens (Gate A standing assertion 1)
-         * =================================================================== */
 
         test('every value in the Slate rule is drilled from its token', () => mounted(async (page) => {
             await assertTokenDrill(page, {
@@ -287,16 +205,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ===================================================================
-         * 4. NO SELECTION TREATMENT — the dial drill, in its negative form
-         * =================================================================== */
-
         test('the four selection dials move ZERO pixels here, and no aria selection state exists',
             () => mounted(async (page) => {
-                /* The row has no selection: a momentary command is pressed, never chosen.
-                 * The drill is still run, because "we did not add one" is a claim a
-                 * screenshot cannot check and a fourteenth idiom is how the first
-                 * thirteen happened (CONVENTIONS §4, spec §3.9). */
                 const before = await page.computed(btn('live'), SELECTION_SURFACE_PROPERTIES);
                 for (const [token, value] of [
                     ['--ui-selected-face', DRILL_COLOUR],
@@ -322,10 +232,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(shape.isSelected, false);
             }));
 
-        /* ===================================================================
-         * 5. FOCUS — one ring, two offsets, unclipped (standing assertion 4, bug L24)
-         * =================================================================== */
-
         test('the focus ring is the token ring and nothing clips it', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, btn('live'));
             assert.ok(g.focusVisible);
@@ -333,19 +239,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('inside an overflow: hidden band the inset offset keeps the ring whole (bug L24)',
             () => mounted(async (page) => {
-                /* L24 is "focus rings clipped on all four sides by the components they sit
-                 * inside", and a control that spans its container edge to edge is the exact
-                 * shape that meets it. The escape hatch is the base's, unmodified — one
-                 * treatment in two offsets, never a second ring (CONVENTIONS §3). */
                 const g = await assertFocusUnclipped(page, btn('clipped'));
                 const inset = await page.resolveValue('var(--ui-focus-offset-inset)', 'outline-offset');
                 assert.equal(g.outlineOffset, inset,
                     'focus-ring="inset" is what the host asked for, and the base is what answers');
             }));
-
-        /* ===================================================================
-         * 6. THE CONTAINER DECIDES — floor, full width, fluid type
-         * =================================================================== */
 
         test('it fills the container it is given and clears the touch floor',
             () => mounted(async (page) => {
@@ -357,11 +255,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('squeezed to 200px it holds its floor and does not clip its word',
             () => mounted(async (page) => {
-                /* The container floor. Slate never meets a narrow container — its geometry
-                 * is frozen at 1920x1200 — so responsive behaviour has no oracle answer and
-                 * LAYOUT_SPEC_DRAFT governs: §2.4, silent clipping is the inherited default
-                 * the rewrite exists to stop; §3.7/§2.3, "ergonomics is physical", so the
-                 * height floor never scales with the box. */
                 await page.setStyle('#stage', { 'inline-size': '200px' });
                 const box = await page.box(btn('live'));
                 const m = await page.metrics(btn('live'));
@@ -376,13 +269,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the display step holds at 27px whatever the container and the viewport do',
             () => mounted(async (page) => {
-                /* --ui-display-xs was clamp(22px, 2.2cqi, 27px), so this button typed
-                 * itself at the 22px floor on a 430px rail and at 27px in a wide pane —
-                 * the same control, two sizes, in the one place a STOP must not become
-                 * quieter. Parity surface 0 made the token Slate's fixed 27px (its own
-                 * declared --slate-display-xs, which was already the clamp's ceiling).
-                 * The probe is kept and inverted: the size must now be identical at both
-                 * container widths AND at both viewports, which is the stronger claim. */
                 await page.setStyle('#stage', { 'inline-size': `${RAIL}px` });
                 const atRail = parseFloat(await page.prop(btn('live'), 'font-size'));
                 near(atRail, 27, 'on a 430px rail the STOP still types at 27px');
@@ -394,10 +280,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 await page.setStyle('#stage', { 'inline-size': `${RAIL}px` });
             }));
-
-        /* ===================================================================
-         * 7. THE PRESS — what a screen actually consumes
-         * =================================================================== */
 
         test('a real press leaves exactly one stop-request, composed and bubbling',
             () => mounted(async (page) => {
@@ -450,17 +332,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(threw, false, 'focusing an absent control is a no-op, not a throw');
             }));
 
-        /* ===================================================================
-         * 8. THE LOOK IS UNREACHABLE FROM OUTSIDE
-         * =================================================================== */
-
         test('a screen sheet with !important on every selector either implementation uses reaches nothing',
             () => mounted(async (page) => {
-                /* Slate's whole rule for this control is a SCREEN sheet rule —
-                 * `#main-page .slate-rail-stop` in slate-live.css — which is why the look and
-                 * the screen could never be separated, and why P8's "a screen sheet reached a
-                 * component and flattened its fill" was possible at all. The mechanism that
-                 * ends it is not a stronger selector; it is the boundary. */
                 const before = await page.computed(btn('live'), [
                     'background-color', 'color', 'min-height', 'letter-spacing', 'font-size',
                 ]);
@@ -489,17 +362,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'stating its own ink');
             }));
 
-        /* ===================================================================
-         * 9. STATE IS AN ATTRIBUTE, NEVER AN INLINE STYLE  (bug L11's mechanism)
-         * =================================================================== */
-
         test('nothing here writes an inline style for state (bug L11 cannot express)',
             () => mounted(async (page) => {
-                /* L11: "Two dimming systems fight over the rail: the class rule deliberately
-                 * exempts #dose-section, and ui.js:3490-3491 then writes inline opacity: 0.25
-                 * onto it during espresso. Inline wins." The rewrite's rule is one owner per
-                 * visual state, expressed as a reflected attribute; an inline style for state
-                 * is banned (SCOPE Part 5 §1). */
                 for (const running of [false, true, false, true]) {
                     await page.evalFn((r) => { document.getElementById('live').running = r; }, running);
                     await page.settle(1);
@@ -510,15 +374,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ===================================================================
-         * 10. NAME AND TRANSLATION
-         * =================================================================== */
-
         test('the accessible name is Slate\'s own string, on the button, and the host keeps none',
             () => mounted(async (page) => {
-                /* index.html:131 aria-label="Stop the machine". The visible word is "STOP",
-                 * so the name contains the label (WCAG label-in-name) and says what the
-                 * machine does rather than shouting a verb at a screen reader. */
                 const shape = JSON.parse(await page.eval(`JSON.stringify(${SHAPE('live')})`));
                 assert.equal(shape.text, 'STOP');
                 assert.equal(shape.ariaLabel, 'Stop the machine');
@@ -556,10 +413,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D2: the word and the name are translated values, not a document walk',
             () => mounted(async (page) => {
-                /* "translation as a value each component reads, per-language files generated
-                 * at build time" (SCOPE Part 5, D2). The old mechanism was
-                 * document.querySelectorAll('[data-i18n-key]'), which cannot cross a shadow
-                 * boundary at all — so this is not a nicety, it is the only thing that works. */
                 await page.eval(`(async () => {
                     const m = await import('/src/lib/i18n.js');
                     m.translations.set('xx', { 'STOP': 'ARRET', 'Stop the machine': 'Arreter la machine' });
@@ -571,18 +424,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(shape.ariaLabel, 'Arreter la machine', 'and so did the accessible name');
             }));
 
-        /* ===================================================================
-         * 11. THE GALLERY'S SUBJECTS ARE REAL
-         * =================================================================== */
-
         test('every gallery state mounts and leaves something to photograph',
             () => browser.withPage({ geometry }, async (page) => {
-                /* Loaded through the DEMO module, which is what the gallery itself imports —
-                 * and the reason the demo module exists. gallery.js awaits
-                 * customElements.whenDefined() on every hyphenated tag on the stage, so the
-                 * rail states mounted with only ui-stop-button.js loaded do not render a
-                 * plain box: they never settle at all. (Measured here first: the suite hung
-                 * until this line named the module that imports ui-stepper too.) */
                 for (const state of galleryEntry.states) {
                     await page.mount(`<div id="stage">${state.html}</div>`, GALLERY_MODULE);
                     await page.settle(3);

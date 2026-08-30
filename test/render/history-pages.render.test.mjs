@@ -1,39 +1,5 @@
 /**
- * history-pages.render.test.mjs — wave 5.6, the PAGES cluster: `hist-flow-page`,
- * `hist-data-page`, `hist-components`, and bugs H1, H4, H5 and chart-C7.
- *
- * The skeleton suite (`history-skeleton.render.test.mjs`) owns the mount REGION and
- * proves that a page written to its contract gets the box the contract promises, using
- * two stand-ins. This suite owns the two REAL pages: that they fill that box, that the
- * ratio tracks behave as §4.5 says down to the floor and then branch, that the data grid
- * is the shipped compound with real rows, and that the A/B convention survives the port.
- *
- * A8, AND IT IS THE POINT OF THE FILE. Nothing here opens a file. Every assertion is a
- * computed style, a rendered box, an accessibility-tree node, or a live uPlot series
- * object read off the running plot. The ported history-viewer test's INTENT crosses over
- * and its FORM does not: it `readFileSync`'d `history-viewer.js` into a string and matched
- * against it, which is exactly the reading that could not see the bug it was written for —
- * "the previous alignment slider addressed a trace index one past the end, the code looked
- * entirely correct, the renderer threw, a catch swallowed it, and the control did nothing
- * at all". So the alignment assertions here read WHERE THE TRACES MOVED.
- *
- * BOTH GATE A GEOMETRIES: 1281x801 @ dsf 1.5 and the 1000x600 design floor. The mount
- * region measures 591 at the bench and 404.75 at the floor, so the two geometries put the
- * page either side of two card floors plus the gap and the ratio ladder below is measured
- * on both sides of it.
- *
- * THE SINGLE-PLOT BRANCH IS RETIRED (Ben, 30 Aug 2026 — F-036) and this suite changed with
- * it. Four tests used to pin it: the threshold's derivation, "one pixel under the threshold
- * the page shows ONE plot and a selector", "the selector actually changes which plot is
- * drawn", and the crossing-back case. All four asserted a layout Ben has removed for good,
- * and the assertions they made are quoted where they stood. What replaces them is the
- * outcome his decision names — the select is gone from the composed tree and BOTH cards
- * paint at every height, the short ones included.
- *
- * THE PLOTS ARE ARMED BEFORE THEY ARE MEASURED. A chart card with no derivation has no
- * uPlot instance at all (`plot-surface.js`: "no channels yet is an order, not an error"),
- * so every geometric claim below is made about a plot that is drawing two real recorded
- * shots from `tools/rea-fixtures/`.
+ *.6, the PAGES cluster: hist-flow-page, hist-data-page, hist-components, and bugs H1, H4, H5 and chart-C7.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -44,28 +10,8 @@ import { accessibleNames } from '../harness/editor.js';
 import { FLOW_PLOTS, COMPARISON_ALPHA } from '../../src/lib/history-series.js';
 import { HISTORY_COLUMNS } from '../../src/lib/shot-summary.js';
 
-/**
- * HOW MANY COLUMNS THE SHOT LIST ACTUALLY DRAWS.
- *
- * `HISTORY_COLUMNS` is the shared summary table — the columns a shot HAS. The data page
- * appends one of its own, `picks`, holding the A and B discs, because "which two shots is
- * the only question this page exists to answer". It has a heading ("Charts") and a cell in
- * every row, so every count in this suite is one more than the shared table's length. */
 const DRAWN_LIST_COLUMNS = HISTORY_COLUMNS.length + 1;
 
-/**
- * What the page module exports, read OUT OF THE PAGE rather than retyped.
- *
- * A component module cannot be imported under `node:test` — its `lit` specifier resolves
- * through index.html's importmap and nowhere else — but the module is already loaded in
- * the page by the time anything is measured, so a dynamic import in the browser hands back
- * what it declares. (`settings-skeleton.render.test.mjs:65-74` established the pattern.)
- *
- * IT USED TO READ ONE NUMBER, `FLOW_SINGLE_PLOT_PX`, and the sweep below derived its
- * heights from it. That constant is retired with the branch it measured (F-036), so this
- * now reports the export LIST — which is how the suite states, as an assertion rather than
- * as a comment, that the threshold is gone and has not come back under another name.
- */
 const authored = async (page) => JSON.parse(await page.eval(
     "import('/src/screens/history-flow-page.js').then((m) => JSON.stringify("
     + '{ exports: Object.keys(m).sort() }))',
@@ -77,14 +23,6 @@ const MODULES = [
     '/src/screens/history-data-page.js',
 ];
 
-/**
- * THE SAME-PROFILE PAIR, and it is chosen for the alignment drill rather than for
- * convenience: 5fc3f631 (3.26 s) and d5139a1f (8.54 s) are both "Extractamundo Dos! (2)",
- * which is what an alignment offset is FOR ("grind drift between two pours of the same
- * profile, not lining up arbitrary shots"). Against the ±5 s limit a full-limit slide
- * carries the shorter trace clean past the other's end — the exact condition the old
- * slider threw on.
- */
 const SHOT_A = '/tools/rea-fixtures/api__v1__shots__5fc3f631-6b18-471b-9800-00d552dbbecb.json';
 const SHOT_B = '/tools/rea-fixtures/api__v1__shots__d5139a1f-c4ee-47e2-bb80-0cbf3e39b6a3.json';
 const SHOT_LIST = '/tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc.json';
@@ -94,23 +32,12 @@ const near = (got, want, what, tol = 0.6) => assert.ok(
     `${what}: ${got} is not within ${tol} of ${want}`,
 );
 
-/**
- * THE MOUNT REGION'S OWN BOX, transcribed rather than borrowed.
- *
- * `#page` is one grid cell — `grid-template-rows: minmax(0,1fr)`,
- * `grid-template-columns: minmax(0,1fr)`, both minimums 0, no overflow — and this stage is
- * that declaration with a stated height, so the ladder below can set the page's height to
- * the pixel. Mounting the whole screen instead would make every rung an arithmetic
- * question about the band and the compare bar; the screen stage below asks that question
- * separately, once.
- */
 const pageStage = (h, tag = 'history-flow-page') => `
 <div id="stage" style="inline-size: 900px; block-size: ${h}px; display: grid;
      grid-template-rows: minmax(0,1fr); grid-template-columns: minmax(0,1fr)">
   <${tag} id="page-under-test"></${tag}>
 </div>`;
 
-/** The real screen with both real pages mounted, as §4.5 draws it. */
 const screenStage = () => `
 <div id="stage" style="inline-size: 100%; block-size: 100dvh">
   <history-screen>
@@ -294,12 +221,6 @@ const TAGS = (tag) => `(() => {
     .filter((name) => name.includes('-')))].sort();
 })()`;
 
-/**
- * THE 57-ITEM INVENTORY, as far as these two pages reach it. A tag outside this set in
- * either page's shadow root is scope invention (Part 10 §9) — and the point of the row is
- * that by this phase nothing on the screen is architecturally novel, so the honest test is
- * that the set is CLOSED rather than that it is non-empty.
- */
 const INVENTORY = Object.freeze({
     'history-flow-page': ['ui-chart-card', 'ui-chart-legend', 'ui-empty-state', 'ui-select'],
     'history-data-page': ['ui-data-grid', 'ui-empty-state', 'ui-pick-disc'],
@@ -316,10 +237,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
         after(async () => { await browser?.close(); });
 
-        /* ===================================================================
-         * THE MOUNT CONTRACT — the pages fill the box the region gives them
-         * =================================================================== */
-
         test('both pages take the mount region whole, and overlay rather than stack', async () => {
             await page.mount(screenStage(), MODULES);
             await page.settle(6);
@@ -328,12 +245,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const flow = await page.box('history-flow-page');
             const data = await page.box('history-data-page');
 
-            /* THE REGION'S CELL, NOT ITS BORDER BOX. Parity surface 6 gave #page an
-             * inline inset (--ui-space-6 each flank, the oracle's own 28 on all three
-             * of its History surfaces), so the CELL a page is placed in is the region's
-             * CONTENT box. The claim is unchanged and still exact — the page fills the
-             * cell it is given — and it is read off the region's own resolved padding
-             * rather than off a number written here, so it holds if the inset moves. */
             const pad = await page.computed('history-screen >>> #page',
                 ['padding-left', 'padding-right', 'padding-top', 'padding-bottom']);
             const px = (v) => parseFloat(v);
@@ -349,10 +260,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the flow page starts one inset inside the region');
             near(flow.top, region.top + px(pad['padding-top']),
                 'the flow page starts where the region\'s cell does');
-            /* THE OVERLAY CLAIM. Two pages are mounted at once; ::slotted() pins both to
-             * row 1 / column 1, so the second must not take an implicit second row. The
-             * hidden page has no box at all, which is #32's `hidden` doing its work — so
-             * the test is that the SHOWING page still has the region's whole height. */
             assert.equal(data.height, 0, 'the page that is not showing has no box');
             near(flow.height, cellHeight, 'and the showing page still has the whole region');
         });
@@ -375,11 +282,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(attrs.map((a) => a.dataPage), ['flow', 'data']);
         });
 
-        /* ===================================================================
-         * H1 — RATIO TRACKS WITH FLOORS
-         * (and F-036, the branch that used to sit below them)
-         * =================================================================== */
-
         test('the card floor is still the plot floor PLUS the card chrome', async () => {
             await page.mount(pageStage(700), MODULES);
             await page.eval(FEED_FLOW());
@@ -387,17 +289,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const read = await page.eval(READ_FLOW);
             const chartMin = parseFloat(await page.tokenValue('--ui-chart-min-h'));
 
-            /* THIS IS WHAT SURVIVES OF THE THRESHOLD TEST. It read:
-             *
-             *     const { threshold } = await authored(page);
-             *     assert.equal(threshold, 2 * read.cardFloor + gap,
-             *         'FLOW_SINGLE_PLOT_PX must equal two card floors plus the page gap');
-             *
-             * — a derivation check on a constant that existed to place `@container
-             * (block-size < 520px)`. With the branch retired (F-036) there is no second
-             * layout for a threshold to separate, so what is left to assert is the term the
-             * page still depends on: a card's own floor, which is what decides when #grid
-             * begins to scroll. */
             assert.ok(read.cardFloor > chartMin,
                 `the card floor (${read.cardFloor}) is --ui-chart-min-h (${chartMin}) plus chrome`);
         });
@@ -407,15 +298,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.eval(FEED_FLOW());
             await page.settle(6);
 
-            /* BEN, 30 AUGUST 2026: "Remove them for good." The audit found `ui-select#picker`
-             * composed on every history state and painted on none — `display: none`, box
-             * 0x0, unfocusable, at all five viewports Wave 3 swept — with both cards drawn
-             * side by side anyway (F-036, unit L0212).
-             *
-             * COMPOSED, NOT PAINTED, IS THE CLAIM THAT MATTERS. A test for `display: none`
-             * would have passed against the old tree too: the point is that the element is
-             * not in the render root at all, so no future container query can bring an
-             * unreachable control back. */
             const composed = await page.evalFn(() => {
                 const root = document.querySelector('history-flow-page').renderRoot;
                 return {
@@ -435,10 +317,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('F-036 — both cards paint at every height, the short ones included', async () => {
-            /* THE HEIGHTS WALK THROUGH WHERE THE BRANCH USED TO BE. 520 was
-             * FLOW_SINGLE_PLOT_PX (2 x 254 + 12); 519 and 400 are inside what was the
-             * one-plot branch, where the old suite asserted `!under.shown.temp` — "and the
-             * other one has no box at all". That is the assertion Ben's decision reverses. */
             for (const h of [700, 591, 521, 519, 400]) {
                 await page.mount(pageStage(h), MODULES);
                 await page.eval(FEED_FLOW());
@@ -456,18 +334,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-036 — a region too short for both floors SPILLS rather than dropping one',
             async () => {
-                /* NOTHING CLIPS SILENTLY (§2.4), which is this tree's standing answer and
-                 * the reason the removal needed no new declaration. Below two card floors
-                 * plus the gap the grid's content is taller than its box; every box in the
-                 * chain declares `overflow: visible`, so the shortfall travels outward to
-                 * the document instead of hiding a card behind a fold. The single-plot
-                 * branch was the OTHER answer to that question, and Ben retired it.
-                 *
-                 * A SCROLL CONTAINER ON #grid WAS TRIED AND MEASURED WORSE: `overflow-y:
-                 * auto` forces overflow-x from visible to auto, #10's legend hit overlay
-                 * overhangs by up to 8px, and the resulting horizontal scrollbar took ~15px
-                 * off the block axis — the derived card fell from 286.67 to 280.4 and the
-                 * ratio ladder above went red. */
                 await page.mount(pageStage(700), MODULES);
                 await page.eval(FEED_FLOW());
                 await page.settle(6);
@@ -488,19 +354,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         test('the two plots hold Slate\'s ratio until the shorter one reaches its floor', async () => {
-            /* THE HEIGHTS WERE DERIVED FROM THE BRANCH POINT AND NOW THEY ARE DERIVED FROM
-             * THE FLOORS. They used to be `[threshold + 180, +100, +40, +1]`, walking down
-             * to `FLOW_SINGLE_PLOT_PX` from above so the sweep could not drift out of the
-             * two-plot branch when the constant moved. The constant is retired with the
-             * branch (F-036) and the thing the sweep must stay above is what the constant
-             * was made of: two card floors plus the page gap, measured here rather than
-             * named. The `!read.shown.picker` assertion on each rung — "the selector has no
-             * box in this branch" — went with the selector.
-             *
-             * ONE ASSERTION IS DELIBERATELY NOT CARRIED DOWN. The rung sweep used to end
-             * each row with `hostOverflow === 0`; that is now the F-036 scroll test's
-             * claim, made at both a roomy and a tight height, where it is the point rather
-             * than a side condition. */
             await page.mount(pageStage(700), MODULES);
             await page.eval(FEED_FLOW());
             await page.settle(6);
@@ -521,15 +374,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(read.plotScrolls, false, `${h}: a plot never scrolls — it resizes`);
                 assert.equal(read.hostOverflow, 0, `${h}: and the page does not overflow`);
             }
-            /* THE RATIO ITSELF, while there is room for it. The bottom track hits the floor
-             * first, and from there the top keeps the remainder — which is the grid
-             * honouring a floor, not the ratio being wrong.
-             *
-             * 1.209 AND NOT 1.2, AND IT IS READ FROM THE TABLE. 1.2 was the same number
-             * rounded before anyone had measured Slate's: hv-flow-chart 416px over
-             * hv-temp-chart 344px is 1.2093. `FLOW_PLOTS[0].ratio` is the one place it is
-             * written — this page and the expanded overlay both read it — so the assertion
-             * reads it too rather than restating it and drifting a third time. */
             const ratio = FLOW_PLOTS.find((plot) => plot.id === 'top').ratio
                 / FLOW_PLOTS.find((plot) => plot.id === 'temp').ratio;
             for (const row of seen) {
@@ -540,25 +384,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const shrank = seen[0].top > seen[seen.length - 1].top;
             assert.ok(shrank, 'the plots RESIZE with the page — that is what a ratio track is');
         });
-
-        /* THREE TESTS STOOD HERE AND WENT WITH THE BRANCH (F-036, Ben 30 Aug 2026). All
-         * three asserted the layout he removed for good, so all three are quoted rather
-         * than adapted:
-         *
-         *   'one pixel under the threshold the page shows ONE plot and a selector'
-         *       assert.ok(under.shown.picker, 'below it the selector has a box');
-         *       assert.ok(!under.shown.temp, 'and the other one has no box at all');
-         *
-         *   'the selector actually changes which plot is drawn'
-         *       — drove `#picker`'s `change` and asserted the two cards swapped boxes.
-         *
-         *   'crossing back to two plots restores the hidden plot to its box'
-         *       assert.ok(!hidden.shown.temp, 'staged in the one-plot branch');
-         *
-         * THE ONE CLAIM WORTH KEEPING OUT OF THEM is the last one's real subject: a card
-         * whose box changes must bring its canvas with it (chart-C11's ResizeObserver).
-         * That is a property of the card at ANY box change, not of a branch, so it is
-         * asserted below by resizing the page rather than by crossing a threshold. */
 
         test('a card that is given a new box brings its canvas with it', async () => {
             await page.mount(pageStage(700), MODULES);
@@ -604,10 +429,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         });
 
-        /* ===================================================================
-         * chart-C7 — DASH, CAP AND OPACITY, UNIFORMLY
-         * =================================================================== */
-
         test('one cap, A at its OWN two weights, and every pair told apart', async () => {
             await page.mount(pageStage(700), MODULES);
             await page.eval(FEED_FLOW());
@@ -634,11 +455,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(trace.alpha, 1, `${trace.label}: A is drawn at full opacity`);
                 assert.equal(mate.alpha, COMPARISON_ALPHA,
                     `${trace.label}: and B keeps its fade — opacity is NOT flattened away`);
-                /* THE FADE IS WHAT TELLS EVERY PAIR APART, on every channel. The dash does
-                 * it too wherever A is solid; on A's own dashed targets the two patterns
-                 * are both [9,9] and the fade is the whole distinction. That is recorded
-                 * as an open question rather than settled here — the reversal is one
-                 * string, `COMPARISON_DASH` in history-series.js. */
                 assert.notEqual(mate.alpha, trace.alpha,
                     `${trace.label}: the pair is told apart on every channel`);
                 if (!trace.dash) {
@@ -647,12 +463,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }
 
-            /* AND A IS NOT DRAWN AT ONE WEIGHT. Composing on the surface with
-             * `setChannels` bypasses the card's own merge of `CHANNEL_TREATMENTS`, so all
-             * five of A's series used to draw solid at the MAJOR stroke here while Live
-             * drew the same five, from the same derivation, with its targets dashed and
-             * minor — §6.2's swatch-that-lies defect, arriving through the traces. The
-             * page hands the table in; these are the two weights it carries. */
             const byKey = Object.fromEntries(a.map((s) => [s.label, s]));
             assert.equal(byKey.pressure.dash, null, 'a measured channel is solid');
             assert.equal(byKey.flow.dash, null, 'both of them');
@@ -673,14 +483,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('a chip is drawn at the weight and the dash of the trace it stands for', async () => {
-            /* §6.2 FOR THIS SCREEN, MEASURED BOTH ENDS AT ONCE. The defect the spec names
-             * is "a swatch whose weight does not match its trace", and this screen had it
-             * on both halves at the same time: the traces lost their treatment because a
-             * composition on the surface never runs the card's merge, and `legendItems()`
-             * returned `{ key, label }` alone while its own docblock claimed the weight
-             * and dash came with them. Every chip rendered 3px solid. The two now come
-             * from one derivation, so the only honest assertion is that they agree —
-             * read off the rendered SVG and the live uPlot series, never off either file. */
             await page.mount(pageStage(700), MODULES);
             await page.eval(FEED_FLOW());
             await page.settle(6);
@@ -707,12 +509,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 return { traces, chips };
             });
 
-            /* SIX SINCE 24 AUGUST 2026. Ben: "The pressure/Flow chart should also display
-             * the Power series on the same axis, single axis." Power was Slate's own sixth
-             * trace on this plot and came out because Slate drew it on an INVISIBLE
-             * auto-ranged y2; the answer was no second axis rather than a visible one.
-             * Hydraulic power is 0.1·P·F watts, which shares the 0-10 band pressure and
-             * flow already share. */
             assert.equal(measured.chips.length, 6, 'one chip for each channel A draws');
             for (const chip of measured.chips) {
                 const trace = measured.traces[chip.key];
@@ -754,19 +550,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'B moved by exactly the offset', 0.01);
             near(at5.series['b:pressure'].to, at0.series['b:pressure'].to + 5,
                 'both ends of B moved by the offset', 0.01);
-            /* THE PAST-THE-END CONDITION, STAGED RATHER THAN GUARDED AGAINST. A is 3.26 s
-             * and B is 8.54 s; at a full-limit slide B ends past A's last sample and the
-             * union axis has to carry it. The old renderer threw here and a catch swallowed
-             * it, so the assertion is that the axis GREW rather than that nothing broke. */
             assert.ok(at5.axis.to > at0.axis.to,
                 `the union axis grew to hold the slid trace (${at0.axis.to} -> ${at5.axis.to})`);
             assert.ok(at5.series['b:pressure'].to > at5.series.pressure.to,
                 'and B now ends past A, which is the condition the ported test exists for');
         });
-
-        /* ===================================================================
-         * THE DATA PAGE — §4.5's tracks, H4 and H5
-         * =================================================================== */
 
         test('the summaries take their own height, the list takes what is left', async () => {
             await page.mount(pageStage(700, 'history-data-page'), MODULES);
@@ -774,28 +562,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(6);
             const read = await page.eval(READ_DATA);
 
-            /* TWO SHAPES SINCE 25 AUGUST 2026, AND THE CLAIM IS THE SAME IN BOTH.
-             *
-             * Ben: "Due to your smaller Phase chart I believe we can fit B to the right of
-             * A? If so please do that." Above 1100px the page is two columns — A beside B
-             * on one auto row, the list spanning a minmax(0, 1fr) row under them. At or
-             * below it they stack, and there are three rows again. The bench geometry is
-             * 1281 and the floor is 1000, so this suite meets BOTH branches, one per
-             * geometry, which is why the shape is read rather than assumed.
-             *
-             * WHAT DOES NOT CHANGE is the whole point of the page: the two summaries are
-             * their own height and the SHOT LIST is the track that pays. For one release
-             * the narrow branch changed the columns and left the rows at two, so phase B
-             * took the flexible track and was squeezed below phase A while the list sat in
-             * an implicit row at its floor. That is what these assertions catch. */
             const tracks = read.tracks.trim().split(/\s+/).map(parseFloat);
             const stacked = read.columns === 1;
             assert.equal(tracks.length, stacked ? 3 : 2,
                 stacked ? 'stacked: A, B, then the list' : 'side by side: the pair, then the list');
 
-            /* THE TRACKS SIZE TO THE SECTIONS, which is caption + table (cmp-seh-4).
-             * Track 1 is therefore taller than table A alone, and by exactly the caption
-             * and the section's own gap — asserted below rather than assumed. */
             near(tracks[0], read.phaseA.h, 'track 1 is shot A\'s section');
             if (stacked) near(tracks[1], read.phaseB.h, 'track 2 is shot B\'s section');
 
@@ -806,13 +577,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(read.phaseA.h > read.tableA.h,
                 'and the section is the table plus its caption');
 
-            /* "THE LIST TAKES WHAT IS LEFT" — literally, and it is measured rather than
-             * compared. It used to be asserted as `tracks[2] > tracks[0]`, which was true
-             * of the shipped page by arithmetic accident and stopped being true the moment
-             * cmp-seh-4 put a --ui-control-inner disc above each table: at this 700px stage
-             * the budget is now 236.30 + 236.30 sections and 2 x 12px gaps, leaving 203.41
-             * for the list. Its size was never the claim — being the track that PAYS is,
-             * and that is what the floor test below moves. */
             const rowGap = parseFloat(read.gap);
             const gaps = (tracks.length - 1) * rowGap;
             near(tracks.reduce((a, b) => a + b, 0) + gaps, read.host.h,
@@ -824,9 +588,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(listTrack >= listFloor - 0.6 || read.listFrame.scrollH > read.listFrame.clientH,
                 `the list track is on or above its floor (${listTrack} vs ${listFloor})`);
 
-            /* THE TWO FIXED SUMMARIES DO NOT SCROLL. The component's frame is a scroll
-             * region by construction; the page's job is to size the instances so its
-             * overflow never engages, and this is that claim rather than its mechanism. */
             for (const [name, frame] of [['A', read.tableAFrame], ['B', read.tableBFrame]]) {
                 assert.ok(frame.scrollH - frame.clientH <= 0.5,
                     `table ${name} does not scroll (scrollHeight ${frame.scrollH} vs client ${frame.clientH})`);
@@ -840,25 +601,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'with a VISIBLE scrollbar — §2.4 bans hiding it');
         });
 
-        /**
-         * cmp-seh-4 — THE TWO TABLES SAY WHOSE SHOT THEY ARE.
-         *
-         * The finding, confirmed at major: "two identical-looking tables with different
-         * numbers, distinguishable only by order". The capture held ZERO text records
-         * between the page div and the first grid frame while both tables showed different
-         * data; the shot's identity reached `label=` and stopped there.
-         *
-         * WHAT SLATE PAINTS, and every number in it is already a token:
-         *   [i=176] the A disc, rect [57, 155, 62, 62] — 62px is --ui-control-inner
-         *   [i=177] #hv-data-sub-a "15/08 07:10 · Lever Classic demo", x=137, so the gap
-         *           is 137 − (57 + 62) = 18px = --ui-space-4
-         *   [i=211] [i=212] the same pair for B.
-         *
-         * THE STRING IS ASSERTED AGAINST ITS OWNER, not against a date this file formats.
-         * `shot-summary.js`'s `shotOptionLabel()` is what the band's pickers offer and what
-         * `shotRow()` puts on every row as `label`; the claim is that the caption is THAT
-         * string and not a second spelling of the same shot, so the test asks the module.
-         */
         test('cmp-seh-4 — each phase table is captioned with its disc and the shot\'s own label',
             async () => {
                 await page.mount(pageStage(700, 'history-data-page'), MODULES);
@@ -893,8 +635,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.notEqual(read.captionA.text, read.captionB.text,
                     'THE FINDING: the two tables are now told apart by what they say, not by order');
 
-                /* SLATE'S SHAPE, in tokens: a --ui-control-inner disc, --ui-space-4 from
-                 * the words, both above the table they caption. */
                 const discSize = parseFloat(await page.resolveValue('var(--ui-control-inner)', 'inline-size'));
                 const gapToken = parseFloat(await page.resolveValue('var(--ui-space-4)', 'inline-size'));
                 for (const [slot, caption] of [['A', read.captionA], ['B', read.captionB]]) {
@@ -906,10 +646,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${slot}: the caption is above the table it names`);
                 }
 
-                /* AN EMPTY SLOT PAINTS NO TEXT AND KEEPS ITS DISC — Slate's own branch
-                 * (`history-viewer.js:783`: sub.textContent = ''). The table below already
-                 * says "No comparison shot"; a caption saying it again would be the same
-                 * sentence twice. */
                 await page.evalFn(() => {
                     const el = document.querySelector('history-data-page');
                     el.shotB = '';
@@ -935,10 +671,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the list floor is the token, and moving the token moves the box', async () => {
             const before = await page.box('history-data-page >>> #shot-list');
-            /* THE COMPUTED value, not the authored one: the token is
-             * calc(3 * var(--ui-list-row)) and a calc() survives into the custom
-             * property's value, so parsing the declaration would read NaN and prove
-             * nothing. `resolveValue` asks the engine what it makes of it. */
             const floor = parseFloat(await page.resolveValue('var(--ui-history-list-min-h)', 'min-block-size'));
             const row = parseFloat(await page.resolveValue('var(--ui-list-row)', 'min-block-size'));
             assert.equal(floor, 3 * row, 'the floor is three list rows, composed from the token');
@@ -976,15 +708,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'not one cell, column header or row header is outside a role="row"');
             assert.ok(read.rowCount >= 21,
                 `the list renders a header row and twenty shot rows (got ${read.rowCount})`);
-            /* THE HEADER ROW'S CELLS ARE columnheaders, so the BODY rows are what carry
-             * `cell` — one per column per row, and not one more or fewer, which is what
-             * "no API appends a cell without a row" buys. */
-            /* HISTORY_COLUMNS PLUS THE PICK COLUMN. The list draws one more column than
-             * the shared summary table declares: `picks`, the A/B discs, added by this
-             * page and by nothing else — "which two shots is the only question this page
-             * exists to answer, and a list you can only read is a list that makes you go
-             * back to a dropdown". It is a real column with a real heading ("Charts"), so
-             * it counts here like any other. */
+
             assert.equal(read.cellCount, (read.rowCount - 1) * DRAWN_LIST_COLUMNS,
                 'and every body row carries every column — no cell can slip a track');
             assert.equal(read.headerCellCount, DRAWN_LIST_COLUMNS,
@@ -1001,17 +725,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(sum > listWidth * 0.5,
                 'the tracks fill the box, which fixed tracks in a wider box would not');
 
-            /* THE fr CLAIM, MEASURED: widen the box and every track widens with it. A
-             * fixed track would not move at all, which is exactly Slate's 554px. */
             await page.setStyle('#stage', { 'inline-size': '1200px' });
             await page.settle(4);
             const wider = await page.eval(READ_DATA);
             const widerTracks = wider.listColumns.trim().split(/\s+/).map(parseFloat);
-            /* EVERY TEXT COLUMN GROWS. The last one is `picks`, and it is `grow: 0` on
-             * purpose — "two discs are a fixed width, and a pick column that stretched
-             * would take room from the profile title, which is the one column on this list
-             * that can actually use it". So it is asserted the other way: it must NOT grow,
-             * which is a claim about the same declaration read from the other side. */
             for (let i = 0; i < HISTORY_COLUMNS.length; i += 1) {
                 assert.ok(widerTracks[i] > listTracks[i],
                     `column ${HISTORY_COLUMNS[i].key} grew with the box (fr, not px)`);
@@ -1025,13 +742,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const labelBefore = parseFloat(read.tableAColumns.trim().split(/\s+/)[0]);
             const labelAfter = parseFloat(wider.tableAColumns.trim().split(/\s+/)[0]);
 
-            /* MEASURED AGAINST WHAT A SHARE WOULD HAVE DONE, not against zero movement.
-             * The track is minmax(--_ui-data-grid-label-min, max-content), so its size is
-             * its longest label — but max-content is a TEXT measurement and it moves a few
-             * subpixels as the table's own box changes and glyph positions re-round.
-             * Measured 84.86 -> 90.45 across a 300px widening, against the ~33px a ninth
-             * of that widening would be. Asserting "it did not move at all" pinned the
-             * rounding rather than the claim. */
             const shared = (wider.list.w - read.list.w) / DRAWN_LIST_COLUMNS;
             assert.ok(labelAfter - labelBefore < shared / 2,
                 `the row-label track is content-sized: it grew ${(labelAfter - labelBefore).toFixed(2)} `
@@ -1057,58 +767,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and the list says what a fresh machine has');
         });
 
-        /**
-         * THE PAGE'S ROW BUDGET, AND WHO CARRIES THE SHORTFALL.
-         *
-         * Two rulings and one defect have moved through this test since cmp-seh-4 put a
-         * --ui-control-inner disc above each table, and all three are recorded here
-         * because the number this asserts is different at each geometry for a reason.
-         *
-         * 1. THE PAIR SHARES A ROW ABOVE 1100px (Ben, 25 August 2026: "Due to your
-         *    smaller Phase chart I believe we can fit B to the right of A? If so please
-         *    do that."). So the page's budget is NOT the sum of the two sections at every
-         *    size any more, and a `need` written as phase-a + phase-b + 2 gaps + the list
-         *    floor describes only the narrow branch. It described both when it was
-         *    written, and reading it across the ruling is how this test came to demand
-         *    55.59px of scroll at a geometry with 216px to spare.
-         *
-         * 2. THE FLOOR STILL STACKS, so the shortfall it was written for is still real
-         *    there, and it is still the document that carries it — §2.4, "nothing clips
-         *    silently". Neither the mount region (bug L24) nor the page declares an
-         *    overflow, so the page overruns its region and the overrun reaches the
-         *    viewport, which scrolls. Both branches are asserted, one per geometry.
-         *
-         * 3. THE DOCUMENT USED TO SCROLL FOR A THIRD REASON, and that one was a defect
-         *    (found and fixed 26 August 2026, ui-pick-disc.js). visuallyHidden gives its
-         *    .a11y span position: absolute, the disc was not a positioned ancestor, and
-         *    an absolutely positioned box whose containing block lies outside a scrollport
-         *    is not clipped by it — so forty one-pixel accessible names, one per pick disc
-         *    in the shot list, took their static positions down inside the list's own
-         *    scroll region and then contributed that depth to the VIEWPORT's scrollable
-         *    overflow instead of the frame's. The rows were clipped correctly; their
-         *    labels were not.
-         *
-         * MEASURED, on the real screen, twenty real shots, after the fix:
-         *
-         *   bench 1281x801 @ dsf 1.5   two columns, tracks 248.30 / 408.70
-         *     have 681.00   need 464.30   room to spare 216.70   document scrolls 0
-         *   floor 1000x600 @ dsf 1     one column, tracks 248.30 / 248.30 / 0
-         *     have 494.75   need 736.59   shortfall 241.84       document scrolls 242
-         *
-         * and before the fix, at the same two geometries, the document scrolled 1227 and
-         * 1685 — numbers with no layout behind them, because dragging the document through
-         * them slid the whole screen off the top and left the shot list exactly where it
-         * was. The list's own frame is where those rows live: it measures scrollHeight
-         * 1670 in clientHeight 409 at the bench, which is the correct answer and is
-         * asserted by the track test above. The page's shortfall and the list's hidden
-         * rows are two different overflows and only one of them belongs to the document.
-         * The last assertion below is what tells them apart.
-         *
-         * `need` IS READ OFF THE RESOLVED TRACKS rather than composed from the sections,
-         * so it follows the media query instead of restating it: every track but the last
-         * is a summary the page cannot shrink, the last is the list's minmax(0, 1fr), and
-         * what the list must have there is its floor.
-         */
         test('the data page overruns only where it must, and the DOCUMENT carries it', async () => {
             await page.mount(screenStage(), MODULES);
             await page.eval(FEED_DATA);
@@ -1127,10 +785,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const frame = list.renderRoot.getElementById('frame');
                 const tracks = cs.gridTemplateRows.trim().split(/\s+/).map(parseFloat);
                 const floor = parseFloat(getComputedStyle(list).minBlockSize);
-                /* EVERY TRACK BUT THE LAST IS A SUMMARY, and the last is the list's.
-                 * Side by side that is one track holding both sections; stacked it is
-                 * two. Either way the page cannot give the summaries less than they
-                 * measure, and it cannot give the list less than its floor. */
                 const summaries = tracks.slice(0, -1).reduce((a, b) => a + b, 0);
                 return {
                     have: +pg.getBoundingClientRect().height.toFixed(2),
@@ -1140,10 +794,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     listBox: +list.getBoundingClientRect().height.toFixed(2),
                     listOverflow: frame.scrollHeight - frame.clientHeight,
                     docScroll: +(root.scrollHeight - root.clientHeight).toFixed(2),
-                    /* THE TWO SCROLL HEIGHTS, which is the fixed defect's fingerprint.
-                     * A box positioned against the initial containing block overflows the
-                     * viewport without ever overflowing body, so these two parted by
-                     * 1227px while the page itself fitted. In flow they cannot part. */
                     docScrollHeight: root.scrollHeight,
                     bodyScrollHeight: document.body.scrollHeight,
                     regionClips: getComputedStyle(
@@ -1153,15 +803,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
             });
 
-            /* THE BRANCH IS PINNED TO THE GEOMETRY, not merely read off the page.
-             * The track test above already checks that the columns and the rows agree
-             * with each other, which is true of either branch; what is asserted here is
-             * the harder thing the docblock's two-line table depends on — that this
-             * suite meets BOTH branches, one per Gate A geometry, so neither set of
-             * numbers is theoretical. It keys on the geometry rather than on the page's
-             * 1100px query because restating that number here would give it a second
-             * home; if the threshold moves so that both geometries land on one branch,
-             * this fires and says which table above went stale. */
             assert.equal(measured.stacked, geometry.name !== 'bench',
                 `${geometry.name} should take the `
                 + `${geometry.name === 'bench' ? 'side-by-side' : 'stacked'} branch, and took the `
@@ -1174,9 +815,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const floor = parseFloat(await page.resolveValue('var(--ui-history-list-min-h)', 'min-block-size'));
             assert.ok(measured.listBox >= floor - 0.6, 'the shot list is never below its floor');
 
-            /* NOTHING CLIPS, at either end of the chain: the region declares no overflow
-             * (bug L24) and neither does the page, so a shortfall reaches the document,
-             * which scrolls. §2.4: "nothing clips silently". */
             assert.equal(measured.regionClips, 'visible', 'the mount region does not clip');
             assert.equal(measured.pageClips, 'visible', 'and neither does the page');
 
@@ -1188,31 +826,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(measured.docScroll, 0, 'with room to spare nothing scrolls');
             }
 
-            /* AND THE LIST'S HIDDEN ROWS ARE THE LIST'S. The frame holds well over a
-             * thousand pixels the page never has to find room for; if any of it reached
-             * the document the assertion above would already have failed, but it would
-             * fail as an arithmetic surprise rather than as this sentence. body and the
-             * document agree only while everything that overflows does so IN FLOW — the
-             * pick discs' absolutely positioned labels parted them by 1227px while the
-             * page itself fitted its region exactly. */
             assert.ok(measured.listOverflow > 1000,
                 `the shot list really is holding rows out of sight (${measured.listOverflow}px)`);
             assert.equal(measured.docScrollHeight, measured.bodyScrollHeight,
                 'and nothing reaches the viewport past body: everything that scrolls is in flow');
         });
 
-        /* ===================================================================
-         * THE COMPARE BAR'S PER-PAGE PRESENCE RULE
-         * =================================================================== */
-
         test('the compare bar shows on the flow page and is absent on the data page', async () => {
             await page.mount(screenStage(), MODULES);
             await page.settle(6);
-            /* THE COMPARISON IS ASKED FOR FIRST. Since 24 Aug 2026 the screen opens on
-             * ONE shot and the bar is absent until then — tapping the Live chart lands
-             * here, and a slider with nothing to slide is not what that press was about.
-             * The PER-PAGE rule this test is for is unchanged and is measured with the
-             * comparison open. */
             await page.evalFn(async () => {
                 const screen = document.querySelector('history-screen');
                 screen.comparing = true;
@@ -1222,9 +844,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             const onFlow = await page.box('history-screen >>> #compare');
             assert.ok(onFlow.height > 0, 'the flow page has a time axis, so the bar is there');
-            /* ASKED OF THE CONTROLS, NOT OF THE CAPTION. The bar's own "Align B" is a
-             * <span> and carries no role, so the honest question is whether the thing a
-             * person can OPERATE is in the tree: the slider and its reset. */
             const namesOnFlow = await accessibleNames(page);
             assert.ok(namesOnFlow.some((n) => n.role === 'slider' && /Slide shot B/i.test(n.name)),
                 'the alignment slider is in the accessibility tree');
@@ -1245,10 +864,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and so is its reset');
         });
 
-        /* ===================================================================
-         * COMPOSED, NOT CONSTRUCTED
-         * =================================================================== */
-
         for (const [tag, inventory] of Object.entries(INVENTORY)) {
             test(`${tag} composes only library components`, async () => {
                 await page.mount(screenStage(), MODULES);
@@ -1263,12 +878,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }
 
-        /* THE CARVE-OUT IS REVERSED FOR ONE SURFACE, AND THIS IS THE OTHER SIDE OF IT.
-         * Fix run 6 built the power page, so "the #11 time key is nowhere" is no longer
-         * true of the SCREEN. It is still true of these two pages, and that is the claim
-         * worth asserting: Ben reversed D1 for the power page and nowhere else, so a time
-         * key or a trajectory appearing HERE would be the carve-out leaking rather than
-         * being spent. `test/render/history-power.render.test.mjs` owns the positive. */
         test('the time key and the trajectory are on the POWER page and nowhere else', async () => {
             const found = await page.evalFn(() => {
                 const deep = (root, acc = []) => {
@@ -1290,14 +899,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'D1 still holds everywhere except the one surface Ben named');
         });
 
-        /* PARITY SURFACE 6 — THE SHOT LIST'S READING ORDER.
-         *
-         * Slate paints this list in THREE inks over 21 rows and Decal painted it in
-         * one, so eight columns of timestamps and dashes read as loudly as the profile
-         * name. Restored through the column table's own `ink` field — the mechanism
-         * PHASE_COLUMNS already spends on the weight channel — and asserted against
-         * RESOLVED TOKENS on RENDERED cells, per column, so a column that lost its ink
-         * fails by name. */
         test('parity 6 — the shot list is read in three inks, by column', async () => {
             await page.mount(screenStage(), MODULES);
             await page.settle(6);

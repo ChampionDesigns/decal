@@ -1,21 +1,5 @@
 /**
- * machine-control.test.mjs — RUNNING THE MACHINE, and the gesture that opens a second
- * action on a bank. No browser: both are decisions over a state name and two timestamps.
- *
- * WHY THIS SUITE EXISTS. Until wave 5.8 Decal could not start or stop the machine at
- * all. The GHC strip rendered a placeholder div reading "Group head"; `<ui-stop-button>`
- * dispatched `stop-request` into a tree with no listener, so the one control on the Live
- * page whose job is stopping did not stop anything; and there were no keyboard bindings,
- * on a screen whose Settings tree has a "Keyboard Shortcuts" leaf. Slate has all three
- * (`app.js` GHC_STATE_MAP, `#ghc-stop-btn-rail`, DEFAULT_KEY_BINDINGS).
- *
- * WHAT IS NOT HERE, AND WHY. The first draft of this file also read `live-screen.js` and
- * `live-wiring.js` as TEXT, to assert that the screen dispatches and the wiring listens.
- * A8 refused it, and A8 was right: a spelling is not a trip. The strip's geometry and its
- * events are `test/render/live-bands.render.test.mjs`'s, and the whole trip — press a key,
- * see `PUT /api/v1/machine/state/espresso` on the wire — is
- * `test/render/app-shell.render.test.mjs`'s. What is left here is the policy: which state
- * a key names, which keys the keyboard binds, and which half of the strip may be pressed.
+ * RUNNING THE MACHINE, and the gesture that opens a second action on a bank.
  */
 
 import { test, describe } from 'node:test';
@@ -38,9 +22,6 @@ describe('the machine keys are Slate\'s four, by the generated enum\'s names', (
     });
 
     test('every state name is the generated enum\'s, never a literal', () => {
-        /* `MachineState.values.byName` parses what PUT /machine/state/<newState> is
-         * given, and a name it does not know is a 500 — so a hand-typed 'hotwater'
-         * would be a control that always fails and never says why. */
         const known = new Set(Object.values(MACHINE_STATE));
         for (const key of MACHINE_KEYS) assert.ok(known.has(key.state), `${key.state} is not in the enum`);
         assert.ok(known.has(STOP_STATE));
@@ -105,8 +86,6 @@ describe('press and hold, as a decision over two timestamps', () => {
     });
 
     test('a drag is neither, which is the rule Slate does not have', () => {
-        /* Slate's gesture only ever ends on `up`, so a press that travelled still fires
-         * — a hold every time somebody scrolls a list. */
         assert.equal(gestureOf({ at: 0, x: 0, y: 0 }, { at: HOLD_MS + 50, x: HOLD_SLOP + 1, y: 0 }),
             'cancel');
         assert.equal(gestureOf({ at: 0, x: 0, y: 0 }, { at: 10, x: 0, y: HOLD_SLOP + 1 }), 'cancel');

@@ -1,29 +1,5 @@
 /**
- * shot-summary.test.mjs — wave 5.6, items `hist-shot-list-derivation` / `hist-b5-scalars-q17`.
- *
- * THREE CLAIMS, and each is made by running the thing rather than by reading it (A8):
- *
- *   1. WALK TOTALITY. Every column the History list can paint resolves to exactly one place:
- *      the record shell, an annotation ReaPrime serves, or gate 6's scalars. Zero sources is
- *      a failure; a second walk is a failure. The count of measurement-array parses is
- *      OBSERVED, by injecting a counting derive into the store.
- *
- *   2. THE DASH TRUTH TABLE (Q17, resolved 16 Aug). Absence is absence: a scaleless list row
- *      dashes duration, peak pressure and average flow, and the per-shot fetch count while
- *      twenty rows paint is exactly ZERO. Zero is a measurement and prints as one; there is
- *      no '0.0' sentinel and no truthiness guard anywhere in the path.
- *
- *   3. R5 IS A ONE-FIELD CHANGE. The reading shape is a table of scalar → summary field, and
- *      landing R5 means writing a string into it. The test proves that by writing one and
- *      watching the dash fill in IN THE ROW MODEL THE LIST PAINTS — `shotRow` and `shotRows`
- *      take the table, so the claim is exercised where the cell is, not on the annotation the
- *      test just wrote — with nothing added and nothing deleted.
- *
- * THE FIXTURES ARE THE CAPTURE MOCK'S OWN, not samples of this test's construction: the list
- * page as ReaPrime sent it and the three full records beside it. What they show is worth
- * stating, because it is the reason the dash path is the only one the mock exercises — NO
- * fixture carries `annotations.actualYield`, on any of the twenty rows or any of the three
- * records.
+ *.6, items hist-shot-list-derivation / hist-b5-scalars-q17.
  */
 
 import { test, describe } from 'node:test';
@@ -160,8 +136,6 @@ describe('every history column resolves to exactly one source', () => {
     });
 
     test('nothing in this path recovers a number from rendered text (chart-C13)', () => {
-        // The claim is structural and is made by construction: these modules are DOM-free —
-        // importing them under node:test, where there is no `document`, is the assertion.
         assert.equal(typeof globalThis.document, 'undefined',
             'this suite must run with no DOM at all, or the claim means nothing');
         const row = shotRow({ summary: PAGE.items[0] });
@@ -227,8 +201,6 @@ describe('the dash truth table', () => {
         // A truthiness guard would dash this one, and a zero IS a measurement.
         assert.equal(scalarText(0, { unit: 'g', decimals: 1 }), '0.0 g');
         assert.equal(scalarText(0, { unit: 's', decimals: 0 }), '0 s');
-        // And the absent case is never the STRING '0.0', which is what the old Out column
-        // printed where its own docblock promised a dash.
         assert.notEqual(scalarText(null, { unit: 'g' }), '0.0 g');
     });
 
@@ -258,8 +230,6 @@ describe('the dash truth table', () => {
         assert.equal(withWalk.cells.duration.text, '22 s');
         assert.equal(withWalk.cells.peakPressure.text, '2.3 bar');
         assert.equal(withWalk.cells.averageFlow.text, '3.6 mL/s');
-        // The yield stays absent even with the walk: this shot has no scale and no annotation,
-        // and a walk cannot invent a weight nobody measured.
         assert.equal(withWalk.cells.yield.text, DEFAULT_DASH);
         assert.equal(withWalk.scalars.yieldSource, null);
     });
@@ -285,15 +255,10 @@ describe('R5 lands as one field, with nothing to delete', () => {
     });
 
     test('writing a field name into the table fills the dash in — no other change', () => {
-        // R5, simulated exactly as it would land: ReaPrime starts serving the number on the
-        // annotations object, and the reader is told its name. Nothing else moves.
         const asIfR5 = { ...PAGE.items[0], annotations: { ...PAGE.items[0].annotations, durationSeconds: 28 } };
         assert.equal(shotRow({ summary: asIfR5 }).cells.duration.text, DEFAULT_DASH,
             'today the reader does not know that name, so the cell is honestly a dash');
 
-        // THE ONE FIELD, and it is the ONLY difference: the shipping table spread, with one
-        // string written into it. Asserted rather than eyeballed, so a table this test
-        // quietly rewrote could not pass as R5 landing.
         const table = { ...SUMMARY_SCALAR_KEYS, durationSeconds: 'durationSeconds' };
         assert.deepEqual(
             Object.entries(table).filter(([scalar, field]) => SUMMARY_SCALAR_KEYS[scalar] !== field),
@@ -303,10 +268,6 @@ describe('R5 lands as one field, with nothing to delete', () => {
         assert.equal(Object.keys(table).length, Object.keys(SUMMARY_SCALAR_KEYS).length,
             'nothing added to the table either');
 
-        // AND THE CLAIM IS MADE THROUGH THE ROW MODEL THE LIST PAINTS, not on the annotation
-        // this test just wrote. Handing the row the table R5 leaves behind is the whole
-        // change: same function, same columns, same shot — the cell that was a dash is a
-        // number, and it says it is present.
         const row = shotRow({ summary: asIfR5, keys: table });
         assert.equal(row.cells.duration.text, '28 s');
         assert.equal(row.cells.duration.value, 28);
@@ -316,8 +277,6 @@ describe('R5 lands as one field, with nothing to delete', () => {
         assert.equal(row.scalars.durationSeconds, 28);
         assert.equal(row.hasDerivation, false, 'and no walk was taken to fill it: there is none');
 
-        // "NO OTHER CHANGE", run rather than promised: every other cell of the same shot is
-        // identical to the row it produces on the shipping table.
         const asShipped = shotRow({ summary: asIfR5 });
         for (const column of HISTORY_COLUMNS) {
             if (column.key === 'duration') continue;
@@ -325,8 +284,6 @@ describe('R5 lands as one field, with nothing to delete', () => {
         }
         assert.equal(asShipped.cells.duration.text, DEFAULT_DASH);
 
-        // And through the page helper the list actually calls, because a row model proved
-        // one row at a time is not the thing that paints twenty.
         const [pageRow] = shotRows([asIfR5], { keys: table });
         assert.equal(pageRow.cells.duration.text, '28 s');
 
@@ -389,9 +346,6 @@ describe('a shot names itself by its time of day first', () => {
     });
 
     test('the summary spelling is year-first and the list spelling is not — both are Slate\'s', () => {
-        /* ORACLE #history-date [i=121] "2026/08/15 07:10" (the identity line) against
-         * the shot LIST's "15/08/26" rows — one corpus, two contexts, two spellings.
-         * The foot band reads `dateSummary`; the shot table reads `dateFull`. */
         const clock = shotClock(PAGE.items[0].timestamp);
         assert.match(clock.dateSummary, /^\d{4}\/\d{2}\/\d{2}$/);
         assert.match(clock.dateFull, /^\d{2}\/\d{2}\/\d{2}$/);
@@ -439,10 +393,6 @@ describe('a shot names itself by its time of day first', () => {
 /* ════════════════════════════════════ the grind the shot was pulled at ═══════════ */
 
 describe('shotGrind — it is on the record after all', () => {
-    /* The Live band's own note used to say "nothing on the shot record carries a grinder
-     * setting", which is true of ShotRecord's own fields and false of the record: ReaPrime
-     * stamps every shot with the WORKFLOW as it stood, and the grind lives on that
-     * document's `context`. The old app reads it from exactly there (`history.js:191`). */
     const shot = (context) => ({ id: 's', workflow: { profile: { title: 'A' }, context } });
 
     test('a string on the wire becomes a number here', () => {

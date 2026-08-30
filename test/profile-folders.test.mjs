@@ -1,32 +1,5 @@
-// PORTED from Slate test/profile-folders.test.mjs (w0a-port-as-is).
-//
-// The Slate file is MIXED: its first 62 lines execute profile-folders.js (7
-// tests); its remaining 132 lines are 12 text-scan tests that readFileSync
-// `src/modules/profile_selector.js` and `src/css/slate-shell.css` and match
-// regexes against their source text. Neither file exists in Decal and neither
-// will: profile_selector.js is a DOM module being rewritten, slate-shell.css
-// dies with the markup. CARRY_FORWARD.md §7 rules the text-scan style out
-// wholesale -- "Text-scan only ... none ports ... Every one of them dies with
-// the markup" -- and test/README.md restates it as a decision (A8, executing
-// tests only). So the executing half ports verbatim and the text-scan half is
-// dropped; `import { readFileSync }` goes with the tests that used it.
-//
-// The 12 dropped assertions are RENDERING rules, not logic rules, and they are
-// re-owned rather than lost: 8 belong to the rewritten profile-list component
-// (force-open on filter, non-persistence of a force-open, list-wide selection
-// clear, leaf text + whole title in data, folder row is a <button> with
-// aria-expanded, collapsed count, chevron rotation + reduced-motion, open
-// folder is a container not a row) and 4 to the favourite slot (tap not hold,
-// badge refresh on every row, badge is the slot one size down, badge at the row
-// edge). Gate A asserts those on computed styles and behaviour, not source
-// text. Itemised in realine-run/waves/0a/w0a-port-as-is.md.
 
-// Collapsible families in the profile list.
-//
-// ReaPrime seeds ~70 bundled profiles and a third of them are families whose
-// titles all start with the same words. The grouping is the title's own
-// structure -- the text before the first slash -- so nothing has to be tagged
-// and a profile that does not use the convention is simply not in a folder.
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -45,14 +18,10 @@ test('a slash splits into folder and leaf', () => {
 });
 
 test('only the FIRST slash splits', () => {
-    // "Pour over basket/V60 22g in, 375g out" must not become a three-level
-    // tree, and a leaf containing a slash keeps it.
     assert.deepEqual(splitProfileTitle('a/b/c'), { folder: 'a', leaf: 'b/c' });
 });
 
 test('a half-empty split is not a family', () => {
-    // "Half/" and "/half" produce either a folder you cannot label or a row
-    // with no name.
     for (const t of ['Trailing/', '/Leading', '/', 'no slash']) {
         assert.equal(splitProfileTitle(t).folder, null, t);
     }
@@ -70,8 +39,6 @@ test('two or more fold', () => {
 });
 
 test('a folder appears where its first member would have sorted', () => {
-    // Turning folders on must not re-order the list around them: the row you
-    // were reaching for should not move somewhere else alphabetically.
     const groups = shape(['Aaa', 'M-Fam / one', 'Nnn', 'M-Fam / two', 'Zzz']);
     assert.deepEqual(groups.map(g => g[0]), [null, 'M-Fam', null, null]);
     assert.deepEqual(groups[1][1], ['M-Fam / one', 'M-Fam / two']);

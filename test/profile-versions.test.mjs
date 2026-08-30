@@ -1,29 +1,5 @@
 /**
- * profile-versions.test.mjs — ONE ROW PER PROFILE, AND A WAY BACK.
- *
- * Ben, 27 August 2026: "After each save there should still only be one profie, but we
- * should be able to go back to a previous version, how we do that I dont know what is best,
- * I fill the best would be a diff of the new and old and changes recoreded not full
- * profiles and we can walk back like GitHub does it I assume."
- *
- * ===========================================================================
- * WHAT THIS FILE IS FOR, AND WHAT IT DELIBERATELY IS NOT
- * ===========================================================================
- * The user-visible claim — "the list still has one row" — is proved in
- * `test/render/editor-versions.render.test.mjs`, through the booted app, because that
- * claim is about two screens and a store handoff and cannot be made here. THIS file proves
- * the parts underneath it: which requests a save makes, IN WHICH ORDER, which it refuses to
- * make, and what the pure functions answer. Both are needed and neither substitutes for the
- * other — a green request-level suite is exactly what this codebase means by "a finished
- * half with no other half".
- *
- * THE DATA IS THE RECORDED LISTING wherever a claim is about real data. 147 real
- * ProfileRecords with a real parent chain among them, so "56 of the 69 hidden records are
- * superseded versions" is a measurement of the bench machine rather than of a pair of rows
- * a test wrote.
- *
- * A8: every assertion is about a returned value or a recorded call. Nothing reads a source
- * file.
+ * One.
  */
 
 import { test, describe } from 'node:test';
@@ -105,10 +81,6 @@ const visibilityWrites = (transport) => transport.calls
     .filter((call) => call.method === 'PUT' && call.path.endsWith('/visibility'))
     .map((call) => ({ path: call.path, visibility: call.body.visibility }));
 
-/* ==========================================================================
- * THE PURE RULE — which records something else has superseded
- * ========================================================================== */
-
 describe('supersededIds — the discriminator, and it costs one pass over a list in hand', () => {
     test('a record another record names as its parent is superseded', () => {
         const ids = supersededIds([
@@ -125,9 +97,6 @@ describe('supersededIds — the discriminator, and it costs one pass over a list
     });
 
     test('a record that claims to be its own parent is NOT reported superseded', () => {
-        /* Nothing ReaPrime writes can produce this, and that is exactly why it is dropped:
-         * a corpus that claimed it would put a live tip in this set and the library would
-         * then hide a profile from its owner. One comparison closes it. */
         assert.deepEqual([...supersededIds([{ id: 'loop', parentId: 'loop' }])], []);
     });
 
@@ -152,10 +121,6 @@ describe('supersededIds — the discriminator, and it costs one pass over a list
     });
 
     test('and `restorable` is deliberately NOT filtered by it — one record proves why', () => {
-        /* A bundled profile the user REMOVED, which they had also once derived from, is
-         * both `hidden AND isDefault` (so D6 must offer it back) and superseded (so a
-         * superseded-filter would drop it). There is exactly one such record in the
-         * recording, and it is the whole argument for leaving `restorable` alone. */
         const superseded = supersededIds(FIXTURE);
         const restorable = restorableProfiles(FIXTURE).filter((r) => r.metadata && r.metadata.filename);
         assert.equal(restorable.length, 10);
@@ -165,10 +130,6 @@ describe('supersededIds — the discriminator, and it costs one pass over a list
             + 'permanently unrestorable');
     });
 });
-
-/* ==========================================================================
- * THE DIFF — shown, not stored
- * ========================================================================== */
 
 describe('versionChangeFacts — the diff Ben asked for, computed and never persisted', () => {
     const record = (profile, parentId = 'profile:parent') => ({ id: 'profile:child', parentId, profile });
@@ -225,9 +186,6 @@ describe('versionChangeFacts — the diff Ben asked for, computed and never pers
 });
 
 describe('changeGroupsOf and changeCountOf cannot drift, because one builds the other', () => {
-    /* THE MUTATION CHECK FOR THE REFACTOR. `changeCountOf`'s `fields` spelling and ORDER
-     * were load-bearing before the groups existed, and are now derived from them. If the
-     * derivation is broken — a group dropped, an order swapped — these fail. */
     test('the field names and their order survive the refactor exactly', () => {
         const answer = changeCountOf(
             { title: 'N', tank_temperature: 3, steps: [{ a: 2 }, { b: 1 }, { c: 1 }] },
@@ -255,10 +213,6 @@ describe('changeGroupsOf and changeCountOf cannot drift, because one builds the 
         assert.deepEqual(answer.fields, []);
     });
 });
-
-/* ==========================================================================
- * THE SAVE — which writes it makes, and in which order
- * ========================================================================== */
 
 describe('a content save leaves ONE row: the superseded parent is hidden', () => {
     test('the parent is hidden, and the saved record is not touched', async () => {
@@ -293,9 +247,6 @@ describe('a content save leaves ONE row: the superseded parent is hidden', () =>
     });
 
     test('an id-stable save hides NOTHING — there is no second row to take away', async () => {
-        /* Reachable whenever the content did not move: `create` is content-addressed, so a
-         * save that changed nothing resolves to the record the editor already had. Hiding
-         * `before` here would hide the record that was just saved. */
         const transport = recordingTransport({
             'POST /profiles': ok(seatedRecord(), 201),
         });
@@ -309,9 +260,6 @@ describe('a content save leaves ONE row: the superseded parent is hidden', () =>
 
     test('a BUNDLED parent is never hidden — a template is not superseded by being copied',
         async () => {
-            /* Hiding it would put a factory profile into D6's restore-to-factory offer
-             * list — "the bundled profiles you removed" — without the user removing
-             * anything. The cost is stated rather than hidden: this leaves two rows, once. */
             const transport = recordingTransport({
                 'POST /profiles': ok(savedRecord(), 201),
                 [`PUT ${VISIBILITY('profile:old')}`]: ok(seatedRecord({ visibility: 'hidden' })),
@@ -344,12 +292,6 @@ describe('a content save leaves ONE row: the superseded parent is hidden', () =>
 });
 
 describe('restoring an older version — the idempotent branch, and the trap in it', () => {
-    /**
-     * THE SHAPE OF A RESTORE, on the wire. The draft holds an older version's content, so
-     * `ProfileController.create` finds that content already stored and returns THE EXISTING
-     * RECORD — which this feature has hidden — without applying the parentId that was sent.
-     * The handler still answers 201.
-     */
     const restoredRecord = (overrides = {}) => savedRecord({
         id: 'profile:older', parentId: null, visibility: 'hidden', ...overrides,
     });
@@ -389,9 +331,6 @@ describe('restoring an older version — the idempotent branch, and the trap in 
 
     test('IF THE UN-HIDE FAILS THE TIP IS NOT HIDDEN — a profile must never lose every row',
         async () => {
-            /* THE MUTATION CHECK FOR THE ORDERING. Swap the two writes, or drop this guard,
-             * and the profile ends with no visible record at all: the person who pressed
-             * Save watches their profile vanish from the library. */
             const transport = recordingTransport({
                 'POST /profiles': ok(restoredRecord(), 201),
                 [`PUT ${VISIBILITY('profile:older')}`]: fault('the machine went away'),
@@ -471,10 +410,6 @@ describe('versionKeptBy — RESTORED is inferred from two server-issued ids, nev
         ).kept, VERSION_KEPT.NOT_LINKED);
     });
 });
-
-/* ==========================================================================
- * THE LIBRARY — where the superseded versions must NOT pile up
- * ========================================================================== */
 
 describe('the Hidden set is profiles you put away, not every version you ever saved', () => {
     const memoryRouter = () => createStorageRouter({

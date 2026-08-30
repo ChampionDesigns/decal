@@ -1,17 +1,5 @@
 /**
- * ui-card-grid-gallery-entry.test.mjs — the wave-4 #51 gallery entry, checked against
- * the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single hand-written
- * array and the run's rule is whole-file writes; parallel builders appending to it is
- * lost entries. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the
- * wave's single cross-cutting writer wires them in. This file makes that hand-off safe:
- * a malformed entry is a red test HERE rather than a capture battery photographing an
- * empty stage.
- *
- * `test/render/ui-card-grid.render.test.mjs` takes the other half — it mounts every
- * state in a real browser at both standard geometries and measures the widths these
- * notes claim.
+ * The wave-4 #51 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -42,18 +30,12 @@ test('state ids are unique, because they are capture filenames', () => {
 });
 
 test('the module path resolves from tools/gallery/, which is where gallery.js imports it', async () => {
-    // gallery.js does `import(entry.module)` and lives in tools/gallery/, so the path is
-    // relative to THAT directory, not to the entry file's own.
     const resolved = new URL(entry.module, new URL('../tools/gallery/', import.meta.url));
     const info = await stat(resolved);
     assert.ok(info.isFile(), `${entry.module} does not resolve to a file`);
 });
 
 test('the states straddle the crossover, because that is the whole component', () => {
-    // A card grid that is only ever photographed wide is photographed as a div. The
-    // crossover is 2 x 280 + 12 = 572 (the floor is Appendix 14's, the gap is
-    // --ui-space-3 after spec §3.3 snaps Slate's 14), so the battery needs a state on
-    // each side of it and one exactly on it.
     const widths = entry.states
         .map((s) => parseFloat(s.hostStyle?.['inline-size'] ?? ''))
         .filter((w) => Number.isFinite(w));

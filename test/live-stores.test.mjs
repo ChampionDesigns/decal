@@ -1,8 +1,4 @@
-// The live layer assembled: seven feeds, one shot buffer, nothing module-scope.
-//
-// The sockets, the devices link and the sensor discovery are all fakes here — which is the
-// point of the injection: the whole Gate 4 layer runs with no network, no DOM and no
-// timer, so these behaviours are testable at all.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -88,11 +84,6 @@ describe('construction', () => {
     });
 
     test('the seven feeds SCOPE Part 3 §4 names all exist, plus the sensors and the tank', () => {
-        /* THE TANK JOINED THEM ON 23 Aug 2026. Ben: "Tank just shows as -, no water level
-         * being shown." The tile had been built and dashed since the band was made, and
-         * its own note named the gap precisely — the channel was tabled, and no feed
-         * attached it. Attaching it is a feed, a reader and a budget row, which is what
-         * that note said it would be. */
         const live = createLiveStores({ sockets: fakeSockets() });
         assert.deepEqual(Object.keys(live.feeds).sort(), [
             'connection', 'display', 'estimator', 'machineSnapshot', 'milkProbe', 'scale',

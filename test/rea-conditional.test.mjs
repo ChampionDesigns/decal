@@ -1,11 +1,4 @@
-// The conditional-route registry, re-derived from ReaPrime's handlers.
-//
-// Same discipline as test/rea-names.test.mjs: the registry is not trusted because it was
-// written carefully, it is checked against the source it claims to describe. If upstream
-// adds a `jsonOkConditional` call site — or removes one — this turns red on the next run
-// rather than quietly costing bandwidth on every list read for months, which is exactly
-// what happened the other way round (the server has served ETags all along and the skin
-// never sent a single If-None-Match).
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';

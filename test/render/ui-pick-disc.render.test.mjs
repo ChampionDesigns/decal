@@ -1,36 +1,5 @@
 /**
- * ui-pick-disc.render.test.mjs — Wave 2 item #45's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. #45's row carries no bug id. Its defect is the
- * architectural one SCOPE's founding-defect callout names (SCOPE.md:1576-1578):
- * the pick disc is one of six components that "may not own a private 'selected'
- * look". A component that hard-codes --ui-steel into a selected rule renders
- * pixel-identically to one that reads the dials, so a screenshot gate cannot tell
- * them apart and neither can a reviewer reading a diff. Only a drill can. So the
- * centre of this file is three assertions no screenshot can make:
- *
- *   1. the FOUR DIALS, each retargeted on :root, each moving the rendered disc
- *      (assertOneSelectionTreatment does face/LED/glow; the ink drill is spelled
- *      out here so all four are visibly exercised);
- *   2. THE DIFFERENCE IS EXACTLY THE DIALS — a selected disc and a resting disc
- *      are compared property by property, and everything that is not face or ink
- *      must be identical. This is what makes a seventh treatment inexpressible
- *      rather than merely absent: any private selected paint added later lands in
- *      that diff;
- *   3. BOTH FORMS TAKE THE SAME SELECTED PAINT. Slate reaches --slate-steel twice,
- *      through two hand-written rules in one screen sheet
- *      (`.slate-hv-pick-tag[data-slot="a"]` and `.hv-pick-btn[aria-pressed="true"]`).
- *      Two rules is how six treatments started. Here it is one fragment, asserted.
- *
- * EVERY STARTING VALUE IS THE ORACLE'S, quoted in ui-pick-disc.js's header:
- * `prov_query.py find --cls slate-hv-pick-tag` → 6 elements in 2 states, 62 x 62 x6;
- * `prov_query.py find --cls hv-pick-btn` → 42 elements in 1 state, 62 x 62 x42.
- * Colours are asserted against the resolved token, never against a hex, so the suite
- * is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -48,24 +17,12 @@ import {
 
 const MODULE = ['/src/components/ui-pick-disc.js'];
 
-/* The header's two slot tags, then a shot-list row's two discs, then the two
- * edge cases. Slate's own arrangement: A is the shot on the charts, B the one it
- * is measured against. */
 const TAG_A = '<ui-pick-disc id="tag-a" selected label="Slot A">A</ui-pick-disc>';
 const TAG_B = '<ui-pick-disc id="tag-b" label="Slot B">B</ui-pick-disc>';
-/* THE SHOT-LIST ROW'S DISCS NOW NAME THEIR FORM, and the attribute is not decoration
- * added to keep a test passing: parity surface 6 separated "is this pressable" from
- * "which of Slate's two discs is this", because the History band wanted the
- * combination Slate never had -- a slot-NAMING tag that is also pressable -- and got
- * the shot list's hollow paint by inheritance. These two fixtures are the shot list's
- * discs, so they say so; the band's are `BAND_TAG` below, and the assertion that an
- * interactive disc with no form rests on the TAG's paint is what pins the change. */
 const PICK_A = '<ui-pick-disc id="pick-a" interactive form="pick" selected label="Compare slot A">A</ui-pick-disc>';
 const PICK_B = '<ui-pick-disc id="pick-b" interactive form="pick" label="Compare slot B">B</ui-pick-disc>';
 const PLAIN = '<ui-pick-disc id="plain" interactive form="pick">A</ui-pick-disc>';
 const DISABLED = '<ui-pick-disc id="dis" interactive form="pick" disabled label="Compare slot B">B</ui-pick-disc>';
-/** The History band's disc: pressable AND a tag, which is the combination Slate has no
- *  element for and which this component now expresses in two attributes. */
 const BAND_TAG = '<ui-pick-disc id="band-b" interactive label="Shot B">B</ui-pick-disc>';
 const MARKUP = `${TAG_A}${TAG_B}${PICK_A}${PICK_B}${PLAIN}${DISABLED}${BAND_TAG}`;
 
@@ -81,16 +38,6 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/**
- * Everything a disc paints EXCEPT the two colour dials.
- *
- * The founding-defect assertion compares this list between a selected disc and a
- * resting one of the same form. Every entry must be identical, which is the
- * machine-checkable form of "it may not own a private selected look": the moment
- * someone adds `border-color: var(--ui-steel)` to a selected rule — which is
- * exactly what Slate does at slate-live.css:2263 and :2514 — this list stops
- * matching and the test names the property.
- */
 const NON_DIAL_PAINT = [
     'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
     'border-top-width', 'border-bottom-width',
@@ -127,13 +74,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. THE ORACLE'S GEOMETRY, REPRODUCED
-         *    find --cls slate-hv-pick-tag → 62 x 62 x6
-         *    find --cls hv-pick-btn       → 62 x 62 x42
-         *    48 elements, one distinct geometry, and it is --ui-control-inner.
-         * ============================================================== */
-
         test('every disc is the oracle\'s 62 x 62, from --ui-control-inner', () => mounted(async (page) => {
             const inner = parseFloat(await page.resolveValue('var(--ui-control-inner)', 'width'));
             near(inner, 62, '--ui-control-inner is calc(--ui-control-h - 2 * --ui-hairline)');
@@ -145,8 +85,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(box.width, 62, `ORACLE #${host} width=62px on all 48 measured elements`);
                 near(box.height, 62, `ORACLE #${host} height=62px on all 48 measured elements`);
 
-                // The painted disc fills its host exactly, so the ring, the fill and
-                // the hit box are one circle rather than three boxes.
                 const inkBox = await page.box(disc(host));
                 near(inkBox.width, box.width, `${disc(host)} fills its host horizontally`);
                 near(inkBox.height, box.height, `${disc(host)} fills its host vertically`);
@@ -154,12 +92,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the disc is round, and the host is round with it', () => mounted(async (page) => {
-            // ORACLE border-top-left-radius = 50% on all 48 elements. Decal writes the
-            // token instead, and --ui-radius-pill is 9999px: getComputedStyle reports the
-            // SPECIFIED 9999px because the clamp to half the box is a used-value step
-            // (CSS Backgrounds §5.5), so the check is "at least half" plus "it is the
-            // token", not "equals 31px". Same painted circle, on a box that is square by
-            // construction — both axes are --ui-control-inner.
             const pill = await page.resolveValue('var(--ui-radius-pill)', 'border-top-left-radius');
             for (const host of ['tag-a', 'pick-a']) {
                 const box = await page.box(`#${host}`);
@@ -170,9 +102,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${sel} radius ${r} does not reach half of ${box.width}px, so it is not a circle`);
                 }
             }
-            // The HOST carrying it is not decoration: selectionSurface paints
-            // :host([selected]) too, and a square face behind a round disc shows as a
-            // filled square with a circle on top.
             await assertTokenDrill(page, {
                 token: '--ui-radius-pill',
                 value: '7px',
@@ -181,11 +110,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 expected: '7px',
             });
         }));
-
-        /* ================================================================
-         * 2. THE ORACLE'S RESTING PAINT, REPRODUCED — against resolved TOKENS,
-         *    so the suite holds in both themes.
-         * ============================================================== */
 
         test('the TAG rests on --ui-key inside a --ui-line-strong hairline', () => mounted(async (page) => {
             const got = await page.computed(disc('tag-b'), [
@@ -200,8 +124,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'comment: "The hairline is load-bearing, not trim"');
             assert.equal(got.color, await page.resolveToken('--ui-text', 'color'),
                 'ORACLE same element color: dark rgb(244, 247, 248) / light rgb(23, 26, 28) → --ui-text');
-            // Resolved through `width`: a probe element with no border-style computes
-            // every border width to 0px, so the obvious spelling compares 1 against 0.
             near(parseFloat(got['border-top-width']),
                 parseFloat(await page.resolveValue('var(--ui-border-w)', 'width')),
                 'ORACLE border-top-width = 1px → --ui-border-w');
@@ -222,17 +144,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + '/ light rgb(90, 101, 108) → --ui-muted');
         }));
 
-        /* PARITY SURFACE 6 — THE FORM IS THE PAINT, AND interactive IS NOT.
-         *
-         * The History band's discs NAME the two slots and are also pressable. Bound to
-         * `interactive`, the resting paint came out the shot list's hollow one, and the
-         * oracle says the header's disc is filled — which is the very failure this
-         * component's own header quotes from Slate: "the circle vanished and left a
-         * faint letter floating in the header, so B read as disabled".
-         *
-         * All three properties, against the same tokens the TAG test uses, on a disc
-         * that IS interactive: so the assertion cannot pass by the two forms happening
-         * to agree, and it fails the moment the paint goes back on `interactive`. */
         test('parity 6 — an interactive disc with no form rests on the TAG\'s paint', () => mounted(async (page) => {
             const band = await page.computed(disc('band-b'), [
                 'background-color', 'border-top-color', 'color',
@@ -246,16 +157,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'CITE history-viewer .slate-hv-pick-tag [i=166] border-top-color: dark rgb(82, 97, 107)');
             assert.equal(band.color, await page.resolveToken('--ui-text', 'color'),
                 'ORACLE same element color: dark rgb(244, 247, 248) → --ui-text, not --ui-muted');
-            /* AND IT IS STILL THE PRESSABLE ELEMENT — the half the attribute keeps.
-             * Read off the DOM: page.prop() answers a COMPUTED STYLE, so asking it for
-             * tagName reads back "" and the assertion would pass for a span. */
             const tag = await page.evalFn(() => document.getElementById('band-b')
                 .shadowRoot.getElementById('disc').tagName);
             assert.equal(tag, 'BUTTON',
                 'interactive still renders the button; only the resting paint moved off it');
-            /* AND THE HOLLOW LOOK IS STILL EXPRESSIBLE, which is DQ-610's rule: the
-             * capability is kept behind an attribute rather than deleted. Read from the
-             * form="pick" fixture in the same document, so the two are compared live. */
             const row = await page.computed(disc('pick-b'), ['background-color', 'color']);
             assert.equal(row['background-color'], 'rgba(0, 0, 0, 0)',
                 'form="pick" still rests transparent — the shot list\'s paint, kept');
@@ -279,32 +184,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         }));
 
-        /* ================================================================
-         * 3. THE SELECTION DIALS — the whole point of this component.
-         *
-         *    SCOPE.md:1576-1578: "#32 (tab bar), #36 (favourites bank),
-         *    #37 (preset bank), #45 (pick disc), the wizard chips in #39 and the
-         *    selected states of #24/#25/#52 are all expressed through it or
-         *    through its dials — none of them may own a private 'selected' look."
-         * ============================================================== */
-
         test('the selected TAG is painted by the dials and nothing else', () => mounted(async (page) => {
-            /* weightDial: false — this disc is the library's ONE user of
-             * --_ui-rest-weight (base.js). Slate's own disc is semibold SELECTED AND
-             * RESTING (ORACLE history-shotdata .hv-pick-btn font-weight = 600 on all 42
-             * records, two of them painted --slate-selected-face; .slate-hv-pick-tag the
-             * same 600 on all 6), so the weight here is resting paint rather than part
-             * of the selected treatment, and the fifth dial must not reach it. The test
-             * immediately below is the pin. */
             const r = await assertOneSelectionTreatment(page, {
                 selected: disc('tag-a'),
                 unselected: disc('tag-b'),
                 weightDial: false,
             });
-            // ORACLE history-viewer .slate-hv-pick-tag [i=163] (the A tag):
-            // background-color dark rgb(176, 196, 206) / light rgb(49, 92, 112) =
-            // --ui-steel = --ui-selected-face; color dark rgb(18, 24, 28) /
-            // light rgb(248, 252, 253) = --ui-on-steel = --ui-selected-ink.
             assert.equal(r.face, await page.resolveToken('--ui-steel', 'background-color'),
                 'the face dial still resolves to --ui-steel, which is what the oracle measured');
             assert.equal(r.ink, await page.resolveToken('--ui-on-steel', 'color'),
@@ -321,18 +206,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('SELECTION DOES NOT THIN THE DISC: 600 selected and resting, as Slate renders it',
             () => mounted(async (page) => {
-                /* Parity surface 2's pin, and the reason --_ui-rest-weight exists at all.
-                 * The fifth dial (--ui-selected-weight, --ui-weight-medium = 500) is
-                 * written into the shared `selectionSurface` fragment, which is (0,1,0)
-                 * and goes LAST — so a plain `font-weight: var(--ui-weight-semibold)` on
-                 * .disc would LOSE to it and the selected disc would come out LIGHTER
-                 * than its resting siblings. That is backwards on any reading, and it is
-                 * not what Slate does:
-                 *   ORACLE history-shotdata .hv-pick-btn font-weight = 600 on all 42
-                 *          records — 40 hollow, 2 painted --slate-selected-face
-                 *   ORACLE history-viewer .slate-hv-pick-tag font-weight = 600 on all 6
-                 * .disc declares --_ui-rest-weight and paints from it, so the fragment's
-                 * fallback never fires here. Moving the dial must move NOTHING. */
                 const semibold = await page.resolveValue('var(--ui-weight-semibold)', 'font-weight');
                 for (const [selected, resting] of [['tag-a', 'tag-b'], ['pick-a', 'pick-b']]) {
                     assert.equal(await page.prop(disc(selected), 'font-weight'), semibold,
@@ -350,9 +223,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('--ui-selected-ink is a dial too: retarget it and the letter moves', () => mounted(async (page) => {
-            // assertOneSelectionTreatment proves face, LED and glow by moving them and
-            // checks ink by equality. This drills the fourth, so all four are exercised
-            // as dials rather than three dials and a constant.
             for (const host of ['tag-a', 'pick-a']) {
                 await assertTokenDrill(page, {
                     token: '--ui-selected-ink',
@@ -377,8 +247,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + '  border colour here (slate-live.css:2263, :2514) and that is the fifth painted\n'
                     + '  property this assertion exists to keep out.',
                 );
-                // …and the two the dials DO paint must have moved, or the assertion above
-                // is satisfied by a component with no selected state at all.
                 const dials = await page.computed(disc(on), ['background-color', 'color']);
                 const dialsOff = await page.computed(disc(off), ['background-color', 'color']);
                 assert.notEqual(dials['background-color'], dialsOff['background-color'],
@@ -398,8 +266,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the hairline survives selection and still reads its own token', () => mounted(async (page) => {
-            // DEPARTURE 1, asserted from the other side: Slate dissolves the selected
-            // disc's edge into its fill; here the ring is resting paint and stays.
             await assertTokenDrill(page, {
                 token: '--ui-line',
                 value: DRILL_COLOUR,
@@ -425,10 +291,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* ================================================================
-         * 4. TOKENS ARE CONSUMED, NOT COPIED (Gate A standing assertion 1)
-         * ============================================================== */
-
         test('the resting paint is drilled token by token', () => mounted(async (page) => {
             await assertTokenDrill(page, {
                 token: '--ui-key', selector: disc('tag-b'), property: 'background-color',
@@ -448,9 +310,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the size is derived from --ui-control-h, not written as 62', () => mounted(async (page) => {
-            // --ui-control-inner is calc(--ui-control-h - 2 * --ui-hairline), so moving
-            // the SPINE token must move the disc. A file with 62px baked in passes every
-            // screenshot and fails this.
             const before = (await page.box('#pick-b')).width;
             await page.setToken('--ui-control-h', '100px');
             const after = (await page.box('#pick-b')).width;
@@ -462,16 +321,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(restored, before, 'and it comes back, so the value was READ not coincidental');
         }));
 
-        /* ================================================================
-         * 5. FOCUS — one ring, unclipped (Gate A standing assertion 4, bug L24's class)
-         * ============================================================== */
-
         test('the pressable disc takes the one focus ring, unclipped', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, disc('pick-b'));
-            // SOURCE slate-live.css:2518-2520 — `.hv-pick-btn:focus-visible { outline:
-            // 3px solid var(--slate-steel); outline-offset: 2px; }`. This is the one
-            // place in the old skin where the shipped ring IS the one ring, so matching
-            // it costs nothing and the base already paints it (CONVENTIONS §3).
             assert.equal(g.outlineOffset, await page.resolveValue('var(--ui-focus-offset)', 'outline-offset'),
                 'the outset offset, as slate-live.css:2520 writes it');
         }));
@@ -486,28 +337,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'out of the tab order');
         }));
 
-        /* ================================================================
-         * 6. HIT FLOOR (Appendix 5) — measured, not asserted in a comment.
-         *    Bug P4's shape is a floor "the comment claims and the box does not have".
-         * ============================================================== */
-
         test('the ink already clears --ui-hit-min on both axes, with no overlay', () => mounted(async (page) => {
             const r = await assertHitFloor(page, disc('pick-b'), { mode: 'box' });
             assert.ok(r.inline >= r.floor && r.block >= r.floor);
             // And the host, which is what the finger actually meets.
             await assertHitFloor(page, '#pick-b', { mode: 'box' });
-            // No .hit-overlay is used, so the utility's ::before must not exist here —
-            // an overlay above a control that does not need one is the copy CONVENTIONS
-            // §5 exists to prevent.
             const overlay = await page.prop(disc('pick-b'), 'content', { pseudo: '::before' });
             assert.ok(overlay === 'none' || overlay === 'normal',
                 `the disc draws no hit overlay (::before content is ${overlay})`);
         }));
-
-        /* ================================================================
-         * 7. ARIA — accessibility state and visual state are the same state
-         *    (spec Appendix 15; slate-components.css:389-392)
-         * ============================================================== */
 
         test('the pressable disc always carries aria-pressed, true or false', () => mounted(async (page) => {
             const read = (sel, attr) => page.evalFn(
@@ -557,10 +395,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'the text out of the accessibility tree, which is the one thing it must not do');
             assert.match(got['clip-path'], /inset\(50%\)/, 'the shared visuallyHidden fragment, not a fourth copy');
         }));
-
-        /* ================================================================
-         * 8. EVENTS — and the state this component deliberately does not own
-         * ============================================================== */
 
         test('a press asks to be picked and changes nothing by itself', () => mounted(async (page) => {
             await page.recordEvents('#pick-b', ['pick']);
@@ -619,16 +453,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
         }));
 
-        /* ================================================================
-         * 9. CONTAINER FLOOR — the component reads its own box, never the viewport,
-         *    and ergonomics is physical (CONVENTIONS §2, §11)
-         * ============================================================== */
-
         test('a container narrower than the pair does not shrink either disc', () => mounted(async (page) => {
-            // A shot-list row's pick cell, squeezed to less than one disc. The default
-            // flex-shrink is 1, which is bug T9's shape ("it is a flex item with default
-            // shrink. Measured 214 in one leaf and 250 two rows below, inside a single
-            // screen"); flex: none on the host is the one-declaration answer.
             const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
             for (const host of ['pick-a', 'pick-b']) {
                 const box = await page.box(`#${host}`);
@@ -664,10 +489,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'CONVENTIONS §2\'s one-line opt-out: a fixed-size leaf pays for no containment');
         }));
 
-        /* ================================================================
-         * 10. ZERO !IMPORTANT (spec §2.1 Rule 3)
-         * ============================================================== */
-
         test('the component paints with no !important anywhere in its own sheet', () => mounted(async (page) => {
             const bad = await page.evalFn(() => {
                 const sheets = document.getElementById('pick-a').shadowRoot.adoptedStyleSheets || [];
@@ -689,16 +510,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ---------------------------------------------------------------------------
- * The gallery entry, exercised here rather than at the gate.
- *
- * tools/gallery/entries.js is a SHARED single-array file and twelve parallel
- * builders doing whole-file writes on it would clobber each other, so this entry
- * lives in its own file and the gate wires it in. That hand-off is the moment a
- * malformed entry would first be noticed — unless it is checked here, where the
- * builder can still fix it.
- * ------------------------------------------------------------------------- */
 
 test('the gallery entry is the documented shape', () => {
     assert.equal(galleryEntry.id, 'ui-pick-disc', 'the entry id is the tag name and the capture prefix');
@@ -728,9 +539,6 @@ test('every gallery state mounts and renders a disc at the token size', async ()
 });
 
 test('the dials-radian gallery state really moves the LED and the glow', async () => {
-    // The state that IS the claim: four values, zero rule changes. Asserted rather
-    // than photographed, because a screenshot of a 0px LED and a 4px LED taken on
-    // different days is not evidence of anything.
     await browser.withPage({ geometry: BENCH }, async (page) => {
         await page.mount(PICK_A, MODULE);
         const off = await page.computed(disc('pick-a'), ['box-shadow', 'text-shadow']);
@@ -745,10 +553,6 @@ test('the dials-radian gallery state really moves the LED and the glow', async (
         assert.notEqual(on['text-shadow'], off['text-shadow'], 'the glow dial moved nothing');
     });
 });
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the disc is a token, not a fraction of the viewport.
- * ------------------------------------------------------------------------- */
 
 test('the disc renders identically at the bench and at the floor', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {

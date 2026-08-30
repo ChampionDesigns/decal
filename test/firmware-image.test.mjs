@@ -1,25 +1,5 @@
 /**
- * firmware-image.test.mjs — THE GUARD THAT STOPS A DE1 IMAGE REACHING A BENGLE.
- *
- * WHY THIS SUITE EXISTS. Ben, 27 August 2026: "Just note the DE1 FW is different to Bengle
- * and we will need to sort that out to ensure we dont try and flash a DE1 FW onto Bengle or
- * the other way around."
- *
- * WHAT MAKES IT WORTH PINNING RATHER THAN TRUSTING. The two board markers are 0xDE100001
- * and 0xBE100001 — ONE HEX DIGIT apart, at the same offset, in the same 64-byte header,
- * with the same endianness. Every plausible way of getting this wrong (a big-endian read,
- * a signed-int comparison, masking the wrong side, an off-by-four offset) produces a
- * function that still looks right and still returns a class. So the cases below are built
- * from real byte arrays rather than from the module's own constants wherever the number is
- * the thing under test.
- *
- * THE REAL IMAGES ARE THE ORACLE WHERE THERE IS ONE. ReaPrime bundles two genuine DE1
- * images and this suite reads them off disk when they are there, so the DE1 half is
- * checked against the actual article and not only against a fixture this file wrote. There
- * is no Bengle image in this checkout — `ImageScripts/ROMs/` is a build output — so the
- * Bengle half is checked against the header spec, which is stated identically in four
- * places in the firmware tree (`CFirmwareParser.hpp` twice, `makeFirmware.py`,
- * `firmware_check.py`).
+ * The.
  */
 
 import { test, describe } from 'node:test';
@@ -28,13 +8,6 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/* THE HOUSE COMMENT-STRIPPER, not a second one. Gate D's coverage scan uses exactly this
- * to tell a name USED from a name DISCUSSED, and the distinction matters here for the same
- * reason: the leaf's section header spells BOTH markers in prose, on purpose, because that
- * is where the evidence for the guard is written down. A comment-blind scan would call
- * that a duplicate, the duplicate would earn an exemption, and an exemption is how a guard
- * quietly stops covering its target — which is how all three of this project's previous
- * guard failures happened. */
 import { stripComments } from '../scripts/lib/source-scan.js';
 
 import {
@@ -46,12 +19,6 @@ import { MACHINE_CLASSES } from '../src/lib/machine-limits.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/**
- * A synthetic image with a chosen board word.
- *
- * THE MARKER IS WRITTEN LITTLE-ENDIAN BY HAND rather than through the module, so a module
- * that read big-endian would fail here instead of agreeing with itself.
- */
 function image(marker, bytes = 200 * 1024) {
     const buffer = new Uint8Array(bytes);
     const view = new DataView(buffer.buffer);
@@ -68,10 +35,6 @@ describe('the board word comes out of the header intact', () => {
     });
 
     test('a marker with the top bit set stays POSITIVE', () => {
-        /* THE BUG THIS PINS. Both markers are above 0x7FFFFFFF, so any implementation that
-         * reaches for a bitwise operator without `>>> 0` gets a negative int back and
-         * every comparison silently fails — the guard would then refuse every image,
-         * including the right one, with the wrong sentence. */
         assert.ok(readBoardMarker(image(BOARD_MARKERS.de1)) > 0);
         assert.ok(readBoardMarker(image(BOARD_MARKERS.bengle)) > 0);
         assert.equal(readBoardMarker(image(0xBE1C0001)), 0xBE1C0001);
@@ -100,17 +63,10 @@ describe('an image says which machine it is for', () => {
     });
 
     test('a COMPRESSED Bengle image is still a Bengle image', () => {
-        /* MS24 images OR 0x000C0000 into the marker on purpose, so that a pre-MS24
-         * bootloader refuses them and stays recoverable rather than flashing compressed
-         * bytes as code. New bootloaders mask it off. `makeFirmware.py:102-107` states the
-         * reasoning; `firmware_check.py:170` is the masked comparison. */
         assert.equal(imageMachineClass(image(0xBE1C0001)), 'bengle');
     });
 
     test('the DE1 side is NOT masked, because ReaPrime compares it exactly', () => {
-        /* ASYMMETRY ON PURPOSE, and this is the test that keeps somebody from "tidying" it.
-         * `De1FirmwareHeader.isDe1Board` is an exact equality, so masking the DE1 side here
-         * would make the skin ACCEPT an image ReaPrime's own validator rejects. */
         assert.equal(imageMachineClass(image(0xDE1C0001)), null);
     });
 
@@ -135,8 +91,6 @@ describe('an image says which machine it is for', () => {
         for (const name of images) {
             const bytes = new Uint8Array(readFileSync(join(dir, name)));
             assert.equal(imageMachineClass(bytes), 'de1', `${name} is a DE1 image`);
-            /* AND THE THING THE WHOLE FILE IS FOR: the genuine article, refused on a
-             * Bengle. This is Ben's sentence turned into an assertion. */
             assert.equal(checkFirmwareImage(bytes, 'Bengle').verdict, IMAGE_VERDICT.WRONG_MACHINE);
             assert.equal(checkFirmwareImage(bytes, 'DE1Pro').ok, true);
         }
@@ -198,10 +152,6 @@ describe('the verdict on a picked file', () => {
     });
 
     test('a machine that has not answered refuses a PERFECTLY GOOD image', () => {
-        /* THIS IS ReaPrime’S OWN RULE, not caution invented here: on the managed route
-         * `machine_model_unknown` sits in the same set as `model_incompatible`, and that
-         * set is checked BEFORE the force branch — so not even `force: true` will flash to
-         * a machine whose model did not read. The raw route gets the same rule. */
         const got = checkFirmwareImage(image(BOARD_MARKERS.bengle), 'Unknown');
         assert.equal(got.ok, false);
         assert.equal(got.verdict, IMAGE_VERDICT.MACHINE_UNKNOWN);
@@ -231,10 +181,6 @@ describe('the verdict on a picked file', () => {
     });
 
     test('the extension is not consulted at all, and that is the fix', () => {
-        /* THE OLD CHECK REFUSED CORRECT IMAGES. It required a name ending `.bin`, and the
-         * DE1 firmware Decent actually ships is `bootfwupdate.dat` — the filename in
-         * ReaPrime’s own manifest provenance for both bundled artifacts. This function
-         * never sees a name, which is how that defect is made unrepeatable. */
         assert.equal(checkFirmwareImage(image(BOARD_MARKERS.de1), 'DE1Pro').ok, true);
     });
 });
@@ -246,11 +192,6 @@ describe('whether the catalog carries anything for this machine at all', () => {
     });
 
     test('a Bengle with a DE1-only catalog is carrying NOTHING, not "up to date"', () => {
-        /* THE SENTENCE THIS EXISTS TO CORRECT. The server computes `updateAvailable: false`
-         * for a Bengle for a completely different reason than it computes it for a current
-         * DE1 — the bundled manifest CANNOT hold a Bengle image, because
-         * `FirmwareManifest._validate` throws on any artifact whose machineFamily is not
-         * the literal 'de1'. Same boolean, opposite meanings. */
         assert.equal(catalogCarriesNothingFor({
             machine: { model: 'Bengle', build: 340 },
             artifacts: [de1Artifact('de1-1352', 1352), de1Artifact('de1-1358', 1358)],
@@ -291,11 +232,6 @@ describe('whether the catalog carries anything for this machine at all', () => {
 
 describe('every class this skin knows is fully described here', () => {
     test('each machine class has a board marker AND a name to call it', () => {
-        /* THE TIE THAT KEEPS A THIRD MACHINE FROM HALF-ARRIVING. If a class is ever added
-         * to `MACHINE_CLASSES` — the skin's one list of them, shared with the limits table
-         * — it needs a marker before the guard can classify its images and a name before
-         * the refusal can mention it. Without this, adding one gives a guard that silently
-         * refuses every image for the new machine and a sentence with a blank in it. */
         for (const machineClass of MACHINE_CLASSES) {
             assert.ok(Object.hasOwn(BOARD_MARKERS, machineClass), `no board marker for ${machineClass}`);
             assert.ok(MACHINE_CLASS_NAMES[machineClass], `no prose name for ${machineClass}`);
@@ -317,9 +253,6 @@ describe('every class this skin knows is fully described here', () => {
 
 describe('the numbers live in exactly one place (B2)', () => {
     test('no second copy of either board marker anywhere in src/', () => {
-        /* THE SAME RULE THE LIMITS TABLE HAS, applied to the one identity in this skin
-         * whose disagreement with itself would cost a machine rather than a wrong tick.
-         * The scan is by construction: every authored module under src/, not an allowlist. */
         const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
             const path = join(dir, entry.name);
             if (entry.isDirectory()) return walk(path);
@@ -330,9 +263,6 @@ describe('the numbers live in exactly one place (B2)', () => {
         for (const path of walk(join(REPO_ROOT, 'src'))) {
             if (path === owner) continue;
             const text = stripComments(readFileSync(path, 'utf8'));
-            /* THE HEX SPELLINGS AND THE DECIMALS BOTH — 3725590529 is 0xDE100001, and it is
-             * how the number appears in ReaPrime's manifest, so it is a plausible thing for
-             * somebody to paste in. Case-insensitive: 0xde100001 is the same constant. */
             for (const spelling of [/0x[Dd][Ee]10 ?0001/, /0x[Bb][Ee]10 ?0001/, /3725590529/, /3188719617/]) {
                 if (spelling.test(text)) offenders.push(`${path.slice(REPO_ROOT.length + 1)} matches ${spelling}`);
             }

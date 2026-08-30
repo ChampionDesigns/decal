@@ -1,37 +1,5 @@
 /**
- * live-chart.render.test.mjs — the chart card ON THE LIVE SCREEN, in a real engine, at
- * both Gate A geometries (BENCH 1281×801 @ dsf 1.5, FLOOR 1000×600 @ dsf 1).
- *
- * WHAT THIS SUITE OWNS THAT `ui-chart-card.render.test.mjs` DOES NOT. That one proves
- * the COMPONENT, in a stage sized by the test. This one proves the INTEGRATION: the
- * same card in the box the Live skeleton gives it (§4.1's single `1fr` row), fed by a
- * shot buffer through gate 6's derivation, with the screen's own additions around it —
- * the refusal words, the aria-live summary, and the fact that the screen states no
- * channel and no colour of its own.
- *
- * The distinction is not academic. The spike's finding is that a chart which has lost
- * the vendor stylesheet renders PIXEL-IDENTICALLY and is dead to the touch, and a card
- * that mounts correctly on a bench stage can still meet a screen that pads its host,
- * wraps it in a box with a min-height, or hands it a derivation a frame too late. So
- * every assertion here is made on the MOUNTED SCREEN: computed style, measured
- * geometry, painted canvas pixels, or behaviour under real CDP input.
- *
- * THE CHART-C ITEMS THIS SCREEN CLOSES (SCOPE.md:1997-2003, §7.8):
- *   chart-C1   the y ceiling is component state and grows with the shot
- *   chart-C2   a theme switch mid-shot keeps every step boundary
- *   chart-C9   no dead weight on the 15 Hz path: N samples in a turn, one paint
- *   chart-C10  the legend is part of the layout — measured after it exists, not before
- *   chart-C11  a ResizeObserver on the component's own host, mandatory
- *   chart-C12  ONE pixelRatio, owned by the component
- *   chart-C13  the chart never reads another component's rendered DOM
- *   chart-C14  the canvas gets a text alternative and an aria-live summary
- * (chart-C4 was closed before this screen existed — under A6 a chart token with zero
- * consumers cannot recur; it is listed in the digest, not asserted here.)
- *
- * THE LAST DESCRIBE IS DRIVEN BY THE WEBSOCKET MOCK, end to end: `tools/mock_rea.py`
- * streams the recorded shot over `/ws/v1/machine/snapshot`, the real socket layer and
- * the real stores carry it, and the SCALE goes away mid-shot. What must appear on the
- * canvas is a GAP — the one thing a chart must never invent its way across.
+ * The chart card.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -48,22 +16,6 @@ import { channelNameFor, channelToken } from '../../src/lib/chart-tokens.js';
 const REPO = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const MODULE = ['/src/screens/live-screen.js'];
 
-/**
- * THE CARD'S OWN LIST, READ OUT OF THE ENGINE RATHER THAN RETYPED HERE.
- *
- * `ui-chart-card.js` imports `lit`, so node cannot import it the way this file imports
- * `chart-tokens.js`; the module only resolves inside the page, against index.html's
- * importmap. `history-series.test.mjs` says exactly what follows from that — "this module
- * is DOM-free and cannot import a component, so the test states the same shape
- * `DEFAULT_CHANNELS` has rather than importing it ... Reading the card's own export is the
- * render suite's job, in an engine (A8)."
- *
- * This is that job. A second copy of the channel list living in a test is the same defect
- * as a second copy living in a screen — §6.2's "the legend and the trace part company",
- * entered from the test end — and it has already cost this file once: the list was retyped
- * as five keys, Ben's 25 August group-temperature ruling took it to seven, and the suite
- * failed describing a chart that was drawing exactly what he asked for.
- */
 const DEFAULT_CHANNELS_IN_PAGE = `(async () => {
     const { DEFAULT_CHANNELS } = await import('/src/components/ui-chart-card.js');
     return DEFAULT_CHANNELS.map((c) => ({ key: c.key, factor: c.factor ?? null }));
@@ -71,8 +23,6 @@ const DEFAULT_CHANNELS_IN_PAGE = `(async () => {
 
 const defaultChannels = (page) => page.eval(DEFAULT_CHANNELS_IN_PAGE);
 
-/** The stage the skeleton's own suite uses: a definite height, so §4.1's `100%` means
- *  something and a geometry change moves the screen the way a window resize does. */
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"><live-screen></live-screen></div>';
 
 /** The same real recorded shot the card's suite draws: 426 measurements, 336 in-shot,
@@ -91,13 +41,6 @@ const near = (got, want, what, tol = 1.01) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/**
- * Feed the screen the way the wiring row will: ONE shot buffer on `screen.shot`.
- *
- * The buffer is filled by hand here — `open()` is the seam that exists for exactly this
- * — because the socket road is the last describe's job and everything before it is
- * about the chart's box, its colours and its behaviour rather than about transport.
- */
 const FEED = (count = null) => `(async () => {
     const { createShotBuffer } = await import('/src/stores/shot-buffer.js');
     const record = await (await fetch('${SHOT_URL}')).json();
@@ -174,10 +117,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return fn(page);
         });
 
-        /* ================================================================
-         * 1. THE MOUNT, IN THE SCREEN — the two spike rules, in situ
-         * ============================================================== */
-
         test('the shot reaches the canvas: sheet adopted in the CARD\'s own root, plot built', () => mounted(async (page) => {
             const got = await feed(page);
             assert.equal(got.mountError, null);
@@ -188,39 +127,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(got.ok, true);
             assert.equal(got.inShot, 336, 'the whole recorded shot, through gate 6');
             assert.equal(got.empty, false, 'and the refusal is gone the moment there is a shot');
-            /* THE SET IS THE CARD'S, AND IT IS READ RATHER THAN RETYPED — see
-             * DEFAULT_CHANNELS_IN_PAGE at the top of this file for why that is the
-             * assertion and not a spelt-out list.
-             *
-             * What this pins is a claim about the SCREEN, not about the card: live-screen
-             * names no channel of its own, so whatever the card's own ordering says is
-             * what reaches the canvas. It would fail the moment the screen started passing
-             * `channelKeys` — which is the second copy §6.2 exists to prevent — and it
-             * cannot fail merely because Ben changed his mind about which traces belong. */
             const defaults = await defaultChannels(page);
             assert.deepEqual(got.channels, defaults.map((c) => c.key),
                 'the Live set is the CARD\'s DEFAULT_CHANNELS — the screen names no channel, '
                 + 'because a second copy of the list is where the legend and the trace part company (§6.2)');
 
-            /* AND THE TWO RULINGS THAT ORDERING CARRIES, stated as claims rather than as a
-             * transcript of the array, because these are the things a future edit could
-             * break without anyone noticing.
-             *
-             * NO WATTS — Ben, 25 August 2026: "Live chart is on the main page and shouldnt
-             * show power." Power is the EXPANDED chart's and the history flow page's, where
-             * `FLOW_TOP_CHANNELS` carries it; the treatment still lives in the card's keyed
-             * CHANNEL_TREATMENTS so those surfaces draw it right, and only the ORDERING
-             * dropped it. Slate's main page has no watts either.
-             *
-             * BOTH TEMPERATURES, AT A TENTH — Ben, same day: "Group temperature on the Live
-             * chart, copy slates." Slate's SERIES_ORDER carries groupTemperature and
-             * targetTemperature as its fifth and sixth series and `updateChart` divides
-             * them by ten on the way in, so 90 C plots at 9 against an axis of bar and
-             * mL/s. `factor: 0.1` is that division, and it is applied at the PLOT: assert
-             * it here and the derivation is free to go on holding degrees for the gauge
-             * above this chart and the phase table below it. A temperature that arrived
-             * WITHOUT the factor would draw 88 against a 0-12 axis and take the shared
-             * ceiling with it — the exact fault the 0.3.0 commit records finding. */
             assert.ok(!got.channels.includes('power'),
                 'the Live card draws no power trace: it is the expanded chart\'s and the '
                 + 'history flow page\'s, not the main page\'s');
@@ -272,9 +183,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'padding-top': '0px', 'padding-right': '0px', 'padding-bottom': '0px', 'padding-left': '0px',
             }, 'uPlot sizes from the PADDING box, so a padded plot host overflows by exactly its padding');
 
-            /* The screen's half of the same rule: <live-main>'s slot is `display: contents`,
-             * so the CARD is the grid item and takes the 1fr row directly. A wrapper — the
-             * reflex — would defeat the card's own floor from the outside. */
             const outer = await page.computed(CARD, [
                 'padding-top', 'padding-left', 'margin-top', 'margin-left', 'display',
             ]);
@@ -310,10 +218,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(probe.painted, true,
                 'and the family the token asks for is the family uPlot actually paints with');
         }));
-
-        /* ================================================================
-         * 2. B4 — THE AXIS IS ReaPrime's ARRIVAL STAMPS, ON THE CANVAS
-         * ============================================================== */
 
         test('B4: the x axis plotted is arrival stamps minus the origin — no reconstruction', () => mounted(async (page) => {
             await feed(page);
@@ -369,12 +273,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 sources: { ...window.__live.card.derivation.sources },
                 heldBy: window.__live.card.derivation.sourcesHeldBy,
             }));
-            /* WHO holds the choice is a fact about the wiring, and today it is the
-             * derivation: `createLiveStores` takes an optional B6 `sourceSelector` and the
-             * app shell injects none, so `context.sources` is null and gate 6 makes the
-             * choice itself "from the shot's own first evidence and holds it, which is the
-             * same rule the buffer applies". One rule either way — what must never happen
-             * is the answer MOVING mid-shot, which is the half this asserts. */
             assert.equal(early.heldBy, 'derivation',
                 'with no selector injected, gate 6 decides from the first evidence and holds it');
             assert.ok(Object.keys(early.sources).length > 0, 'and it decided something');
@@ -382,10 +280,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the choice does not move mid-shot — a switched source reads as a machine glitch (B6/R6)');
             assert.equal(late.heldBy, early.heldBy, 'and neither does who made it');
         }));
-
-        /* ================================================================
-         * 3. A6 / A5 — COLOUR AND IDENTITY COME FROM THE TOKENS
-         * ============================================================== */
 
         test('a channel token drill reaches painted pixels ON THE MOUNTED SCREEN', () => mounted(async (page) => {
             await feed(page);
@@ -413,27 +307,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
             }, CARD);
 
-            /* EVERY CHANNEL THE CARD ACTUALLY DREW, whichever ones those are.
-             *
-             * This loop used to walk a retyped list of five kebab-case token names, which
-             * made it a THIRD copy of the channel set — after the card's DEFAULT_CHANNELS
-             * and after this file's own retyped list further up — and the least honest of
-             * the three, because a channel added to the ordering would still have been
-             * absent here and the test would have gone on passing while saying "every
-             * drawn channel". Ben's 25 August group-temperature ruling took the set to
-             * seven and this assertion failed on the count alone, never reaching the
-             * question it exists to ask.
-             *
-             * So the drawn keys come from the mounted card and `channelNameFor` does the
-             * one translation there is — `chart-tokens.js`'s SERIES_KEY_CHANNELS, the seam
-             * between gate 6's camelCase keys and CSS's lower-kebab names, whose own note
-             * records that using a key as a name resolves to `undefined`, which uPlot
-             * takes as "no stroke", which paints nothing and throws nothing. That module
-             * is DOM-free, so unlike the card it imports here in node.
-             *
-             * The count is still pinned, against the card's own list rather than a
-             * literal, because "every drawn channel" is only worth asserting if something
-             * says how many that is. */
             const defaults = await defaultChannels(page);
             assert.deepEqual(tokens.drawn, defaults.map((c) => c.key),
                 'the screen draws the card\'s own ordering and states no channel of its own');
@@ -451,48 +324,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         }));
 
-        /* ================================================================
-         * 4. LIVENESS IN SITU — the pointer, on the screen
-         * ============================================================== */
-
         test('POINTER SWEEP over the MOUNTED SCREEN: an ACTIVATING card runs no cursor', () => mounted(async (page) => {
-            /* THIS ASSERTION INVERTED ON 24 AUGUST 2026, and it inverted on a report.
-             *
-             * Ben: "when I click on it initially I get a vertical line with circle for
-             * 500ms or so, then it loads the history chart viewer. Two issues, it
-             * shouldn't have any veryical line or delay just launch the full screen
-             * chart."
-             *
-             * THE LINE AND THE DELAY WERE ONE DEFECT. The Live card is an ACTIVATOR — a
-             * tap opens the expanded chart — and it was also running uPlot's cursor. So
-             * the pointer-down drew the rule and its dot under the finger, and they sat
-             * there for the length of the tap; the overlay then arrived on the click.
-             * Nothing was actually slow. What read as a delay was a cursor drawn in the
-             * gap between the two events.
-             *
-             * THE COVERAGE DID NOT GO AWAY, IT SWAPPED SIDES. `activate` gates the
-             * listeners, so a card that does NOT activate still runs the cursor and is
-             * still swept — on the History page, which is where a cursor is the point.
-             * What this test protects now is that the Live card carries none.
-             */
             await feed(page);
             const host = await page.box(PLOT);
-            /* SWEEP THE PLOT AREA, NOT THE HOST BOX. The host includes uPlot's own axis
-             * gutters — the y-axis labels down the left and the x-axis under the plot —
-             * and a pointer in a gutter is outside the cursor's range by design, which
-             * reads as `active: false` and is correct.
-             *
-             * IT ONLY BIT AT THE FLOOR, and only once the Live band's inset became
-             * Slate's 57px (parity 7-live-polish, it19): the plot got narrower while the
-             * y-axis gutter stayed the width its labels need, so the first of eight
-             * samples — host.left + width/8 — moved from just inside the plot to just
-             * inside the gutter. The sweep was measuring the wrong box the whole time
-             * and the geometry change is what made that visible.
-             *
-             * `.u-over` IS that box, in CSS pixels, and it is uPlot's own name for it —
-             * this component's own header already points at it ("a sweep across
-             * `.u-over` at BOTH Gate A geometries"), so the sweep now reads the element
-             * the cursor is actually bound to instead of the host that contains it. */
             const area = await page.evalFn((s) => {
                 const el = window.__h.need(s);
                 const over = el.shadowRoot
@@ -514,9 +348,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(readings.every((r) => !r.active && r.idx === null),
                 `an activating card must run NO cursor: ${JSON.stringify(readings.map((r) => r.idx))}`);
 
-            /* AND THE GESTURE THE CURSOR WAS IN THE WAY OF STILL LANDS — on the click,
-             * with no route change. The overlay is a property going true inside this
-             * screen; a pushed `#/history` is the thing it exists not to do. */
             const hashBefore = await page.evalFn(() => location.hash);
             /* A REAL CLICK, not two raw events: `clickCount` is what makes Chrome
              * synthesise the `click` the card listens on (harness `click`, and the
@@ -537,16 +368,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(check.pixelRatio, dsf);
         }));
 
-        /* ================================================================
-         * 5. THE CHART-C ITEMS, ON THIS SCREEN
-         * ============================================================== */
-
         test('chart-C1: the y ceiling is COMPONENT STATE and grows with the shot', () => mounted(async (page) => {
-            /* "The expanded chart's Y axis is frozen at build time — `range: () =>
-             * spec.yScale.range` returns the same array forever, so a shot opened live
-             * builds at [0, 12] and stays there for the whole pour, clipping any flow peak
-             * above 12" (§7.8 C1). Here the ceiling is the surface's damped `yMax`, and the
-             * proof is that a growing shot moves it without rebuilding the plot. */
             const early = await feed(page, 140);
             assert.ok(early.inShot > 0);
             const before = await page.evalFn(() => ({
@@ -607,27 +429,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('chart-C9: twenty samples inside one turn cost ONE derivation and ONE paint', () => mounted(async (page) => {
-            /* MEASURED AGAINST A CONTROL WINDOW, BECAUSE THE CLAIM IS A MARGINAL COST.
-             *
-             * chart-C9 is "twenty samples cost ONE paint" — what the SAMPLES cost, not what
-             * the card does in the same stretch of wall time for other reasons. A card on a
-             * live screen has other invalidators: a ResizeObserver on its own host (C11), a
-             * theme change, a scrollbar appearing somewhere above it. Counting every paint
-             * in the window charges those to the samples.
-             *
-             * That is not hypothetical. This assertion failed roughly one run in three under
-             * CPU contention on 27 August 2026 — two paints where it wanted one — and passed
-             * every time on an idle box. A stolen timeslice lets an ambient invalidation land
-             * inside the two-frame window, and the test then reports a coalescing failure
-             * that did not happen.
-             *
-             * So the same window is run TWICE: once adding nothing, once adding twenty
-             * samples, and what is asserted is the DIFFERENCE. Ambient paints appear in both
-             * and cancel; a card that painted per sample would show twenty in the second and
-             * none in the first. That is a strictly stronger claim than the old one, because
-             * it can no longer be satisfied by an ambient paint being miscounted as the
-             * sample's — and it is deterministic, because it no longer depends on the box
-             * being quiet. */
             await feed(page, 200);
             const got = await page.eval(`(async () => {
                 const { buffer, record, card, screen } = window.__live;
@@ -676,12 +477,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the 15 Hz budget: derive the whole shot AND paint it, inside one frame', (t) => mounted(async (page) => {
-            /* chart-C9 is about work that does not need doing; this is about the work that
-             * does. The live path is derive-then-paint, and gate 6's derivation walks the
-             * whole buffer every frame, so the honest budget question is the PAIR, not the
-             * paint alone. 66 ms is the 15 Hz frame (Part 3 §2). The bench tablet at dpr
-             * 1.5 is M4's measurement, in the post-run pass — this is the desk number,
-             * taken on the shot the fixtures actually contain. */
             await feed(page);
             const timing = await page.eval(`(async () => {
                 const { deriveFromBuffer } = await import('/src/lib/shot-derivation.js');
@@ -716,49 +511,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the card\'s heading and readouts line up with the AXIS NUMBERS, not its host',
             () => mounted(async (page) => {
-                /* Ben, 23 Aug 2026: "the profile name, and live values should align to
-                 * the chart edges (Time and profile should align wht the Y axis numbers,
-                 * likewise for the time etc)."
-                 *
-                 * A plot does not start at its host's edge — uPlot keeps a gutter each
-                 * side for the axis labels, and this tree states those four gutters as
-                 * tokens because nothing else may. MEASURED before any of this, at 1920
-                 * design units: the card's content ran 500..1851 while the data area ran
-                 * 570..1787, so every readout sat 70px left of the first gridline and the
-                 * clock 64px right of the last.
-                 *
-                 * THE SENTENCE HAD TWO READINGS AND BEN PICKED THE SECOND ONE. This test
-                 * asserted the first until 25 August 2026: align to the AXIS — the plot's
-                 * own data edge — on the argument, which ui-chart-card.js had written down
-                 * and this test repeated, that the numbers' own left edge "is not a stable
-                 * number, it moves with how many digits the scale happens to need".
-                 *
-                 * Ben, 25 August 2026: "the gauge cluster, shot description etc are all too
-                 * far to the right, need to reduce the left margin so that the text is
-                 * basically aligned with the left side of the 1 in the 14 of the Y axis
-                 * label ... Likewise the right margin should be reduced." He knew what he
-                 * was buying — "this I know will not be perfect but should be able to get
-                 * close" — so the instability is accepted, not refuted, and it is bounded:
-                 * a three-digit scale overruns the left allowance by 12px and a one-digit
-                 * scale falls short by 6, and a label can never be wider than the gutter it
-                 * lives in, so nothing clips either way.
-                 *
-                 * SO THE TARGET IS THE GUTTER LESS WHAT THE NUMBERS THEMSELVES TAKE, and
-                 * the two --ui-chart-label-* tokens are that allowance: on the left uPlot's
-                 * 5px tick plus its 5px label gap plus a two-digit label measured at 16.6px
-                 * in Geist at --ui-chart-tick; on the right half a two-digit label, because
-                 * an x label is centred on its tick and only its right half escapes the plot
-                 * area. Those tokens are read here rather than restated — 27 and 8 are the
-                 * numbers today and the point is that the card and the test take them from
-                 * one place. `ui-chart-card.js` spends them in the matching direction:
-                 * `padding-inline-start: calc(var(--ui-chart-gutter-l) - var(--ui-chart-label-l))`.
-                 *
-                 * MEASURED AFTER, at both Gate A geometries: the profile name and the first
-                 * readout land exactly --ui-chart-label-l left of the data area (floor
-                 * 397 against an area starting at 424; bench 410.05 against 437.05) and the
-                 * clock exactly --ui-chart-label-r right of it. The offset is the token to
-                 * the pixel at both, which is what tells you it is the calc and not a
-                 * coincidence of one layout. */
                 await feed(page);
                 const gutterL = parseFloat(await page.resolveValue('var(--ui-chart-gutter-l)', 'inline-size'));
                 const gutterR = parseFloat(await page.resolveValue('var(--ui-chart-gutter-r)', 'inline-size'));
@@ -770,10 +522,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const areaLeft = host.left + gutterL - labelL;
                 const areaRight = host.right - gutterR + labelR;
 
-                /* The heading is conditional — it renders only once a profile is named,
-                 * and this suite feeds a chart rather than a machine — so it is asserted
-                 * when present and skipped when not. The readouts and the clock are
-                 * unconditional and carry the claim either way. */
                 await page.evalFn(async () => {
                     const screen = window.__h.q('live-screen');
                     screen.profileName = 'Extractamundo Dos! (2)';
@@ -796,22 +544,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('chart-C10: Live slots no legend, and the plot is born at the size it keeps', () => mounted(async (page) => {
-            /* "createPlot measures its host BEFORE its own 78px legend is inserted as a
-             * preceding sibling, so every plot is born sized to a box it no longer occupies
-             * — invisible only because the callers schedule a compensating resize a frame
-             * later." Here the legend is a row in the card's own grid and Live fills none of
-             * it, so the assertion is that the FIRST paint's size is the final size: no
-             * compensating resize, and no reserved row for a legend that is not there. */
             const got = await feed(page);
-            /* LIVE SLOTS A LEGEND NOW, AND IT IS NOT COMPONENT #10. Ben, 23 Aug 2026:
-             * "The chart card need to iverlap the values and the chart title above it
-             * including the Time etc. Should look like this is a screen with these
-             * values on it." The band's identity line, status chip, clock and seven
-             * readouts moved into the card's `legend` slot, so the card's frame encloses
-             * them. What the original claim was about is untouched — #10, the chart
-             * legend component, is still not Live furniture — and what this test exists
-             * to prove is the sentence after it: the plot is born at the size it keeps,
-             * which is chart-C10 and is asserted below whatever the slot holds. */
             assert.equal(got.hasLegend, true,
                 'the Live card no longer carries the readouts in its legend slot');
             const legendTag = await page.evalFn((s) => {
@@ -838,17 +571,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(settled.height, first.height, 'in either axis', 1.5);
             near(settled.plot, settled.host, 'and it is the size of its own host', 1.5);
 
-            /* THE LEGEND ROW IS FILLED NOW, so "it costs the plot nothing" is the wrong
-             * question — it costs the plot exactly what the readouts need, which is the
-             * point of putting them there. The claim that still matters, and the one
-             * chart-C10 is about, is that the plot is BORN at the size it keeps: the
-             * three `near` assertions above already hold it, and they hold it against a
-             * legend that is present at first paint rather than inserted after it, which
-             * is the defect's exact shape.
-             *
-             * WHAT IS ASSERTED INSTEAD: the row is a real box that the plot's own host
-             * sits below, with nothing overlapping. A zero-height legend would now mean
-             * the readouts had failed to slot. */
             const legendRow = await page.box(`${CARD} >>> .legend`);
             assert.ok(legendRow.height > 1,
                 `the legend row is ${legendRow.height}px — the readouts did not reach the slot`);
@@ -859,13 +581,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('chart-C11: the plot follows the WINDOW through the screen\'s own grid', () => mounted(async (page) => {
-            /* THE AXIS IS WIDTH, and that is measured rather than preferred. The card is
-             * the screen's only `1fr` row, so its HEIGHT is whatever the other rows leave
-             * — and with the bands' real content in place there is very little of that:
-             * at the 1000x600 design floor the card measured 190.45 against its own 186px
-             * floor, four pixels of slack. A resize test that asserted on height would be
-             * asserting on how tall the foot band happens to be this week. Width has room
-             * at both geometries and exercises exactly the same observer. */
             await feed(page);
             const before = await page.evalFn(() => {
                 const { card } = window.__live;
@@ -939,10 +654,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('chart-C13: garbling the gauge cluster\'s rendered DOM changes nothing the chart drew', () => mounted(async (page) => {
-            /* "chart.js reads other modules' RENDERED DOM as an input — scraping numbers back
-             * out of #profile-name, #history-date, #dose-in-value, #shot-data-total-weight and
-             * #shot-data-total-time with a regex." The chart here is fed from the model, so
-             * rewriting every number the screen displays must move nothing. */
             await feed(page);
             const got = await page.eval(`(async () => {
                 const { card, screen } = window.__live;
@@ -1018,10 +729,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(summary.text, /\d/, `the summary carries numbers: "${summary.text}"`);
             assert.match(summary.text, /2[0-9]\.\d/, `and the shot's own duration: "${summary.text}"`);
 
-            /* THE ASSERTION THAT MATTERS: not that the element is styled a particular
-             * way, but that a screen reader would find it. A zero-height box is exactly
-             * the shape an engine might prune, so the real accessibility tree is read
-             * rather than reasoned about. */
             await page.send('Accessibility.enable');
             const ax = await page.send('Accessibility.getFullAXTree');
             const nodes = (ax.nodes ?? []).filter((n) => !n.ignored);
@@ -1088,10 +795,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.notEqual(got.end, got.start, 'while the summary does follow the shot');
         }));
 
-        /* ================================================================
-         * 6. THE REFUSAL — a chart with no shot is not a chart of zeroes
-         * ============================================================== */
-
         test('with no buffer the card keeps its axes and shows the screen\'s own words', () => mounted(async (page) => {
             const got = await page.eval(`(async () => {
                 const screen = document.querySelector('live-screen');
@@ -1120,22 +823,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ===========================================================================
- * 7. THE WHOLE ROAD — socket -> store -> derivation -> canvas, and a GAP
- *
- * Everything above fills the buffer by hand. This describe does not: `mock_rea.py`
- * serves the ten socket rows, `createReaSockets` + `createLiveStores` are the app's own,
- * and the screen is handed `live.shot`. Mid-shot the SCALE channel is closed and its
- * feed goes stale, so `attachShotBuffer` contributes `null` for the samples that follow
- * — "a scale whose socket has closed contributes null... attaching the last frame of a
- * dead feed would present a minutes-old reading as this sample's measurement".
- *
- * What must then appear is a GAP: the weight-flow trace stops, and starts again when the
- * scale comes back, with nothing drawn across the hole. `bridgeUnspoken` distinguishes
- * the two meanings of null precisely so this case is preserved — a slot a channel SPOKE
- * about (an explicit null) is a real gap; only slots it never sampled are bridged.
- * =========================================================================== */
 
 function freePort() {
     return new Promise((resolve, reject) => {
@@ -1295,10 +982,6 @@ describe('the live road: the WS mock drives the screen, and an absent channel is
                 assert.equal(got.pressureFiniteInHole, true,
                     'while the machine\'s own channels kept reading throughout — one channel left, not the shot');
 
-                /* AND IT IS DRAWN AS A GAP. The weight-flow token is drilled so the trace is
-                 * unmistakable on the canvas, and the drill colour is counted column by
-                 * column: present either side of the hole, absent inside it. A bridged gap
-                 * would paint straight through. */
                 await page.setToken('--ui-channel-weight-flow', DRILL_COLOUR);
                 const pixels = await page.eval(`(async () => {
                     const { card, holes, xs } = window.__live;

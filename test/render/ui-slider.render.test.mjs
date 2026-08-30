@@ -1,35 +1,5 @@
 /**
- * ui-slider.render.test.mjs — Gate A for Wave 1 item #23 (Slider).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (bench truth) and the
- * 1000×600 floor — and asserts only on computed style, box geometry and behaviour.
- *
- * The five classes Gate A asks every Wave 1 suite for, and where they are:
- *   token drill        — six of them: the hit floor, the ink, the two track colours,
- *                        the radius, the thumb's size and its face.
- *   focus geometry     — the ONE ring from --ui-focus-*, unclipped, plus the inset
- *                        variant inside a clipping band (bug L24's class).
- *   container floor    — the control reads its own container, never the viewport:
- *                        the same host width renders identically at both geometries.
- *   bugs asserted dead — T22 (`LAYOUT_SPEC_DRAFT.md:1198`), and the 32px hit box the
- *                        oracle is disqualified for (CONVENTIONS §5, spec §2.3).
- *   aria + hit floor   — the native slider contract, and Appendix 5's 48px floor
- *                        proved by a real CDP click in the padding, not in the ink.
- *
- * HOW THE THUMB IS MEASURED, because it is not obvious and it is the heart of T22.
- * `getComputedStyle(input, '::-webkit-slider-thumb')` LIES: Chrome returns the
- * originating element's own box (measured: 300×48 for a 26px thumb) and the UA's
- * default colours, so an assertion built on it passes on a component with no thumb
- * rules at all. What is real is the input's user-agent shadow tree, which CDP exposes
- * with `DOM.getDocument({pierce: true})` — three nested DIVs: the runnable track, the
- * thumb's row, the thumb. `CSS.getComputedStyleForNode` on those nodes returns the
- * engine's actual numbers. That is still "computed style, real layout engine, never
- * source text" (Part 8 §2) — it is simply the only door into a UA shadow root.
- *
- * The Gecko half of T22 cannot be measured in Chrome at all: Chrome DROPS
- * `::-moz-range-thumb` rules at parse time (verified — the rule is absent from
- * `sheet.cssRules`). That half is `test/ui-slider-thumb-parity.test.mjs`, which
- * compares the two declaration blocks statically.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -49,10 +19,6 @@ const MODULE = ['/src/components/ui-slider.js'];
 const HOST = 'ui-slider';
 const TRACK = 'ui-slider >>> #track';
 
-/* ---------------------------------------------------------------------------
- * Reading the input's USER-AGENT shadow tree over CDP.
- * ------------------------------------------------------------------------- */
-
 /** Every node in the pierced tree, flattened, with its depth inside its own root. */
 function flatten(node, depth, out) {
     out.push({ node, depth });
@@ -68,11 +34,6 @@ function attr(node, name) {
     return null;
 }
 
-/**
- * The three nodes the engine builds inside `<input type="range">`:
- * `track` (the runnable track — its box IS the 8px ink) and `thumb` (the disc).
- * nodeIds are invalidated by DOM mutation, so this re-reads the document every call.
- */
 async function sliderParts(page) {
     const doc = await page.send('DOM.getDocument', { depth: -1, pierce: true });
     const all = flatten(doc.root, 0, []);
@@ -134,17 +95,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. THE HIT FLOOR — and the bug the oracle is disqualified for
-         * ============================================================== */
-
         test('the box IS --ui-hit-min and the ink stays 8px (spec §2.3 case 2, Appendix 5)', () => plain(async (page) => {
-            // ORACLE DISQUALIFIED. The measurement exists —
-            //   CITE live-ready #shot-rating-slider [i=157] height = 32px
-            //        <- slate-live.css `#main-page .slate-rate-slider` authored `32px`
-            //   CITE find --cls slate-rate-slider -> 7 elements in 7 states, all 147x32
-            // — and it is the defect CONVENTIONS §5 names: "the rating slider is 32px
-            // tall against the same 48px floor". The floor comes from the token.
             const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
             const box = await page.box(TRACK);
             assert.equal(box.height, floor, 'the hit box is the token floor, not Slate\'s 32px');
@@ -156,9 +107,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(parseFloat(s['padding-block-start']), 20, '(48 - 8) / 2');
             assert.equal(parseFloat(s['padding-block-end']), 20);
 
-            // THE ONE TRAP (base.js; slate-live.css:1565-1567). The component paints
-            // with background-image, never the `background` shorthand — which would
-            // reset this to border-box and swell the 8px track into a 48px slab.
             assert.equal(s['background-clip'], 'content-box');
 
             // And the ink really is 8px: the UA runnable track's box is the content box.
@@ -174,9 +122,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a press 3px from the top edge — outside the ink — moves the value', () => plain(async (page) => {
-            // The whole point of Appendix 5, as a real CDP hit test rather than a
-            // number: the ink occupies y 20..28 of a 48px box, so this press lands in
-            // the padding. On Slate's 8px-ink-only geometry it would hit nothing.
             const box = await page.box(TRACK);
             const before = await page.eval('document.querySelector("ui-slider").value');
             await page.click(TRACK, { offset: { x: box.width * 0.75, y: 3 } });
@@ -185,10 +130,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.notEqual(after, before, 'a press in the hit padding did nothing');
             assert.ok(after > 55 && after < 95, `expected roughly three quarters along, got ${after}`);
         }));
-
-        /* ================================================================
-         * 2. TOKEN DRILLS — tokens consumed, not copied
-         * ============================================================== */
 
         test('drill: --ui-hit-min moves the hit box', () => plain(async (page) => {
             const drill = await assertTokenDrill(page, {
@@ -202,9 +143,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-space-2 moves the ink, not the box', () => plain(async (page) => {
-            // The ink is --_ui-hit-ink: var(--ui-space-2) — 8px, the thickness both
-            // Slate sliders derive (32 - 2x12, 44 - 2x18). The padding is what carries
-            // it, so the box stays on the floor while the track thins.
             await assertTokenDrill(page, {
                 token: '--ui-space-2',
                 value: '20px',
@@ -218,15 +156,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('both hit-area escape hatches actually open from the host', () => {
             return browser.withPage({ geometry }, async (page) => {
-                // base.js documents two knobs on a .hit-pad element — "Set
-                // --_ui-hit-ink to the ink's thickness; the box itself is the floor,
-                // and --_ui-hit-box overrides that where a control needs a taller one"
-                // — and they must behave alike. They did not: with --_ui-hit-ink
-                // declared on .track, a value set from outside was shadowed by the
-                // component's own declaration on the very element the utility reads.
-                // Measured then: ink 12px + box 44px gave padding 18px = (44-8)/2, the
-                // ink knob silently dead while its sibling worked. Declared on :host,
-                // an inline style outranks it and both take.
                 await page.mount(
                     '<ui-slider id="hatched" style="--_ui-hit-ink:12px;--_ui-hit-box:44px" '
                     + 'value="40" label="Rating"></ui-slider>',
@@ -244,13 +173,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('drill: --ui-steel moves the FILL', () => plain(async (page) => {
-            // CITE live-ready #shot-rating-slider [i=157] background-image =
-            //      linear-gradient(to right, rgb(176, 196, 206) 0%, rgb(176, 196, 206) 0%,
-            //      rgb(58, 72, 82) 0%, rgb(58, 72, 82) 100%)
-            //      <- slate-live.css `#main-page .slate-rate-slider` (token-driven)
-            //      light: rgb(49, 92, 112) / rgb(203, 208, 211)  DIFF
-            // dark rgb(176,196,206) and light rgb(49,92,112) are both --ui-steel, which
-            // is how the corpus proves the fill is the TOKEN and not a colour.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-steel',
                 value: DRILL_COLOUR,
@@ -279,9 +201,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-radius-lg moves the track radius', () => plain(async (page) => {
-            // CITE live-ready #shot-rating-slider [i=157] border-top-left-radius = 8px
-            //      <- slate-live.css `#main-page .slate-rate-slider` (token-driven)
-            //      (identical dark and light) ; 8px = --ui-radius-lg.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-radius-lg',
                 value: DRILL_LENGTH,
@@ -300,10 +219,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(dial > 0 && dial < 1);
                 assert.equal(parseFloat(await page.prop(HOST, 'opacity')), dial, 'the host carries the dim');
 
-                // ONE dim, not two: the native `disabled` attribute is on the real
-                // input (it is what stops the control accepting input), and the base
-                // dials BOTH spellings. Without the component's one-line override the
-                // control would render at .38 x .38 = .14.
                 assert.equal(parseFloat(await page.prop(TRACK, 'opacity')), 1);
 
                 await assertTokenDrill(page, {
@@ -315,17 +230,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ================================================================
-         * 3. BUG T22 — one thumb spec, on token values
-         * ============================================================== */
-
         test('T22: the thumb is 26px = --ui-icon + 2 hairlines, drawn from tokens', () => plain(async (page) => {
-            // ORACLE CARVE-OUT: pseudo-elements were never probed, so this falls
-            // through to the Slate source read-only — slate-live.css:1574-1580 and
-            // :2376-2383, both 26x26 with `border: var(--slate-hairline) solid
-            // var(--slate-line-strong)` over `background: var(--slate-surface)`.
-            // T22 is that Slate then carries a FOURTH spec nobody maintains:
-            // `::-moz-range-thumb` at 24x24 `#385a92` (main.css:386-395).
             const parts = await sliderParts(page);
             const thumb = await computedForNode(page, parts.thumb, [
                 'width', 'height', 'background-color', 'border-top-color',
@@ -367,10 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 4. THE FILL — value, and the origin-anchored variant
-         * ============================================================== */
-
         test('the fill runs from the low end to the value', () => {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount('<ui-slider min="0" max="100" value="25" label="Rating"></ui-slider>', MODULE);
@@ -389,9 +290,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('origin anchors the fill away from the end (slate-live.css:2350-2356)', () => {
             return browser.withPage({ geometry }, async (page) => {
-                // The HV align slider's centre-zero behaviour, as one property instead
-                // of a second hand-rolled gradient: "a slider sitting at 0.0 s reads as
-                // centred rather than as 60% of something".
                 await page.mount(
                     '<ui-slider min="-5" max="5" step=".1" origin="0" value="2.5" label="Align"></ui-slider>',
                     MODULE,
@@ -409,10 +307,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ================================================================
-         * 5. FOCUS GEOMETRY (bug L24's class)
-         * ============================================================== */
-
         test('the focus ring is the token ring, unclipped, outset', () => plain(async (page) => {
             const g = await assertFocusUnclipped(page, TRACK);
             assert.equal(
@@ -425,11 +319,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('inside a clipping band the same ring goes inset and survives (L24)', () => {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(
-                    // A BLOCK band, which is the plain case for a ring test. The FLEX
-                    // case is covered on its own in §7 below — the host opts out of
-                    // `container-type: inline-size` (CONVENTIONS §2) precisely so that a
-                    // flex row is a real, asserted layout rather than one this suite
-                    // steps around.
                     '<div id="band" style="overflow:hidden;inline-size:320px">'
                     + '<ui-slider focus-ring="inset" value="40" label="Rating"></ui-slider></div>',
                     MODULE,
@@ -443,10 +332,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(g.clippers[0].overflowY, 'hidden');
             });
         });
-
-        /* ================================================================
-         * 6. ARIA AND BEHAVIOUR — the control is really a slider
-         * ============================================================== */
 
         test('the aria contract is the native slider contract', () => {
             return browser.withPage({ geometry }, async (page) => {
@@ -469,8 +354,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 }, TRACK);
 
-                // role=slider, aria-valuemin/max/now come free and cannot drift from
-                // the rendered position, because they ARE the rendered position.
                 assert.equal(a.tag, 'INPUT');
                 assert.equal(a.type, 'range');
                 assert.deepEqual([a.min, a.max, a.step, a.value], ['1', '5', '1', '3']);
@@ -482,12 +365,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('step="any" survives as itself — a continuous control is not quantised', () => {
             return browser.withPage({ geometry }, async (page) => {
-                // `step="any"` is HTML's whole answer for a continuous range, and a
-                // Number-typed reactive property destroys it: Number('any') is NaN, the
-                // attribute renders as step="NaN", the input falls back to step 1 and
-                // the control quantises in silence. Measured before the fix: inner
-                // input step "NaN", input.value "1" against host.value 1.234, with the
-                // gradient painted at 62.34% while the thumb sat at 60%.
                 await page.mount(
                     '<ui-slider id="any" min="-5" max="5" step="any" value="1.234" label="Align"></ui-slider>',
                     MODULE,
@@ -511,8 +388,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the fill must stop where the value is',
                 );
 
-                // And a stated discrete step still quantises, so this is not a licence
-                // to ignore step altogether.
                 await page.mount(
                     '<ui-slider id="one" min="0" max="10" step="1" value="4" label="Rating"></ui-slider>',
                     MODULE,
@@ -536,8 +411,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const events = await page.recordedEvents();
                 const inputs = events.filter((e) => e.type === 'input');
                 assert.equal(inputs.length, 1, `expected exactly one input event, got ${JSON.stringify(events)}`);
-                // `input` is composed, so it crosses on its own, retargeted to the host —
-                // and the host's value is ALREADY the new one when it does.
                 assert.equal(inputs[0].value, 51);
             });
         });
@@ -546,8 +419,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount('<ui-slider value="50" label="Rating"></ui-slider>', MODULE);
                 await page.recordEvents(HOST, ['change']);
-                // composed: false — exactly what the browser fires on commit. Without
-                // the component's re-dispatch nothing outside would ever hear it.
                 await page.dispatch(TRACK, 'change', { composed: false });
 
                 const changes = (await page.recordedEvents()).filter((e) => e.type === 'change');
@@ -567,10 +438,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ================================================================
-         * 7. THE CONTAINER, NOT THE VIEWPORT
-         * ============================================================== */
-
         test('the control fills its own container and keeps its token height', () => plain(async (page) => {
             for (const width of ['380px', '900px', '200px']) {
                 await page.setStyle(HOST, { 'inline-size': width });
@@ -583,13 +450,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('as a FLEX item the control has a real width, not a zero one', () => {
             return browser.withPage({ geometry }, async (page) => {
-                // Both of Slate's own consumers are flex rows (slate-live.css:1551
-                // `flex: 0 0 auto`, :2348 `flex: 1 1 auto`), and with the base's
-                // `container-type: inline-size` the host's max-content size is ZERO —
-                // measured, a content-sized slider in a 400px flex row laid out
-                // {width: 0, height: 48}: an invisible control still eating a 48px row.
-                // The host opts out (CONVENTIONS §2), so an unsized slider falls back to
-                // its intrinsic width instead of vanishing.
                 await page.mount(
                     '<div id="row" style="display:flex;align-items:center;gap:18px;inline-size:400px">'
                     + '<span id="lab">A</span><ui-slider id="s" value="40" label="Rating"></ui-slider></div>',
@@ -603,9 +463,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(track.width, host.width, 'the track fills whatever the host got');
                 assert.equal(track.height, 48, 'and the hit floor is unaffected by the row');
 
-                // A consumer that states its sizing still gets exactly what it stated —
-                // the primitive owns no width and no flex of its own (wave law: ranges
-                // and limits arrive from outside).
                 await page.setStyle('#s', { flex: '1 1 auto', 'min-inline-size': '0' });
                 const grown = await page.box('#s');
                 const label = await page.box('#lab');
@@ -620,8 +477,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('squeezed to 120px the control neither overflows nor scrolls', () => plain(async (page) => {
-            // Spec §2.4: no silent clip anywhere. A one-part control has nothing to
-            // surrender, so the honest contract is that it simply fits.
             await page.setStyle(HOST, { 'inline-size': '120px' });
             const m = await page.metrics(HOST);
             assert.equal(m.scrollWidth, m.clientWidth, 'nothing overflows the host');
@@ -630,10 +485,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the container decides, the viewport does not
- * ------------------------------------------------------------------------- */
 
 test('the same host width renders the same control at both geometries', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {
@@ -663,16 +514,6 @@ test('the same host width renders the same control at both geometries', async ()
     );
     assert.equal(bench.paint, floor.paint);
 });
-
-/* ---------------------------------------------------------------------------
- * The gallery entry, driven the way the capture battery will drive it
- *
- * The entry lives in its own file (tools/gallery/entries/ui-slider.entry.js) because
- * tools/gallery/entries.js is ONE shared array and sixteen wave-1 builders writing
- * whole files would clobber each other; the GATE agent wires it in. That hand-off is
- * exactly where a state can quietly stop mounting, so every state in it is mounted
- * here, from the entry object itself rather than from a copy of its markup.
- * ------------------------------------------------------------------------- */
 
 test('every gallery state mounts, settles and renders a slider', async () => {
     await browser.withPage({ geometry: BENCH }, async (page) => {

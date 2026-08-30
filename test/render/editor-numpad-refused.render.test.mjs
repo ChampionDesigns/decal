@@ -1,20 +1,5 @@
 /**
- * editor-numpad-refused.render.test.mjs — A REFUSED KEYPAD OPEN IS NOW HEARD (F-008).
- *
- * `editor-overlays.js #refuse` has always dispatched `numpad-refused` carrying the door's
- * own sentence, composed and bubbling. The Wave 0 gate found it heard NOWHERE in `src/`,
- * and the single listener in the whole tree was `test/harness/editor.js:949` — which
- * records it for assertions and is not loaded by `index.html`. A wire only a test can hear
- * delivers nothing to a person, which is the audit's kind-1 fault exactly: the outcome was
- * correct (the pad opened nothing, because the field has no bound anyone owns) and the
- * report reached nobody. A person pressed a value and the screen sat still.
- *
- * WHY THE TEST DRIVES THE SCREEN AND NOT THE OVERLAY. The overlay's own suite proves it
- * dispatches; that assertion was green through the whole defect. What was missing was a
- * listener above it, so the only thing worth asserting is what the SCREEN does — and the
- * screen is where the notice surface is.
- *
- * A8: every assertion is a live DOM reading. Nothing reads a source file.
+ * A.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -25,13 +10,6 @@ import { EDITOR, mountEditing, eventsNamed } from '../harness/editor.js';
 
 const geometry = GATE_A_GEOMETRIES[0];
 
-/**
- * Every notice the screen's own surface currently holds, with its tone.
- *
- * `<ui-toast>` appends one element per notice into its light DOM (it does NOT rewrite a
- * single message element — see its own header, "TOASTS STACK"), so this counts what a
- * person would actually be looking at.
- */
 const notices = (page) => page.evalFn((sel) => {
     const host = window.__h.q(sel);
     if (!host) return null;
@@ -69,9 +47,6 @@ describe('a refused keypad open reaches the person (F-008)', () => {
     }));
 
     test('a field the door refuses ON PURPOSE raises a notice', () => staged(async (page) => {
-        /* `tankTemperature` is one of `UNRANGED_EDITOR_FIELDS` — the door throws for it BY
-         * NAME, with a reason, because giving it a literal is what B2 forbids. It is the
-         * honest refusal in the tree, not a contrived one. */
         const opened = await openField(page, 'tankTemperature');
         assert.equal(opened, false, 'the door refuses, so nothing opens');
         await page.settle(4);

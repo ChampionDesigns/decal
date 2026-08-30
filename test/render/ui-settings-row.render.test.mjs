@@ -1,32 +1,5 @@
 /**
- * ui-settings-row.render.test.mjs — Gate A for component #29 (wave 4, item #29).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor — asserting only on computed style, box geometry, the accessibility
- * tree and behaviour, never on source text (Part 8 §2).
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. TOKEN DRILL — sixteen tokens, each retargeted on :root with the rendered value
- *      asserted to move AND to land on the token;
- *   2. THE DIAL DRILL, IN ITS NEGATIVE FORM. A settings row has no selection state, so
- *      the obligation flips: retargeting all four dials must move NOTHING. That is the
- *      wave law read literally ("no component in this wave may own a private selected
- *      look", Part 10 §12 / spec §3.9) for a component that does not choose;
- *   3. FOCUS UNCLIPPED — a slotted control inside the spec's own leaf-pane skeleton
- *      (§4.4: overflow-y:auto, padding var(--ui-space-6)), which is a real clipper;
- *   4. CONTAINER FLOOR — the row fills its container and reads no viewport; the control
- *      holds its stated size and the row WRAPS rather than crushing it (T9/T10's class);
- *      the 64px floor and the 48px hit floor both hold at 380px;
- *   5. THE BUG, ASSERTED INEXPRESSIBLE — T13, in the three legs the component header
- *      sets out: an imposter wearing Slate's exact class shape gets no padding, the same
- *      classes on the host change nothing, and the spread of heading offsets across four
- *      construction routes is ZERO;
- *   6. ARIA — the accessible-name bridge, measured in the engine's own AX tree, with the
- *      author's name winning, the opt-out honoured, and a role-less generic never named
- *      (bug T15's second clause).
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable. Every literal
- * carries its CITE line; the component header carries the full set with its winning rules.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -41,10 +14,6 @@ import {
     DRILL_COLOUR,
 } from '../harness/assertions.js';
 
-/* The row plus the five control archetypes it exists to hold — #4 stepper, #5 switch,
- * #3 segmented bank, #7 select, #1 button (SCOPE L1641 "depends on #4, #5, #3, #7, #1").
- * The component imports none of them: it slots them, which is why every one has to be
- * loaded here by the mount contract rather than arriving through the module graph. */
 const MODULE = [
     '/src/components/ui-settings-row.js',
     '/src/components/ui-switch.js',
@@ -54,14 +23,6 @@ const MODULE = [
     '/src/components/ui-bank.js',
 ];
 
-/**
- * #pane is spec §4.4's own leaf-pane skeleton, verbatim:
- *     "<leaf-pane>  overflow-y:auto; padding: var(--ui-space-6)"
- * so the focus assertions below are not vacuous — it really clips — and the ring really
- * has the room the spec says it has. #leaf is the measure inside it. The seamed column
- * is CONVENTIONS §13: a settings leaf is rows over a 1px gap, which is what replaces
- * Slate's 43 identical <hr class="border-t slate-hairline w-full" />.
- */
 const STAGE_CSS = `
 <style>
     #pane {
@@ -82,10 +43,6 @@ const STAGE_CSS = `
     #tight  { inline-size: 300px; overflow: hidden; }
 </style>`;
 
-/* IMPOSTER is settings.js:2390-2396 read read-only and reproduced byte-for-byte in its
- * class strings — the Brightness leaf's PAGE TITLE wrapped in the row primitive's class
- * shape. In Slate this element takes 12px of padding-block from slate-shell.css:1295 and
- * the title lands at y=193 against every other leaf's 181. Here it is a plain div. */
 const IMPOSTER = `
 <div id="imposter" class="content-stretch flex items-center justify-between relative w-full">
     <div class="w-full">
@@ -176,30 +133,11 @@ const MARKUP = `${STAGE_CSS}
 </div>
 <div id="routes"></div>`;
 
-/**
- * Every measured value in the component header, in one place, so a drift shows up as one
- * failing assertion with its citation attached rather than as a mystery. The reference
- * state is `settings-accessories-cup-warmer` — the one leaf of the 49 carrying all four
- * label-block parts at once.
- */
 const ORACLE = {
     dark: {
-        /* CITE settings-accessories-cup-warmer .slate-heading [i=39] color =
-         *      rgb(244, 247, 248)  <- slate-components.css `.slate-heading` authored
-         *      `var(--slate-text)`   [= --ui-text, tokens.css:847 #f4f7f8] */
         headingInk: 'rgb(244, 247, 248)',
-        /* CITE settings-accessories-cup-warmer .slate-caption [i=40] color =
-         *      rgb(148, 161, 169)  <- authored `var(--slate-muted)`
-         *      [= --ui-muted, tokens.css:849 #94a1a9] */
         captionInk: 'rgb(148, 161, 169)',
-        /* CITE settings-accessories-cup-warmer #cupWarmerCurrentTemp [i=54] color =
-         *      rgb(244, 247, 248)  <- app.css `.text-\[var\(--text-primary\)\]`
-         * RECORDED, NOT TARGETED — see DEPARTURE 7 below. The reading takes --ui-muted,
-         * which is the CAPTION's ink, so the row's three secondary texts are one grey. */
         readingInk: 'rgb(148, 161, 169)',
-        /* CITE settings-accessories-cup-warmer #right-panel [i=36] background-color =
-         *      rgb(14, 19, 23)  <- slate-shell.css — the ground a settings leaf sits on,
-         *      = --ui-fascia exactly (tokens.css:841 #0e1317) */
         ground: 'rgb(14, 19, 23)',
         /* The seam a leaf draws between rows: --ui-line. Never drawn by this component. */
         seam: 'rgb(58, 72, 82)',
@@ -211,49 +149,26 @@ const ORACLE = {
         ground: 'rgb(242, 243, 243)',
         seam: 'rgb(203, 208, 211)',
     },
-    /* Theme-independent, from the same records plus slate-shell.css:1293-1296. */
-    rowMinHeight: '64px',       // SOURCE :1294 min-height: var(--slate-control-height)
-    rowPaddingBlock: '12px',    // SOURCE :1295 padding-block: var(--slate-space-3) — T13's 12
-    rowGap: '24px',             // SOURCE :1296 gap: var(--slate-space-5)
-    headingSize: '20px',        // CITE .slate-heading [i=39] font-size <- var(--slate-text-lg)
-    headingWeight: '500',       // CITE .slate-heading [i=39] font-weight <- var(--slate-weight-medium)
-    headingLineBox: 26,         // CITE .slate-heading [i=39] rect h=26 = 20 × 1.3
-    hintSize: '17px',           // CITE .text-[20px] [i=45] font-size <- var(--slate-text-base)
-    hintWeight: '400',          // CITE .text-[20px] [i=45] font-weight <- authored 400
+    rowMinHeight: '64px',
+    rowPaddingBlock: '12px',
+    rowGap: '24px',
+    headingSize: '20px',
+    headingWeight: '500',
+    headingLineBox: 26,
+    hintSize: '17px',
+    hintWeight: '400',
     hintLineBox: 25.5,          // 17 × 1.5, and the measured rect is h=26
-    captionSize: '16px',        // CITE .slate-caption [i=40] font-size <- var(--slate-text-note)
-    captionWeight: '400',       // CITE .slate-caption [i=40] font-weight
-    captionLineBox: 24,         // CITE .slate-caption [i=40] rect h=24 = 16 × 1.5
-    /* DEPARTURE 7 — THE LIVE READING IS AN ASIDE, AND SLATE GIVES ONE THING TWO LOOKS.
-     *
-     * What Slate does, both times:
-     *   CITE settings-accessories-cup-warmer #cupWarmerCurrentTemp [i=54]
-     *        font-size 18px <- var(--slate-text-md), font-weight 500, color --slate-text
-     *   ...and on the Machine › Steam page the same kind of line — the live machine
-     *   temperature beside the setting — is a quiet aside at 16 / 400 in the secondary
-     *   ink. One kind of line, two treatments, inside one skin.
-     *
-     * This component followed the Cup Warmer one, and the type audit of 26 August 2026
-     * caught what that costs: at 18 / 500 in the PRIMARY ink the reading competes with
-     * the value in the stepper beside it, which is 27 / 300 in the same ink. A number
-     * you cannot change must never out-weigh the number you can.
-     *
-     * So the reading takes .ui-body and --ui-muted — the HINT's own treatment. The range
-     * beside the label is the same class of thing (context for the value, not the value)
-     * and the audit calls Decal's secondary ink there "the better call: a range is not
-     * a value". A live reading is not a value either. One rule for one kind of line.
-     *
-     * The Slate numbers are kept above as the record of what was measured. */
+    captionSize: '16px',
+    captionWeight: '400',
+    captionLineBox: 24,
     readingSize: '17px',        // .ui-body, --ui-text-base — the hint's size
     readingWeight: '400',       // .ui-body — the hint's weight
     readingLineBox: 25.5,       // 17 × 1.5, the same line box the hint reports
     labelGap: '4px',            // measured: caption y=295 − (heading y=265 + h=26) = 4
-    lineGap: '12px',            // DEPARTURE 4: settings.js:3632 gap-[14px] → --ui-space-3
-    /* T13, as two numbers. CITE settings-display-brightness .slate-title rect y=193;
-     * CITE settings-accessories-cup-warmer .slate-title rect y=181 (and 30 more states). */
+    lineGap: '12px',
     slateBrightnessTitleY: 193,
     slateOtherTitleY: 181,
-    slateT13Delta: 12,          // = --slate-space-3 (slate-tokens.css:117)
+    slateT13Delta: 12,
 };
 
 /** The four dials, and the whole of the selection treatment anywhere in the skin. */
@@ -296,13 +211,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 1. TOKEN DRILL: tokens are consumed, not copied ------------------ */
-
         test('drill: the row box reads --ui-control-h, --ui-space-3 and --ui-space-5',
             () => mounted(async (page) => {
-                // SOURCE slate-shell.css:1293-1296 — the same three declarations, moved
-                // from a class shape to a tag. A component holding its own copy of the
-                // numbers would paint the same and NOT move when the token moves.
                 await assertTokenDrill(page, {
                     token: '--ui-control-h',
                     value: '37px',
@@ -330,8 +240,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('drill: --ui-fascia is the row ground', () => mounted(async (page) => {
-            // Bug L12's class: a component with a private copy of the palette paints the
-            // same colour and does not follow the token sheet.
             await assertTokenDrill(page, {
                 token: '--ui-fascia',
                 value: DRILL_COLOUR,
@@ -385,9 +293,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 selector: '#hinted >>> #hint',
                 property: 'font-size',
             });
-            // DEPARTURE 2: Slate paints this --slate-text under .opacity-60. Here it is
-            // the named secondary ink, so it moves with the token and never with a
-            // fourth opacity literal.
             await assertTokenDrill(page, {
                 token: '--ui-muted',
                 value: DRILL_COLOUR,
@@ -413,11 +318,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('drill: the live reading reads the BODY role and --ui-muted, like the hint',
             () => mounted(async (page) => {
-                /* DEPARTURE 7 (see the ORACLE record). The reading used to declare its own
-                 * 18 / 500 and was the only type this component stated; it now takes
-                 * .ui-body and --ui-muted, which is exactly what the hint beside it takes.
-                 * Drilling both proves it is the ROLE doing the work rather than two
-                 * numbers that happen to agree today. */
                 await assertTokenDrill(page, {
                     token: '--ui-text-base',
                     value: '37px',
@@ -450,8 +350,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }));
 
-        /* -- the measured starting values, both themes ------------------------ */
-
         test("the resting paint is the oracle's measured values, in both themes",
             () => mounted(async (page) => {
                 for (const theme of ['dark', 'light']) {
@@ -468,8 +366,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(await page.prop('#read >>> #reading', 'color'), want.readingInk,
                         `${theme}: DEPARTURE 7 — the reading is an aside, in --ui-muted`);
 
-                    // DEPARTURE 2 stated as a value: the hint takes the CAPTION's ink, so
-                    // the row's two secondary texts are one grey and not two.
                     assert.equal(await page.prop('#hinted >>> #hint', 'color'), want.captionInk,
                         `${theme}: DEPARTURE 2 — --ui-muted, not --ui-text at opacity 0.6`);
                     assert.equal(await page.prop('#hinted >>> #hint', 'opacity'), '1',
@@ -540,9 +436,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('every measured LINE BOX is reproduced by the type roles, not by a declaration',
             () => mounted(async (page) => {
-                // The four rects are the strongest evidence that the roles are the right
-                // ones: 20×1.3=26, 17×1.5=25.5, 16×1.5=24, 18×1.5=27, all four measured in
-                // Slate and all four arriving here from type-roles.js plus document.css.
                 const near = (got, want, what) => assert.ok(
                     Math.abs(got - want) <= 0.6,
                     `${what}: rendered ${got.toFixed(2)}px against the measured ${want}px`,
@@ -574,14 +467,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and nothing is clipped out of the bottom of the row');
             }));
 
-        /* -- 2. THE DIAL DRILL, IN ITS NEGATIVE FORM -------------------------- */
-
         test('NO PRIVATE SELECTED LOOK: the four dials move nothing on a settings row',
             () => mounted(async (page) => {
-                // Part 10 §12 / spec §3.9. A settings row does not choose among
-                // alternatives — the bank inside it does — so the correct amount of
-                // selection treatment here is none, and the way to prove "none" is to
-                // move all four dials to loud values and measure that nothing followed.
                 const targets = ['#plain', '#plain >>> #label', '#plain >>> #heading',
                     '#plain >>> #caption', '#plain >>> #control'];
                 const before = {};
@@ -603,8 +490,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         + 'starting in a component that has no selection state');
                 }
 
-                // And it does not import the fragment at all: the aria spellings the
-                // fragment matches on a host are inert here.
                 await page.evalFn(() => {
                     document.getElementById('plain').setAttribute('aria-selected', 'true');
                     return true;
@@ -618,14 +503,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        /* -- 3. FOCUS GEOMETRY, UNCLIPPED (bug L24's class) ------------------- */
-
         test('a switch slotted into a row keeps its whole ring inside the leaf pane',
             () => mounted(async (page) => {
-                // The pane is spec §4.4's own skeleton — overflow-y:auto with
-                // padding: var(--ui-space-6) — so it is a real clipper AND it is the
-                // reason the outset ring has room. L24 is "focus rings clipped on all four
-                // sides by the components they sit inside"; a settings row is one of them.
                 const g = await assertFocusUnclipped(page, '#sw');
                 assert.ok(g.clippers.length >= 1,
                     'the pane must really clip, or this assertion is vacuous');
@@ -657,8 +536,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }));
 
-        /* -- 4. CONTAINER BEHAVIOUR, AND THE FLOOR ---------------------------- */
-
         test('the row fills its container and reads no viewport', () => mounted(async (page) => {
             const wide = await page.box('#open');
             assert.equal(Math.round(wide.width), 820, 'the row is as wide as #wide');
@@ -678,11 +555,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 5: the control holds its stated size and the ROW wraps (T9/T10)',
             () => mounted(async (page) => {
-                // The oracle is DISQUALIFIED for responsive behaviour (Part 10 §4) — Slate
-                // is frozen at 1920×1200 — so LAYOUT_SPEC_DRAFT.md governs. SCOPE L2288
-                // is the rule being kept: "controls hold their stated size ... a control
-                // cluster never overflows its own track" (T9: a select measured 214 in one
-                // leaf and 250 two rows below, inside a single screen).
                 const wideControl = await page.box('#step');
                 const narrowControl = await page.box('#step2');
                 assert.equal(Math.round(narrowControl.width), Math.round(wideControl.width),
@@ -704,11 +576,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('the label floor is a THEMING HOOK: a screen can retune one row', () => mounted(async (page) => {
-            // --_ui-settings-row-label-min is declared on :host precisely so a screen's
-            // own declaration wins (for normal declarations the outer tree beats :host,
-            // CSS Scoping §3.3). Declared on .label it would be unreachable, and the row
-            // would have a number no leaf could adjust — one owner per dimension
-            // (spec §2.3), with the owner being the wrong one.
             const read = async () => {
                 const label = await page.box('#squeezed >>> #label');
                 const control = await page.box('#step2');
@@ -747,12 +614,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 6: no label text spills out of the row — §2.4, no silent clip',
             () => mounted(async (page) => {
-                // The guarantee above was fixture-shaped: #squeezed's hint is "5-95 °C"
-                // and its heading is all-breakable, so it meets neither case that made a
-                // nowrap hint leave the row. #tight is a 300px `overflow: hidden` column,
-                // which is §2.4's own inherited default, so a spill really is a SILENT
-                // one. Both shapes are asserted: a multi-clause range, and a single token
-                // with no break opportunity in it at all.
                 for (const id of ['#longhint', '#longword']) {
                     const m = await page.metrics(id);
                     assert.ok(m.scrollWidth <= m.clientWidth + 0.5,
@@ -770,9 +631,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     }
                 }
 
-                // And the departure is a departure, not a silent loss of Slate's intent:
-                // at a width where the range fits, it is still on ONE line. That is what
-                // makes "normal wrapping instead of nowrap" free at every captured width.
                 const oneLine = await page.evalFn(() => {
                     const hint = document.getElementById('hinted').shadowRoot.getElementById('hint');
                     return hint.getClientRects().length;
@@ -784,18 +642,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the slotted control holds the 48px hit floor in a 380px container',
             () => mounted(async (page) => {
-                // Appendix 5 / spec §2.3: the floor is physical — "a wet fingertip is
-                // about 9mm; at this panel's density that is ~48px". The row must not be
-                // able to squeeze a control below it, which is bug P4's and L22's shape.
                 const got = await assertHitFloor(page, '#sw', { mode: 'box' });
                 assert.ok(got.inline >= 48 && got.block >= 48);
                 await assertHitFloor(page, '#step2 >>> #decrement', { mode: 'box' });
             }));
 
         test('no viewport query decides anything here', () => mounted(async (page) => {
-            // The row keeps the base's container-type: inline-size and asks no width
-            // question of its own — there is no @container rule and no @media (width...)
-            // in the component, so what changes its layout is only its CONTAINER's size.
             const props = ['min-height', 'padding-top', 'column-gap', 'flex-wrap'];
             const before = await page.computed('#open', props);
             await page.setStyle('#wide', { 'inline-size': '340px' });
@@ -810,10 +662,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the leaf pane scrolls with a visible scrollbar, and the row does not scroll',
             () => mounted(async (page) => {
-                // Spec §2.4: "hiding the scrollbar is banned", and T16 is the
-                // counter-example — both Settings nav columns scroll with
-                // scrollbar-width: none. The SCROLL REGION is the pane, not the row; the
-                // row states no overflow at all and therefore cannot hide anything.
                 const pane = await page.metrics('#pane');
                 assert.ok(pane.scrollHeight > pane.clientHeight + 0.5,
                     'the stage must really overflow or this is vacuous');
@@ -827,25 +675,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'the numpad" is the inherited behaviour spec §2.4 exists to stop');
             }));
 
-        /* -- 5. THE BUG, ASSERTED INEXPRESSIBLE: T13 -------------------------- */
-
         test('T13 leg (a): the rule that CAUSES T13, live in this page, cannot reach a row',
             () => mounted(async (page) => {
-                // LAYOUT_SPEC_DRAFT.md:1189 — "One leaf's header sits 12px lower than the
-                // other 36, because it wraps its title in a row that picks up the row
-                // primitive's padding-block. Measured y 158/193 against 146/181."
-                //   CITE settings-display-brightness .slate-title rect y=193
-                //   CITE settings-accessories-cup-warmer .slate-title rect y=181
-                //   193 − 181 = 12 = --slate-space-3 (slate-tokens.css:117)
-                //
-                // This is an A/B, not an absence. slate-shell.css:1291-1297 is injected
-                // VERBATIM (only its two #id ancestors re-pointed at this stage), so the
-                // hazard is genuinely live on the page. #imposter is settings.js:2391
-                // reproduced byte-for-byte in its class strings, and it is displaced by
-                // exactly the 12px the audit measured — T13, reproduced here on demand.
-                // The two ui-settings-rows next to it, one of them wearing the identical
-                // class shape, do not move at all: their heading lives in a shadow root
-                // and no selector outside one reaches into it.
                 const read = () => page.evalFn(() => {
                     const off = (child, host) => child.getBoundingClientRect().top
                         - host.getBoundingClientRect().top;
@@ -866,16 +697,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => {
                     const s = document.createElement('style');
                     s.id = 't13-row-primitive';
-                    /* slate-shell.css:1290-1297, verbatim. Its two id ancestors
-                     * (#subpage-host #settings-content-area) become this stage's, and its
-                     * --slate-* tokens become the --ui-* ones carrying the same numbers:
-                     *   1291  .content-stretch.flex.items-center.justify-between,
-                     *   1292  [data-settings-row] {
-                     *   1293      box-sizing: border-box;
-                     *   1294      min-height: var(--slate-control-height);
-                     *   1295      padding-block: var(--slate-space-3);
-                     *   1296      gap: var(--slate-space-5);
-                     *   1297  } */
                     s.textContent = [
                         '#pane #leaf .content-stretch.flex.items-center.justify-between,',
                         '#pane #leaf [data-settings-row] {',
@@ -919,9 +740,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T13 leg (b): the same class shape ON a row changes nothing about it',
             () => mounted(async (page) => {
-                // #shaped wears `content-stretch flex items-center justify-between relative
-                // w-full` on the HOST and is otherwise identical to #plain. In Slate a
-                // class shape is the contract; here it is decoration.
                 const props = ['padding-top', 'padding-bottom', 'min-height', 'column-gap',
                     'display', 'flex-wrap', 'align-items', 'justify-content', 'background-color'];
                 const plain = await page.computed('#plain', props);
@@ -938,11 +756,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T13 leg (c): the spread of heading offsets across four build routes is ZERO',
             () => mounted(async (page) => {
-                // This is the arithmetic form of the bug: "36 leaves at y=181 and one at
-                // y=193". Four rows, four construction routes, one of them wearing the
-                // imposter class shape and one nested inside a wrapper that wears it. If
-                // any route could pick up stray padding, its heading would sit lower than
-                // its own row's top by a different amount.
                 const offsets = await page.evalFn(() => {
                     const host = document.getElementById('routes');
                     host.innerHTML = '<ui-settings-row id="t1" heading="Screen Brightness"></ui-settings-row>';
@@ -992,8 +805,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${m.id} has a different padding-block from its siblings`);
                 }
 
-                // The mechanical half: every row shares ONE stylesheet object and ONE
-                // constructor, so there is no second copy of the anatomy to disagree.
                 const shared = await page.evalFn(() => {
                     const sheets = (id) => document.getElementById(id).shadowRoot.adoptedStyleSheets;
                     const a = sheets('t1');
@@ -1016,10 +827,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T13 leg (d): a rule written from OUTSIDE cannot reach the row anatomy',
             () => mounted(async (page) => {
-                // slate-shell.css:1291's selector, transplanted into the document at the
-                // highest specificity it can reach, with the important flag on top. Nothing
-                // outside a shadow root can select into one, so REACH is what stops it —
-                // not specificity, which is why Slate needed 268 important flags.
                 const props = ['padding-top', 'padding-bottom', 'min-height', 'column-gap'];
                 const before = await page.computed('#plain', props);
                 const beforeHeading = await page.computed('#plain >>> #heading', ['font-size', 'color']);
@@ -1046,10 +853,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a document rule repainted the row\'s INSIDES — the shadow boundary is '
                     + 'the whole mechanism T13 dies to');
 
-                // The HOST is in the outer tree, so the host's own box IS reachable — and
-                // that is correct and worth stating: a screen owns where a row sits, the
-                // component owns what a row is. The heading's offset from the row top is
-                // the part that must not move, and it is the part T13 is about.
                 const hostAfter = await page.computed('#plain', props);
                 assert.notDeepEqual(hostAfter, before,
                     'the host box is deliberately reachable from the screen (that is how a '
@@ -1063,8 +866,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the reading is a READING: absence renders the dash, never an invented number',
             () => mounted(async (page) => {
-                // A7 and the address layer's own contract: absence is a state. There is no
-                // `?? compute` in the component, so an absent reading cannot become a zero.
                 const cases = await page.evalFn(() => {
                     const row = document.getElementById('read');
                     const out = {};
@@ -1106,16 +907,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'has not received yet');
             }));
 
-        /* -- 6. ARIA: the accessible-name bridge ------------------------------ */
-
         test('T15\'s class: the row names the control it holds, measured in the AX tree',
             () => mounted(async (page) => {
-                // Slate names a settings control with aria-labelledby pointing at the row's
-                // label (settings.js:1452 / :1465) and gets it wrong four times in twenty
-                // (T15: "four of twenty switches have no accessible name"). A cross-root
-                // IDREF cannot work here, so the row hands the name over instead — and
-                // ui-switch.js:27-33 says in its own header that this is where its name
-                // comes from.
                 await page.send('Accessibility.enable');
                 const { nodes } = await page.send('Accessibility.getFullAXTree', { depth: -1 });
                 const named = (role, name) => nodes.some(
@@ -1148,16 +941,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('RULE 0 IS A ROLE TEST: a control with contents that do not name it is still named',
             () => mounted(async (page) => {
-                // The check above only ever mounted controls with EMPTY light DOM, so it
-                // could not see the over-fire. These four all HAVE textContent, and none
-                // of them is named by it:
-                //   <select>   role combobox — its <option> children are its value list
-                //   <textarea> role textbox  — its contents are its VALUE
-                //   ui-stepper / ui-bank — the glyphs are in NAMED slots, and each lands
-                //                          inside a sub-part that has its own aria-label
-                // A textContent gate skips all four and the row ships an unnamed control:
-                // T15's "four of twenty switches have no accessible name", re-created
-                // inside the primitive built to end it.
                 await page.send('Accessibility.enable');
                 const { nodes } = await page.send('Accessibility.getFullAXTree', { depth: -1 });
                 const nameOf = (role, name) => nodes.some(
@@ -1262,9 +1045,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 }
 
 describe('the gallery states are capture inputs, so they have to render', () => {
-    // The capture battery photographs these six states by id; a state whose markup does
-    // not mount photographs as an empty stage and the diff is silently green. Mount each
-    // one for real, once, at the bench geometry.
     for (const state of galleryEntry.states) {
         test(`${galleryEntry.id}--${state.id} mounts and renders a row`, () =>
             browser.withPage({ geometry: BENCH }, async (page) => {
@@ -1288,8 +1068,6 @@ describe('the gallery states are capture inputs, so they have to render', () => 
 
     test('the t13 state really displaces its imposter and really leaves the rows alone', () =>
         browser.withPage({ geometry: BENCH }, async (page) => {
-            // The picture only means something if the injected rule fires. Measured here
-            // so the battery's screenshot is evidence rather than decoration.
             const state = galleryEntry.states.find((s) => s.id === 't13');
             await page.mount(state.html, ['/tools/gallery/entries/ui-settings-row.demo.js']);
             assert.deepEqual(page.pageErrors, []);
@@ -1314,9 +1092,6 @@ describe('the gallery states are capture inputs, so they have to render', () => 
 
 describe('ui-settings-row across geometries', () => {
     test('the UI scale is never fluid, and neither is the row anatomy', () => {
-        // Spec §2.2: "The UI scale is never fluid ... legibility is a floor". The two
-        // geometries must agree on every token-derived number; what may differ is only
-        // what the CONTAINER decides, and the containers here are fixed px.
         const names = Object.keys(acrossGeometries);
         assert.equal(names.length, GATE_A_GEOMETRIES.length,
             `both geometries must have recorded: ${names.join(', ')}`);

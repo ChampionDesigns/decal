@@ -1,28 +1,5 @@
 /**
- * editor-visibility-writer.test.mjs — THE EDITOR STORE'S PUBLIC VISIBILITY WRITER (D20).
- *
- * Ben, 30 August 2026: *"a store writer (profile-store/shots-store pattern — setVisibility
- * exists internally for the supersede path; expose a deliberate public method)."*
- *
- * The internal one already existed and is NOT this: it serves the B11 supersede path, where
- * a failed write is advisory because the save it follows has already succeeded, so it
- * answers "the record, or null" and swallows the ending. A person pressing a switch is the
- * opposite case — the write IS the gesture — so the public method turns every ending into
- * published state a screen can paint.
- *
- * WHAT IS PINNED HERE, and each one is a way the write could be wrong rather than absent:
- *   1. the REQUEST — route, method, and the BARE `{visibility}` body the pinned handler
- *      requires (`profile_handler.dart:184-192` at `2b047d02`: a missing key is a 400);
- *   2. the ANSWER is what the state carries — never the value that was asked for;
- *   3. a REFUSAL and a FAULT are separated, because the screen prints one verbatim and
- *      words the other itself;
- *   4. `record` is NOT re-published — the editor screen re-seats its draft on record
- *      identity, so a new record object here would discard unsaved step edits;
- *   5. the slice resets with the record, so one profile's answer cannot be read as another's;
- *   6. an id-less draft and an unknown visibility value write nothing at all.
- *
- * A8: every assertion is about a returned value or a recorded call. Nothing reads a source
- * file.
+ * The editor store's.
  */
 
 import { test, describe } from 'node:test';
@@ -197,10 +174,6 @@ describe('the editor store writes library visibility (D20)', () => {
     });
 
     test('the supersede path still answers the way it always did', async () => {
-        /* The internal writer's contract is unchanged by the public one: a save that
-         * supersedes still un-hides its answer and hides its parent, and a failure there
-         * is still swallowed. Driven through the real save so the refactor is proven at
-         * the call site rather than asserted about it. */
         const parent = recordOf('visible');
         const savedPath = `/profiles/${encodeURIComponent('profile:saved')}/visibility`;
         const transport = recordingTransport({

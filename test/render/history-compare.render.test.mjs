@@ -1,31 +1,5 @@
 /**
- * history-compare.render.test.mjs — wave 5.6, the PORT cluster:
- * `hist-port-history-viewer`, `hist-compare-bar`, `hist-tests-intent`, bug H8 IN SITU,
- * and bugs chart-C8 / H7.
- *
- * WHAT THIS SUITE OWNS THAT NO OTHER ONE DOES. `ui-compare-bar.render.test.mjs` owns the
- * strip as a component and drills H8 into it four ways; `history-pages.render.test.mjs`
- * owns the two pages fed by hand. This file owns THE WHOLE PATH: a real
- * `<history-screen>` with a real `boot`, a real shots store over the recorded fixtures, a
- * real `HistoryViewer`, and a person moving the real slider. Nothing below sets a
- * derivation by hand.
- *
- * THE PORTED TEST'S INTENT, ASKED AT THE ONLY PLACE IT CAN BE ANSWERED. The old suite
- * exists because "the previous alignment slider addressed a trace index one past the end,
- * the code looked entirely correct, the renderer threw, a catch swallowed it, and the
- * control did nothing at all". A source match cannot see that and neither can a unit
- * test over the builders alone — the failure was between the control and the canvas. So
- * the drive below moves the SLIDER, reads the x extent of the traces off the LIVE uPlot
- * instance, and fails on any page error or console error the harness recorded on the way.
- *
- * A8. Nothing here opens a file. Every assertion is a rendered box, a computed style, a
- * live plot object or a value read back off a running element.
- *
- * chart-C8 / H7 — AND THE DIFFERENCE THAT MATTERS. The old suite's five step/P-Q tests
- * assert on trace and shape objects that were built, mutated and NEVER HANDED TO A
- * RENDERER. This file's step-rule assertion reads what `setRules` was CALLED WITH on the
- * live card, one frame before the canvas is stroked from it. The distinction is not
- * cosmetic: one pins a value nothing draws, the other pins the value that is drawn.
+ *.6, the PORT cluster: hist-port-history-viewer, hist-compare-bar, hist-tests-intent, bug H8 IN SITU, and bugs chart-C8 / H7.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -59,14 +33,6 @@ const SCREEN_STAGE = `
   <history-screen></history-screen>
 </div>`;
 
-/**
- * Hand the screen a boot whose transport answers from `tools/rea-fixtures/`.
- *
- * THE REAL STORE, THE REAL PORT, THE REAL PAGES. Only the wire is stood in for, and it
- * is stood in for at the one seam the tree already injects (`createReaTransport` is
- * always injected; `rea-transport.js:56-58` names it). Every request is counted, so the
- * per-row fetch claim is measured here as well as in `node:test`.
- */
 const BOOT = `(async () => {
   const screen = document.querySelector('history-screen');
   window.__calls = [];
@@ -131,14 +97,6 @@ const PICK_PAIR = `(async () => {
   };
 })()`;
 
-/**
- * Move the real slider to `value` and wait for the redraw it causes.
- *
- * IT WAITS FOR THE PAINT, NOT FOR A FIXED NUMBER OF FRAMES, because "did the redraw reach
- * the plot" is the whole question the ported suite was written around. `paintCount` rises
- * inside `plot-surface`'s own `#draw`, so a control that emitted an offset nobody drew
- * would time out here rather than pass quietly.
- */
 const SLIDE = (value) => `(async () => {
   const screen = document.querySelector('history-screen');
   const bar = screen.renderRoot.getElementById('compare');
@@ -213,20 +171,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.mount(SCREEN_STAGE, MODULES);
             const opened = await page.eval(BOOT);
             assert.equal(opened.options, 20, 'the port read one page of twenty shots');
-            /* TWO: the listing, and the one shot the screen opens ON. It used to be one,
-             * and the screen that produced was two empty plots under a picker that named
-             * a shot — a <ui-select> with no value shows its first option, so it looked
-             * like a choice had been made and none had. Opening on the newest shot is
-             * what Slate does and what a person expects; the SECOND call is that shot.
-             *
-             * IN THE APP IT IS USUALLY FREE, which is the other half of the same change:
-             * the screen takes the shell's shots store now, so the record the Live page
-             * has already fetched and walked is in hand. This stage has no shell. */
             assert.equal(opened.calls, 2, 'the listing, and the shot it opened on');
-            /* AND THE COMPARISON IS OPENED. Since 24 Aug 2026 the screen starts on ONE
-             * shot — B and the alignment bar are absent until asked for, because tapping
-             * the Live chart lands here and a second picker beside a dead slider is not
-             * what that press was about. Every H8 measurement below is about the bar. */
             await page.evalFn(async () => {
                 const screen = document.querySelector('history-screen');
                 screen.comparing = true;
@@ -234,10 +179,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             return opened;
         };
-
-        /* ===================================================================
-         * 1. THE PORT IS WIRED: a route-mounted screen arrives with its pages
-         * =================================================================== */
 
         test('a screen with no children still has all three pages', async () => {
             await staged();
@@ -267,11 +208,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .querySelector('history-data-page').rows.length,
             }));
             assert.equal(counts.rows, 20, 'twenty rows painted');
-            /* B5 / Q17's claim, exactly: no record is downloaded TO FILL A CELL. The old
-             * skin's `fillMissingOutcomes` fetched one ~221 KB record per row to print
-             * "28 s" in a list cell; twenty rows still cost zero row-fetches here. What
-             * the screen does fetch is the ONE shot it opens on, which is the shot a
-             * person came to look at. */
             assert.equal(counts.byId, 1, 'one record: the shot the screen opened on');
             assert.equal(counts.total, 2, 'the listing, and that one record');
         });
@@ -281,19 +217,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const picked = await page.eval(PICK_PAIR);
             assert.equal(picked.a, true);
             assert.equal(picked.b, true);
-            /* STILL TWO, AND THE REASON IS THE MEMOISATION rather than a coincidence:
-             * the screen opens on the NEWEST shot, which in this fixture is SHOT_B, so
-             * picking B costs nothing and only A is fetched here. One record per shot,
-             * ever — which is the claim this test has always carried. */
             assert.equal(picked.byId, 2, 'one per shot, and the opening one is not re-fetched');
             assert.equal(picked.list, 1, 'and the list was not re-read');
             near(picked.durations[0], 3.26, 'A is the short one', 0.05);
             near(picked.durations[1], 8.54, 'B is the long one', 0.05);
         });
-
-        /* ===================================================================
-         * 2. H8 IN SITU — the strip in the screen's own auto track
-         * =================================================================== */
 
         test('H8: the screen row 2 is the bar and the bar is its own contents', async () => {
             await staged();
@@ -350,10 +278,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         });
 
-        /* ===================================================================
-         * 3. THE ALIGNMENT — driven from the control, read off the canvas
-         * =================================================================== */
-
         test('the slider moves B by the offset and never moves A', async () => {
             await staged();
             await page.eval(PICK_PAIR);
@@ -390,24 +314,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(atMinus.series['b:pressure'].from < 0,
                 'and at the other end B starts before zero');
 
-            /* THE CLIP THAT USED TO BE SILENT. `plot-surface` opened the x scale at a hard
-             * zero, so everything left of it was cropped while the readout reported the
-             * offset it had applied. The window is now read off the drawn data. */
             near(atMinus.scale.min, atMinus.series['b:pressure'].from, 'the scale carries B\'s head', 0.2);
             assert.ok(atMinus.scale.min <= -limit + 0.2,
                 `the x scale opened to ${atMinus.scale.min} rather than clipping at 0`);
             assert.equal(atPlus.xMin, 0, 'and a positive slide leaves the axis at zero');
 
-            /* THE SHOT IS THE SAME SHOT AT BOTH ENDS. Its SPAN is what must not change —
-             * a trace that lost its head or its tail past the end would read as a shorter
-             * shot rather than as an error, which is the failure mode this whole surface
-             * was rebuilt around.
-             *
-             * The non-null SLOT COUNT is deliberately not the assertion, and the reason is
-             * the union clock working correctly: at -5 s B overlaps A, so B is interpolated
-             * onto A's instants as well as its own; at +5 s the two no longer overlap and
-             * B occupies its own slots alone. Counting slots would pin the overlap, not
-             * the trace. */
             const spanAt = (state) => state.series['b:pressure'].to - state.series['b:pressure'].from;
             near(spanAt(atMinus), spanAt(atPlus), 'B keeps its whole length at both ends', 0.01);
             near(atPlus.series['b:pressure'].from - atMinus.series['b:pressure'].from,
@@ -434,13 +345,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
             const rebuild = samples.map((s) => s.rebuildMs).sort((a, b) => a - b);
             const toPaint = samples.map((s) => s.ms).sort((a, b) => a - b);
-            /* MEASURED, NOT ASSERTED — the row's instruction is to measure the redraw
-             * shipped rather than to assert the 4 ms the carry-forward note quotes. Two
-             * numbers, because they answer different questions: `rebuildMs` is the work
-             * (the event through `shiftSeriesX`, the union window and the step rules to
-             * both components updated), and `ms` is event-to-pixels, which is frame-bound
-             * and therefore says nothing about the code. The pinned claims are that the
-             * paint HAPPENS and that it takes one frame; the numbers ride in the digest. */
             assert.ok(rebuild.at(-1) < 60,
                 `rebuilding the series stayed far under a frame (worst ${rebuild.at(-1)} ms)`);
             assert.ok(toPaint[Math.floor(toPaint.length / 2)] > 0);
@@ -473,10 +377,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(back.series['b:pressure'].from, at0.series['b:pressure'].from, 'B is back', 0.01);
             near(back.series['b:pressure'].to, at0.series['b:pressure'].to, 'both ends', 0.01);
         });
-
-        /* ===================================================================
-         * 4. THE CONVENTION AND THE GAP, THROUGH THE COMPARE PATH
-         * =================================================================== */
 
         test('A solid, B dashed and faded, same hue — on the live plot', async () => {
             await staged();
@@ -516,9 +416,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const screen = document.querySelector('history-screen');
                 const flow = screen.renderRoot.querySelector('history-flow-page');
                 const card = flow.renderRoot.getElementById('plot-top');
-                /* GATE THE MIDDLE OF A's PRESSURE, on the running plot, and read back what
-                 * the renderer holds. The channel SPOKE and said null: the policy is that
-                 * this is a break and never a value to carry forward. */
                 const derivation = flow.derivationA;
                 const x = [...derivation.series.pressure.x];
                 const y = [...derivation.series.pressure.y];
@@ -570,10 +467,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await pick('select-b', shotB);
                 for (let i = 0; i < 60; i += 1) {
                     await new Promise((r) => setTimeout(r, 10));
-                    /* BOTH DERIVATIONS, not just a faded rule. The screen opens on the
-                     * newest shot now, so A is already drawn when this test starts and a
-                     * faded rule can appear before B's record has landed — the loop broke
-                     * on it and read `derivationB` off null. */
                     if (!flow.derivationA || !flow.derivationB) continue;
                     if (seen.some((v) => (v.vertical ?? []).some((r) => r.alpha !== undefined))) break;
                 }
@@ -611,21 +504,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
             assert.ok(rules.labels <= rules.marks.a, 'the step name is said once, on A');
         });
-
-        /* ===================================================================
-         * 4b. THE RULES SURVIVE THE TWO THINGS THAT USED TO ERASE THEM
-         *
-         * Both were found by MEASURING a composed card rather than by reading it, both
-         * were silent, and both are the same shape: something re-issued the card's rules
-         * from `this.derivation` — shot A alone — over a plot that was drawing two shots.
-         * chart-C2 is Slate's name for the first one ("theme switch loses step
-         * boundaries"), fixed for one shot in wave 3 and re-entered here through the
-         * composition; the second is its mirror, a comparison that was cleared and left
-         * its boundaries behind.
-         *
-         * ASSERTED ON `plotHandle.state.vRules`, which is the array the draw hook strokes
-         * from — not a spy, and not a built-and-discarded layout object (chart-C8 / H7).
-         * =================================================================== */
 
         /** What the canvas is about to be stroked with, plus what is on it now. */
         const RULES_NOW = `(() => {
@@ -687,10 +565,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(after.labels, before.labels, 'the step names came across too');
             assert.deepEqual(after.colours, [after.boundary],
                 'in the step-boundary token, read off the card that read it');
-            /* --ui-channel-step-boundary is #737b82 in BOTH themes (chart-channels.css),
-             * so the rule colour is not the witness that a theme really changed; the
-             * label ink is (--ui-chart-label, #5a656c light / #849199 dark), and it
-             * travels on the very rules this test is about. */
             assert.deepEqual(after.inks, [after.ink],
                 'the step names took the NEW theme\'s label ink');
             assert.notDeepEqual(after.inks, before.inks,
@@ -727,11 +601,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(cleared.derivationB, false, 'the comparison really is gone');
 
             const after = await page.eval(RULES_NOW);
-            /* DERIVED, NOT COUNTED BY HAND. `abChannelSpecs` mirrors A one series for one
-             * series, so what B contributes is exactly the top plot's channel count. The
-             * literal 5 that stood here went stale on 24 August, the day Power joined that
-             * plot on Ben's ask: five became six and the assertion failed on a number that
-             * was never the subject of this test. */
             assert.equal(after.series, before.series - TOP_CHANNELS,
                 `B's ${TOP_CHANNELS} series left the plot`);
             assert.equal(after.vertical, before.marks.a,
@@ -744,18 +613,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, []);
             assert.deepEqual(page.consoleErrors, []);
         });
-
-        /* ===================================================================
-         * 4c. THE TYPED FAILURE HAS A READER
-         *
-         * `viewer.failure` publishes the store's failure VERBATIM and its docblock says
-         * why: "A screen that turned 404 at /shots/<id> into something went wrong would be
-         * the swallowing catch with better manners." Measured with a transport failing
-         * every request, it had no reader anywhere under src/ — the screen rendered a
-         * picker with no options and two empty states reading "No shot selected", so a
-         * machine that ANSWERED 500 was indistinguishable from a machine with no recorded
-         * shots. Silence with better manners is still silence.
-         * =================================================================== */
 
         test('a machine that answered 500 says so, in its own words, on both pages', async () => {
             await page.mount(SCREEN_STAGE, MODULES);
@@ -790,11 +647,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     options: screen.renderRoot.getElementById('select-a').options.length,
                     flow: read(flow),
                     data: read(data),
-                    /* THE HEADING'S OWN BOX, one shadow root further in. The refusal
-                     * HOST measures 0 wide inside the card's centred overlay — the base's
-                     * inline-size containment, which is every empty state in the skin and
-                     * not this wave's to change — so "is it on screen" is asked of the
-                     * paragraph that carries the words. */
                     shown: [...flow.renderRoot.querySelectorAll('ui-empty-state')].map((el) => {
                         const heading = el.renderRoot.getElementById('heading');
                         return Boolean(el.checkVisibility()) && heading.getBoundingClientRect().width > 0;
@@ -812,9 +664,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'MEASURED BEFORE THE FIX: this said "No shot selected", which a machine '
                     + 'with an empty database says too');
             }
-            /* One at the design floor, two at the bench: H1's single-plot branch gives
-             * the hidden card no box, so the count is the geometry's and the claim is
-             * that the refusal is ON SCREEN in whichever branch this geometry is in. */
             assert.ok(seen.shown.filter(Boolean).length >= 1,
                 `the refusal has to be readable somewhere: ${JSON.stringify(seen.shown)}`);
             assert.match(seen.data.at(-1), /the machine said no/,
@@ -828,10 +677,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, [], 'nothing threw');
             assert.deepEqual(page.consoleErrors, [], 'and nothing was logged in place of rendering');
         });
-
-        /* ===================================================================
-         * 5. TWO VIEWERS — the module singleton is gone
-         * =================================================================== */
 
         test('two screens on one page hold independent selections and offsets', async () => {
             await page.mount(`
@@ -921,16 +766,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(swapped.data.region, swapped.flow.region + swapped.flow.bar,
                 'and the page took every pixel the bar gave up', 1);
         });
-
-        /* -- ONE SHOT, OR TWO (Ben, 24 Aug 2026) ---------------------------
-         *
-         * "The expanded chart that you get when pressing the chart is not the same as the
-         * history viewer." In the old skin they are two surfaces: tapping the chart opens
-         * ONE shot big, and "All shots" opens a COMPARISON with two pickers and an
-         * alignment slider. Decal pointed both at the comparison, so pressing the chart
-         * to look at the shot you just pulled handed you a picker you did not ask for and
-         * a slider that could not do anything.
-         * ----------------------------------------------------------------- */
 
         test('the screen opens on ONE shot: no B picker, no alignment bar', async () => {
             await page.mount(SCREEN_STAGE, MODULES);

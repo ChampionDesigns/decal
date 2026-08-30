@@ -1,31 +1,5 @@
 /**
- * server.js — the ephemeral static server the Gate A harness mounts against.
- *
- * The repo root IS the served root (SCOPE Part 2 §2), so the harness serves the repo
- * root and nothing else. That is not a convenience: it means a rendering test loads
- * `lit` through the same importmap, the same `vendor/lit.js`, the same
- * `styles/tokens.css` and the same `fonts/Geist-Variable.ttf` that ReaPrime will
- * serve. A harness that stubbed any of those would be testing a tree that does not
- * ship.
- *
- * PORT 0 — one server per harness invocation, on a kernel-assigned port. Same
- * parallel-safety argument as cdp.js: nothing here may collide with a concurrent
- * builder's rig.
- *
- * THE MOUNT DOCUMENT is generated at `/__harness__.html`, at the root, so that every
- * relative URL in it resolves exactly as it does from `index.html` — `./vendor/lit.js`,
- * `styles/tokens.css`. It is NOT index.html, because index.html mounts <app-root>
- * and a rendering test wants an empty body to put one component in. What it does
- * take from index.html, by parsing it at serve time rather than by copying, is:
- *
- *   - the importmap, verbatim;
- *   - the three stylesheet <link>s, verbatim;
- *   - the pre-paint theme stamp's default.
- *
- * By construction rather than by copy, because a copy drifts silently: the day
- * someone vendors a fifth module or adds a fourth global sheet, every rendering test
- * would keep passing against the old document. If index.html stops having an
- * importmap this throws instead.
+ * The ephemeral static server the Gate A harness mounts against.
  */
 
 import http from 'node:http';
@@ -77,15 +51,6 @@ export async function readDocumentShell(root = REPO_ROOT) {
         throw new Error('index.html links no stylesheets — tokens would not exist in the harness page');
     }
 
-    /* THE VIEWPORT META IS READ, NOT RE-TYPED. It used to be a literal in
-     * `mountDocument` below, and on 27 August 2026 that literal went stale the moment
-     * index.html's own line changed: the app declared `user-scalable=no,
-     * minimum-scale=1, maximum-scale=1` to close the zoom trap Ben hit, and every
-     * mounted component carried on being laid out in a page where browser scaling was
-     * still permitted. A harness whose document differs from the served one in a way
-     * that changes engine behaviour is testing something nobody ships — which is the
-     * same reason the importmap and the stylesheet links above are read rather than
-     * copied. Throws rather than defaulting, for that reason. */
     const viewport = /<meta\s+name="viewport"[^>]*>/i.exec(html);
     if (!viewport) {
         throw new Error('index.html has no <meta name="viewport"> — the harness page would '

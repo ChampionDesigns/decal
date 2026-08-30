@@ -1,21 +1,4 @@
-// Pump-mode tables and the editor's pure step decisions (src/lib/profile-modes.js).
-//
-// Carried from slate's `test/profile_modes.test.mjs` (530 lines) plus the four
-// changes the port makes, each with its own pin:
-//
-//   1. ONE range table (B2). The suite asserts the collapse itself — the Review
-//      sentence's slots now read the SAME entry the grid stepper does, where the
-//      source had 16 bar / 16 bar / 15 mL/s against 12 / 12 / 8. The old suite
-//      pinned `MODE_TABLE.*.limiterMax` numbers directly and would have gone on
-//      passing while the Review path disagreed with them, which is why the checks
-//      are written as cross-surface equalities, not as literals in two places.
-//   2. `normalizeStep` is `normalizeImportedStep`, and the exit types it keeps
-//      come from the address layer's one list.
-//   3. No paint: `POWER_TRACE_COLOR` / `LEVER_DECLINE_DASH` are gone (the old
-//      suite's "trace colour / dash constants" test is corrected to pin their
-//      ABSENCE — Risk 9: a test that defends a dropped export is a test that
-//      argues the drop back).
-//   4. `segmentGeometry` measures real text and refuses to guess.
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -62,11 +45,6 @@ import { LIMIT_KEYS, MACHINE_CLASSES, limitsFor } from '../src/lib/machine-limit
 const closeTo = (a, b, eps = 1e-9) =>
     assert.ok(Math.abs(a - b) < eps, `expected ${a} ≈ ${b} (±${eps})`);
 
-/**
- * The brew-temperature range as `machine-limits.js` declares it (`brewTemp`).
- * It is a FIXTURE here on purpose: profile-modes owns no machine limit, and a
- * second declaration of this field anywhere in the skin is the B2 block.
- */
 const MACHINE_RANGES = { temperature: { min: 70, max: 110, step: 0.5, unit: '°C' } };
 const spec = (step) => reviewStepSpec(step, { machineRanges: MACHINE_RANGES });
 const sentences = (step) => spec(step).map(reviewLineText);
@@ -91,15 +69,6 @@ test('the three disagreeing copies collapse to one table — 12 / 12 / 8, never 
     assert.notEqual(limiter[6], 15);
 });
 
-// ── The Bengle flow-ceiling lift (27 Aug 2026) ───────────────────────────────
-//
-// Ben, in the profile editor: "why is flow limited to 15ml/s" — and, told the old editor
-// gave a Bengle 20 and that the lift was dropped in the port: "flow limit goes with it to
-// 20 as well." The lift had been REFUSED on the way in because the old editor gated it on
-// a machine NAME (A3), and the file recorded the shape it would have to return in: "a
-// capability answer applied to THIS table, never a second table". These pin that shape as
-// well as the numbers, because the numbers are the easy half.
-
 test('a Bengle authors flow to 20; a DE1 keeps 15 and 8', () => {
     const bengle = authoringRangesFor('bengle');
     const de1 = authoringRangesFor('de1');
@@ -107,8 +76,6 @@ test('a Bengle authors flow to 20; a DE1 keeps 15 and 8', () => {
     assert.equal(bengle.stepFlowLimit.max, 20, 'a pressure step\'s FLOW LIMIT on a Bengle');
     assert.equal(de1.flowTarget.max, 15);
     assert.equal(de1.stepFlowLimit.max, 8);
-    // The floors and the measure do not move with the ceiling. `min: 0` on the limit is
-    // load-bearing on both machines — it is how the limit is switched off.
     for (const table of [bengle, de1]) {
         assert.equal(table.flowTarget.min, 0);
         assert.equal(table.stepFlowLimit.min, 0);
@@ -120,12 +87,6 @@ test('a Bengle authors flow to 20; a DE1 keeps 15 and 8', () => {
 });
 
 test('an unknown machine class is offered the NARROWER band, and it NESTS inside the other', () => {
-    // This is the one place this table answers an unknown class differently from
-    // machine-limits.js, which makes its machine-dependent rows ABSENT instead. The
-    // justification written beside the choice is that these two bands nest and steam's do
-    // not, so nothing the narrow band permits can be refused by either machine. Assert the
-    // nesting itself rather than the sentence: the day somebody widens the DE1's ceiling
-    // past the Bengle's, the reasoning stops holding and this fails.
     const unknown = authoringRangesFor(null);
     assert.ok(Object.is(unknown, authoringRangesFor('de1')), 'unknown is answered with the DE1 band');
     assert.ok(Object.is(unknown, authoringRangesFor(undefined)), 'and undefined is the same as null');
@@ -138,17 +99,11 @@ test('an unknown machine class is offered the NARROWER band, and it NESTS inside
 });
 
 test('MACHINE_DEPENDENT_AUTHORING_RANGES is exactly the rows that DIFFER, derived not retyped', () => {
-    // The list is what `authoringRange` refuses to answer without a class, so a row that
-    // varies by machine and is NOT on it would be silently readable with one machine's
-    // ceiling — the original bug. Both directions are checked against the tables
-    // themselves, so neither a new machine-dependent row nor a stale name can pass.
     const [a, b] = MACHINE_CLASSES.map(authoringRangesFor);
     const differ = Object.keys(a).filter((name) => !Object.is(a[name], b[name])).sort();
     assert.deepEqual(differ, [...MACHINE_DEPENDENT_AUTHORING_RANGES].sort(),
         'a row that differs between machine classes must be declared machine-dependent');
     assert.deepEqual([...MACHINE_DEPENDENT_AUTHORING_RANGES].sort(), ['flowTarget', 'stepFlowLimit']);
-    // And every other row is literally the SAME OBJECT on both machines, not a copy that
-    // agrees — which is what lets every identity check in the ranges suites stay valid.
     for (const name of Object.keys(a)) {
         if (MACHINE_DEPENDENT_AUTHORING_RANGES.includes(name)) continue;
         assert.ok(Object.is(a[name], b[name]), `${name} is duplicated per machine class`);
@@ -173,10 +128,6 @@ test('a machine-dependent row cannot be read without STATING a class — null co
 });
 
 test('the class reaches every surface: grid, mode table and review sentence agree PER MACHINE', () => {
-    // The B2 property, re-stated for a per-machine ceiling. It is not enough that the
-    // Bengle's 20 exists; the review sentence has to print the same 20 the stepper offers,
-    // or one field has two maxima again — this time depending on the surface AND the
-    // machine, which is strictly worse than the defect the table was built to cure.
     const cases = [
         { pump: 'flow', field: 'flow', step: { flow: 6, limiter: { value: 5 } } },
         { pump: 'pressure', field: 'pressure', step: { pressure: 9, limiter: { value: 2 } } },
@@ -268,9 +219,6 @@ test('the table declares no MACHINE limit — that is machine-limits.js (B2)', (
 });
 
 test('B2 across the two modules: no field is declared twice, and the brew range IS the machine`s', () => {
-    // The mechanical form of "exactly one table": every key machine-limits.js
-    // declares is absent here, and the range this module demands by injection is
-    // literally the one that module serves — not a copy that agrees today.
     for (const key of LIMIT_KEYS) {
         assert.equal(AUTHORING_RANGES[key], undefined, `${key} is machine-limits.js's to declare`);
     }
@@ -281,12 +229,6 @@ test('B2 across the two modules: no field is declared twice, and the brew range 
 });
 
 test('B2: both key sets are PINNED, so a new row in either table forces the question', () => {
-    // The disjointness above is necessary and not sufficient: two tables can hold the
-    // same CONCEPT under different names ("the machine's max flow" as leverFlowCap
-    // here, as a served flow ceiling there) and every key-based check passes anyway.
-    // So the membership of both tables is pinned. Adding a row to either one fails
-    // this test until somebody says out loud which table owns the field — which is
-    // the whole content of B2 and the only thing a name check cannot do by itself.
     assert.deepEqual(Object.keys(AUTHORING_RANGES).sort(), [
         'exitFlow', 'exitPower', 'exitPressure',
         'flowTarget', 'leverFlowCap', 'leverGive', 'leverP0', 'leverSpring',
@@ -294,82 +236,7 @@ test('B2: both key sets are PINNED, so a new row in either table forces the ques
         'stepFlowLimit', 'stepPressureLimit', 'volume', 'weight',
     ], 'a new AUTHORING_RANGES row: is this field the machine\'s (machine-limits.js) or the step\'s?');
     assert.deepEqual([...LIMIT_KEYS].sort(), [
-        /* `calibrationWeight` joined in wave 5.4 (D9). The question this assertion asks —
-         * "does a profile step author this field too?" — is answered NO: a calibration
-         * weight is a one-off input to PUT /machine/scaleCalibration and appears in no
-         * profile step, so there is no matching AUTHORING_RANGES row and must not be. */
-        /* `grind` joined on 23 Aug 2026. The same question, answered NO again: a grinder
-         * setting is a note about a machine the DE1 has never heard of, it lives on the
-         * workflow's `context`, and no profile step authors it. It is the one row in the
-         * limits table whose bounds no handler declares — see the row itself. */
-        /* SIX JOINED ON 24 AUG 2026 with the settings pass, and the question this
-         * assertion asks — "does a profile step author this field too?" — is answered
-         * NO for five of the six and YES-BUT-SEPARATELY for the sixth:
-         *
-         *   heaterPh1Flow / heaterPh2Flow / heaterIdleTemp / heaterPh2Timeout
-         *     the heater-up phase, on POST /machine/settings/advanced. No profile step
-         *     authors any of them; they are the machine's warm-up behaviour, not a
-         *     shot's. The bands are SLATE'S, which the rows say out loud — the MMRs
-         *     declare only a scale and the handler writes them through unclamped.
-         *
-         *   appFlowMultiplier
-         *     an app-side correction factor on POST /api/v1/settings, applied to a
-         *     derived channel. A ratio, no unit, and nothing a step can carry.
-         *
-         *   tankTemp
-         *     THE ONE THAT NEEDED THE QUESTION ASKED. A profile DOES carry a
-         *     `tank_temperature`, and `unified_de1.profile.dart` writes it into this
-         *     same MMR on every send. The answer is still that the two are different
-         *     surfaces: the machine row is the THRESHOLD a settings page sets, the
-         *     profile field is the value that overwrites it, and `editor-ranges.js`
-         *     keeps that field UNRANGED on purpose so one register is not written
-         *     through two doors. There is deliberately no AUTHORING_RANGES row. */
-        /* SIX MORE ON 26 AUGUST 2026, working Ben's page feedback, and the question is
-         * answered NO for every one of them:
-         *
-         *   cupWarmerTarget / preWarmLead
-         *     the mat and how long before a wake schedule it starts. Nothing about a shot.
-         *
-         *   flowCalibration
-         *     the machine's own flow-estimate correction, on POST /machine/calibration.
-         *     A ratio the machine applies to what it measures, not a value a step sets.
-         *
-         *   hotWaterDuration
-         *     the time cap on a hot-water pour. A profile has no hot-water step.
-         *
-         *   sleepAfter
-         *     how long without use before the machine sleeps.
-         *
-         *   waterAlertLevel
-         *     the height in the tank at which the machine warns. A reading threshold.
-         *
-         *   screensaverCycle
-         *     how long a screen-saver picture stays up. It is not a machine value at all —
-         *     it is a device preference, and it is in the limits table for the reason O8
-         *     gives: every stepper states a range, and there is one table for ranges. */
-        /* ONE MORE ON 26 AUGUST 2026, and the question is answered NO again:
-         *
-         *   hotWaterLookahead
-         *     how far AHEAD of the target weight a hot-water pour is cut, to allow for the
-         *     water still in flight. It is an app-side lead time on POST /api/v1/settings
-         *     (`hot_water_sequencer.dart:117-118` reads it as `lookaheadSeconds`), a sibling
-         *     of `appFlowMultiplier` in every respect that matters here, and a profile has
-         *     no hot-water step to author it in. Slate calls it a "Flow multiplier"; it is
-         *     measured in seconds, which is why the row that offers it is headed "Stop
-         *     lookahead" instead. */
-        /* AND ONE MORE ON 26 AUGUST 2026, answered NO for the plainest reason yet:
-         *
-         *   screenBrightness
-         *     the TABLET's panel level, 10..100. Not a machine value and not a shot value —
-         *     the closest sibling in this table is `screensaverCycle`, which is here for the
-         *     same reason O8 gives: every control states a band, and there is one table for
-         *     bands. The FLOOR is the point of the row. The slider ran 0..100 under a caption
-         *     reading "the screen never goes dark by accident", so the control did exactly
-         *     what its own sentence said it could not, and on a kiosk tablet the control you
-         *     would need to undo it is then invisible. Slate names the same number
-         *     (`BRIGHTNESS_FLOOR = 10`). It is emphatically NOT a floor on the COMMAND: the
-         *     screen saver's dim legitimately sends 0, which is what arms ReaPrime's own
-         *     restore. */
+
         'appFlowMultiplier', 'brewTemp', 'calibrationWeight', 'cupWarmerTarget',
         'dose', 'drinkWeight',
         'fanThreshold', 'flowCalibration', 'flushDuration', 'flushFlow', 'flushTemp',
@@ -479,9 +346,6 @@ test('pumpChipsFor: the active chip is always in the returned list', () => {
 });
 
 test('getModeConfig REFUSES an unknown pump — A7, no fallback to flow', () => {
-    // Slate read an unknown pump as flow (`profile_modes.js:115-117`). That silently
-    // re-typed the step, and the review sentence's own default was PRESSURE, so the
-    // same unknown mode read as two different steps depending on the surface.
     assert.equal(getModeConfig('lever'), MODE_TABLE.lever);
     assert.throws(() => getModeConfig('weird'), /not a pump mode/);
     assert.throws(() => getModeConfig(undefined), /not a pump mode/);
@@ -630,8 +494,6 @@ test('normalizeImportedStep keeps exactly the exit types ReaPrime can express', 
         const step = normalizeImportedStep({ pump: 'flow', flow: 6, exit: { type, condition: 'over', value: 3 } });
         assert.equal(step.exit.type, type, `a ${type} exit must round-trip on load`);
     }
-    // Anything else is unrepresentable by the time it reaches here —
-    // `sanitizeProfileForRea` owns the weight/off translation and runs first.
     for (const type of ['weight', 'off', 'temperature']) {
         assert.equal(normalizeImportedStep({ pump: 'flow', flow: 6, exit: { type, value: 3 } }).exit, null);
     }
@@ -711,8 +573,6 @@ test('segmentGeometry: 2-3 options are equal slices, and the indicator sits flus
 
 test('segmentGeometry: 4+ options are weighted by MEASURED text plus a gutter', () => {
     const labels = ['Pressure', 'Flow', 'Power', 'Lever'];
-    // A per-character measurer with a two-character gutter is the old
-    // `length + 2` weighting, now stated by the caller rather than assumed.
     const g = segmentGeometry(labels, 288, { pad: 4, measure: monoMeasure(1), gutter: 2 });
     assert.deepEqual(g.weights, [10, 6, 7, 7]);
     assert.equal(g.tightFont, true);
@@ -725,8 +585,6 @@ test('segmentGeometry: 4+ options are weighted by MEASURED text plus a gutter', 
 
 test('segmentGeometry: a variable-width face changes the slices, which is the point', () => {
     const labels = ['Pressure', 'Flow', 'Power', 'Lever'];
-    // "Flow" and "Lever" have different advances in a real face even at equal
-    // character counts; the old length weighting could not see the difference.
     const advances = { Pressure: 61, Flow: 27, Power: 38, Lever: 33 };
     const g = segmentGeometry(labels, 288, { pad: 4, measure: (l) => advances[l], gutter: 12 });
     assert.deepEqual(g.weights, [73, 39, 50, 45]);
@@ -853,8 +711,6 @@ test('review wording is verbatim for every mode', () => {
 });
 
 test('review wording: the HOLD-power held word is the DOCUMENTED deviation ("power")', () => {
-    // Semantic truth over template: the firmware latches WATTS for a HOLD-power
-    // step, so the sentence says "power" where the base rule says "pressure".
     const lines = sentences({
         pump: 'power', sensor: 'coffee', transition: 'hold', temperature: 92, power: 2, seconds: 20,
         limiter: { value: 9 },
@@ -941,9 +797,6 @@ test('anyPowerStep detects a Power step anywhere in the list', () => {
 // ── No paint crosses this boundary ───────────────────────────────────────────
 
 test('the module exports no colour and no dash — both belong to the chart layer', () => {
-    // Corrects the old suite's "trace colour / dash constants are the expected
-    // values": the power trace's colour is the `--ui-channel-power` token (A6/A8)
-    // and the dash table is one exported constant in chart-axis.js (§6.2).
     assert.equal(profileModes.POWER_TRACE_COLOR, undefined);
     assert.equal(profileModes.LEVER_DECLINE_DASH, undefined);
     for (const [name, value] of Object.entries(profileModes)) {
@@ -951,20 +804,6 @@ test('the module exports no colour and no dash — both belong to the chart laye
         assert.doesNotMatch(value, /^#|^rgb|^hsl/, `${name} looks like a colour literal`);
     }
 });
-
-// ===========================================================================
-// THE BLANK STEP — Ben's own six values, 27 August 2026
-// ===========================================================================
-//
-// "Please make it so when I make a new profile the profile editor starts with a single
-// step. It can be a pressure profile step with a target of 8bar, flow limit of 8ml/s and a
-// target temperature of 85c at the coffee duration of 30s, no exit conditions."
-//
-// The values are pinned here because they are HIS and a silent drift in any of them is a
-// change to what every new profile and every inserted step starts as. What is deliberately
-// NOT pinned here is any bound: the last test asks the ranges tables whether the seed fits
-// them, rather than restating one of them, so a ceiling that moves is caught instead of
-// being re-typed (B2).
 
 test('the blank step is Ben\'s six values, in the shape ReaPrime serves', () => {
   assert.equal(NEW_STEP.pump, 'pressure', 'a pressure profile step');
@@ -979,8 +818,6 @@ test('the blank step is Ben\'s six values, in the shape ReaPrime serves', () => 
 });
 
 test('the blank step\'s target key is the one its own mode declares', () => {
-  // Not "it has a `pressure` key" — "it has the key MODE_TABLE says a pressure step
-  // stores its target in". A mode table that renamed the key would fail here.
   const cfg = getModeConfig(NEW_STEP.pump);
   assert.equal(NEW_STEP[cfg.targetKey], 8);
   assert.equal(cfg.limiterRange, 'stepFlowLimit',
@@ -993,12 +830,6 @@ test('the blank step\'s limiter soft-knee is the ONE declared width, not a fourt
     'the same width the editor\'s clear gesture already re-uses');
 });
 
-// THE DECISION, WRITTEN AS A TEST. Ben asked for 8 bar; `MODE_TABLE.pressure.seed` is 6.0.
-// They answer different questions and both are kept: the mode table's seed is what
-// `seedStepForPump` writes when an EXISTING step is switched into pressure and lands on an
-// absent or zero target (Slate's PUMP_SEED_PRESSURE), and moving it to 8 would re-seed
-// every flow-to-pressure switch anyone makes, for a request that was about the first step
-// of a NEW profile. If a later change collapses the two, this test says which one moved.
 test('the blank step\'s 8 bar is ITS OWN number — the mode switch still seeds 6', () => {
   assert.equal(MODE_TABLE.pressure.seed, 6.0, 'a mode SWITCH still seeds 6 bar');
   assert.equal(NEW_STEP.pressure, 8, 'a brand-new step is Ben\'s 8 bar');
@@ -1028,14 +859,6 @@ test('newStep() takes the caller\'s translated name, and defaults to none (D2)',
   assert.ok(NEW_STEP_NAME_KEY.length > 0, 'the word crosses the boundary as a key');
 });
 
-// B2 — the seed is asked whether it FITS the tables, never told what they say.
-//
-// ON EVERY MACHINE CLASS, AND ON A MACHINE WHOSE CLASS IS NOT KNOWN YET (27 Aug 2026).
-// The blank step is a PRESSURE step, so its limiter is `stepFlowLimit` — one of the two
-// rows whose ceiling now depends on the machine (20 mL/s on a Bengle, 8 on a DE1). A seed
-// that fitted only the wider band would be a blank step that arrives out of range on the
-// other machine, which is exactly the kind of drift asking the table rather than telling
-// it is meant to catch. The narrowest band it must fit is the DE1's, and 8 is its ceiling.
 test('every value in the blank step sits inside the range that governs it', () => {
   const cfg = getModeConfig(NEW_STEP.pump);
   const within = (value, range, what) => {
@@ -1056,8 +879,6 @@ test('every value in the blank step sits inside the range that governs it', () =
 });
 
 test('the blank step describes and graphs without throwing — it is a real step', () => {
-  // A7's shape: `describeModeParts` and `stepGraphValues` refuse a step whose mode they
-  // do not know, so a seed they accept is a seed every editor surface can render.
   assert.doesNotThrow(() => describeModeParts(newStep()));
   assert.doesNotThrow(() => stepGraphValues(newStep()));
   assert.equal(transitionSegments(newStep(), 0, false).active, NEW_STEP.transition,

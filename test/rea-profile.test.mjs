@@ -1,9 +1,4 @@
-// The one profile sanitizer, and the refusal philosophy (B9).
-//
-// The drift test is the one that matters: in the old skin the SAVE path and the ARM path
-// ran different sanitizers, and a stop-at-weight target survived one and not the other.
-// Here both bodies are built from the same function, so the test can assert the equality
-// directly — which is what "inexpressible rather than fixed" means in practice.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -89,18 +84,12 @@ describe('B9 — send it, let the server refuse', () => {
     }
 
     test('an exit type NEITHER model knows is sent, not silently dropped', () => {
-        // The old sanitizer nulled everything outside pressure/flow/power. That turns an
-        // unrecognised exit into a step with no exit at all — a silent behaviour change,
-        // which is the thing B9 exists to prevent. ReaPrime answers 400 naming the value
-        // (ExitType.values.byName throws ArgumentError; both handlers map it).
         const exit = { type: 'time', condition: 'over', value: 25 };
         const out = sanitizeProfileForRea(profile({ steps: [step({ exit })] }));
         assert.deepEqual(out.steps[0].exit, exit);
     });
 
     test('a power step keeps its limiter, including a zero one', () => {
-        // Nulling a zero limiter converts one typed refusal into another for no gain:
-        // ProfileStepPower.fromJson rejects a null limiter AND a zero-valued one.
         const limiter = { value: 0, range: 0.6 };
         const out = sanitizeProfileForRea(profile({ steps: [step({ pump: 'power', power: 40, limiter })] }));
         assert.deepEqual(out.steps[0].limiter, limiter);
@@ -266,9 +255,6 @@ describe('the two routes a profile load takes, read at the pin', () => {
     };
 
     test('POST /machine/profile arms and touches no document', () => {
-        /* `_profileHandler` calls `de1.setProfile` and returns. There is no
-         * WorkflowController write in it — which is why arming alone left the title,
-         * the rail and every recorded shot naming the profile before. */
         const source = dart('lib/src/services/webserver/de1handler.dart');
         const handler = source.slice(source.indexOf('Future<Response> _profileHandler'));
         const body = handler.slice(0, handler.indexOf('Future<Response> _shotSettingsHandler'));
@@ -293,12 +279,6 @@ describe('the two routes a profile load takes, read at the pin', () => {
 });
 
 describe('profileFailureSentence — what the server said, when it was not a refusal', () => {
-    /* ReaPrime's create path answers a CLIENT error with a 500: `_handleCreate` maps
-     * ArgumentError and FormatException to 400 and lets everything else fall to a generic
-     * catch, so a profile it cannot parse comes back "Internal server error" with the real
-     * reason in `message`. Measured against the bench machine 28 August 2026 — the two
-     * strings below are verbatim answers it gave. The editor showed "The save failed
-     * (500)." and dropped both. */
     test('takes the message out of a 500 body', () => {
         assert.equal(
             profileFailureSentence({

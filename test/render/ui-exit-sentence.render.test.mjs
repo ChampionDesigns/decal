@@ -1,45 +1,5 @@
 /**
- * ui-exit-sentence.render.test.mjs — Wave 4 item #41's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR — three things, and the first one is unusual.
- *
- *  1. **C8 IS A CLAIM ABOUT WHAT IS *NOT* THERE.** Slate builds five controls per
- *     exit chip and hides four (`profile-editor-v3.css:695-698`), keeping them
- *     "in the DOM as a serialization/test seam" (`profile_editor.js:1716-1729`).
- *     The register accepted C8 against that: build only the sentence and the ×,
- *     and re-provide the seam as a plain function (SCOPE.md:2330-2333). A missing
- *     hidden control set is invisible to a screenshot, so it is asserted here as
- *     a count and a visibility audit over the whole composed tree: the number of
- *     interactive nodes must be exactly `2 × occupied + offered`, and nothing may
- *     be `display:none`, `visibility:hidden` or `[hidden]`. That assertion is the
- *     literal inverse of the arrangement it replaces.
- *
- *  2. **APPENDIX 9 AND E16 PULL IN OPPOSITE DIRECTIONS, AND BOTH ARE HONOURED.**
- *     Appendix 9 wants "the exit band's stable three slots … so the band never
- *     changes height" (`LAYOUT_SPEC_DRAFT.md:1414`). E16 is the price Slate paid
- *     for that: a dead-exit note appended into a FIXED 280px track with no
- *     overflow anywhere, "so the excess spills symmetrically into the rows above
- *     and below" (`:1167`). Here the three slot rows are stable — same count,
- *     same height, with or without the note — and the note is a row of the same
- *     grid in a band with a floor and a stated overflow. Both are asserted, at
- *     both geometries and at a container narrow enough to force the note to wrap.
- *
- *  3. **THE ORACLE'S NUMBERS ARE DERIVED, NOT DECLARED.** 274 / 8 / 64 = 346 is
- *     what Slate measured at 1920×1200 and it is FROZEN — the tool's own banner
- *     says to quote it "as what Slate does, never as Decal's responsive
- *     target". The component declares `minmax(0, 1fr) auto` at one gap token, so
- *     the suite puts the stage at 346px and asserts the three numbers FALL OUT,
- *     then moves the stage and asserts they move.
- *
- * NO DIAL DRILL, DELIBERATELY. There is no selection in this component — an exit
- * slot is occupied or offered, never selected — so there is no selected state for
- * the four dials to paint. The honest test is the inverse, and it is here: nothing
- * in the tree carries a selection aria state or a `--ui-selected-*` of its own.
- * (Wave law: "No component in this wave may own a private 'selected' look.")
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -58,20 +18,12 @@ import { serializeExitSlots, exitBand } from '../../src/lib/exit-sentence.js';
 
 const MODULE = ['/src/components/ui-exit-sentence.js'];
 
-/* The oracle's first column of editor-steps:
- *   CITE .pe-chip-summary [i=161] "Pressurerises past4.5 bar"  274 x 64
- *   CITE .pe-chip-summary [i=167] "Volumereaches100 mL"        274 x 64
- *   CITE .pe-chip-x       [i=160] "×"                           64 x 64 at x=518 */
 const PRESSURE_STEP = { pump: 'flow', exit: { type: 'pressure', condition: 'over', value: 4.5 }, volume: 100 };
 
-/* The third column — the one carrying the flagged exit:
- *   CITE .pe-chip-summary  [i=193] "Flowfalls below0.0 mL/s"
- *   CITE .pe-exit-dead-note [i=198] 346 x 42 */
 const DEAD_STEP = { pump: 'pressure', exit: { type: 'flow', condition: 'under', value: 0 }, volume: 100 };
 
 const EMPTY_STEP = { pump: 'flow' };
 
-/** SLATE'S MEASURED BAND WIDTH: 274 + 8 + 64, and 346 from the add slot's own rect. */
 const SLATE_BAND_W = 346;
 const SLATE_SENTENCE_W = 274;
 const SLATE_CONTROL = 64;
@@ -86,12 +38,6 @@ const near = (got, want, what, tol = 0.6) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/**
- * Everything interactive or invisible in the composed tree under the host, in one
- * pass. This is the C8 audit: it walks THROUGH shadow boundaries, because the
- * remove button is #2's and the add-condition popover is #21's, and a hidden
- * control smuggled into either would be just as much a hidden control set.
- */
 const TREE_AUDIT = `(() => {
     const el = document.querySelector('ui-exit-sentence');
     const nodes = window.__h.deepAll(el.shadowRoot);
@@ -169,10 +115,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ===================================================================
-         * C8 — the hidden control set is gone, and that is checkable
-         * =================================================================== */
-
         describe('C8 — the visible sentence only', () => {
             test('the tree holds exactly 2 × occupied + offered controls, and nothing else',
                 () => mounted(async (page) => {
@@ -234,10 +176,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 })));
         });
 
-        /* ===================================================================
-         * APPENDIX 9 — the stable three slots
-         * =================================================================== */
-
         describe('Appendix 9 — three slots, occupied first, add-slots below', () => {
             for (const [name, step] of [['a threshold and a volume', PRESSURE_STEP], ['nothing set', EMPTY_STEP]]) {
                 test(`${name} still renders exactly three rows`, () => mounted(async (page) => {
@@ -268,15 +206,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const a = await page.box('ui-exit-sentence >>> #row-condition');
                 const b = await page.box('ui-exit-sentence >>> #row-volume');
                 near(b.top - a.bottom, SLATE_GAP, 'row gap');
-                /* CITE editor-steps .pe-chip-summary rects [236,868] and [236,940]:
-                 * pitch 72 = 64 + 8, the same gap the sentence-to-× uses. */
                 near(b.top - a.top, SLATE_CONTROL + SLATE_GAP, 'row pitch');
             }));
         });
-
-        /* ===================================================================
-         * THE ORACLE'S GEOMETRY, DERIVED
-         * =================================================================== */
 
         describe('the measured band, as a ratio', () => {
             test('at Slate\'s 346px the three numbers fall out: 274 + 8 + 64',
@@ -318,10 +250,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         'ergonomics is physical (tokens.css:185, density never multiplies it)');
                 }));
         });
-
-        /* ===================================================================
-         * E16 — the band cannot overflow, because it has no fixed track
-         * =================================================================== */
 
         describe('E16 cannot express — the dead-exit note', () => {
             test('the note renders, in the flow, under its own row', () => mounted(async (page) => {
@@ -384,10 +312,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(note, 'never fires — cannot fall below zero · ends on 100 mL');
                 }, DEAD_STEP));
         });
-
-        /* ===================================================================
-         * TOKEN DRILLS — consumed, not copied
-         * =================================================================== */
 
         describe('token drills', () => {
             test('--ui-key paints the sentence face', () => mounted((page) => assertTokenDrill(page, {
@@ -462,10 +386,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             })));
         });
 
-        /* ===================================================================
-         * NO SELECTION — the inverse of the dial drill
-         * =================================================================== */
-
         test('there is no selection here, and therefore no private selected look',
             () => mounted(async (page) => {
                 const a = JSON.parse(await page.eval(TREE_AUDIT));
@@ -482,10 +402,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(dials, [],
                     'this component redeclares a selection dial without having a selection');
             }));
-
-        /* ===================================================================
-         * FOCUS, UNCLIPPED  (bug L24's class)
-         * =================================================================== */
 
         describe('focus geometry', () => {
             test('the sentence ring is the token ring and nothing clips it',
@@ -504,10 +420,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await assertFocusUnclipped(page, 'ui-exit-sentence >>> #sentence-condition');
                 }));
         });
-
-        /* ===================================================================
-         * CONTAINER FLOOR AND STATED OVERFLOW  (spec §2.4)
-         * =================================================================== */
 
         describe('the band\'s floor and overflow', () => {
             test('squeezed, it scrolls and shows it — it never clips silently',
@@ -537,10 +449,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `against client ${m.clientHeight}`);
             }, DEAD_STEP));
         });
-
-        /* ===================================================================
-         * ARIA  (Appendix 15's contract; E14's half of it)
-         * =================================================================== */
 
         describe('aria — E14 cannot express', () => {
             test('the sentence keeps its visible words as its accessible name',
@@ -584,10 +492,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'table (B2). Bounds travel on the seam record, not on an element.');
             }));
         });
-
-        /* ===================================================================
-         * EVENTS AND REFUSAL
-         * =================================================================== */
 
         describe('events', () => {
             test('the sentence asks the SCREEN to edit, and carries the seam record with it',
@@ -651,10 +555,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(parseFloat(state.opacity) < 1, 'the base dial did not dim the host');
             }, PRESSURE_STEP, 'disabled'));
         });
-
-        /* ===================================================================
-         * THE GALLERY ENTRY IS THE SAME COMPONENT
-         * =================================================================== */
 
         test('every gallery state mounts and renders three rows', () => browser.withPage({ geometry }, async (page) => {
             for (const state of galleryEntry.states) {

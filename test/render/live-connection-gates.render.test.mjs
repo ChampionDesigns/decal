@@ -1,26 +1,5 @@
 /**
- * live-connection-gates.render.test.mjs — the cluster in a real engine, at Gate A's two.
- *
- * The derivations are proved without a browser in `test/live-connection-gates.test.mjs`;
- * what needs an engine is everything that is a BOX or a CASCADE:
- *
- *   B8  each connection state renders a different thing, and the picker is a real dialog
- *       whose choice reaches the devices link — measured, not asserted about a template;
- *   B9  the refusal banner appears on a mocked 400 carrying the server's own sentence;
- *   A3  the GHC strip is ABSENT while the capability is unknown or says no, and present
- *       when it says yes — read off the rendered tree, not off a property;
- *   L1  when it is present it is a GRID ROW: `position: static`, under the chart, and the
- *       chart is the box that gave it the space;
- *   L11 ONE dimming owner, proved by DRILLING the token: re-point `--ui-opacity-dim` and
- *       the dimmed row's computed opacity must follow it. An inline `opacity` anywhere in
- *       the chain pins the row and the drill does not land — which is bug L11 exactly,
- *       turned into a test that bites.
- *
- * THE DEVICES FRAMES ARE THE MOCK'S. `before` starts `tools/mock_rea.py` with a run script
- * that parks on `machinePicker`, reads the frames off a real WebSocket, and hands them to
- * the page. So the parked picture is drawn from a frame that came off a socket. The three
- * states no mock can script — a `connectionStatus.error`, a malformed frame, a source that
- * gave up — are built here, to `DevicesStateAggregator._buildSnapshot`'s shape.
+ * The cluster in a real engine, at Gate A's two.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -133,8 +112,6 @@ before(async () => {
     FRAMES.machinePicker = await firstDevicesFrame(parked.port);
     FRAMES.ready = await firstDevicesFrame(connected.port);
 
-    // The states the mock has no script for, built to the aggregator's own shape: it
-    // writes all five keys unconditionally, so these are frames and not fragments.
     const status = (over) => ({
         phase: 'idle', foundMachines: [], foundScales: [], pendingAmbiguity: null, error: null, ...over,
     });
@@ -153,18 +130,6 @@ before(async () => {
     };
     FRAMES.idle = { ...FRAMES.ready, devices: [], connectionStatus: status({ phase: 'idle' }) };
 
-    /* ── BEN'S OWN FRAME, 28 AUGUST 2026 ──────────────────────────────────────────
-     * Read live off his tablet's `/ws/v1/devices` while the machine was on USB with
-     * Bluetooth switched off, and `GET /api/v1/machine/state` was answering `idle` with
-     * live pressure. The device list is the mock's connected one; `connectionStatus` is
-     * his, verbatim, hours-old timestamp included.
-     *
-     * "for some reason now I cannot get rid of the 'could not connect' banner, it says
-     * bluetooth is off which it is but Bengle can connect over USB (which it is now) so
-     * doesn't need bluetooth turned on."
-     *
-     * Before the fix this drew surface="error", headline "Could not connect", role="alert",
-     * 88.8px tall — measured on the tablet, over a machine that was answering. */
     const ADAPTER_OFF = {
         kind: 'adapterOff', severity: 'error', timestamp: '2026-08-27T21:37:16.637241Z',
         message: 'Bluetooth is turned off.',
@@ -174,16 +139,10 @@ before(async () => {
         ...FRAMES.ready,
         connectionStatus: status({ phase: 'ready', error: ADAPTER_OFF }),
     };
-    /* THE SAME ADAPTER ERROR WITH NOTHING CONNECTED. Not a banner either — an adapter that
-     * is off is a scan problem at every phase — but not silence: the state has a headline
-     * of its own and the server's sentence goes under it. */
     FRAMES.idleAdapterOff = {
         ...FRAMES.ready, devices: [],
         connectionStatus: status({ phase: 'idle', error: ADAPTER_OFF }),
     };
-    /* THE MACHINE ACTUALLY WENT AWAY, at the phase that has not caught up yet: upstream
-     * emits `machineDisconnected` and moves no phase, so this is `ready` over an empty
-     * bench. It MUST still reach the banner — the fix must not silence it. */
     FRAMES.machineGone = {
         ...FRAMES.ready, devices: [],
         connectionStatus: status({
@@ -196,8 +155,6 @@ before(async () => {
             },
         }),
     };
-    // A frame that arrives and cannot be read: `connectionStatus` is not an object, which
-    // is `readConnectionStatus`'s null and therefore `readDevicesFrame`'s null.
     FRAMES.unreadable = { ...FRAMES.ready, connectionStatus: 'connected' };
 });
 
@@ -231,9 +188,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 remedy: text(root.querySelector('#remedy-text')),
                 hasChoose: !!root.querySelector('#choose'),
                 dialogOpen: !!root.querySelector('#picker[open]'),
-                /* role="alert" is an ASSERTIVE live region; role="status" is polite. The
-                 * component sets `alert` on itself unless the call site chose — so this is
-                 * read off the rendered element, which is the only place the answer is. */
                 bannerRole: banner ? banner.getAttribute('role') : null,
                 choices: [...root.querySelectorAll('#choices ui-button')].map((b) => b.textContent.trim()),
             };
@@ -245,8 +199,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return picture(page);
         };
 
-        /** The same frame, at a feed status other than LIVE — a value the store still holds
-         *  after its source went (`feed-store.js`'s deletion rule). */
         const showHeld = async (page, key, status) => {
             await page.evalFn((frame, feedStatus) => window.__live.pushDevices(frame, feedStatus),
                 FRAMES[key], status);
@@ -290,24 +242,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(quiet.surface, 'ready');
                 assert.equal(quiet.visible, false, 'the surface must collapse when there is nothing to say');
 
-                /* THE CLAIM IS ABOUT THE NOTICES, and it is measured against them since
-                 * parity surface 1 gave the stat cluster the heading §4.1 always
-                 * specified ("<stat-cluster>  auto  (heading + gauges)"). It used to read
-                 * `block.height === gauges.height`, which was the same claim while the
-                 * readings were the whole of the block; the block is now legitimately
-                 * taller than its gauges by the identity line, and what must still cost
-                 * nothing is the QUIET NOTICE — so the block is measured against the sum
-                 * of the rows that are not it. */
                 const gauges = await page.box(`${S} >>> .gauges`);
                 const block = await page.box(`${S} >>> .stats-block`);
-                /* MEASURED BY REMOVING IT rather than by summing the block's children.
-                 * The stat block gained a row GAP with parity 7-live-polish (Slate leaves
-                 * 21px between the profile name and the first readout's microcap —
-                 * ORACLE #profile-name [i=92] bottom 201 against the Time label [i=96]
-                 * top 222), and a sum of children counts no gaps, so the old spelling
-                 * charged the quiet notices for space the grid spends on its own rows.
-                 * The claim was always that a notice with nothing to say costs the column
-                 * NO HEIGHT; hiding it and re-measuring says exactly that. */
                 const withoutNotices = await page.evalFn(() => {
                     const root = window.__h.q('live-screen').shadowRoot;
                     const block = root.querySelector('.stats-block');
@@ -324,11 +260,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('a DEAD socket holding a ready frame does not render as connected', () => mounted(async (page) => {
-            /* The one wrong answer that is invisible. `ready` collapses the host to zero
-             * rows, so a surface that reads `ready` when the source has gone paints
-             * NOTHING and the screen looks connected. The store keeps the value across
-             * both transitions on purpose (feed-store.js's deletion rule), which is why
-             * the marker has to be read here. Wave 5.1, c-gates-chart-1. */
             const live = await show(page, 'ready');
             assert.equal(live.surface, 'ready');
             assert.equal(live.visible, false, 'the connected case must still cost nothing');
@@ -351,19 +282,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(back.surface, 'ready');
         }));
 
-        /* ── B8 · an error is not automatically "failed" (Ben, 28 August 2026) ── */
-
         test('a Bluetooth error cannot say "could not connect" about a machine that IS connected',
             () => mounted(async (page) => {
-                /* THE BUG, ON HIS FRAME, IN A REAL ENGINE. `ready` is the surface that
-                 * draws nothing, so the proof is the same shape as the dead-socket proof
-                 * above and pointing the other way: there the wrong answer HID a banner,
-                 * here the wrong answer SHOWED one. Both are measured as a box. */
-                /* THE PRECONDITION, ASSERTED RATHER THAN ASSUMED. The mock's own device
-                 * list has a machine connected over USB — `usb-2e8a-a-…`, the recording's
-                 * connected entry — which is what makes this frame Ben's situation and not
-                 * merely a phase that says `ready`. A test that silently lost the machine
-                 * would still pass on rule 1 alone and would stop proving rule 3. */
+
                 const connected = FRAMES.readyAdapterOff.devices
                     .filter((d) => d.type === 'machine' && d.state === 'connected');
                 assert.equal(connected.length, 1, 'the frame under test has no connected machine');
@@ -381,17 +302,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the adapter error is a note under the state, not a headline of its own',
             () => mounted(async (page) => {
-                /* WHERE THE INFORMATION WENT. With nothing connected there IS a banner —
-                 * the state has earned one — and the server's own two sentences print
-                 * under the state's own line rather than replacing it. Neither sentence is
-                 * invented and neither is thrown away. */
                 const idle = await show(page, 'idle');
                 const withAdapterOff = await show(page, 'idleAdapterOff');
 
-                /* `picture().headline` is the banner's WHOLE text — the strip's headline
-                 * plus whatever is slotted into `remedy` — so the state's own headline is
-                 * what is left when the remedy is taken off the end. Neither of these two
-                 * surfaces carries a button, so there is nothing else in there. */
                 const headlineOnly = (shot) =>
                     shot.headline.slice(0, shot.headline.length - shot.remedy.length).trim();
 
@@ -410,10 +323,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('a machine that really went away STILL reaches the banner', () => mounted(async (page) => {
-            /* THE MUTATION CHECK, RENDERED. `phase: ready` over an empty bench is the
-             * window upstream leaves open when a machine drops, and it is the one error
-             * that most needs the alarm. If the fix read the phase alone it would be
-             * silenced here — which is why it reads the device list too. */
             const gone = await show(page, 'machineGone');
             assert.equal(gone.surface, 'error', 'the machine went away and the screen said nothing');
             assert.ok(gone.visible, 'a lost machine drew no rows at all');
@@ -475,11 +384,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const parked = await show(page, 'machinePicker');
                 assert.equal(parked.surface, 'machinePicker');
 
-                /* The recorded list the mock serves holds two machines both called
-                 * "Bengle" (tools/rea-fixtures/api__v1__devices.json), one on a BLE MAC and
-                 * one on a USB path. Before wave 5.1 the row rendered `name ?? id`, so the
-                 * dialog offered two buttons reading the same word and the connect command
-                 * sent one of two ids the person could not tell apart. */
                 const ids = FRAMES.machinePicker.connectionStatus.foundMachines.map((d) => d.id);
                 assert.ok(ids.length >= 2, 'the mock no longer serves an ambiguous list');
                 assert.equal(new Set(FRAMES.machinePicker.connectionStatus.foundMachines
@@ -506,13 +410,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a name that already tells the rows apart is not padded with a MAC address', () =>
             mounted(async (page) => {
-                /* The disambiguator is for the rows that need it. Two machines a person
-                 * named themselves read as their names, and the id — which is a MAC or a
-                 * USB path — stays out of the way. The third line is the SERVER's
-                 * `available: false` ("known about, not visible right now"), rendered only
-                 * where the server set it: the socket's hand-built `foundMachines` entries
-                 * carry four keys and no `available` (tools/ws_frames.py:567), and nothing
-                 * on this screen fills that in or sniffs a transport out of an id. */
                 const status = FRAMES.machinePicker.connectionStatus;
                 const named = {
                     ...FRAMES.machinePicker,
@@ -550,11 +447,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the choice affordance FILLS the row the sheet says it fills', () =>
             mounted(async (page) => {
                 await show(page, 'machinePicker');
-                /* `.choices ui-button { display: block }` stretched the HOST and left the
-                 * pressable control shrink-wrapped to its label: 772px of row, a 105.89px
-                 * button at its left, at both Gate A geometries. Above the 48px floor, so
-                 * L22 stayed green and no suite saw it. The control is what a finger and a
-                 * focus ring land on, so the control is what gets measured. */
                 const rows = await page.evalFn(() => [...window.__h
                     .q('live-screen >>> live-connection').shadowRoot
                     .querySelectorAll('#choices ui-button')]
@@ -579,12 +471,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('an ordinary boot does not interrupt a screen reader four times', () =>
             mounted(async (page) => {
-                /* `<ui-alert-banner>` sets role="alert" on itself unless the call site
-                 * chose one (ui-alert-banner.js:366-372), and role="alert" is an assertive
-                 * live region. The call site set nothing, so every routine boot state —
-                 * waiting → scanning → connectingMachine → connectingScale → ready — cut
-                 * across whatever the reader was saying. The same screen's chart summary
-                 * already refuses exactly this (role=status, live-screen.js). */
                 const polite = ['scanning', 'connectingMachine', 'connectingScale', 'idle'];
                 for (const key of polite) {
                     const shot = await show(page, key);
@@ -604,7 +490,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(shot.bannerRole, 'alert',
                     `${key} is not a progress notice — it must interrupt`);
             }
-            /* A dead source is a fault whichever kind it is, and both are held frames. */
             assert.equal((await showHeld(page, 'ready', 'stale')).bannerRole, 'alert');
             assert.equal((await showHeld(page, 'ready', 'unavailable')).bannerRole, 'alert');
 
@@ -675,22 +560,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(after_.kind, null);
         }));
 
-        /* ── B9 · THE OTHER ENDING, WHICH USED TO SAY NOTHING AT ALL ─────── */
-
-        /**
-         * Ben, 27 August 2026, machine disconnected: "now I cannot seem to select a
-         * favorite, do I need a machine connected to pick one". The slot highlighted, it
-         * snapped back, Edit profile opened the profile from before, AND NOTHING WAS SAID
-         * ANYWHERE. `profileRefusal()` words a 400 with a problem body and nothing else,
-         * which is right — but a disconnected machine is a 500 (`withDe1` catches
-         * `DeviceNotConnectedException` at `de1handler.dart:608`), so the arm store
-         * published FAILED with a raw transport result and this surface read only the
-         * REFUSED half. Two endings, one voice.
-         *
-         * THE BODY BELOW IS THE ONE THE MACHINE ACTUALLY PRODUCES, not a hand-rolled
-         * failure: `jsonError({'error': e.toString(), 'st': ...})` over
-         * `DeviceNotConnectedException.toString()` (`errors.dart:22`).
-         */
         const NO_MACHINE = {
             ok: false,
             kind: 'http',
@@ -732,11 +601,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('with a machine connected the same failure reads as a retry, not an absence', () =>
             mounted(async (page) => {
-                /* THE SAME DERIVATION THE CONNECTION BAND USES, so the two cannot
-                 * disagree about whether there is a machine. A connected DE1 that will
-                 * not take the upload is a BLE fault, and ReaPrime retries that one itself
-                 * on a 3 s / 10 s / 30 s ladder (`workflow_device_sync.dart`), so saying
-                 * "no machine is connected" here would be false. */
                 await page.evalFn((frame) => window.__live.pushDevices(frame), FRAMES.ready);
                 await page.settle(3);
 
@@ -833,14 +697,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('espresso recedes the targets, leaves the STOP track alone, and writes no inline style', () =>
             mounted(async (page) => {
-                /* THE RESTING PICTURE IS NOT ALL-OPAQUE, and the difference matters. A
-                 * stepper whose limit row the table does not carry renders DISABLED, and
-                 * the base paints that with --ui-opacity-disabled (.38). That is a second
-                 * opacity on the same box - so the test is not "nothing is dim at rest",
-                 * it is "the dim owner's token is what changes, and only where the map
-                 * says". The two do not fight: an outer-tree rule (live-screen's) beats a
-                 * component's own :host rule whatever the specificity, so when both apply
-                 * the dim wins, deterministically and with no !important anywhere. */
                 const resting = await railTracks(page);
                 assert.ok(resting.length > 1, 'the rail has tracks to measure');
                 const dimToken = parseFloat(await page.evalFn(() => getComputedStyle(
@@ -861,20 +717,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 assert.ok(grouped.length > 0, 'no rail track carries a dim group');
 
-                /* THE PAINT IS THE SAME FOR EVERY GROUPED TRACK, AND THE INPUT IS NOT — F-038,
-                 * Ben 30 August 2026: "A defect — make them pressable."
-                 *
-                 * This loop read, for EVERY grouped track:
-                 *
-                 *     assert.equal(track.pointerEvents, 'none', `${track.row} still answers a tap`);
-                 *
-                 * and that line was the fault, pinned. Wave 3 measured all eight preset
-                 * cells resolving to <live-rail> during a live shot because the dim rule
-                 * takes pointer-events away with the opacity; nothing was disabled and
-                 * nothing said so. The two preset banks now carry `data-dim-keeps-input`
-                 * and keep the press. THE OPACITY HALF IS UNCHANGED for every track,
-                 * including theirs — a bank on a mode the machine is not using still reads
-                 * "not now", which was never the complaint. */
                 for (const track of grouped) {
                     assert.equal(parseFloat(track.opacity), dimToken,
                         `${track.row} is at ${track.opacity}, not the dim token - a second owner is painting it`);
@@ -942,17 +784,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /**
-         * THE OTHER HALF OF FAIL-VISIBLE. The map was total over the STATE vocabulary — an
-         * unknown name recedes nothing — and blind to the FEED, so a machine channel that
-         * went away holding `espresso` kept `dim="all"` with every dimmable track at the
-         * dim token and `pointer-events: none`. Nothing could lift it: a latched STALE is
-         * not undone by the clock and UNAVAILABLE is not either, so only a new frame could,
-         * and none was coming. After a socket blip mid-espresso the whole rail was receded
-         * AND inert for the rest of the session, with `<ui-stop-button>` the one exempt
-         * control still answering. Both dead statuses are checked, because the blip case is
-         * STALE and it is the one that was reported.
-         */
         test('a dead machine feed lifts the dim — the rail does not stay receded for ever', () =>
             mounted(async (page) => {
                 const dimToken = parseFloat(await page.evalFn(() => getComputedStyle(
@@ -984,9 +815,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             `${track.row} still refuses a tap behind a ${status} feed`);
                     }
 
-                    // WHAT MUST NOT CHANGE WITH IT: the state name still travels, so the
-                    // header keeps reporting (as "No reading") and the STOP target stays.
-                    // A feed that stopped talking is not a machine that stopped pulling.
                     assert.equal(
                         await page.evalFn(() => window.__h.q('live-screen').getAttribute('machine-state')),
                         'espresso',
@@ -1024,37 +852,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ===================================================================
-         * THE DYE2 HANDOFF — the listener the component never had
-         *
-         * Ben, 27 August 2026: "Have the button open the bean picker page for now, I need
-         * to do more work on this though."
-         *
-         * WHAT WAS WRONG BEFORE. `ui-rating-control` has published `dye-handoff` since it
-         * was built, its header documents the event, and its own render suite exercises the
-         * button — and NOTHING in `src/` listened. The Live screen never set `handoff`
-         * either, so the button was unreachable as well as unheard: a finished half with no
-         * other half, in the exact place the component's header had already warned about it
-         * ("a handoff that leads nowhere is then a fact the screen knows, not a silent
-         * no-op in a leaf").
-         *
-         * IT IS TESTED HERE AND NOT IN THE BANDS SUITE, and the reason is worth writing
-         * down because it is the whole shape of the fix. The bands suite mounts
-         * `<live-screen>` BARE and sets properties by hand; `dye2` is not a property a test
-         * may set, because the WIRING owns it — the moment a boot is attached,
-         * `hostUpdate` computes it from the plugin listing and overwrites anything a test
-         * put there. So the only honest way to see the button is to give the screen a real
-         * boot with a real plugins store over a recorded `GET /api/v1/plugins`, which is
-         * exactly what this fixture is. The path under test is therefore the whole path:
-         * listing -> store -> gate -> property -> button -> pageUrl -> navigation.
-         *
-         * THE GATE IS THE PLUGIN LISTING AND NOT A STORED PREFERENCE, which is a decision
-         * rather than a detail. `dye2Enabled` was the obvious gate and it is retired: its
-         * only writer — the DYE2 settings leaf — was deleted on Ben's own call on 26 August
-         * ("delete the DYE2 leaf and move what it does into Plugins"), so a gate on it
-         * would have been a gate on a value nothing can set, and the button would have been
-         * unreachable on every machine for ever.
-         * =================================================================== */
         describe('the DYE2 handoff', () => {
             const HANDOFF = 'live-screen >>> ui-rating-control >>> #handoff';
 
@@ -1069,13 +866,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('an unread listing offers nothing, and a loaded DYE2 offers the button', () =>
                 mounted(async (page) => {
-                    /* THE FIXTURE STARTS THE READ ON MOUNT, so by the time `mounted` has
-                     * settled the button is already there. What can still be asserted is
-                     * the OTHER side, which is the one that matters: a listing whose DYE2
-                     * is not loaded must draw nothing. A button offered before a
-                     * destination is established is the dead-end control the old skin
-                     * measured on the bench — "button visible, window.openDye2ForShot
-                     * undefined", where every tap did nothing at all. */
                     await withListing(page);
                     assert.equal(await page.exists(HANDOFF), true,
                         'a machine whose listing reports DYE2 loaded is offered the button');
@@ -1085,11 +875,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(await page.exists(HANDOFF), false,
                         'DYE2 present but not running serves a page that would not answer');
 
-                    /* AND `autoLoad` IS NOT THE ANSWER. The Plugins page's SWITCH reads it
-                     * — the persistent value, so a control does not flicker off while a
-                     * plugin restarts — and this is a LINK to a page that plugin serves, so
-                     * the question is "will that URL answer", which is `loaded`. The
-                     * fixture leaves autoLoad true above; the button is still gone. */
                     const autoLoad = await page.evalFn(() => window.__live.pluginAutoLoad('dye2.reaplugin'));
                     assert.equal(autoLoad, true,
                         'the discriminator under test is `loaded`, and this proves the two really differ here');
@@ -1118,29 +903,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(got.opens.length, 1,
                         'the press must reach a navigation, or it is the old silent no-op');
                     const [url, target, features] = got.opens[0];
-                    /* THE ADDRESS IS THE ROUTE TABLE'S, THROUGH `pageUrl`. The screen may
-                     * not spell a path — it may not even import a store — so the two halves
-                     * come from `src/lib/plugin-pages.js` and the URL is composed by the one
-                     * function in the skin that turns a plugin and an endpoint into an
-                     * address. */
                     assert.match(url, /\/api\/v1\/plugins\/dye2\.reaplugin\/bean-picker$/,
                         `the handoff went to ${url}`);
                     assert.equal(target, '_blank');
                     assert.equal(features, 'noopener',
                         'a same-window navigation strands a kiosk with no back control');
 
-                    /* THE WORD IS THE DESTINATION'S, NOT SLATE'S. The component's built-in
-                     * label is Slate's "Full notes", honest there because that one button
-                     * was the route to a shot's notes AND to DYE. Here "All notes" sits
-                     * directly above it and goes somewhere else entirely.
-                     *
-                     * F-028, BEN, 30 AUGUST 2026: "Relabel to Beans." This line read
-                     * `assert.equal(got.label, 'DYE2')` until then and it pinned the
-                     * superseded wording — the vendor's product name rather than the thing
-                     * the page does. THE ASSERTION ABOVE IS THE OTHER HALF OF THE
-                     * DECISION and is deliberately untouched: the same press still opens
-                     * the same `bean-picker` endpoint in the same new context, so this one
-                     * test now says "the word changed, the destination did not". */
                     assert.equal(got.label, 'Beans');
                     const notes = await page.evalFn(() => window.__h.q('live-screen').shadowRoot
                         .querySelector('ui-rating-control').shadowRoot
@@ -1149,12 +917,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         'two buttons a hand\'s width apart must not read the same');
                 }));
 
-            /* NOTHING IS CARRIED, AND THAT IS THE "FOR NOW". The component publishes the
-             * shot id and the screen ignores it, because no DYE2 endpoint at the pin
-             * documents a way to receive one. The old skin's answer was
-             * `window.openDye2ForShot(shotId)` — a global the audit measured as undefined
-             * on the bench, so every tap did nothing. An honest button that opens the right
-             * page with no context beats one that pretends to carry some. */
             test('the shot id is not smuggled into the URL, and no global is installed', () =>
                 mounted(async (page) => {
                     await withListing(page);

@@ -1,51 +1,5 @@
 /**
- * dialog-body-integration.render.test.mjs — wave 5.2, item `dialog-body-integration`.
- *
- * "Every dialog body mounted inside #18 — the contract proven across the full set."
- *
- * WHY THIS FILE EXISTS, in the row's own words: "O6 is this phase's entire reason to
- * exist — the old app accumulated seven dialog implementations. Each body is the
- * CONTENT of a #18 instance, never its own modal machinery."
- *
- *   O6  "No modal component. Seven hand-rolled dialogs, four hand-rolled button
- *        implementations, three focus treatments, eight scrim colours, six blur radii,
- *        no z-index scale, no motion tokens, no menu/list-item/popover/toast
- *        component."   (LAYOUT_SPEC_DRAFT.md §7.7, `layout/overlays.md` §2.3, C5)
- *
- * WHAT IS PROVEN HERE AND NOWHERE ELSE. `ui-dialog.render.test.mjs` proves the shell
- * once, on its own fixtures. Each body's own suite proves the body. Neither proves the
- * COMPOSITION, and the composition is where seven implementations came from: a body
- * that needs one thing the shell does not give grows its own scrim, and then there are
- * two. So this suite mounts the five bodies that EXIST (SCOPE Part 4 Wave 4 'Dialog
- * bodies': #19 confirm, #20 sheet, #53 numpad, #54 time picker face, #55 notes editor
- * host) inside a real #18 and asks each of them the same eight questions, at both Gate
- * A geometries. The table is the point: one loop, five bodies, no per-body exemption.
- *
- * TWO COMPOSITION FAMILIES, and the table covers both because they fail differently:
- *   HOSTED   #19 and #53 own a <ui-dialog> in their own shadow root and slot a
- *            `<div slot="body">` into it (`ui-confirm-dialog.js:503-522`,
- *            `ui-numeric-keypad.js:857-884`). Their `show()/hide()/requestClose()`
- *            forward to #18 (`:365-385`, `:617-634`). The risk here is a second
- *            machinery growing INSIDE the wrapper.
- *   SLOTTED  #20, #54 and #55 are placed by the caller as `<x slot="body">` inside the
- *            screen's own <ui-dialog> (the shape their gallery entries use). The risk
- *            here is the shell's trap or its scroll region not reaching across the
- *            slot boundary into another shadow tree.
- *
- * THE TWO BODIES THAT WERE ABSENT LANDED IN WAVE 5.5, AS ROWS OF THIS TABLE. The
- * exit-condition dialog and the lever dialog are named in LAYOUT_SPEC_DRAFT.md §4.6
- * (line 685 "dialog (exit condition, lever)", :795-796) as bodies the ONE shell must
- * eventually cover, and neither was ever numbered by the 57-component inventory — which
- * is why neither is a COMPONENT: both are screen-level compositions in
- * `src/screens/editor-exit-dialog.js` and `src/screens/editor-lever-dialog.js`, each
- * hosting a #18 exactly as #19 and #53 do, and owning
- * no modality of their own. Per Part 10 §12's w5p2 row ("this phase INTEGRATES AND
- * PROVES — it does not construct") wave 5.2 deferred them to the phase that owns the
- * profile editor; wf-w5p5-editor is that phase. They are added HERE rather than in a
- * suite of their own, because a second suite is how a body grows a second contract.
- *
- * ENGINE TRUTH ONLY (CONVENTIONS §10). Every claim below is a computed style, a box, a
- * real CDP key press or a real hit-tested click. Nothing reads source text.
+ *.2, item dialog-body-integration.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -55,16 +9,8 @@ import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
 import { limitsFor } from '../../src/lib/machine-limits.js';
 import { assertScrollFloor, pressBackdrop } from '../harness/assertions.js';
 
-/* The port's own table, built the way a screen builds it — `limitsFor` is what the
- * capabilities store calls, so the ONE table is the one this file imported. #53 is the
- * only body that needs priming; the other four render from attributes alone. */
 const BENGLE = limitsFor('bengle');
 
-/**
- * The page every body is mounted on. Two things outside the dialog and both load
- * bearing: `#invoker` is what the caret must come back to, and `#outside` is the
- * background control `inert` has to refuse and then give back.
- */
 const page = (subject) => `
 <div id="page" style="padding: 40px">
   <ui-button id="invoker">Open</ui-button>
@@ -90,15 +36,6 @@ const WIRE = `(() => {
 const DIALOG_MODULE = '/src/components/ui-dialog.js';
 const BUTTON_MODULE = '/src/components/ui-button.js';
 
-/* =============================================================================
- * THE FIVE BODIES THAT EXIST
- *
- * `shell` is the path to the <ui-dialog> ELEMENT — the difference between the two
- * families and the only thing in the table that varies structurally. `content` is the
- * element that must land in #18's body cell. `bodyFocusables` says whether the body
- * itself contributes to the trap: #19's body is a question and a detail paragraph, so
- * it contributes none, and asserting otherwise would be asserting a fiction.
- * =========================================================================== */
 const BODIES = [
     {
         id: '#19 ui-confirm-dialog',
@@ -180,11 +117,6 @@ const BODIES = [
         content: '#subject ui-notes-editor',
         bodyFocusables: true,
         modules: [DIALOG_MODULE, '/src/components/ui-notes-editor.js', BUTTON_MODULE],
-        /* `guard-unsaved` is deliberately OFF. It is #55's documented use of #18's
-         * cancellable `close-request` (`ui-notes-editor.js:925-948`) and it would make
-         * Escape a no-op — the right behaviour for a dirty editor, and the wrong
-         * fixture for proving that Escape reaches the shell at all. Its own suite owns
-         * the guarded case. */
         markup: page(`
   <ui-dialog id="subject" heading="Notes">
     <ui-notes-editor slot="body" label="Notes"
@@ -193,18 +125,6 @@ const BODIES = [
     <ui-button slot="actions" variant="primary">Save</ui-button>
   </ui-dialog>`),
     },
-    /* =====================================================================
-     * WAVE 5.5's TWO. Both are HOSTED: each file renders a <ui-dialog> in its
-     * own shadow root and forwards show/hide/requestClose to it, so the risk this table
-     * watches for — a second machinery growing inside the wrapper — is the same risk,
-     * asked the same way.
-     *
-     * BOTH MUST BE PRIMED, and for the same reason #53 must: the ONE ranges door (B2,
-     * `src/lib/editor-ranges.js`) is the only route to a bound, and a dialog without it
-     * renders its controls disabled with the door's own refusal on them. Priming here
-     * builds the door the way a screen does — `r2MachineLimits()` behind the R2 door —
-     * so this suite proves the contract on the armed body.
-     * =================================================================== */
     {
         id: '#exit editor-exit-dialog',
         family: 'hosted',
@@ -301,10 +221,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     );
                 };
 
-                /* =========================================================
-                 * 1. O6 — ONE DIALOG IMPLEMENTATION, COUNTED
-                 * ======================================================= */
-
                 test('exactly one native <dialog> in the composed tree, and the body owns none',
                     () => mounted(async (p) => {
                         await open(p);
@@ -336,9 +252,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             'O6: six blur radii become one',
                         );
 
-                        /* §4.6 "Backdrop, not a canvas blur": three sheets blur
-                         * #scaled-content from the outside today. Nothing in the
-                         * composed tree may carry a filter of its own. */
                         const filters = await p.eval(`(() => {
                             const out = [];
                             for (const el of window.__h.deepAll()) {
@@ -353,10 +266,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             '§4.6: the ::backdrop reaches the page directly — nothing blurs a wrapper');
                     }));
 
-                /* =========================================================
-                 * 2. THE §4.6 CONTRACT BLOCK, MEASURED THROUGH THIS BODY
-                 * ======================================================= */
-
                 test('the contract block holds: bounded card, three tracks, the body the only 1fr',
                     () => mounted(async (p) => {
                         await open(p);
@@ -367,14 +276,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         const style = await p.computed(NATIVE, ['display', 'grid-template-rows']);
                         assert.equal(style.display, 'grid');
 
-                        /* THE ROW COUNT IS THE CELL COUNT, and that is deliberate:
-                         * "a confirm dialog with no header would otherwise keep an
-                         * empty 0px track AND the seam gap above it, which draws a
-                         * hairline against nothing at the top of the card"
-                         * (ui-dialog.js:431-436, the three degenerate variants at
-                         * :419/:438/:442). #19 supplies `label` rather than `heading`
-                         * and so has two cells; asserting a flat three here would be
-                         * asserting the bug the variants exist to avoid. */
                         const headDisplay = await p.prop(HEAD, 'display');
                         const actsDisplay = await p.prop(ACTIONS, 'display');
                         const cells = ['body']
@@ -387,9 +288,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                         const card = await p.box(NATIVE);
                         const cell = await p.box(CELL);
-                        /* The cells that exist, in grid order, each one seam below the
-                         * last, the first flush with the top and the last with the
-                         * bottom — the seam IS the divider (CONVENTIONS §13). */
                         const ordered = [];
                         if (headDisplay !== 'none') ordered.push(['header', await p.box(HEAD)]);
                         ordered.push(['body', cell]);
@@ -423,12 +321,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.equal(slot, 'body',
                             '§4.6: "header / body / actions slots" — the body arrives through the body slot');
 
-                        /* Contained on three sides. NOT the fourth: a body taller than
-                         * the cell is the scroll region doing its job, so a bottom
-                         * check here would fail on exactly the case §4.6 made
-                         * mandatory. What must never happen is content starting above
-                         * the cell or reaching outside it inline — that is a box
-                         * escaping the card, which is what a hand-rolled overlay does. */
                         const cell = await p.box(CELL);
                         const content = await p.box(body.content);
                         assert.ok(content.top >= cell.top - 0.51,
@@ -444,9 +336,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         const actsBefore = await p.box(ACTIONS);
                         const seam = parseFloat(await p.resolveValue('var(--ui-seam)', 'width'));
 
-                        /* Squeeze to "everything that does not surrender, plus 96px of
-                         * body" so the assertion is never vacuous and never squeezes a
-                         * body past its own --ui-control-h floor. */
                         const cap = `${Math.round(headBefore.height + actsBefore.height + 2 * seam + 96)}px`;
                         await assertScrollFloor(p, {
                             selector: CELL,
@@ -465,12 +354,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             '§2.4: the last thing to go is the way out of the dialog');
                     }));
 
-                /* =========================================================
-                 * 3. REAL MODALITY, PER BODY — H9/O8's four halves
-                 * "Today every overlay claims aria-modal=true and none isolates
-                 *  anything." Trap, restore, Escape, inert — once per body.
-                 * ======================================================= */
-
                 test('the trap holds: every tabbable is inside the card, and Tab wraps',
                     () => mounted(async (p) => {
                         await open(p);
@@ -479,18 +362,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.ok(count >= 2,
                             `the trap needs something to cycle through; ${body.id} offered ${count}`);
 
-                        /* CONTAINMENT IS A TREE QUESTION, NOT A RECT ONE — measured,
-                         * and the measurement is #55's. CodeMirror's real focusable is
-                         * "a 3px-wide hidden textarea parked at the caret"
-                         * (ui-notes-editor.js:549-553) and it parks OUTSIDE the card's
-                         * rect while unfocused. It is nonetheless the editor's input
-                         * and belongs in the trap, so the honest assertion is that
-                         * every trapped control belongs to THIS <ui-dialog> — reached by
-                         * walking parentElement and then hopping the shadow host, which
-                         * is the same walk #18's own #applyInert() makes (:955-991) —
-                         * and that none of them is on the page. The actions cluster
-                         * lives in the dialog's LIGHT tree, so the host element, not
-                         * the native <dialog> in its shadow, is the honest root. */
                         const outside = await p.eval(`(() => {
                             const d = window.__h.need(${JSON.stringify(body.shell)});
                             const inside = (el) => {
@@ -553,19 +424,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         }));
                 }
 
-                /* SPLIT FROM ONE TEST — finding c-modality-2, the same defect as
-                 * c-modality-1 and re-measured per body rather than inherited. The old
-                 * test clicked `#outside`, pressed Escape and read `inert` back. The
-                 * click could not fail (the ::backdrop covers the viewport, so the
-                 * handler does not run whether or not the page is marked — measured
-                 * with `inert` forced false on all five bodies at both geometries), and
-                 * where it landed clear of the card it was itself the close: measured
-                 * straight after the click, before any Escape, `{open: false, inert:
-                 * false}` for all five bodies at bench and for #19 at the floor. In the
-                 * other four floor cases the card covers the point and the click closed
-                 * nothing — so one test proved two different things depending on the
-                 * card's height. Each half now names its own cause. */
-
                 test('the page is inert while this body is open, and the MARK is what refuses the caret',
                     () => mounted(async (p) => {
                         await open(p);
@@ -581,14 +439,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         })()`);
                         assert.equal(after, before, 'a focus() on a background control does nothing');
 
-                        /* THE FALSIFICATION, RUN — and it does not falsify. Take the
-                         * mark off and repeat the call: the caret still stays inside
-                         * the card, for all five bodies at both geometries, because a
-                         * native modal <dialog> already blocks the rest of the document
-                         * on its own account. The component's walk and the platform's
-                         * modal blocking cover `#outside` together, so neither can be
-                         * measured by removing the other, and the walk's own falsifiable
-                         * half is its RELEASE — asserted by the two close tests. */
                         const unmarked = await p.eval(`(() => {
                             const o = document.getElementById('outside');
                             o.inert = false;
@@ -643,8 +493,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.doesNotMatch(await activePath(p), /button#invoker/,
                             'opening moves the caret into the dialog');
 
-                        /* Synchronously: read the caret in the same turn as hide(),
-                         * before any microtask could put it back. Wave 3's cmodality-1. */
                         const seen = await p.eval(`(() => {
                             document.getElementById('subject').hide('api');
                             return window.__h.anchorPath(window.__h.deepActiveElement());
@@ -677,10 +525,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.deepEqual(await escapes(p), [],
                             'numpad-modal.js:260-268 — the shell owns the key before anything else acts on it');
 
-                        /* The ESCAPE path's own release. The old shape read this back
-                         * after a click that had, on six of the ten body × geometry
-                         * cases, already dismissed the dialog — so the backdrop path
-                         * was measured twice and this one never (finding c-modality-2). */
                         assert.equal(
                             await p.evalFn(() => document.getElementById('outside').inert === true), false,
                             'the marks come off on the Escape path too, not only on the backdrop one',

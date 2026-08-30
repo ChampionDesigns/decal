@@ -1,66 +1,5 @@
 /**
- * ui-section-header.render.test.mjs — Gate A for component #27 (wave 2, item #27).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor — asserting only on computed style, box geometry and behaviour,
- * never on source text (Part 8 §2).
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. token drill — ten tokens, each retargeted on :root with the rendered value
- *      asserted to move, to land on the token, and to move back. This is also bug
- *      L12's class: a component holding a private copy of the public palette would
- *      paint identically and NOT move.
- *   2. THE WAVE-2 LAW, inverted. This component has no selection state, so the dial
- *      drill is run as a NEGATIVE: all four dials are retargeted and every rendered
- *      value must stay put, and every selection spelling — [selected], .is-selected
- *      (set INSIDE the shadow root, which is the only place it could hide),
- *      aria-pressed / -selected / -checked / -current — must paint nothing. Wave 2 is
- *      where a seventh selection treatment becomes inexpressible (spec §3.9, Part 10
- *      §12); a caption participates by being provably inert.
- *   3. focus geometry from --ui-focus-*, unclipped, in both offsets (bug L24's class).
- *      The band takes no focus itself — the focusable is whatever the consumer slots
- *      into `trail`, which is exactly the ::slotted hole review finding cross-3
- *      measured.
- *   4. container behaviour at both geometries: the band is one line at every width,
- *      the caption ellipsises rather than escaping, the count never gives up a pixel,
- *      and the band cannot be compressed below --ui-section-head-h.
- *   5. THE STICK, which is the whole point of the component: it stays at the top of
- *      its scrollport while its group scrolls under it, it is opaque, and it wins the
- *      stack against the rows (elementFromPoint, not a screenshot).
- *   6. bugs asserted dead. ROW #27 CITES NONE, and that is a checked fact: grepping
- *      LAYOUT_SPEC_DRAFT.md §7 for "section header" / "sticky" returns the
- *      --ui-z-sticky token row (:425), two component lists (:614, :627) and the §5.2
- *      inventory row (:898) — no bug. Four defect CLASSES are still pinned, because
- *      this component is shaped exactly like their victims:
- *        · CONVENTIONS §13 — "a divider is a gap, not a border"; Slate ships the
- *          anti-pattern 55 times and the oracle records one of them on this very
- *          element ([i=31] border-top-width 1px). This component must never grow #56.
- *        · the sticky-transparency class — a caption with a see-through ground is
- *          unreadable one row into a scroll. Slate's own fix is quoted in the source.
- *        · P8's class — a sheet from OUTSIDE reaching in and flattening the paint.
- *        · L12's class — a private palette shadowing the public one (the drills).
- *   7. aria. Row #27 cites no Appendix 15 rule and that is correct — Appendix 15 is
- *      the aria-*-driven STATE selector contract and this component has no state a
- *      user can change. What is asserted is the contract it does define: a real
- *      heading, a movable level, the count as a SIBLING of the heading so the
- *      accessible name is the caption alone, and text-transform as paint.
- *   8. hit-area floor: NOT cited by the row and deliberately not consumed. The band
- *      clears --ui-hit-min anyway at 60px, and it accepts no press — asserted, with
- *      the reason.
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable, because
- * "measured from the oracle" should be checkable rather than claimed. Every literal
- * carries its CITE line. The six DEPARTURES are asserted AS departures, with both
- * numbers named, so a silent drift back to Slate's value is a red test too.
- *
- * ONE CLASS THIS SUITE HAD TO BE TAUGHT (fix-phase finding c2-1): every value here was
- * read one element at a time, so sixty green tests said nothing about whether the two
- * elements were on the same line. They were not — the <h2> caption carried the UA
- * margin-block that `.ui-microcap` deliberately does not zero (TYPE_ROLES.md rule 5),
- * and sat 12.44px above the count in a band whose own quoted reason is that the labels
- * are bottom-anchored. The two DEPARTURE 6 tests below assert the RELATIONSHIP, against
- * the oracle's own rects, and are the shape to copy the next time a component's reason
- * is about two boxes rather than one.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -113,23 +52,6 @@ const MARKUP = `
 </div>
 `;
 
-/* The oracle's own numbers, named once so the code that asserts them is readable.
- *   CITE profile-selector .slate-section-header [i=14] background-color: dark
- *        rgb(14, 19, 23) / light rgb(242, 243, 243)  <-  slate-shell.css
- *        `#subpage-host #profile-list [data-profile-section]`  authored
- *        `(NOT CAPTURED — set via a CSS shorthand)`  !important=no  (token-driven)
- *   CITE profile-selector .slate-section-header [i=14] height = 60px, min-height = 60px
- *   CITE profile-selector .slate-section-header [i=14] padding-left = 24px, gap = 12px
- *   CITE profile-selector .slate-section-header [i=14] border-top-width = 0px,
- *        box-shadow = none, opacity = 1
- *   CITE profile-selector .slate-section-header [i=31] border-top-width = 1px,
- *        border-top-color: dark rgb(58, 72, 82) / light rgb(203, 208, 211)
- *   CITE profile-selector .slate-microcap [i=16] color: dark rgb(148, 161, 169)
- *        / light rgb(90, 101, 108)  <-  slate-components.css `.slate-microcap`
- *        authored `var(--slate-muted)`  !important=yes  (token-driven)
- *   CITE profile-selector .slate-microcap [i=16] font-size = 15px, font-weight = 600,
- *        letter-spacing = 1.8px, text-transform = uppercase, height = 18px
- */
 const ORACLE = {
     dark: { ground: 'rgb(14, 19, 23)', ink: 'rgb(148, 161, 169)' },
     light: { ground: 'rgb(242, 243, 243)', ink: 'rgb(90, 101, 108)' },
@@ -177,11 +99,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 1. tokens are consumed, not copied ----------------------------- */
-
         test('drill: --ui-section-head-h is the band height, on the HOST', () => mounted(async (page) => {
-            // The host is the sticky box, so the height has to be the host's or the
-            // stuck band would be a different size from the one in flow.
             await assertTokenDrill(page, {
                 token: '--ui-section-head-h',
                 value: '37px',
@@ -198,9 +116,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-fascia is the ground (L12\'s class)', () => mounted(async (page) => {
-            // A component carrying its own copy of the palette would paint the same
-            // colour and NOT move — which is bug L12 exactly (Live re-declares the
-            // public palette three times under private names).
             await assertTokenDrill(page, {
                 token: '--ui-fascia',
                 value: DRILL_COLOUR,
@@ -231,9 +146,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-z-sticky is the layer', () => mounted(async (page) => {
-            // DEPARTURE 2's mechanism. z-index is outside the corpus's 18-property
-            // surface, so the spec settles it (LAYOUT_SPEC_DRAFT.md:425) and the value
-            // is read from the token rather than written as Slate's literal 2.
             await assertTokenDrill(page, {
                 token: '--ui-z-sticky',
                 value: '37',
@@ -244,11 +156,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: the type is the SHARED role — --ui-muted, --ui-text-sm, --ui-weight-semibold, --ui-tracking-cap', () => mounted(async (page) => {
-            // Four tokens, drilled on BOTH the caption and the count, because a
-            // per-element literal would pass one and fail the other. This is what
-            // "the count has no second ink to drift" means as a rendered fact:
-            // Slate declared .slate-section-count { color: var(--slate-muted) } a
-            // second time; here the role carries it once.
             for (const part of ['#caption', '#count']) {
                 await assertTokenDrill(page, {
                     token: '--ui-muted',
@@ -276,8 +183,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }
         }));
-
-        /* -- the measured starting values, both themes ---------------------- */
 
         test('the resting paint is the oracle\'s measured values, in both themes', () => mounted(async (page) => {
             for (const theme of ['dark', 'light']) {
@@ -335,19 +240,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('DEPARTURE 1 IS CLOSED: the microcap weight and tracking are both Slate\'s', () => mounted(async (page) => {
             const type = await page.computed('#hdr-plain >>> #caption', ['font-weight', 'letter-spacing']);
 
-            /* THE WEIGHT HALF WENT AT PARITY SURFACE 1, for the same reason the tracking
-             * half went at surface 0: LAYOUT_SPEC_DRAFT §3.5's three-weight line cites
-             * slate-tokens.css:148-153, and those lines declare four weights including
-             * --slate-weight-semibold: 600. The corpus renders 600 on 496 elements. */
             assert.equal(type['font-weight'], ORACLE.slateSemibold,
                 'Slate measured 600 and the microcap role now renders it');
             assert.equal(type['font-weight'], await page.resolveToken('--ui-weight-semibold', 'font-weight'),
                 'so a microcap here is --ui-weight-semibold (600)');
 
-            /* THE TRACKING HALF OF THIS DEPARTURE IS GONE — parity surface 0. It rested
-             * on LAYOUT_SPEC_DRAFT §3.5, which writes ".04em" while citing the
-             * slate-tokens.css lines that declare .12em, so its own citation refutes it.
-             * Slate's measured 1.8px stands and the token now carries it. */
             assert.equal(type['letter-spacing'], ORACLE.slateTracking,
                 'Slate measured 1.8px (.12em at 15px) and --ui-tracking-cap is now .12em');
             assert.equal(Math.round(parseFloat(type['letter-spacing']) * 100) / 100, 1.8,
@@ -363,11 +260,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('DEPARTURE 3: no border on ANY header, first or later (CONVENTIONS §13)', () => mounted(async (page) => {
-            // The oracle records 0px on the FIRST header and 1px --ui-line on the
-            // SECOND, because the declaration is the LIST's `> * + *` rule
-            // (slate-shell.css:270-273) and not the header's. A component that painted
-            // its own top border would be the 56th copy of the anti-pattern AND wrong
-            // on the first header of every list.
             for (const id of ['hdr-a', 'hdr-b']) {
                 const edges = await page.computed(`#${id} >>> #band`,
                     ['border-top-width', 'border-bottom-width', 'border-left-width', 'border-right-width']);
@@ -386,36 +278,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('DEPARTURE 6: the caption is a heading, and the box a heading brings is zeroed', () => mounted(async (page) => {
-            // Slate's caption is a SPAN (profile_selector.js:743-753 builds the band as
-            // exactly two microcap spans). This one is an <h2> — TYPE_ROLES.md rule 2,
-            // "a heading is structure, and a screen reader reads <h2>, not .ui-heading".
-            // A UA <h2> is a block with margin-block: 0.83em, and .ui-microcap is an
-            // inline modifier that touches no box property BY DECISION (TYPE_ROLES.md
-            // rule 5: "`.ui-numeric` and `.ui-microcap` are inline modifiers and touch
-            // no box property"), so the role does NOT clean up after the swap — the
-            // component does. Measured before the reset existed: 12.45px top and bottom.
             for (const id of ['hdr-a', 'hdr-plain', 'hdr-narrow', 'hdr-nocount']) {
                 const m = await page.computed(`#${id} >>> #caption`, ['margin-top', 'margin-bottom']);
                 assert.deepEqual(m, { 'margin-top': '0px', 'margin-bottom': '0px' },
                     `${id}: the <h2> kept its UA margin — the swap from Slate's span imports `
                     + '12.45px at the role\'s 15px, and align-items: flex-end aligns the MARGIN box');
             }
-            // The role is still innocent: the same class on a SPAN carries no box, which
-            // is why the reset belongs here and not in type-roles.js.
             assert.equal(await page.prop('#hdr-a >>> #count', 'margin-top'), '0px',
                 'the count is a span and never had a margin to zero');
         }));
 
         test('DEPARTURE 6: caption and count share ONE line — the band is bottom-anchored, all of it', () => mounted(async (page) => {
-            // slate-shell.css:2072-2074, quoted by the component: "the labels are
-            // deliberately bottom-anchored above their divider, so they are NOT centred."
-            // The oracle is unambiguous that this means BOTH labels:
-            //   CITE profile-selector .slate-microcap [i=16] rect x=24 y=351 w=140 h=18
-            //        (caption) and rect x=604 y=351 w=11 h=18 (count "6")
-            //   CITE profile-selector .slate-microcap [i=33] rect x=24 y=667 w=168 h=18
-            //        and rect x=594 y=667 w=21 h=18 (second band, count "72")
-            // One y and one height per band, both times. Sixty passing tests never
-            // compared the two boxes to each other, and the delta was 12.44px.
             for (const id of ['hdr-a', 'hdr-b', 'hdr-plain', 'hdr-narrow']) {
                 const caption = await page.box(`#${id} >>> #caption`);
                 const count = await page.box(`#${id} >>> #count`);
@@ -426,16 +299,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(Math.abs(caption.top - count.top) < 0.51,
                     `${id}: the two microcaps have the same height, so one baseline means one top `
                     + `(${caption.top} vs ${count.top})`);
-                // …and the line they share is the one the padding puts them on: the
-                // band's content bottom, --ui-space-2 up from the band's edge.
                 const pad = parseFloat(await page.prop(`#${id} >>> #band`, 'padding-bottom'));
                 assert.ok(Math.abs(count.bottom - (band.bottom - pad)) < 0.51,
                     `${id}: bottom-anchored means the padding edge, not a coincidence `
                     + `(${count.bottom} vs ${band.bottom - pad})`);
             }
         }));
-
-        /* -- 2. THE WAVE-2 LAW, inverted ------------------------------------ */
 
         const SELECTION_READS = ['background-color', 'color', 'box-shadow', 'text-shadow', 'font-weight'];
         const SELECTION_PARTS = ['#band', '#caption', '#count'];
@@ -450,11 +319,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         };
 
         test('the four dials reach NOTHING here — there is no selection surface to move', () => mounted(async (page) => {
-            // The wave's founding law (Part 10 §12, spec §3.9): one selection
-            // treatment, through the four dials, enforced by the shadow boundary. A
-            // component with no selection state proves its half by being inert: if any
-            // dial moved anything here, this element would be quietly participating in
-            // a treatment it has no business having.
             const before = await readSelectionSurface(page);
             for (const dial of ['--ui-selected-face', '--ui-selected-ink',
                 '--ui-selected-led', '--ui-selected-glow']) {
@@ -493,9 +357,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'selection treatment in Decal and this component is not it.');
             }
 
-            // The sharpest form: .is-selected set on the elements INSIDE the root, which
-            // is where a private treatment would hide. `selectionSurface` matches that
-            // class; a sheet that imported it would light up here.
             const inside = await page.evalFn(() => {
                 const root = document.getElementById('hdr-plain').shadowRoot;
                 for (const id of ['band', 'caption', 'count']) {
@@ -511,13 +372,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'selectionSurface must not be in this component\'s styles at all');
         }));
 
-        /* -- 3. focus geometry, unclipped (bug L24's class) ------------------ */
-
         test('a control slotted into `trail` gets the ONE ring, unclipped', () => mounted(async (page) => {
-            // Review finding cross-3: a bare <button> slotted into a wave-1 element took
-            // Chrome's own outline: auto — a SIXTH treatment inside the layer that exists
-            // to end the five. The base's ::slotted rule is what closes it; this asserts
-            // the hole stays closed for the one slot this component exposes.
             const g = await assertFocusUnclipped(page, '#trail-btn');
             assert.equal(g.outlineStyle, 'solid');
 
@@ -531,22 +386,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('inside a clipping list the inset offset keeps the ring whole', () => mounted(async (page) => {
-            // The real deployment: the band lives in a list with an overflow rule, so
-            // the outset ring on a slotted control would be cut. focus-ring="inset" on
-            // the host sets --_ui-focus-offset, and a custom property inherits through
-            // the FLATTENED tree, so a light-DOM child of the host takes it too.
             const g = await assertFocusUnclipped(page, '#inset-btn');
             const inset = await page.resolveValue('var(--ui-focus-offset-inset)', 'outline-offset');
             assert.equal(g.outlineOffset, inset,
                 'the inset offset must reach a slotted control, not only the shadow tree');
         }));
 
-        /* -- 4. container behaviour, at both geometries ---------------------- */
-
         test('the band is ONE line at every width; the caption gives, the count never does', () => mounted(async (page) => {
-            // DEPARTURE 4. The oracle is DISQUALIFIED for responsive behaviour (Part 10
-            // §4) — Slate's band is 639px wide, frozen, and never meets a narrow
-            // container. LAYOUT_SPEC_DRAFT.md governs.
             const wide = await page.box('#hdr-plain >>> #band');
             const narrow = await page.box('#hdr-narrow >>> #band');
             assert.equal(narrow.height, ORACLE.bandHeight,
@@ -571,10 +417,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the band cannot be compressed below --ui-section-head-h', () => mounted(async (page) => {
-            // A flex item shrinks below its content by default; min-block-size is what
-            // stops a 40px track from eating the band. This is the "container floor"
-            // half of spec §2.4 for a fixed band: it does not scroll, it does not
-            // shrink, it holds.
             const squeezed = await page.box('#hdr-squeezed');
             assert.equal(squeezed.height, ORACLE.bandHeight,
                 `a 40px flex column compressed the band to ${squeezed.height}px`);
@@ -583,9 +425,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the list it lives in scrolls rather than clipping, and shows it', () => mounted(async (page) => {
-            // The component is not itself a scroll region — the LIST is, and spec §2.4
-            // governs it: an explicit floor, a stated overflow, and no hidden
-            // scrollbar. Asserted here because the stick is only meaningful inside one.
             await assertScrollFloor(page, {
                 selector: '#list',
                 squeeze: { 'block-size': '160px' },
@@ -593,12 +432,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 5. THE STICK --------------------------------------------------- */
-
         test('the caption stays at the top of its scrollport while its group scrolls under it', () => mounted(async (page) => {
-            // Slate's own reason, slate-shell.css:2042-2043: "the section captions stay
-            // put while their section scrolls, so the list never loses which half of the
-            // library you are looking at."
             const listTop = (await page.box('#list')).top;
             const restingTop = (await page.box('#hdr-a')).top;
             assert.ok(Math.abs(restingTop - listTop) < 0.5, 'it starts at the top of the port');
@@ -619,10 +453,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the stuck caption is OPAQUE and wins the stack against the rows', () => mounted(async (page) => {
-            // The defect class this pins: a sticky caption with a see-through ground is
-            // unreadable one row into a scroll, and one with the wrong layer is painted
-            // over by the row it is supposed to cover. Both are hit-tested, not
-            // eyeballed — elementFromPoint is the same question a screenshot asks.
             const ground = await page.prop('#hdr-a >>> #band', 'background-color');
             assert.notEqual(ground, 'rgba(0, 0, 0, 0)', 'the band has no ground at all');
             assert.ok(!/rgba\([^)]*,\s*0(\.\d+)?\)/.test(ground) || /,\s*1\)/.test(ground),
@@ -645,12 +475,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.evalFn(() => { document.getElementById('list').scrollTop = 0; return true; });
         }));
 
-        /* -- 6. P8's class --------------------------------------------------- */
-
         test('a sheet from OUTSIDE cannot flatten the ground (P8\'s class)', () => mounted(async (page) => {
-            // The paint is on a class inside the root, never on :host — so a document
-            // rule naming the tag paints behind an opaque band and changes nothing the
-            // user sees. That is the shadow boundary doing the job it is here for.
             const before = await page.prop('#hdr-plain >>> #band', 'background-color');
             const after = await page.evalFn(() => {
                 const s = document.createElement('style');
@@ -666,9 +491,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('zero !important reaches the rendered result', () => mounted(async (page) => {
-            // Spec §2.1 Rule 3 as a RENDERED fact rather than a source grep (Gate C owns
-            // the grep): every declaration this component makes is beatable by an
-            // ordinary rule inside its own root.
             const beaten = await page.evalFn(() => {
                 const root = document.getElementById('hdr-plain').shadowRoot;
                 const s = document.createElement('style');
@@ -684,11 +506,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'typeRoles fragment is (0,0,0) by construction');
         }));
 
-        /* -- 7. aria and the accessible name --------------------------------- */
-
         test('the caption is a real heading, and `level` moves only the level', () => mounted(async (page) => {
-            // TYPE_ROLES.md rule 2: "A role is paint. A heading is structure, and a
-            // screen reader reads <h2>, not .ui-heading."
             const shape = await page.evalFn(() => {
                 const read = (id) => {
                     const h = document.getElementById(id).shadowRoot.getElementById('caption');
@@ -761,9 +579,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.exists('#hdr-nocount >>> #count'), false,
                 'and a header with no count draws no empty box to gap against');
 
-            // …and it leaves no stray attribute behind either. A reflected String whose
-            // default is '' stamps count="" on every element, which would make a
-            // consumer's [count] selector match the ones that have none.
             assert.equal(
                 await page.evalFn(() => document.getElementById('hdr-nocount').hasAttribute('count')),
                 false, 'count is deliberately not reflected; level is');
@@ -772,14 +587,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 '2', 'level IS reflected, so a normalised value is visible in the DOM');
         }));
 
-        /* -- 8. the hit floor, deliberately not consumed ---------------------- */
-
         test('the band clears --ui-hit-min without consuming the utility, and accepts no press', () => mounted(async (page) => {
-            // spec §2.3 / Appendix 5 govern touch TARGETS; CONVENTIONS §5 names the
-            // utility's three consumers (#15, #23, #35) and this is not one. Row #27
-            // cites neither. The band is 60px, so it clears the floor as a matter of
-            // fact — and it must not GROW one, because a caption with a hit box has
-            // nothing behind it.
             const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
             assert.equal(floor, 48, '--ui-hit-min: a wet fingertip is about 9mm (spec §2.3)');
             assert.ok((await page.box('#hdr-plain >>> #band')).height >= floor);
@@ -787,8 +595,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 '.hit-overlay is not used here — the band grows no overlay');
             assert.equal(await page.prop('#hdr-plain >>> #caption', 'position'), 'static');
         }));
-
-        /* -- the cross-geometry record --------------------------------------- */
 
         test('record the measured boxes for the cross-geometry comparison', () => mounted(async (page) => {
             const round = (b) => ({
@@ -822,12 +628,6 @@ describe('the same box at both geometries', () => {
 });
 
 describe('the gallery entry this component ships', () => {
-    // The entry lives in its own file (tools/gallery/entries/ui-section-header.entry.js)
-    // because twelve wave-2 builders cannot all append to one array under a whole-file
-    // write rule; the wave's cross-cutting writer wires it into tools/gallery/entries.js.
-    // That wiring is a one-line import — but the ENTRY's own correctness is this
-    // builder's problem, so every state's markup is mounted here before it is handed on.
-
     test('every declared state mounts, settles and paints', async () => {
         const { entry } = await import('../../tools/gallery/entries/ui-section-header.entry.js');
 

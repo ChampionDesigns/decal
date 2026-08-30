@@ -1,17 +1,5 @@
 /**
- * ui-time-picker-gallery-entry.test.mjs — Wave 4 #54's gallery entry, checked against
- * the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array
- * and the run's rule is whole-file writes; N builders appending to it in parallel is
- * N−1 entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the
- * wave's cross-cutting writer wires them in serially. This file is what makes that
- * hand-off safe: it asserts the shape the gallery needs BEFORE the wiring, so a
- * malformed entry is a red test here rather than a battery photographing an empty
- * stage 45 seconds at a time.
- *
- * The other half is `test/render/ui-time-picker.render.test.mjs`, which mounts every
- * state below in a real browser at both Gate A geometries.
+ *.js documents.
  */
 
 import { test } from 'node:test';
@@ -49,9 +37,6 @@ test('the module path resolves from tools/gallery/, which is where gallery.js im
 });
 
 test('a state that mounts a second tag goes through the demo sidecar', () => {
-    // gallery.js does ONE import per entry and then waits on customElements.whenDefined()
-    // for every hyphenated tag on the stage. A state mounting <ui-dialog> without
-    // ui-dialog's module having been imported hangs forever with no page error.
     const extraTags = new Set();
     for (const state of entry.states) {
         for (const m of state.html.matchAll(/<([a-z]+-[a-z-]+)/g)) {

@@ -1,29 +1,4 @@
-/**
- * gate-wire — the dead-wire gate (Wave 0, `_audit/CONTROL_AUDIT_PLAN_2026-08-29.md` §5).
- *
- * Three things are tested, in this order of importance:
- *
- *  1. THE CANARIES FIRE. Every rule has a fixture tree under `test/fixtures/gate-wire/`
- *     that breaks it on purpose, and a case here asserting the gate fails on that tree. A
- *     guard that silently stops covering its target is this project's most expensive
- *     recurring failure — three of them so far — and it is invisible without this.
- *  2. THE CONTROLS PASS. A table-driven registration, a real `#emit` wrapper, a builtin
- *     name, an id table that is not an event table, and a module that names a dead event in
- *     PROSE must none of them trip anything. A false positive earns an exemption; an
- *     exemption is how coverage dies.
- *  3. THE DECOY IS NOT A WRAPPER — asserted on the fixture AND on the real
- *     `src/components/ui-compare-bar.js`, which is the file the rule was written against.
- *
- * The fixture trees are miniature `src/` trees of VALID, parseable JS. Nothing here is
- * deliberately broken syntax: that is the `parses` canary's job elsewhere, and its own trap
- * is documented — a guard finds its files BY EXTENSION, so a canary renamed out of the
- * extension stops tripping the guard and goes quiet.
- *
- * WHAT THIS FILE DOES NOT ASSERT: that the gate is GREEN on this repo. Wave 0 records dead
- * wires, it does not repair them (plan §9), so the gate is expected red while
- * `_audit/FINDINGS.md` carries unfixed wires. Asserting green here would turn every real
- * finding into a broken test and create pressure to "fix" the gate.
- */
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -54,8 +29,6 @@ const FIXTURES = join(REPO_ROOT, 'test/fixtures/gate-wire');
 const gate = (name, extra = {}) => runGateWire({ root: join(FIXTURES, name), ...extra });
 const events = (list) => list.map((v) => v.event).sort();
 const knows = (report, name) => Boolean(report.emitters[name] || report.listeners[name]);
-
-/* ------------------------------------------------------------------------ canaries */
 
 describe('gate-wire canaries — every rule fails on its fixture', () => {
     test('UNHEARD EMIT: a literal dispatch nothing listens for', () => {
@@ -139,8 +112,6 @@ describe('gate-wire canaries — every rule fails on its fixture', () => {
     });
 });
 
-/* ------------------------------------------------------------------------ controls */
-
 describe('gate-wire controls — the rules do not over-fire', () => {
     test('TABLE LOOP: Object.values(FROZEN_TABLE) registration resolves, both import forms', () => {
         const r = gate('table-loop');
@@ -201,8 +172,6 @@ describe('gate-wire controls — the rules do not over-fire', () => {
         assert.deepEqual(loadLedger(join(FIXTURES, 'dead-emit')), { entries: [] });
     });
 });
-
-/* --------------------------------------------------------------- the resolver itself */
 
 describe('the resolver', () => {
     test('classifyValue: strings, frozen tables, and everything else OPAQUE', () => {
@@ -286,8 +255,6 @@ describe('the resolver', () => {
     });
 });
 
-/* ------------------------------------------------------------------ over this repo */
-
 describe('gate-wire over this repo', () => {
     const report = runGateWire();
 
@@ -300,12 +267,6 @@ describe('gate-wire over this repo', () => {
         assert.ok(!files.some((f) => f.path.startsWith('vendor/') || f.path.startsWith('tools/')));
     });
 
-    // Asserted through the gate's OUTPUT, never by matching the component's source text
-    // (A8): a test that pins source text makes the thing it describes unremovable. The
-    // decoy's SHAPE is pinned on the fixture and in the findWrappers unit above; what is
-    // pinned here is the consequence on the real file — and it is a two-sided assertion, so
-    // it fails whichever way a regression goes. Turn `#emit(reason)` into a real wrapper and
-    // the second half fails; stop attributing the fixed literal and the first half fails.
     const BAR = 'src/components/ui-compare-bar.js';
     test('THE DECOY, ON THE REAL FILE THE RULE WAS WRITTEN AGAINST', () => {
         const fromBar = (name) => [...(report.emitters[name] || []), ...(report.listeners[name] || [])]
@@ -318,8 +279,6 @@ describe('gate-wire over this repo', () => {
     });
 
     test('the historical indirections still resolve — no wolf-crying on the real tree', () => {
-        // editor-screen.js registers the EDITOR_EDIT table in a loop; app-root.js registers
-        // INTENT_EVENTS the same way; ui-chart-card hears an imported FIT_EVENT constant.
         for (const name of ['step-change', 'value-commit', 'exit-condition-change', 'lever-change', 'exit-remove']) {
             assert.ok(report.listeners[name], `${name} is heard through the EDITOR_EDIT loop`);
         }
@@ -344,9 +303,6 @@ describe('gate-wire over this repo', () => {
         assert.match(formatReport(report), /^gate-wire: \d+ files, scan [\d.]+ ms$/m);
     });
 
-    // Wave 0 RECORDS, it does not repair (plan §9). This asserts the SHAPE of the verdict,
-    // never that the verdict is green: a red gate above a filled-in FINDINGS.md is the
-    // deliverable, and a test demanding green here would be pressure to loosen the gate.
     test('the verdict is well formed whichever way it goes', () => {
         assert.equal(typeof report.ok, 'boolean');
         for (const key of ['deadEmits', 'orphanListeners', 'unresolved', 'vouched', 'staleLedger', 'ledgerErrors']) {

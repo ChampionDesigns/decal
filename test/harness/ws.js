@@ -1,28 +1,5 @@
 /**
- * ws.js — a minimal RFC 6455 client, enough to speak CDP and nothing more.
- *
- * WHY THIS EXISTS. The Gate A harness is headless Chrome over CDP (SCOPE Part 8 §2;
- * Part 9 Q12, recorded in DEFERRED_QUESTIONS.md), and CDP's only transport on a
- * debug port is a WebSocket. This tree has no `node_modules` and does not want one:
- * the importmap in the served document is the whole module-resolution mechanism
- * (SCOPE Part 2 §2), and a test rig that needs `npm install` is a rig that stops
- * working the first night nobody is watching.
- *
- * Node 20.20 (this box) has `WebSocket` only behind `--experimental-websocket`, and
- * the test runner spawns every test file as its own child process — so relying on
- * the flag means every future `node --test` invocation in every future wave has to
- * remember to pass it. 150 lines of frame handling removes that from the contract.
- *
- * SCOPE, deliberately small — this talks to one server, on loopback, that we
- * launched ourselves:
- *   - no permessage-deflate (CDP does not negotiate it by default);
- *   - no `wss:` (loopback only);
- *   - text frames in and out, plus continuation, ping and close;
- *   - binary frames are surfaced as an error rather than silently dropped, because
- *     CDP never sends one and a silent drop would look like a hung command.
- *
- * Client→server frames are masked, as the RFC requires; server→client frames are
- * not, and a masked inbound frame is a protocol error we report rather than ignore.
+ * A minimal RFC 6455 client, enough to speak CDP and nothing more.
  */
 
 import net from 'node:net';
@@ -75,20 +52,6 @@ export class WebSocketClient extends EventEmitter {
             }
         });
 
-        // Parse whatever arrived in the same TCP segment as the handshake response —
-        // ON THE NEXT TURN, NOT HERE. `connect()` resolves with this instance, so a caller
-        // cannot attach a `message` listener until after the constructor returns: draining
-        // synchronously emitted the first frame into an EventEmitter nobody was listening
-        // to yet, and the frame was gone. It never bit against CDP, which only ever speaks
-        // when spoken to, and it bit immediately against a server that speaks first — the
-        // mock's state channels send their current state on connect (`tools/ws_frames.py`),
-        // and so does ReaPrime's.
-        //
-        // `setImmediate`, not `queueMicrotask`: the drain is queued from inside the
-        // constructor, so a microtask would still run BEFORE the `resolve(client)`
-        // continuation that attaches the listener, and the frame would still be lost.
-        // Ordering is preserved either way — a later 'data' event drains the same buffer
-        // in the same order, and this callback then finds it empty.
         if (this.#buf.length) {
             setImmediate(() => {
                 if (this.#closed || !this.#buf.length) return;
@@ -159,8 +122,6 @@ export class WebSocketClient extends EventEmitter {
                 head = Buffer.concat([head, chunk]);
                 const end = head.indexOf('\r\n\r\n');
                 if (end === -1) {
-                    // A 4-byte terminator can straddle two chunks; 64 KiB of headers
-                    // without one is a server that is not talking WebSocket.
                     if (head.length > 65536) fail(new Error('websocket handshake headers too large'));
                     return;
                 }
@@ -291,12 +252,6 @@ export function frame(opcode, payload) {
     return Buffer.concat([header, mask, masked]);
 }
 
-/**
- * Try to read one frame off the front of `buf`.
- * Returns null when the buffer holds only part of a frame — the normal case on a
- * stream socket, and the reason this is a pure function over an accumulating buffer.
- * Exported for the unit test.
- */
 export function readFrame(buf) {
     if (buf.length < 2) return null;
 

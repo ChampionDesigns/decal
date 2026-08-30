@@ -1,24 +1,5 @@
 /**
- * editor-retired-wires.render.test.mjs — THE TWO COURTESY RE-EMITS ARE GONE, AND THE TWO
- * GESTURES STILL WORK (audit F-003 `editor-cancel`, F-004 `editor-commit`).
- *
- * Both were dispatched from exactly one site and heard NOWHERE — not in `src/`, not in
- * `index.html`, not in `tools/`, not even in `test/harness/`. They were sent "so a
- * composition root above has one place to listen"; that root never materialised, and
- * `app-boot.js` records the same absence from the other end (the shell assembles the editor
- * store and seats the record itself, which is the job the listener would have had).
- *
- * WHAT THIS FILE IS FOR. Deleting an emit is easy to get wrong in one specific way: taking
- * the action half with it. Each handler did two things — announce, then act — and only the
- * announcement was removed. So every test below asserts BOTH halves at once: the event is
- * absent AND the gesture still lands. An assertion that only counted events would pass just
- * as well against a screen where Save no longer saves.
- *
- * THE ABSENCE IS ASSERTED ON A LISTENER AT THE DOCUMENT, above the screen — exactly where
- * the composition root that never existed would have sat. Both events were `composed` and
- * `bubbles`, so if either were still sent, this is where it would arrive.
- *
- * A8: nothing here reads a source file.
+ * The two courtesy re-emits are gone.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -83,9 +64,6 @@ describe('the retired editor seam (F-003, F-004)', () => {
         assert.deepEqual(await wiresNamed(page, 'editor-commit'), [],
             'the announcement is retired');
         const calls = await editorCalls(page);
-        /* B11's SAVE IS TWO REQUESTS, and it was two before this change: the create, then
-         * the PUT that hides the version it superseded. The count is asserted so a save
-         * that quietly became one request (or three) is not read as a pass. */
         assert.deepEqual(calls.map((c) => `${c.method} ${c.path}`), [
             'POST /profiles',
             'PUT /profiles/profile%3Aseated/visibility',

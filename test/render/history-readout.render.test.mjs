@@ -1,29 +1,5 @@
 /**
- * history-readout.render.test.mjs — the cursor's other half, on the two History pages.
- * Audit F-032 (a scrub names no value), F-034 (the trajectory well swallows the gesture),
- * F-002 / F-006 (the two silent wires that sit exactly here) and F-016 rows 3-6 (the four
- * history plot wells with no accessible name).
- *
- * WHAT FAILED BEFORE. Every assertion in this file was written against the measured
- * tree of 29 August 2026, in which:
- *
- *   - on all three time charts, at five pointer positions, `legend.values` was null, the
- *     card's `.foot` strip was 0px high with empty `textContent`, and the card's whole
- *     shadow root's `textContent` was empty — read RAW, including the aria-hidden nodes,
- *     so the silence was the card's and not the reader's;
- *   - on `plot-pq` the card's ENTIRE shadow markup was byte-identical across hover,
- *     press, two moves and release — same 16 descendants, `div.cursor[hidden]` still
- *     carrying its `hidden` attribute at every step;
- *   - every one of those wells resolved to the empty accessible name.
- *
- * A8. Nothing here opens a file. Every claim is a live property read off a running
- * element, a computed style, a rendered box, or a node from Chrome's own accessibility
- * tree.
- *
- * THE PLOTS ARE ARMED BEFORE THEY ARE SCRUBBED. A chart card with no derivation has no
- * uPlot instance at all, so a pointer on it would be a pointer on nothing; both stages
- * below feed two real recorded shots from `tools/rea-fixtures/` and wait for the cards'
- * `ready` before a mouse moves.
+ * The cursor's other half, on the two History pages.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -43,15 +19,6 @@ const pageStage = (tag, h = 700) => `
   <${tag} id="page-under-test"></${tag}>
 </div>`;
 
-/**
- * Feed a page two real derivations and wait for every card it holds to be built.
- *
- * WITH THE SERVER'S OWN DERIVED CHANNELS APPLIED, which is `history-power.render`'s own
- * `FEED` verbatim and for its stated reason: the recordings predate ReaPrime's
- * recompute-on-read getters, so a raw fixture serves no resistance, impedance or power at
- * all and the derived card correctly refuses. Nothing under `src/` computes any of the
- * three — this is the SERVER's arithmetic, applied where a server would apply it.
- */
 const FEED = (tag) => `(async () => {
   const { deriveFromRecord } = await import('/src/lib/shot-derivation.js');
   const gate = (p, f, v) => ((f >= 0.3 && p >= 0.3 && Number.isFinite(v)) ? v : null);
@@ -145,7 +112,6 @@ describe('the History cursor readout', () => {
                         `the cursor must be live at every swept point: ${
                             JSON.stringify(readings.map((r) => r.cursor.idx))}`);
 
-                    /* THE VALUES ARE NAMED — the half F-032 measured as missing. */
                     for (const r of readings) {
                         assert.ok(Object.keys(r.values).length > 0,
                             `legend.values is still empty at idx ${r.cursor.idx}`);
@@ -182,10 +148,6 @@ describe('the History cursor readout', () => {
                 const chip = `${card} ui-chart-legend >>> #chip-pressure`;
                 const read = READ('history-flow-page', 'plot-top');
                 const box = await page.box(`${card} >>> .well`);
-                /* THE POINTER GOES BACK TO THE WELL AFTER EACH PRESS, and it has to: a
-                 * real press on a chip moves the mouse off the plot, which is a
-                 * `pointerleave` and clears the cursor by design. The sequence a person
-                 * performs is press-then-scrub, so that is the sequence asserted. */
                 const scrub = async () => {
                     await page.mouse('mouseMoved',
                         box.left + box.width / 2, box.top + box.height / 2);
@@ -198,9 +160,6 @@ describe('the History cursor readout', () => {
                 const named = Object.keys(before.values).length;
                 assert.ok(named > 1, 'and it names more than the one channel');
 
-                /* A REAL PRESS on the chip, through Chrome's own hit test. The legend is
-                 * BOUND, so it applies the hide to the plot itself; what `legend-change`
-                 * buys is the page dropping that channel from the reading. */
                 await page.click(chip);
                 await page.settle();
                 const off = await scrub();
@@ -232,10 +191,6 @@ describe('the History cursor readout', () => {
                     for (const [key, text] of Object.entries(r.values)) {
                         const value = Number(text);
                         assert.ok(Number.isFinite(value), `${key} read as ${text}`);
-                        /* THE PLOT IS FED log10 VALUES and the readout must not be. A
-                         * log-scale reading of this pair is negative for most of a shot
-                         * (the suite's own fixture bottoms at -2.4); a real one cannot
-                         * be, because R and Z are ratios of positive quantities. */
                         assert.ok(value >= 0,
                             `${key} read ${text} — that is the log10 the axis is in, not `
                             + 'the number the machine reported');
@@ -283,10 +238,6 @@ describe('the History cursor readout', () => {
 
         test('the trajectory cursor names A\'s OWN points, not a position it invented',
             () => mounted('history-power-page', async (page) => {
-                /* The mark can only land on a point the plot drew: `cursorPoints` is the
-                 * same array `setBands` was handed. `#readPoint` is asserted directly, on
-                 * a hand-made geometry, in ui-chart-card-scrub.render.test.mjs; what this
-                 * asserts is that the page fed the card the RIGHT array. */
                 const box = await page.box('#page-under-test >>> #plot-pq >>> .well');
                 await page.mouse('mouseMoved',
                     box.left + box.width * 0.5, box.top + box.height * 0.5);
@@ -324,12 +275,6 @@ describe('the History cursor readout', () => {
                         assert.ok(groups.includes(label.name),
                             `${id}'s name never reached the accessibility tree: `
                             + `${JSON.stringify(groups)}`);
-                        /* D16, BEN, 30 AUGUST 2026: the five scrub names were shortened
-                         * from "{chart name} — chart scrub" to "{chart name} scrub". This
-                         * line read `assert.match(label.name, /chart scrub$/, …)` and
-                         * pinned the superseded wording; the claim it makes is unchanged —
-                         * the well is named for the CONTROL, not just for the chart — so
-                         * the pattern moves and the sentence stays. */
                         assert.match(label.name, / scrub$/,
                             'and it names the CONTROL — the scrub — not just the chart');
                         assert.doesNotMatch(label.name, /— chart scrub$/,

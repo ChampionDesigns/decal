@@ -1,46 +1,4 @@
-/**
- * live-preset-press-mid-shot.render.test.mjs — F-038: the eight preset cells a person
- * could not press while a shot was streaming.
- *
- * Written 30 August 2026 for the fix campaign's round 3, on Ben's decision: **"A defect —
- * make them pressable."**
- *
- * ===========================================================================
- * WHAT WAS WRONG, AND WHY NO EXISTING TEST COULD SEE IT
- * ===========================================================================
- * Wave 3 guarded and deep-hit-tested thirteen Live cells — five favourites, four drink
- * presets, four flow presets — in four compositions. Mid-shot, with telemetry live and
- * STOP armed, **five of thirteen were hittable: all EIGHT preset-bank cells resolved to
- * `live-screen >>> live-rail`**. Once the stream ended, all thirteen came back
- * (`_audit/wave-3/logs/W3-live/faults.json`; FINDINGS F-038).
- *
- * The mechanism is one declaration. `liveDimming` paints every `[data-dim-group]` at the
- * dim token AND takes its `pointer-events` away in the same rule; an espresso shot is
- * `LIVE_DIM.ALL`; so both banks went `pointer-events: none`, the press fell through them
- * to `<live-rail>` — which paints `--ui-fascia` and therefore answers a hit test — and the
- * walk stopped one level above the cell. Nothing was disabled and nothing said so.
- *
- * **`live-preset-cells.render.test.mjs` PASSED THROUGHOUT, AND THAT IS THE LESSON.** It
- * drives a cell with `cell.click()`, which is a synthetic dispatch on a node the test
- * already holds — it never asks the browser what is at that point on the glass. A control
- * can be pixel-perfect and completely dead to a finger and a synthetic click cannot tell.
- * So every press in THIS file goes through CDP at viewport coordinates and lets Chrome
- * decide what is underneath, and every reachability claim is a DEEP HIT TEST.
- *
- * ===========================================================================
- * THE DEEP HIT TEST, INCLUDING THE DEFECT WAVE 1 SHIPPED IN ITS OWN
- * ===========================================================================
- * `ShadowRoot.elementFromPoint` RETARGETS: a node that is not in that shadow tree comes
- * back as the ancestor that is, so a hit on a `<ui-button>`'s slotted label answers the
- * host and a naive walk stops one level too high. Wave 1's driver had exactly this bug and
- * F-038 records it beside the finding ("Wave 1's 34 scrollFaults should be re-read with
- * this in mind"). The walk below resolves through a `<slot>` before deciding it has
- * arrived, which is the Wave 3 drivers' own correction.
- *
- * BOTH GATE A GEOMETRIES, on the shared carry fixture: a real `createAppBoot`, a real
- * storage router, real `<live-screen>` with its own `LiveWiring`, and a scripted fetch
- * with no server behind it.
- */
+
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -51,16 +9,8 @@ import { DIM_KEEPS_INPUT } from '../../src/lib/live-dimming.js';
 const MODULES = ['/test/fixtures/live-selector-carry-fixture.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></div>';
 
-/** The two rail tracks Ben's decision is about, read from the owner rather than typed. */
 const BANK_ROWS = DIM_KEEPS_INPUT;
 
-/**
- * Where a preset cell sits on the glass, and what the browser says is there.
- *
- * ONE ROUND TRIP, PLAIN VALUES ONLY — the fixture's own CDP rule: `returnByValue` walks
- * whatever it is handed and answers "Object reference chain is too long" on a DOM node,
- * which reads like a test failure and is a serialisation failure.
- */
 const PROBE = (railKey, index) => `(() => {
   const screen = document.querySelector('live-screen');
   const bank = screen.shadowRoot.querySelector('ui-preset-bank[data-key="${railKey}"]');
@@ -161,10 +111,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(4);
         };
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * F-038 — the cells are hittable while the shot streams
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('F-038 — a deep hit at a preset cell\'s centre lands INSIDE the cell mid-shot',
             () => mounted(async (page) => {
                 const before = await page.eval(PROBE('steamFlow', 1));
@@ -178,9 +124,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(during.box.w > 0 && during.box.h > 0,
                     'the cell still has a box — this was never a layout fault');
 
-                /* THE ASSERTION THE FINDING IS. Before the fix this walk ended at
-                 * `live-rail`, one level above the cell, because the bank had no pointer
-                 * events and the rail behind it answered instead. */
                 assert.equal(during.insideCell, true,
                     `the hit resolved to ${during.path.join(' >>> ')} instead of the cell`);
                 assert.ok(!during.path.includes('live-rail'),
@@ -205,11 +148,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-038 — the bank still RECEDES: the paint is untouched, only the input is back',
             () => mounted(async (page) => {
-                /* WHAT BEN DID NOT ASK FOR. A preset bank on a mode the machine is not
-                 * using should still read as "not now" — that is owner A's designed
-                 * answer, and the finding is not a complaint about the look. The fix moves
-                 * `pointer-events` out of the dim rule for these two rows and leaves the
-                 * opacity exactly where it was. */
                 const rest = await page.eval(PROBE('steamFlow', 1));
                 await streaming(page);
                 const during = await page.eval(PROBE('steamFlow', 1));
@@ -245,10 +183,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(workflow.length, 1, 'and the machine write rides beside it, as ever');
             }));
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * WHAT MUST NOT HAVE MOVED
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('the rail\'s own exempt control is untouched: STOP still answers mid-shot',
             () => mounted(async (page) => {
                 await streaming(page);
@@ -267,11 +201,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the STEPPERS are deliberately NOT changed — recorded, not guessed',
             () => mounted(async (page) => {
-                /* BEN RULED ON THE PRESET CELLS. Wave 3 measured thirteen cells and none of
-                 * them was a stepper, so there is no measurement and no decision covering
-                 * the rail's targets; `DIM_KEEPS_INPUT` names two rows and only two. This
-                 * test exists so the scope of the fix is an assertion rather than a
-                 * paragraph — if somebody widens the exemption, they do it on purpose. */
                 await streaming(page);
                 const steppers = await page.evalFn(() => [...document.querySelector('live-screen')
                     .shadowRoot.querySelectorAll('ui-stepper[data-dim-group]')]
@@ -291,21 +220,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a MODAL still blocks the cells — that case is separate and stays blocking',
             () => mounted(async (page) => {
-                /* F-038 SEPARATES TWO THINGS AND ONLY ONE OF THEM IS A DEFECT. With the
-                 * machine picker up, all 13 cells hit-test to its backdrop — "that is a
-                 * dialog behaving as a dialog. Not an anomaly." The dialog staged here is
-                 * the rail's own numpad rather than `live-connection`'s picker, because it
-                 * is the modal this fixture can open; the claim is the same one, and it is
-                 * that the fix above did NOT make a control reachable through a modal. */
                 await streaming(page);
                 const reachable = await page.eval(PROBE('drinkWeight', 0));
                 assert.equal(reachable.insideCell, true, 'staged with the cell reachable');
 
-                /* THE MODAL IS OPENED THROUGH THE APP'S OWN ROUTE — hold a cell, take
-                 * "Enter value" — rather than by putting a <dialog> on the page by hand.
-                 * The staging gestures are synthetic on purpose: a hold that had to survive
-                 * the very hit test under examination could not stage the case it is
-                 * setting up. What is measured afterwards is a real hit test. */
                 await page.evalFn(() => window.__carry.holdPreset('drinkWeight', 0));
                 await page.evalFn(() => window.__carry.pressMenuItem('enter'));
                 await page.settle(6);

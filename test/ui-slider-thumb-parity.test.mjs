@@ -1,26 +1,5 @@
 /**
- * ui-slider-thumb-parity.test.mjs — the half of bug T22 that Chrome cannot render.
- *
- * T22 (`LAYOUT_SPEC_DRAFT.md:1198`): "`::-moz-range-thumb` is never overridden — a
- * second 24×24 `#385a92` thumb spec with its own colours and hover transform"
- * (`main.css:376-395`). Together with the three live specs that is spec §5.2 #23's
- * verdict on component #23: "Four thumb specs, two of them off-token."
- *
- * WHY THIS IS A STATIC TEST AND NOT A RENDERING ONE. An unknown pseudo-element
- * invalidates the selector it appears in, so a `::-moz-range-thumb` rule cannot be
- * merged into the WebKit one — the two engines need two rules, and two rules is
- * exactly how a divergence starts. Chrome does not merely ignore the Gecko rule, it
- * DROPS it at parse time: measured, `sheet.cssRules` after `replaceSync` of both
- * rules contains only the `::-webkit-` one. So no assertion made in the Gate A
- * harness can see the Gecko thumb at all, and the only honest check is on what was
- * authored. Everything about the thumb that Chrome CAN render — its 26px derivation
- * from `--ui-icon`, its `--ui-surface` face, its `--ui-line-strong` hairline — is
- * asserted for real in `test/render/ui-slider.render.test.mjs`, through the input's
- * user-agent shadow tree.
- *
- * The rule this file enforces: the paired rules carry IDENTICAL declaration blocks,
- * every value is a token or a private property derived from one, and no thumb rule
- * carries a hover treatment. A fifth spec cannot be added without turning this red.
+ * The half of bug T22 that Chrome cannot render.
  */
 
 import { test } from 'node:test';
@@ -126,28 +105,12 @@ test('T22: the WebKit and Gecko blocks are identical, declaration for declaratio
 });
 
 test('T22: every thumb value is a token or a private property derived from one', async () => {
-    // "Four thumb specs, two of them OFF-TOKEN" (spec §5.2 #23). A value here is
-    // legal only if it reads a --ui-* token, reads the component's own --_ui-*
-    // derivation, or is a bare keyword that carries no palette and no measurement.
     const KEYWORDS = new Set(['none', 'border-box', 'solid', 'transparent', '0', '100%']);
     const rules = await componentRules();
 
     for (const [webkit, gecko] of PAIRS) {
         for (const selector of [webkit, gecko]) {
             for (const decl of declarations(find(rules, selector)[0].body)) {
-                /* A DERIVATION IS NOT AN OFF-TOKEN VALUE, and one arrived on 23 Aug
-                 * 2026: the thumb is offset by half the difference between the ink and
-                 * its own size, so it rides the line rather than sitting 20px under it
-                 * (Ben: "the slider not on the line"). Every operand is a private
-                 * property this file already governs; what is left after removing the
-                 * calc wrapper and its operators is arithmetic, not a measurement
-                 * somebody wrote down.
-                 *
-                 * SO THE CHECK OPENS calc() AND KEEPS ITS TEETH: the operands must
-                 * still each be a var(), and a bare NUMBER is allowed only as an
-                 * operand — `2` in `/ 2` is a divisor, not a length. A literal with a
-                 * unit (26px, 50%) is still the off-token half of T22 and still fails,
-                 * which is the thing this test was written for. */
                 const parts = decl.value
                     .replace(/\bcalc\(/g, ' ')
                     .replace(/[()]/g, ' ')
@@ -183,9 +146,6 @@ test('T22: one source of truth for the thumb size, and no hover treatment anywhe
         'the thumb size must be declared exactly once; both engine rules read it.',
     );
 
-    // The other half of T22's sentence: "with its own colours AND HOVER TRANSFORM"
-    // (main.css:381-384, :397-400 — a scale(1.1) and a second box-shadow, on the
-    // Gecko copy only, so the two engines animate differently).
     for (const rule of rules) {
         assert.ok(
             !/:hover/.test(rule.selector),
@@ -199,8 +159,6 @@ test('T22: one source of truth for the thumb size, and no hover treatment anywhe
         }
     }
 
-    // And nothing in the file paints a raw colour (Gate C's own guard covers the
-    // tree; this pins the file the bug is about).
     const css = extractCssTemplates(source).map((t) => t.text).join('\n');
     assert.equal(
         /#[0-9a-fA-F]{3,8}\b/.test(stripCssComments(css)), false,

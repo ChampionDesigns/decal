@@ -1,17 +1,5 @@
 /**
- * ui-stop-button-gallery-entry.test.mjs — the wave-4 #47 gallery entry, checked against
- * the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array and
- * the run's rule is whole-file writes; N builders appending to it in parallel is N−1
- * entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the wave's
- * single cross-cutting writer wires them in serially. This file is what makes that
- * hand-off safe: it asserts the shape the gallery needs BEFORE the wiring, so a malformed
- * entry is a red test here rather than a battery photographing an empty stage.
- *
- * `test/render/ui-stop-button.render.test.mjs` takes the other half — it mounts every
- * state in a real browser at both Gate A geometries and checks each one still has
- * something to photograph after the settle.
+ * The wave-4 #47 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -46,13 +34,6 @@ test('the module path resolves from tools/gallery/, which is where gallery.js im
     assert.ok(info.isFile(), `${entry.module} does not resolve to a file`);
 });
 
-/**
- * THE ONE THING THIS COMPONENT NEEDS FROM ITS STAGE, asserted rather than trusted:
- * gallery.js awaits `customElements.whenDefined()` on EVERY hyphenated tag it finds on
- * the stage before it settles, so a state that mounts `<ui-stepper>` without ui-stepper's
- * module having been imported never settles at all — the battery records `unsettled`
- * after 45 s per state, per theme, per geometry, and no capture is produced.
- */
 test('a state that mounts a second component points at the demo module that imports it', () => {
     const usesStepper = entry.states.some((s) => s.html.includes('<ui-stepper'));
     assert.ok(usesStepper, 'the rail pair is the reason this entry has a demo module at all');
@@ -60,13 +41,6 @@ test('a state that mounts a second component points at the demo module that impo
         'a multi-component entry must load through a demo module, not straight at one component');
 });
 
-/**
- * The pair that carries the row's whole design: the SAME rail, differing by exactly one
- * attribute. Slate hand-solved "nothing moves when the abort target appears" with
- * `top: 25px` on an absolutely positioned control; the rewrite stacks the row and the
- * overlay in one grid cell. If the two states ever stop being identical apart from
- * `running`, the capture diff stops meaning that.
- */
 test('rail-idle and rail-running differ by exactly the running attribute', () => {
     const idle = entry.states.find((s) => s.id === 'rail-idle');
     const running = entry.states.find((s) => s.id === 'rail-running');

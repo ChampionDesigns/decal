@@ -1,20 +1,4 @@
-// The estimator link store, driven through the REAL discovery layer.
-//
-// The machine-swap test is the one that matters, and it is written end to end on purpose:
-// a fake discovery would prove that the store handles a close, which is not the defect.
-// The defect is that the OLD link never re-discovered — `if (stopped || socket) return;` —
-// so after a swap it dialled a dead sensor id for ever while `sensors_handler.dart`
-// answered `{"error":"not found"}` and closed, every consumer's "estimator absent" branch
-// took over, and the derived channel was charted in the estimator's place with nothing
-// surfaced. So this suite wires `createEstimatorLinkStore` to `createSensorDiscovery` and
-// `createReaSockets` and swaps the machine underneath it.
-//
-// FIXTURES ARE CONTRACT-CHECKED (Gate B rule 4) against ReaPrime at
-// 2b047d02e42e29bf2d96a2aa964ef94e4a4daba3: the listing is `[{id, info}]` from
-// `SensorsHandler.addRoutes`; the sensor id is `'${machineDeviceId}-puckestimator'`
-// (`BenglePuckEstimator._machineDeviceId`); a frame is `encodeSample`'s map, in which
-// every channel outside the always-present six is OMITTED when unobserved; the error
-// envelope is the literal `{"error":"not found"}` followed by a close.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -253,14 +237,10 @@ describe('RE-DISCOVERY — the machine swap', () => {
         assert.equal(h.store.sensorId(), estimatorId(MACHINE_1));
         assert.equal(h.store.has('r1'), true);
 
-        // The machine is swapped: a new deviceId mints a new sensor id, and the old
-        // socket closes.
         h.setListing(listingFor(estimatorId(MACHINE_2)));
         h.live()[0].serverClose();
         await h.settle();
 
-        // The held frame is dropped the moment the socket goes — a value from the
-        // previous machine is not "the current reading, briefly stale".
         assert.equal(h.store.sensorId(), null);
         assert.equal(h.store.has('r1'), false);
         assert.equal(h.store.state.status, LINK_STATE.DISCOVERING);
@@ -327,12 +307,6 @@ describe('the module reads no name of its own', () => {
     });
 
     test('AND THEY ARE A SUBSET of the checked-against-Dart channel list', () => {
-        // The nine were hand-written beside an import of the seventeen, and the guard was a
-        // length plus three members — so six of the nine were unguarded, in a module that
-        // already holds the authoritative list. `ESTIMATOR_CHANNELS` is checked against
-        // bengle_puck_estimator.dart; a subset assertion inherits that for free, and the
-        // module now enforces it at import as well, so a rename fails on load rather than
-        // producing nine silent absences.
         for (const channel of ESTIMATOR_LINK_CHANNELS) {
             assert.ok(ESTIMATOR_CHANNELS.includes(channel),
                 `${channel} is not one of the estimator's own channels`);

@@ -1,46 +1,4 @@
-/**
- * settings-leaf-model-commit-band.test.mjs — the commit band, and the one control that
- * used to write outside it.
- *
- * AUDIT F-049 (`_audit/FINDINGS.md`), 29 August 2026: "a master switch writes its
- * remembered value outside the commit band, Cancel cannot take it back, and nothing can
- * ever delete it". The three `zeroSwitch` rows — `machine-steam-enabled`,
- * `machine-water-tank-preheat`, `accessories-cup-warmer-enabled` — each hold a machine
- * field whose zero means "off", and each remembers the number it is leaving so switching
- * back on returns to it rather than to a shipped default.
- *
- * THE FAULT WAS A SPLIT LIFETIME, not the remembering. `settings-leaf-model.js:1174-1184`
- * did `await settings.set(row.zeroSwitch, current)` ON THE PRESS and then staged the
- * machine field at zero — so one gesture made two writes, one of which waited for Save and
- * one of which did not. The comment four lines above it said the opposite in as many
- * words: *"the machine field is staged like every other machine change, so Cancel undoes
- * the switch exactly as it undoes a stepper"*. These tests are that sentence, asserted.
- *
- * THE THREE MEASURED EDGES, from the audit's own transition logs:
- *
- *   S04b  machine holds tankTemp 44 → toggle Preheat off → `POST
- *         /api/v1/store/decal/tankTempWhenOn` body 44 fires AT ONCE → Cancel → the machine
- *         still holds 44, the switch redraws true, and the kv store still holds 44.
- *   S04c  step 44 → 47 (staged, zero requests) → toggle off → the kv write carries **47**
- *         → Cancel → the machine holds 44, the row redraws 44, and the memory holds a 47
- *         the machine was never given. That 47 is what the next "switch on" restores.
- *   S03c  no control anywhere hands the storage router a null, so the key can never be
- *         removed again. That half is DEFERRED to Ben (MORNING_REPORT) and is not asserted
- *         here — this file is the Cancel half only.
- *
- * WHAT IS NOT FIXED HERE, said plainly so a reader does not go looking: the restore ladder
- * still consults `STORED_DEFAULTS` before the machine's own held setpoint (the
- * 70-overwritten-by-60 case, S03), and the three keys are still write-only from the UI
- * (S03c). Both are design calls and are Ben's; FIXPLAN §1 defers them.
- *
- * BOTH WERE SETTLED ON 30 AUGUST 2026 (Ben's decision D09) and are asserted in
- * `test/settings-zero-switch-memory.test.mjs`. The paragraph above is left standing because
- * it is the record of what this file's own scope was; nothing in it describes this file's
- * assertions, all of which are unchanged and all of which still pass.
- *
- * A pure test over the real stores — the real storage router, the real settings store, a
- * memory backend — so "it reaches the kv layer" is exercised rather than mocked.
- */
+
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -151,10 +109,6 @@ describe('F-049 — a master switch commits on Save and discards on Cancel', () 
         /* THE ASSERTION THE FINDING IS FOR: "Cancel returns the machine, the row and the
          * switch to where they were and LEAVES THAT WRITE STANDING." It does not now. */
         assert.deepEqual(kvWrites(kv), [], 'and nothing was ever written to be left standing');
-        /* ASSERTED ON THE BACKEND, NOT ON `settings.value`: the settings store answers a
-         * shipped default (`STORED_DEFAULTS`) for an unset key, so `value()` is never
-         * `undefined` and cannot tell "nothing stored" from "stored". The kv layer's own
-         * map can. */
         assert.equal(kv.data.size, 0, 'the kv layer holds nothing, because nothing was committed');
     });
 
@@ -176,9 +130,6 @@ describe('F-049 — a master switch commits on Save and discards on Cancel', () 
 
     test('S04c: the ghost 47 is unrepresentable — a discarded edit is not remembered', async () => {
         const { model, kv, settings } = await opened();
-        /* THE AUDIT'S OWN SEQUENCE. Step the tank heater 44 → 47 (staged, zero requests),
-         * toggle the switch off — the old code's kv write carried the STAGED 47 — then
-         * Cancel. The machine holds 44 throughout. */
         const temp = rowById(model, 'machine-water-tank', 'machine-water-tank-temp');
         assert.ok(temp, 'the tank temperature stepper must exist');
         await model.set(temp.row, 47);
@@ -206,8 +157,6 @@ describe('F-049 — a master switch commits on Save and discards on Cancel', () 
 
         assert.equal(result.ok, false);
         assert.equal(result.wrote, 0);
-        /* A MEMORY OF A STATE THE MACHINE IS NOT IN is the same fault by another route:
-         * the machine still heats the tank and the store says it was switched off at 44. */
         assert.deepEqual(kvWrites(kv), []);
         assert.equal(kv.data.size, 0);
         assert.equal(model.changeCount, 1, 'both halves stay staged, so nothing is lost');
@@ -289,19 +238,6 @@ describe('F-049 — a master switch commits on Save and discards on Cancel', () 
     });
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * F-046 — AN UNROUNDED FLOAT PRINTED TO THE USER
- *
- * Measured on the tablet: the skin sent `{"heaterPh1Flow":4.1}`, ReaPrime stored
- * `4.1000000000000005`, and the row printed **`4.1000000000000005mL/s`**. The read path
- * did no rounding at all, and `ui-stepper`'s own display rule — "never fewer digits than
- * the value actually has" — is right for a component that knows nothing about the
- * quantity and wrong for seventeen digits of float residue.
- *
- * THE PRECISION IS THE ROW'S OWN STEP, which is the rule the WRITE path has always used:
- * `machine-limits.js`'s `step()` ends in `Number((current + delta).toFixed(decimals))`.
- * ═══════════════════════════════════════════════════════════════════════ */
-
 describe('F-046 — the read path rounds to the row\'s own step precision', () => {
     const advanced = async (served) => {
         const rig = harness({ document: { ...MACHINE_DOCUMENT, ...served } });
@@ -328,9 +264,6 @@ describe('F-046 — the read path rounds to the row\'s own step precision', () =
     });
 
     test('it rounds to the step\'s DECIMALS, never to its multiples', async () => {
-        /* THE CASE THAT WOULD MAKE THIS FIX A BUG. `appFlowMultiplier` steps by 0.05; a
-         * machine holding 0.33 must go on reading 0.33 and not snap to 0.35. Rounding to
-         * a decimal COUNT removes residue and nothing else. */
         const rig = harness({ document: { ...MACHINE_DOCUMENT, volumeFlowMultiplier: 0.33 } });
         await rig.model.load('calibration-flow-multiplier');
         const row = rig.model.allRows('calibration-flow-multiplier')
@@ -365,13 +298,6 @@ describe('F-046 — the read path rounds to the row\'s own step precision', () =
     });
 });
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * F-046's TWO EXCLUSIONS — the difference between the fix and a bug.
- *
- * Both were found by an existing suite rather than reasoned out in advance, and both are
- * pinned here so a later tightening cannot quietly take them back.
- * ═══════════════════════════════════════════════════════════════════════ */
-
 describe('F-046 — what the rounding must NOT touch', () => {
     test('a STAGED edit is the user\'s own number and is drawn back untouched', async () => {
         const rig = harness({ document: { ...MACHINE_DOCUMENT, heaterPh1Flow: 4.1 } });
@@ -387,17 +313,11 @@ describe('F-046 — what the rounding must NOT touch', () => {
     });
 
     test('a CONVERTED temperature is left to its own formatter', async () => {
-        /* `boundsFor` gives every Fahrenheit face `format: tempFormatter(decimals)`, so
-         * residue never reaches the glass there — and 300 °F is 148.9 °C, a legitimately
-         * fractional Celsius on a band that steps by a whole degree. Rounding it to 149
-         * draws 300.2 °F back at somebody who typed 300. */
         const celsius = 148.88888888888889;
         const rig = harness({ document: { ...MACHINE_DOCUMENT, steamTargetTemperature: celsius } });
         await rig.model.load('machine-steam');
         const inC = rowById(rig.model, 'machine-steam', 'machine-steam-temp');
         assert.equal(inC.bounds.step, 1, 'the machine steps this band by a whole degree');
-        /* In CELSIUS the row draws the machine's own number at the step's precision — this
-         * is the F-046 rule doing its job. */
         assert.equal(inC.value, 149);
 
         await rig.settings.set('tempUnit', 'f');
@@ -408,27 +328,6 @@ describe('F-046 — what the rounding must NOT touch', () => {
             'because that face has a formatter of its own, which is why this branch exists');
     });
 });
-
-/* ═══════════════════════════════════════════════════════════════════════════
- * F-042 — THE FACE PAINTS STALE FOR SECONDS AFTER A RELOAD
- *
- * Measured on the tablet: `machine-water-tank-unit` showed **mm** on 7 of 9 immediate
- * post-reload reads while the server and the app's own router already held `"ml"`,
- * correcting at about 8 s; Accessories › Cup Warmer booted with the pre-warm switch
- * reading FALSE, a dash and disabled controls for about 4 s while the server held true and
- * 30 minutes. The finding's own words: *"The store is right; the first paint is not."*
- *
- * THE MECHANISM. `settings-store.value()` answers `defaultFor(key)` when nothing is
- * cached, and a machine field falls through to `MACHINE_FALLBACKS` — both correct once the
- * read has come back ABSENT, and both indistinguishable from a real answer while the read
- * is still in flight. A fallback and a reading had the same shape, so the page could not
- * tell them apart and neither could the person looking at it.
- *
- * THE FIX IS A QUESTION NOBODY WAS ASKING. `settings.isLoaded(key)` and the model's
- * `machineLoaded` both existed. `view.pending` is those two, put on the row; the renderer
- * paints a pending row disabled and dashed, exactly as it paints an inert one, because
- * A7's answer to "I do not know" is the same in both cases.
- * ═══════════════════════════════════════════════════════════════════════ */
 
 describe('F-042 — a source that has not answered paints pending, never a fallback', () => {
     /** A backend whose reads are held open until the test releases them. */
@@ -467,9 +366,6 @@ describe('F-042 — a source that has not answered paints pending, never a fallb
         const unitRow = () => model.allRows('machine-water-tank')
             .find((view) => view.id === 'machine-water-tank-unit');
 
-        /* THE FIRST PAINT. `value` is still the shipped default — this fix does not make
-         * the store clairvoyant — but the row now SAYS the source has not spoken, and the
-         * renderer draws that as disabled and dashed rather than as a chosen option. */
         const first = unitRow();
         assert.ok(first, 'the units bank must exist');
         assert.equal(first.pending, true,
@@ -486,9 +382,6 @@ describe('F-042 — a source that has not answered paints pending, never a fallb
     });
 
     test('a machine row is pending until the DOCUMENT has answered, not until it is asked', async () => {
-        /* `machineLoaded` was set BEFORE the await — the once-a-session latch that
-         * `inFlightMachineRead` replaced — so it meant "asked". The cup warmer's four-second
-         * false switch is that flag being consulted a read too early. */
         let release = null;
         const held = new Promise((resolve) => { release = resolve; });
         const backends = {

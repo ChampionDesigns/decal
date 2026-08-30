@@ -1,15 +1,4 @@
-// The dead-name scan: an executing check that no module in Decal READS a name ReaPrime
-// deleted — the rule the whole address layer exists to enforce (A7).
-//
-// It ships with a canary and a clean control, because every guard failure recorded in this
-// project was a guard that had quietly stopped covering its target. `reads-dead-name.js`
-// must fail the scan; `clean-control.js` — which names every dead key in PROSE — must
-// pass it, since a comment-blind scanner produces a false positive, a false positive earns
-// an exemption, and an exemption is how coverage dies.
-//
-// THE ONE DECLARED HOME is src/data/rea-names.js. The rule is not "rea-names.js is exempt"
-// but "exactly one file may contain these, and it must be that one, and it must contain
-// them all" — so the check cannot go vacuous by the table being emptied.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -20,11 +9,6 @@ import { DEAD_NAMES_GLOBAL } from '../src/data/rea-names.js';
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const DECLARED_HOME = 'src/data/rea-names.js';
 
-/**
- * A per-character mask of "this character is inside a comment", tracking JavaScript
- * lexical state: line comments, block comments, the three string forms, and escapes.
- * Nested template interpolations are treated as code, which is what they are.
- */
 function commentMask(source) {
     const mask = new Uint8Array(source.length);
     let state = 'code';

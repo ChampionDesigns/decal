@@ -1,50 +1,5 @@
 /**
- * plot-surface.render.test.mjs — GATE 5's executing test.
- *
- * The gate row says it in one line: "`uplot-plot.js` (successor) is 'The biggest gap' —
- * text-scan coverage only, nothing executes it, and it needs an executing test". A
- * text scan is exactly the coverage that cannot see the defect the port exists to
- * kill, because the defect is invisible to a screenshot as well:
- *
- *   RULE 1 (Part 8 §3). The vendor stylesheet must be adopted into THIS shadow root
- *   before `new uPlot(...)`. The spike measured what forgetting costs: the canvas is
- *   PIXEL-IDENTICAL to the control — 0 of 648,000 pixels differ at dsf 1.5 — while
- *   `.uplot canvas` lays out at its ATTRIBUTE size, round(css x pxRatio), and overflows
- *   its card by 450 px at the bench tablet's dpr, with `.u-cursor-x` computing to
- *   `position: static; height: 0`.
- *
- * So the two discriminators are GEOMETRY and `.u-cursor-x`, and every one of them is
- * asserted against `<plot-fixture-canary>` as well — the canary declines the sheet on
- * purpose, and an assertion that cannot tell it from a healthy chart proves nothing
- * (Gate C's rule: every guard ships with a canary that fires).
- *
- * WHAT IS NOT A DISCRIMINATOR, and is asserted so it stays retracted: INPUT LIVENESS.
- * The wave-0a spike first read mount-C as "dead to input"; that was a harness hit-test
- * artifact and was withdrawn (cursor alive at both dpr, idx 743). The pointer sweep
- * below is therefore a POSITIVE liveness assertion on both fixtures — the healthy plot
- * and the unsheeted one are both hit-testable, and anyone re-deriving "dead to input"
- * from this suite has to delete a passing test to do it.
- *
- * The rest is the five things the surface owns: Rule 2's measured font probe, A6's
- * channel tokens reaching PAINTED PIXELS, the range persisting across the rebuild a
- * retheme forces, the render scheduler, and the mount ORDERS a store-fed chart arrives
- * in — which is where two shipped defects lived (an unhandled rejection when the
- * channels came after the element, and a `ready` promise that resolved false before it
- * meant anything).
- *
- * TWO THINGS THIS SUITE USED TO PASS OVER ENTIRELY, both silent by construction:
- *
- *   THE Y SCALES (§7). Nothing here read `raw.scales`, so a scale ranged null/null —
- *   which draws no axis and raises nothing — was invisible. A function-valued `range`
- *   reached uPlot double-wrapped; the left axis survived only because `#draw()` follows
- *   every `setData` with an explicit `setScale('y')`, and y2, which nothing rescues, did
- *   not. §7 also pins the FIXED-RANGE ESCAPE `yScaleSpec()` documents, which had no
- *   branch in the class at all.
- *
- *   THE COORDINATE RE-VERIFY (§2). Two fixtures ship with uPlot's own cursor ON, and
- *   Part 10 §12 makes enabling it without re-verifying the coordinate maths a MUST NOT.
- *   The re-verify had never been run: the suite read `.u-cursor-x`'s computed style and
- *   nothing read `cursor.idx`, `cursor.left` or `posToVal`. It is now an executing test.
+ * GATE 5's executing test.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -115,10 +70,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. RULE 1 — the sheet is in THIS root, and the canvas fits
-         * ============================================================== */
-
         test('the vendor sheet is adopted into this shadow root before the plot exists', () => mounted(async (page) => {
             const ready = await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             assert.equal(ready, true, 'the mount must complete');
@@ -154,13 +105,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the ATTRIBUTE size is the backing store, and it is css × this plot\'s ratio', 2);
         }));
 
-        /**
-         * `cssOverAsked` is the spike's own name for the mount signature's strongest
-         * single number — the canvas's CSS box over the size its host asked for. 1.0
-         * with the sheet; the DEVICE PIXEL RATIO without it, because `.uplot canvas {
-         * width: 100%; height: 100% }` is the rule that stops the element laying out at
-         * its attribute size, and a DOCUMENT sheet does not cross a shadow boundary.
-         */
         const cssOverAsked = async (page, id) => {
             const host = await page.box(`#${id} >>> .plot`);
             const canvas = await page.box(`#${id} >>> canvas`);
@@ -252,10 +196,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ================================================================
-         * 2. INPUT LIVENESS — positive, and NOT a Rule 1 discriminator
-         * ============================================================== */
-
         test('a pointer sweep across the plot is live — on the healthy chart AND the canary', () => {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(`${stage('plot-fixture', 'p')}${stage('plot-fixture-canary', 'c')}`, MODULE);
@@ -285,25 +225,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /**
-         * THE COORDINATE RE-VERIFY (Part 10 §12 MUST NOT: "enabling uPlot's own cursor
-         * without the coordinate re-verify"; LAYOUT_SPEC_DRAFT §6.3, the one vendor path
-         * mixing `getBoundingClientRect()` with `clientWidth`).
-         *
-         * `<plot-fixture-cursor>` has shipped with uPlot's cursor ON since the port and
-         * the re-verify had never been RUN — the suite read `.u-cursor-x`'s computed style
-         * and nothing anywhere read `cursor.idx`, `cursor.left` or `posToVal`, which are
-         * the three numbers the mix could corrupt. The sweep in section 2 is a DOM
-         * liveness count on the fixture's own listener at fixtures whose `cursorSpec()` is
-         * `{show: false}`; it can say the plot is hit-testable and nothing about uPlot's
-         * coordinate mapping.
-         *
-         * So: five real CDP moves across the plotting area, at both Gate A geometries,
-         * asserting the mapping end to end — `cursor.left` is the pointer's x inside
-         * `.u-over`, `posToVal` is linear in it, and `idx` is the nearest sample. Same
-         * numbers at dsf 1.5 and dsf 1; if the two coordinate spaces disagreed, dpr 1.5 is
-         * where it would show first.
-         */
         test('COORDINATE RE-VERIFY: uPlot\'s cursor maps pointer x to value and index, identically at both ratios', () => {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(stage('plot-fixture-cursor', 'ok'), MODULE);
@@ -341,9 +262,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `evenly spaced pointer moves must give evenly spaced cursor positions, got ${JSON.stringify(gaps)}`,
                     1.5);
 
-                /* dpr-INVARIANCE. The stage is 760 CSS px at both geometries, so the
-                 * expected numbers are the same at dsf 1.5 and dsf 1 — this describe block
-                 * runs at both and asserts the identical tuple, which is the invariance. */
                 assert.deepEqual(rows.map((r) => Math.round(r.left)), [56, 183, 310, 436, 563],
                     'the CSS-space cursor positions do not move with the device pixel ratio');
                 assert.deepEqual(rows.map((r) => r.idx), [5, 17, 29, 41, 53],
@@ -351,10 +269,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(page.pageErrors, []);
             });
         });
-
-        /* ================================================================
-         * 3. RULE 2 — the font, MEASURED rather than asked
-         * ============================================================== */
 
         test('the axis family is registered, measured against a family nothing can resolve', () => mounted(async (page) => {
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
@@ -370,13 +284,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('RULE 2 GATE: the face is LOADED before the first paint, so check() is true and the chain paints in it', () => mounted(async (page) => {
-            /* Awaiting `document.fonts.ready` is not a gate. CSS font loading is lazy —
-             * a face nobody has rendered with is never requested and `ready` resolves
-             * anyway — and canvas does not trigger a load either, it silently falls
-             * through the chain. MEASURED with `ready` alone: face status `loading`,
-             * `20px "Geist"` at 105.00 (the width of a family that does not exist) and
-             * the labels painted in system-ui at 119.76. The mount now loads the primary
-             * family explicitly, and these three are what that buys. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const probe = await page.evalFn((s) => window.__h.need(s).axisFontProbe(), '#p');
 
@@ -393,10 +300,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('THE RULE 2 CANARY: an absent family is caught by the primary measurement and MISSED by the chain', () => mounted(async (page) => {
-            /* Gate C's rule: a guard ships with a canary that fires. This one also pins
-             * the false positive the probe was corrected out of — measuring the whole
-             * fallback CHAIN cannot see an absent family, because a chain always
-             * resolves to something. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             await page.setToken('--ui-font-family', '"Decal No Such Face", system-ui, sans-serif');
             await page.settle(2);
@@ -421,12 +324,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('THE GATE\'S CANARY: check() is FALSE for a declared face nobody loaded — the defect it closes', () => mounted(async (page) => {
-            /* The other half of check()'s meaning, and the half that matters. A face the
-             * document DECLARES but nothing has rendered with is never requested — CSS
-             * font loading is lazy — so `document.fonts.ready` resolves with it still
-             * unloaded, and canvas paints the next family in the chain. This builds
-             * exactly that state deterministically, so the GATE test above is asserting
-             * on something that can fail. */
             const out = await page.eval(`(async () => {
                 const face = new FontFace('Decal Probe Face', 'url(/fonts/Geist-Variable.ttf)');
                 document.fonts.add(face);
@@ -454,10 +351,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(out.after.check, true, 'after an explicit load, both readings flip');
             assert.notEqual(out.after.width, out.bogus);
         }));
-
-        /* ================================================================
-         * 4. A6 — CSS is the single source for chart colour, to the PIXEL
-         * ============================================================== */
 
         test('a channel token drill reaches painted pixels', () => mounted(async (page) => {
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
@@ -495,11 +388,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('every channel styles/chart-channels.css declares reaches the plot through this host', () => mounted(async (page) => {
-            /* A6's other half. The drill above proves ONE token reaches painted pixels;
-             * this proves the whole sheet arrives — a chart whose palette half-landed
-             * paints invisible traces, and no screenshot gate can tell that from a
-             * quantity the machine never reported. The list comes from the module, so a
-             * channel added to one and not the other fails here. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const got = await page.eval(`(async () => {
                 const { CHANNELS, SURFACE_PARTS } = await import('/src/lib/chart-tokens.js');
@@ -527,10 +415,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a data-theme flip rebuilds from the new surface tokens and keeps the shot (A6 + salvage 3)', () => mounted(async (page) => {
-            /* The token drill covers the inline-style road into the palette; this is the
-             * one a real retheme takes. Both matter: `refreshPalette` watches three
-             * attributes, and a palette that notices only one of them goes stale in the
-             * case nobody tested. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             await load(page);
             const before = await report(page);
@@ -569,17 +453,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(after.hasPlot, true);
         }));
 
-        /* ================================================================
-         * 5. THE MOUNT ORDERS — where two shipped defects lived
-         * ============================================================== */
-
         test('ORDER: awaiting ready BEFORE the first update waits for the real mount', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* `stage.appendChild(el); await el.ready` is the shape "await ready then
-                 * draw" is written as. It used to hand back Promise.resolve(false) —
-                 * measured at buildCount 0, sheetAdopted FALSE — which is indistinguishable
-                 * from a real Rule 1 failure, and Rule 1's failure is invisible by
-                 * construction. An early resolve here IS how a broken chart ships. */
                 await page.mount('<div id="stage" style="inline-size: 700px; block-size: 280px"></div>', MODULE);
                 const got = await page.eval(`(async () => {
                     const el = document.createElement('plot-fixture');
@@ -600,10 +475,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('ORDER: channels set AFTER the element is connected — the store-fed order', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* Append the element, set the channels when the shot opens. This threw
-                 * 'createPlot: spec.series is empty' out of the mount as an UNHANDLED
-                 * REJECTION and left a mounted element with no plot, no adopted sheet and
-                 * nothing the consumer could read. */
                 await page.mount(stage('plot-fixture-late', 'late'), MODULE);
                 const mid = await page.eval(`(async () => {
                     const el = document.getElementById('late');
@@ -665,10 +536,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, [], 'and clearing must not throw either');
         }));
 
-        /* ================================================================
-         * 6. THE GUARDS THEMSELVES — createPlot's own refusals
-         * ============================================================== */
-
         test('createPlot refuses an empty series list, which is why the build waits', () => mounted(async (page) => {
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const message = await page.eval(`(async () => {
@@ -727,13 +594,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a failed adoption that does NOT declare the waiver fails the mount instead of building', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* `allowMissingStyles` "exists for ONE caller" (uplot-plot.js). The mount
-                 * used to derive it from `!adopted`, so the flag reserved for the canary
-                 * was handed to any production path whose fetch or adoption went wrong:
-                 * the chart mounted, reported ready true, and differed from a healthy one
-                 * only in `sheetAdopted` — while Rule 1's failure is invisible by
-                 * construction. The waiver is now a DECLARATION, and this is the subject
-                 * that fails without one. */
                 await page.mount(stage('plot-fixture-unsheeted', 'u'), MODULE);
                 const ready = await page.evalFn(async (s) => window.__h.need(s).ready, '#u');
                 assert.equal(ready, false, 'a chart with no vendor sheet must not report a finished mount');
@@ -768,11 +628,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the channel palette guard is STRICT even when Rule 1 is waived', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* One flag used to do two unrelated jobs: skip assertPlotStyles AND flip
-                 * resolveChannels to non-strict. But --ui-channel-* reach the host through
-                 * styles/chart-channels.css, a DOCUMENT sheet with nothing to do with
-                 * vendor/uPlot.min.css, so an eighteen-channel palette failure was being
-                 * silenced by an unrelated condition. */
                 await page.mount(stage('plot-fixture-canary', 'c'), MODULE);
                 await page.evalFn(async (s) => window.__h.need(s).ready, '#c');
                 const out = await page.eval(`(() => {
@@ -792,16 +647,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ================================================================
-         * 7. THE Y SCALES — what uPlot was actually ranged to
-         * ============================================================== */
-
         test('a function-valued range and the array it returns give uPlot the SAME scale', () => mounted(async (page) => {
-            /* `createPlot` used to wrap the caller's `range` in another arrow, so uPlot's
-             * `range()` returned A FUNCTION and `wsc.min = minMax[0]` read `undefined` off
-             * it. MEASURED against this vendor build: array -> {min: 0, max: 7}; the same
-             * spec as `() => [0, 7]` -> {min: null, max: null}, with zero page errors.
-             * `PlotSurfaceElement.yScaleSpec()` returns exactly the function form. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const got = await page.eval(`(async () => {
                 const { createPlot } = await import('/src/components/uplot-plot.js');
@@ -860,12 +706,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('THE DOUBLE-WRAP CANARY: one extra arrow ranges the scale to null/null, silently', () => mounted(async (page) => {
-            /* Gate C's rule: every guard ships with a canary that fires. The assertion
-             * above is only worth anything if the shape it forbids really does fail, so
-             * this puts the OLD wrapping back — through the SAME createPlot path, with the
-             * extra arrow supplied by the caller instead of by the component. A range that
-             * returns a FUNCTION is what uPlot used to be handed for every function-valued
-             * `yScale.range`, and `PlotSurfaceElement.yScaleSpec()` returns exactly one. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const got = await page.eval(`(async () => {
                 const { createPlot } = await import('/src/components/uplot-plot.js');
@@ -905,9 +745,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a two-scale surface comes up with a RANGED right-hand axis', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* The steam view's shape, through the real surface. `#draw()` calls
-                 * `setScale('y')` every frame and never `setScale('y2')`, so if the
-                 * construction-time range does not land there is nothing to put it back. */
                 await page.mount(stage('plot-fixture-two', 't'), MODULE);
                 await page.evalFn(async (s) => window.__h.need(s).ready, '#t');
                 await load(page, 't');
@@ -925,12 +762,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('THE FIXED-RANGE ESCAPE: a subclass\'s own band survives the frame, and no damped ceiling is computed', () => {
             return browser.withPage({ geometry }, async (page) => {
-                /* `yScaleSpec()` has documented this since the port — "a temperature plot
-                 * passes a fixed range from computeTempRange, and a plot with a fixed range
-                 * gets no damped ceiling" — and there was no such branch: `#draw()` ran
-                 * computeDampedYMax and setScale('y', [0, yMax]) unconditionally, so a
-                 * temperature plot would have got [0, dampedMax] with its 88-95 °C band
-                 * crushed into the top inch. computeTempRange had no consumer at all. */
                 await page.mount(stage('plot-fixture-temp', 'tc'), MODULE);
                 await page.evalFn(async (s) => window.__h.need(s).ready, '#tc');
                 await load(page, 'tc');
@@ -950,10 +781,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(page.pageErrors, []);
             });
         });
-
-        /* ================================================================
-         * 8. GEOMETRY AND THE DAMPED CEILING, from tokens
-         * ============================================================== */
 
         test('the plot host carries no padding of its own (§6.1 rule 1)', () => mounted(async (page) => {
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
@@ -991,16 +818,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(eased2, spike - 4, 'and again on the next draw');
         }));
 
-        /* ================================================================
-         * 9. THE RENDER SCHEDULER, WIRED — not the unit, the wiring
-         * ============================================================== */
-
         test('THE SCHEDULER: ten records in one turn cost ONE paint, on a frame', () => mounted(async (page) => {
-            /* `chart-render-scheduler.js` has its own unit suite; what that cannot see is
-             * whether this surface is actually ON it. The socket feed arrives at ~10 Hz
-             * in bursts and the render budget is 15 Hz (Part 3 §2), so N appends inside
-             * one turn must cost one paint and at most one draw may be in flight — a
-             * slower tablet must not be able to build a draw queue. */
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const got = await page.eval(`(async () => {
                 const { CHANNELS, makeRecords } = await import('/tools/fixtures/plot-surface-fixture.js');

@@ -1,25 +1,5 @@
 /**
- * settings-contract.test.mjs — the contract check as a BUILD activity
- * (wave 5.4, item contract-check-settings-endpoints).
- *
- * SCOPE Part 5 preamble: "contract checking is a build activity. Every endpoint a screen
- * calls gets its path, verb, request body and response shape checked against the ReaPrime
- * handler *as it is written*, at the moment the screen is built." Part 3 §7: "the handler
- * source open in the next pane, not a doc, not memory, not the old skin."
- *
- * So this suite reads ReaPrime's handler files out of the PINNED worktree and asserts the
- * table's rows against the bytes — not against `rest_v1.yml`, not against the generated
- * client, and not against what the old skin believed. Where the spec and the handler
- * disagree the handler wins, and two of those disagreements are asserted here explicitly so
- * that "the generated client says 204" can never quietly become the answer.
- *
- * The routes in scope are the ones the settings screen touches: the four KV store routes,
- * /machine/ledStrip x4, GET+PUT /machine/scaleCalibration, POST /machine/shotSettings and
- * GET /machine/capabilities. Eleven REST routes, plus the shotSettings socket.
- *
- * D7's warning governs: "no finding in any audit document, including a correction,
- * including this file, is acted on without opening both sides first." Every assertion below
- * quotes something this suite reads at run time.
+ * The contract check as a BUILD activity (.4, item contract-check-settings-endpoints).
  */
 
 import { test, describe } from 'node:test';
@@ -91,8 +71,6 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
     });
 
     test('THERE IS NO ROUTE THAT LISTS NAMESPACES', () => {
-        // Part 3 §5 states it; this is the assertion behind the sentence. The only
-        // namespace-shaped path takes a <namespace> parameter, so nothing enumerates them.
         assert.doesNotMatch(kv, /'\/api\/v1\/store'/);
         assert.ok(!TABLE.rest.some((r) => r.path === '/api/v1/store'), 'a namespace-list row appeared');
     });
@@ -104,8 +82,6 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
     });
 
     test('the null-body hole is still in the handler, and the row still names it', () => {
-        // `jsonDecode('null')` is null, so `maybeJson ?? value` falls through to the RAW
-        // BODY STRING and the store holds the four characters 'null'.
         assert.match(kv, /final maybeJson = jsonDecode\(value\);/);
         assert.match(kv, /value: maybeJson \?\? value,/);
         const gates = row('postStoreByNamespaceByKey').gates.map((g) => g.kind);
@@ -113,9 +89,6 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
     });
 
     test('jsonDecode sits OUTSIDE any try and BEFORE the null guard — an undecodable body is a 500', () => {
-        // The finding this wave adds. The three de1handler write routes all wrap
-        // jsonDecode in a try and answer 400; the KV handler does not, and there is no
-        // error middleware to reshape the escape.
         const post = kv.slice(kv.indexOf("app.post('/api/v1/store/<namespace>/<key>'"));
         const decodeAt = post.indexOf('jsonDecode(value)');
         const guardAt = post.indexOf('Missing namespace or key');
@@ -144,9 +117,6 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
     });
 
     test('THE HANDLER WINS over the generated client where they disagree', () => {
-        // Recorded, not worked around: the generator reads rest_v1.yml, and the spec is
-        // wrong twice on this route family. A future reader who trusts the generated
-        // statuses would build a client that treats every successful write as a failure.
         assert.equal(generated.postStoreByNamespaceByKey.successStatus, '204');
         assert.match(row('postStoreByNamespaceByKey').responseShape, /200/, 'the row must follow the handler, not the spec');
         assert.ok(generated.getStoreByNamespaceByKey.statuses.includes('404'));
@@ -165,9 +135,6 @@ describe('2. /machine/ledStrip x4 — de1handler.dart:186,:202,:221,:230', () =>
     });
 
     test('THERE IS NO /preview AND NO /preview/clear — CB BUG 3', () => {
-        // The old skin posted both and swallowed the 404s, so every wheel drag fired a
-        // request that never landed. D7 ships the preview through PUT, and this is the
-        // assertion that keeps the dead paths dead.
         assert.doesNotMatch(de1, /ledStrip\/preview/);
         assert.ok(!TABLE.rest.some((r) => /ledStrip\/preview/.test(r.path)), 'a preview row appeared');
     });
@@ -180,9 +147,6 @@ describe('2. /machine/ledStrip x4 — de1handler.dart:186,:202,:221,:230', () =>
     });
 
     test('a body-less 202 is a real trap and the row says so', () => {
-        // jsonAccepted() with no argument sets `body: null` while still sending
-        // Content-Type: application/json. A caller doing response.json() on it throws on
-        // an empty body — the same class as CB BUG 4 (.json() over an NDJSON stream).
         const helpers = readReaFile('lib/src/services/webserver/json_response.dart').text;
         assert.match(helpers, /Response jsonAccepted\(\[Object\? data\]\) => Response\(\s*202,\s*body: data != null \? jsonEncode\(data\) : null,/);
     });
@@ -223,11 +187,6 @@ describe('3. /machine/scaleCalibration — GET :244, PUT :253', () => {
         assert.match(row('putMachineScaleCalibration').responseShape, /409 \{status:'rejected'/);
     });
 
-    // There is deliberately no further test in this block. The wave's F3 carve-out reads
-    // "no code, no branch, no plan doc, no placeholder control, no disabled button, no TODO
-    // that implies a shape, no test naming one" — and a test asserting the absence of a
-    // particular spelling still names it and still implies a shape. The hole is recorded in
-    // deferred_questions, which is the single sanctioned deliverable, and nowhere else.
 });
 
 describe('4. POST /machine/shotSettings — de1handler.dart:36, :716-733', () => {
@@ -275,9 +234,6 @@ describe('5. /machine/capabilities — A3, and the fail-closed consequence', () 
     });
 
     test('WITH NO MACHINE the answer is 500 with a Dart stack, not 404 and not 503', () => {
-        // Recorded because it decides the fail-closed mapping: a 500 must become UNKNOWN,
-        // never []. withDe1 maps only MachineReplacementTimeoutException; a
-        // DeviceNotConnectedException falls to the generic catch.
         assert.match(de1, /Future<Response> withDe1\(Future<Response> Function\(De1Interface\) call\) async \{\s*try \{\s*var de1 = _controller\.connectedDe1\(\);/);
         assert.match(de1, /\} catch \(e, st\) \{\s*return jsonError\(\{'error': e\.toString\(\), 'st': st\.toString\(\)\}\);/);
         const controller = readReaFile('lib/src/controllers/de1_controller.dart').text;
@@ -302,13 +258,6 @@ describe('5. /machine/capabilities — A3, and the fail-closed consequence', () 
     });
 });
 
-/* THE SAMPLE KEY IN THIS SECTION IS `waterTankUnit`, AND IT WAS `steamStopMode` UNTIL
- * 27 AUGUST 2026. That row is retired: the Live rail derives the steam stop mode from the
- * machine's own fields now instead of keeping a copy, so nothing reads the key and a
- * `layer: 'none'` row makes the router throw on it. Every use below was as "a key the
- * routing table sends to the KV layer" — the tank's display unit is one, and what is being
- * checked (the mock's 200-with-a-body write, its 503 miss, and how each surfaces) is
- * unchanged. */
 describe('6. the mock — a KV round trip, including the failure path', () => {
     let server;
     let base;
@@ -331,10 +280,6 @@ describe('6. the mock — a KV round trip, including the failure path', () => {
     });
 
     test('THE READ STILL MISSES — the mock is a replay, not a store', async () => {
-        // Not a defect: mock_rea is a recording replay, writes never persist, and there is
-        // NO `decal` recording at all (the only store fixtures are under the old `slate`
-        // namespace, which A9/A10 forbid this skin from using). A settings leaf must
-        // therefore render its ABSENT state against the mock rather than a value.
         const response = await fetch(`${base}/api/v1/store/decal/waterTankUnit`);
         assert.equal(response.status, 503, 'a miss must be 503, ReaPrime uses 404 for feature-absent');
     });
@@ -353,8 +298,6 @@ describe('6. the mock — a KV round trip, including the failure path', () => {
         const router = createStorageRouter({ backends: { [LAYERS.kv]: kvBackend } });
         // Read: absent, never a throw that takes a screen down.
         assert.equal(await router.get('waterTankUnit'), undefined);
-        // Write: the mock accepts it, so this reports true; the assertion that matters is
-        // that the router reports the OUTCOME rather than assuming success.
         assert.equal(typeof await router.set('waterTankUnit', 'mL'), 'boolean');
     });
 

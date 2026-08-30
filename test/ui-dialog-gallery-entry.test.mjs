@@ -1,19 +1,5 @@
 /**
- * ui-dialog-gallery-entry.test.mjs — the wave-3 #18 gallery entry, checked against the
- * contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array and
- * the run's rule is whole-file writes; N builders appending to it in parallel is N−1
- * entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the wave's
- * reviewer wires them in serially. This file is what makes that hand-off safe: it asserts
- * the shape the gallery needs BEFORE the wiring, so a malformed entry is a red test here
- * rather than a battery photographing an empty stage.
- *
- * `test/render/ui-dialog.render.test.mjs` takes the other half — it mounts every state in
- * a real browser at both Gate A geometries and checks each one is OPEN and has a card big
- * enough to photograph, which for this component is the failure that matters: a dialog
- * that mounts closed is `display: none` and the battery would record a blank stage with
- * no error anywhere.
+ * The wave-3 #18 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';

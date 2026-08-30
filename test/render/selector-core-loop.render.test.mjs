@@ -1,30 +1,5 @@
 /**
- * selector-core-loop.render.test.mjs — wave 5.3, the core-loop-and-REST cluster:
- * `sel-core-loop`, `sel-highlight-by-id`, `sel-restore-to-factory`,
- * `sel-versions-entry-point`, `sel-refusal-surfacing`, `sel-components`,
- * `sel-contract-table`, `bug-P6-list-row-built-once`, `bug-P8-confirm-primary`,
- * `bug-P12-real-listbox`, `bug-P4-hit-floor-one-owner`,
- * `bug-chartC3-unpadded-preview-host`.
- *
- * THE MOCK IS THE DATA, AND THE APP IS THE APP. `tools/mock_rea.py` serves its recorded
- * 147-record listing, its workflow report and its favourites map over a real socket on an
- * ephemeral port; `createAppBoot` builds the real transport against it; the real store,
- * the real rules module and the real adapters run in between. What is scripted is named
- * in `test/fixtures/selector-loop-fixture.js` and is only what the mock cannot answer:
- * the arm-time REFUSAL, the restore (a typed success body the mock refuses to invent),
- * and the lineage (no recording exists).
- *
- * BOTH GATE A GEOMETRIES. The loop is the same loop at both; what differs is the box it
- * runs in, which is why the numbers are recorded per geometry.
- *
- * THE MOCK IS STARTED ON AN EPHEMERAL PORT, per geometry, and torn down after. Wave 3
- * recorded browser/port contention as an intermittency hazard and the capture battery
- * owns 8080; nothing here may take it.
- *
- * ONE MOUNT PER GEOMETRY, MANY TESTS. The listing is 147 records over a real socket and
- * re-mounting it per assertion is thirty seconds of nothing; the loop's steps are ordered
- * anyway (you cannot confirm before you select). So a driver test walks the loop and the
- * assertions read what it captured — a failure then names the STEP rather than the chain.
+ *.3, the core-loop-and-REST cluster: sel-core-loop, sel-highlight-by-id, sel-restore-to-factory, sel-versions-entry-point, sel-refusal-surfacing, sel-components, sel-contract-table, bug-P6-list-row-built-once, bug-P8-confirm-primary, bug-P12-real-listbox, bug-P4-hit-floor-one-owner,….
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -110,23 +85,6 @@ async function startMock() {
     return { port, stop: () => child.kill('SIGKILL') };
 }
 
-/**
- * P13's census on THIS screen: what a CLOSED overlay still holds in the tab order.
- *
- * REACHABLE MEANS A PAINTED BOX, not `hidden` and not an attribute. A native <dialog>
- * closes to `display: none` and a `display: none` subtree has no client rect at all; the
- * old skin's DaisyUI `.modal` stand-in closes to `opacity: 0`, which paints every control
- * inside it and is exactly how the row's SIXTEEN were counted. So the question "is this
- * thing still tabbable" is answered by geometry rather than by the markup that claims it.
- *
- * IT WALKS SHADOW ROOTS, and the whole census is worthless if it stops at the first
- * boundary — `#confirm-hide` is a `display: contents` host over `<ui-dialog>` one root
- * deeper, so a light-DOM-only walk sees none of its five controls and reports a serene
- * zero. `candidates` is the guard on the guard: it counts what the walk FOUND, so a
- * regression to a shallow probe reads as nothing-found rather than as a green assertion.
- *
- * Self-contained on purpose — `page.evalFn` stringifies it, so it may close over nothing.
- */
 const P13_CENSUS = () => {
     const root = document.querySelector('selector-screen').shadowRoot;
     const FOCUSABLE = 'a[href],button,input,select,textarea,[tabindex],'
@@ -156,10 +114,6 @@ const P13_CENSUS = () => {
 /** Shut every overlay, whatever the test before this one left open. */
 const P13_SHUT = () => {
     const root = document.querySelector('selector-screen').shadowRoot;
-    /* `actions` LEFT THIS LIST on 25 August 2026: it is a <div> of three worded buttons
-     * now, not a menu ("Copy slate"), so it has no `open` and nothing to shut - and its
-     * three buttons are reachable BY DESIGN, which is what a P13 census would have called
-     * a leak. `confirm-reset` and `confirm-remove` joined it in the same change. */
     for (const id of ['confirm-hide', 'confirm-reset', 'confirm-remove', 'share-code',
         'versions', 'restore', 'add']) {
         const el = root.getElementById(id);
@@ -196,18 +150,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return run[key];
         };
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 1. THE LOOP, END TO END, AGAINST THE MOCK
-         *    list -> search -> select -> favourite -> confirm
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('DRIVE: list, search, select, favourite, confirm', async () => {
             run.loaded = await page.evalFn(() => window.__sel.state());
 
-            /* THE TREE OPENS BEFORE THE REST OF THE DRIVE, and the fold is measured on its
-             * own below. Families ship SHUT (Slate's own default, and the state that makes
-             * 91 profiles legible), so every assertion here about "the listing" would
-             * otherwise be about the handful of ungrouped rows. */
             run.foldedAtRest = await page.evalFn(() => window.__sel.optionCount());
             run.familiesAtRest = await page.evalFn(() => window.__sel.families());
             run.expandedCount = await page.evalFn(() => window.__sel.expandAll());
@@ -225,17 +170,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             run.highlight = await page.evalFn(() => window.__sel.highlight());
             run.favouritesAtRest = await page.evalFn(() => window.__sel.favourites());
 
-            /* THE CONDITIONAL READ. Nothing in the app sets a header: `/profiles` is in
-             * CONDITIONAL_ROUTES, so `rea-transport.js` stores the ETag off the first
-             * answer, sends `If-None-Match` on the next, and turns the 304 into an
-             * ordinary ok result carrying `notModified` and the STORED body. The store
-             * counts them, so "the read was conditional" is a number, not a belief.
-             *
-             * THE SERVER HALF IS SCRIPTED AND THE FINDING IS RECORDED: `tools/mock_rea.py`
-             * sends no ETag on anything, so the instrument cannot exercise a path the
-             * getProfiles row's `conditional` gate promises. The fixture's scripted answer
-             * behaves as `jsonOkConditional` does; everything on the client side of it is
-             * the shipping transport. */
             await page.evalFn((body) => window.__sel.answer(
                 'GET', '/api/v1/profiles', 200, body, 'W/"profiles-1"',
             ), FIXTURE);
@@ -255,15 +189,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             run.detail = await page.evalFn(() => window.__sel.detail());
             run.afterPick = await page.evalFn(() => window.__sel.state());
 
-            /* FAVOURITE — put the picked profile on slot 1 by pressing the disc.
-             *
-             * A PROFILE THE RAIL DOES NOT ALREADY HOLD, because the duplicate guard
-             * refuses one that does (Ben, 25 Aug 2026: "Assigning a profile already on a
-             * slot: Copy Slate"). Rule 4 seeds the rail by title, so `clickRow(0)` can
-             * land on a profile that is already seated - it did the moment the list was
-             * sorted - and the press would then be correctly refused rather than seated.
-             * `run.pickedId` stays what row 0 is, for every other assertion in this file;
-             * this picks its own subject. */
             run.assignId = await page.evalFn(() => {
                 const held = new Set(Object.values(window.__sel.rawFavourites()).filter(Boolean));
                 const free = window.__sel.rawListable().find((r) => !held.has(r.id));
@@ -288,11 +213,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             /* CONFIRM — the band's button, the dialog, and the arm. The mock answers
              * POST /machine/profile from the contract row's own success branch. */
-            /* A DELTA, NOT A TOTAL. Every favourite assignment now arms the machine too
-             * (Ben, 25 Aug 2026: "Slate's press also loads the profile onto the
-             * machine... yes do that as well"), and the two assigns above this line each
-             * send their own POST. A total would count them against Confirm and read as
-             * "Confirm sent three", which is the opposite of what this test is about. */
             const armsBefore = await page.evalFn(
                 () => window.__sel.countCalls('POST', '/api/v1/machine/profile'));
             run.confirm = await page.evalFn(() => window.__sel.confirmLoad());
@@ -354,35 +274,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'one step mark per step in the profile');
         });
 
-        /**
-         * cmp-seh-1 — THE SUMMARY STRIP'S ROSTER, AND THE PEAK TRAP UNDER IT.
-         *
-         * The finding: the strip shipped Yield / Volume / Time / Temperature where Slate
-         * paints Temp / Peak / Duration / Steps / Stop at, dropping Peak and Steps with no
-         * manifest row naming the change. Ben's roster is Slate's set minus Duration —
-         * Temp · Peak · Steps · Stop At — and his one instruction about it is "PEAK MUST BE
-         * COMPUTED CORRECTLY".
-         *
-         * THE EXPECTED READINGS ARE THE ORACLE'S OWN PAINTED TEXT, not this file's
-         * arithmetic over the record. `prov-baseline/profile-selector.json` [i=178..187]
-         * holds five label/value pairs for the same profile the mock serves, and four of
-         * them are this roster: Temp "83.5 °C", Peak "6.0 bar", Steps "3", Stop at "40 g".
-         * Recomputing them here from `record.profile` would assert that the screen agrees
-         * with a second implementation written in a test; quoting Slate's screen asserts
-         * that it agrees with the machine this skin replaces.
-         *
-         * THE TRAP IS TESTED WITH A PROFILE THAT SPRINGS IT. Slate read a non-pressure
-         * step's LIMITER as its peak (`profile-totals.js:31-33`, read-only), so a profile
-         * whose every step is flow reported its limiter — usually the machine's default
-         * 9.0 bar — as a pressure the shot would reach. "GHC/manual flow control" is that
-         * profile in the recorded listing: two flow steps, both limited at 9.0, and NOTHING
-         * in it commands a pressure at all. The right answer is the tile's own dash, and
-         * the assertion states Slate's number so the trap is named rather than assumed.
-         *
-         * AND THE ABSENCES ARE READ THROUGH #34, not off the binding — see `tiles()` in the
-         * fixture for why. A dash a person can see plus a sentence a screen reader hears is
-         * the claim; `value=""` is only its mechanism.
-         */
         test('cmp-seh-1 — the strip is Temp · Peak · Duration · Steps · Stop at, and the peak is commanded, not limited',
             async () => {
                 const ORACLE_TITLE = 'Extractamundo Dos! (2)';
@@ -392,11 +283,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(chosen, `the recorded listing carries ${ORACLE_TITLE}`);
                 const tiles = await page.evalFn(() => window.__sel.tiles());
 
-                /* DURATION CAME BACK on 25 August 2026, third of five. Ben: "Add duration
-                 * and bunch them up on the left side of the chart like Slate has done."
-                 * It had been dropped when the strip was cut to Slate's four; Slate's own
-                 * strip carries it, and the row is left-bunched rather than spread, so the
-                 * space it takes is space the strip already had. */
                 assert.deepEqual(tiles.map((tile) => tile.key),
                     ['temp', 'peak', 'duration', 'steps', 'stop-at'],
                     'five tiles, in Ben\'s order — Duration is third');
@@ -404,8 +290,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     ['Temp', 'Peak', 'Duration', 'Steps', 'Stop at'],
                     'labelled as Slate labels them, through t()');
 
-                /* THE ORACLE'S OWN STRIP, rebuilt from what each tile paints: the reading
-                 * and the unit beside it are two elements here and one span there. */
                 const painted = tiles.map(
                     (tile) => (tile.spokenUnit ? `${tile.reading} ${tile.spokenUnit}` : tile.reading),
                 );
@@ -415,7 +299,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(tiles.every((tile) => tile.absent === false),
                     'and this profile answers all five, so no tile is dashing');
 
-                /* -- THE TRAP ------------------------------------------------ */
                 const FLOW_ONLY = 'GHC/manual flow control';
                 const flowId = await page.evalFn(
                     (title) => window.__sel.selectByTitle(title), FLOW_ONLY,
@@ -445,7 +328,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(flow.steps.reading, String(flowRecord.profile.steps.length),
                     'and the step count is a count, which every profile can answer');
 
-                /* -- THE STOP TARGET THE PROFILE ACTUALLY STATES ------------- */
                 const VOLUME_STOP = 'Tea/in a basket';
                 const teaId = await page.evalFn(
                     (title) => window.__sel.selectByTitle(title), VOLUME_STOP,
@@ -469,32 +351,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(rail.length, 5, 'five slots — the bank ReaPrime\'s KV map has always had');
             assert.ok(rail.some((v) => v !== null), 'rule 4 seeded it on a first launch');
 
-            /* IT USED TO SELECT, and Ben reversed that on 23 Aug 2026: "if I select one
-             * and then press the favorite button at the bottom it should change that
-             * favorite." This screen is where the five slots are MANAGED, and what is in
-             * a slot is already one press away in the list beside it — so the press is
-             * spent on the gesture that had no home. The menu's "Add to favourites" still
-             * takes the first EMPTY slot; this is how a slot already in use gets a new
-             * profile, which is the half that was missing. */
             const after = need('favouritePick');
             assert.equal(after[0], need('assignId'),
                 'pressing slot 1 with a profile selected did not seat it there');
         });
 
         test('an empty slot is a value, and every slot is offered BY NUMBER', () => {
-            /* `profileManager.js:450` reads `index` in a loop that declares `i`, so the
-             * FIRST empty slot throws a ReferenceError and aborts the repaint. Here an
-             * empty slot is the ordinary case: it is rendered, it is cleared, and the rail
-             * goes on working around it.
-             *
-             * THE ANTI-OVERWRITE RULE CHANGED SHAPE on 25 August 2026 and got stronger.
-             * It used to be "a full rail offers no add", which protected slot 0 by removing
-             * the action; the row menu now offers all five slots by number, each labelled
-             * with the profile it currently holds ("Favourite 3 — replace Tea"). Nothing is
-             * hidden and nothing is silent: you are told which slot and what it costs
-             * before you press. That is Slate's design - "Every slot is always offered by
-             * number" - and it is why the implicit first-empty-slot action was deleted
-             * rather than re-homed. */
             const offers = need('menuSlots');
             for (const n of [1, 2, 3, 4, 5]) {
                 assert.ok(offers.includes(`assign:${n}`), `slot ${n} is offered by number`);
@@ -510,14 +372,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('confirm ARMS THE MACHINE, and asks nothing first', () => {
-            /* Ben, 24 Aug 2026 — he said it twice. 23 August: "Pressing confirm in the
-             * profile selector doesn close the page, just asks for confirmation." Half of
-             * that was fixed (the press leaves for Live) and the half named FIRST was
-             * left: a button labelled Confirm that opens a dialog asking you to confirm
-             * asks the same question twice. The old skin's own Confirm writes the workflow
-             * and returns to the Live page, with no dialog anywhere in it — and loading is
-             * reversible, which is what makes the second asking unnecessary rather than
-             * merely annoying. */
             const c = need('confirm');
             assert.equal(c.dialogOpened, false, 'no second question');
             assert.equal(need('armCalls'), 1, 'confirming sends exactly one POST /machine/profile');
@@ -530,10 +384,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         /* ═══════════════════════════════════════════════════════════════════
          * 2. P12 — A REAL LISTBOX
-         * ═════════════════════════════════════════════════════════════════ */
-
-        /* ═══════════════════════════════════════════════════════════════════
-         * 1b. THE FAMILIES FOLD (Ben, 24 August 2026)
          * ═════════════════════════════════════════════════════════════════ */
 
         test('families ship SHUT, which is what makes 91 profiles legible', () => {
@@ -558,9 +408,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('an open family draws the same seam its siblings do', async () => {
-            /* MOVED HERE FROM THE SKELETON SUITE, which used to find a `.group` in the
-             * no-boot demo. The demo renders flat now, so the only real families are the
-             * booted ones — which is where this claim belonged anyway. */
             await page.evalFn(() => window.__sel.expandAll());
             const seam = await page.evalFn(() => {
                 const root = document.querySelector('selector-screen').shadowRoot;
@@ -585,13 +432,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P12 — the tree has a tab stop and an activedescendant that resolves', () => {
             const aria = need('ariaAtRest');
-            /* A TREE SINCE WAVE 5.8, and the change is P12's own rule followed rather than
-             * bent. `role="listbox"` owns options and groups; a disclosure is neither, and
-             * the assertion below names "a folder disclosure's head row" as the failure it
-             * exists to catch. A collapsible grouped single-select list IS a tree, so
-             * folding the families made the wrapper one. Everything else P12 asks for —
-             * one tab stop, an activedescendant that resolves in the same root, no roving
-             * tabindex — is the same claim about a tree as about a listbox. */
             assert.equal(aria.role, 'tree');
             assert.equal(aria.tabindex, '0', 'ONE tab stop — the old list had none');
             assert.ok(aria.label, 'and an accessible name');
@@ -607,43 +447,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const roles = need('rolesAtRest');
             const walk = need('walkAtRest');
 
-            /* THE PROBE PIERCES, AND THAT IS ASSERTED BEFORE ANYTHING IT REPORTS IS READ.
-             * This assertion passed vacuously for a whole wave because `listboxRoles()`
-             * was one `querySelectorAll`, which does not cross a shadow boundary — so the
-             * 78 `button "More actions"` nodes each <ui-list-row> rendered INSIDE ITSELF
-             * were invisible to the exact test that exists to find them (measured with CDP
-             * Accessibility.getFullAXTree; ui-list-row.render.test.mjs:792 reads roles that
-             * way for the same reason). One shadow root per row is the floor here: a
-             * regression to a light-DOM walk reports zero and fails on this line rather
-             * than passing on the next. */
             assert.ok(walk.walked >= need('optionsAtRest'),
                 `the role walk entered ${walk.walked} shadow roots for ${need('optionsAtRest')} options — `
                 + 'a probe that does not flatten cannot see what P12 is about');
 
-            /* `button` IS ALLOWED HERE SINCE BEN'S DECISION D21 (30 August 2026), AND ONLY
-             * BY COUNT. The row-actions opener is focusable on the row
-             * aria-activedescendant names and nowhere else, so at most ONE of the 78 is a
-             * control at any moment and it moves with the arrow keys. That is not the thing
-             * P12 measured — 78 operable nodes, 79 tab stops, every option's name reading
-             * "Preinfuse then 45ml of water More actions" — it is one tab stop for the whole
-             * listing, which is what the tree already had. The COUNT is the law now, and the
-             * assertion below states it; `selector-row-actions-name.render.test.mjs` holds
-             * the rest (which row it is on, and that no row's name absorbs it).
-             *
-             * AT REST THE COUNT IS USUALLY ZERO, because families ship shut and the active
-             * node is a family row, which has no menu. The keyboard case below is what
-             * measures the state where an opener IS reachable — without it this assertion
-             * would pass by accident of the initial selection. */
             assert.ok((roles.button ?? 0) <= 1,
                 `at most one reachable row-actions opener, ever — saw ${roles.button} in ${JSON.stringify(roles)}`);
             const unexpected = Object.keys(roles)
                 .filter((r) => r !== 'treeitem' && r !== 'group' && r !== 'button');
-            /* The family caption is a <span aria-hidden="true"> inside the group and is not
-             * reported at all: the walk reports explicit roles and the IMPLICIT roles of
-             * operable elements, which is what an accessibility tree exposes and what
-             * "only options inside it" is a claim about. A <button> anywhere under here —
-             * a row's own affordance, a folder disclosure's head row — arrives as `button`
-             * and fails this. */
             assert.deepEqual(unexpected, [],
                 `§7.3 P12: non-item children inside the tree — found ${JSON.stringify(roles)}`);
             assert.ok(roles.group > 0, 'the folder families are groups, from profile-folders.js');
@@ -676,10 +487,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D21 — the row-actions opener travels with the active row, one at a time',
             async () => {
-                /* THE STATE THE CENSUS ABOVE CANNOT SEE. At rest the active node is a
-                 * family row and no opener is reachable, so "at most one button" passes
-                 * with zero and would go on passing if the roving broke. This drives the
-                 * keys onto a PROFILE row and re-measures the same walk there. */
                 await page.evalFn(() => window.__sel.key('End'));
                 const roles = await page.evalFn(() => window.__sel.listboxRoles());
                 assert.equal(roles.button ?? 0, 1,
@@ -691,9 +498,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(unexpected, [],
                     `§7.3 P12 still holds beside it — found ${JSON.stringify(roles)}`);
 
-                /* AND THE TREE'S OWN TAB STOP IS UNMOVED: no OPTION took a tabindex, which
-                 * is the activedescendant-not-roving rule this screen is built on. The
-                 * opener is inside an option, not one. */
                 const aria = await page.evalFn(() => window.__sel.listboxAria());
                 assert.equal(aria.optionsWithTabindex, 0,
                     'the rows are still addressed by aria-activedescendant');
@@ -709,18 +513,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(Object.keys(tags), ['ui-list-row'],
                 '§7.3 P6: "the profile row is implemented TWICE" needs a second implementation');
 
-            /* THE HALF THAT WENT MISSING WAS UNIFORMITY, not the affordance itself: "the
-             * affordance added to the first never reached the second". One template cannot
-             * disagree with itself, and this is that stated as a number — every option
-             * slots its own actions trigger, and no row renders a <button> of its own.
-             * The VALUE is P12's call (a real button inside a role="option" is its fourth
-             * half) and lives in #option() and #rowMenu(); what P6 pins is that the 78
-             * rows cannot diverge.
-             *
-             * UPDATED 30 August 2026, audit D11: this used to read `withNoOverflow`, the
-             * count of rows carrying the attribute that suppressed #26's built-in
-             * affordance. The affordance and the attribute are both gone, so that count
-             * would now be a uniform zero and would pass while measuring nothing. */
             const affordance = need('optionAffordance');
             assert.equal(affordance.options, tags['ui-list-row'], 'every option is a row');
             assert.equal(affordance.withButton, 0,
@@ -728,11 +520,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'trigger the screen slots is a <span>: a real <button> under a '
                 + 'role="treeitem" is P12\'s "non-option children inside the listbox"');
 
-            /* EACH CLASS IS UNIFORM AND THE TWO ARE EXHAUSTIVE — the P6 pin, and it is
-             * a stronger one than the attribute count it replaces. A folder row has no
-             * record, so it has no row menu; a profile row always has both. What P6
-             * forbids is a row that falls between them, which is what "the affordance
-             * added to the first never reached the second" actually was. */
             assert.equal(
                 affordance.profileRows + affordance.folderRows, affordance.options,
                 'every row is one of the two kinds and nothing falls between them');
@@ -768,10 +555,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('P8 — Confirm is not Cancel painted twice, in the band and in the dialog',
             async () => {
-                /* THE PAINT IS ON #1'S INNER BUTTON, not on its host: `:host([variant=
-                 * "primary"]) .btn` is where the fill lives, and a host-level read would
-                 * measure the same transparent box for both and pass P8 for the wrong
-                 * reason — which is the shape of the defect itself. */
                 const band = await page.computed(`${CONFIRM} >>> .btn`, ['background-color']);
                 const cancel = await page.computed(`${S} >>> #cancel >>> .btn`, ['background-color']);
                 assert.notEqual(band['background-color'], cancel['background-color'],
@@ -779,10 +562,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(!/rgba\(0, 0, 0, 0\)|transparent/.test(band['background-color']),
                     'and the primary variant actually paints a fill');
 
-                /* THE DIALOG HALF MOVED TO THE ONE THAT IS STILL THERE. The load confirm
-                 * is gone (24 Aug 2026 — see 'confirm ARMS THE MACHINE'); the HIDE confirm
-                 * remains, because hiding a profile the user made is not reversible from
-                 * this app. #19's tone table is what is being measured either way. */
                 await page.evalFn(async () => {
                     const screen = document.querySelector('selector-screen');
                     screen.shadowRoot.getElementById('confirm-hide').show({ reason: 'test' });
@@ -824,10 +603,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the canvas is inside the well rather than hanging out of it');
             });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 6. sel-highlight-by-id — BY ID, and the R1 fallback is marked
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('R1 — with no id in the report the highlight is the title match, MARKED provisional',
             () => {
                 const s = need('loaded');
@@ -854,10 +629,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const target = LISTABLE[3];
                 await page.evalFn((body) => window.__sel.answer('GET', '/api/v1/workflow', 200, body), {
                     ...WORKFLOW,
-                    /* R1 LANDED. The adapter's own swap branch: "the workflow report now
-                     * carries profile.id — R1 HAS LANDED, delete this adapter". The title
-                     * is deliberately WRONG here, so a title match could not produce this
-                     * answer and the id is provably what was read. */
                     profile: { ...WORKFLOW.profile, id: target.id, title: 'a title no record carries' },
                 });
                 const s = await page.evalFn(() => window.__sel.reload());
@@ -873,32 +644,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('R1 — a duplicate title is REPORTED, never resolved by picking the first',
             async () => {
-                /* THE ADAPTER MATCHES AGAINST EVERY SERVED RECORD, not the listable ones:
-                 * a loaded profile need not still be listable (deleting a bundled profile
-                 * hides it, it does not un-load it), and the fail-safe direction is to see
-                 * MORE candidates rather than fewer. Measured: 14 duplicate titles over
-                 * 84 of the 147 records, against 2 over 4 of the 78 visible ones. */
                 const counts = new Map();
                 for (const r of FIXTURE) {
                     const t = r.profile.title;
                     counts.set(t, (counts.get(t) ?? 0) + 1);
                 }
-                /* NOT THE ARMED PROFILE'S OWN TITLE, and this test used to depend on
-                 * that by accident. The store has a SECOND rule after R1: when the title
-                 * cannot decide, the MEMORY can (profile-library-store.js:436-453) - the
-                 * id this skin armed, still carrying the title the machine is running,
-                 * returned as provisional and from LOADED_SOURCE.REMEMBERED. That rule is
-                 * correct and is not "picking the first"; it is a different question
-                 * answered by a different fact.
-                 *
-                 * The core-loop step above arms whatever `clickRow(0)` picked, so if the
-                 * first duplicated title in the fixture happened to be that profile's, the
-                 * memory answered and R1's ambiguous path was never reached. It held only
-                 * while row 0 was a particular record - which stopped being true on
-                 * 25 August 2026, when Ben's "Order: copy slates order" sorted the list.
-                 *
-                 * So the duplicate is chosen to be one the memory CANNOT answer. That is
-                 * what isolates the claim this test is making. */
                 const armedTitle = await page.evalFn((id) => window.__sel.titleOf(id), need('pickedId'));
                 const dups = [...counts.entries()].filter(([, n]) => n > 1);
                 const dup = dups.find(([t]) => t !== armedTitle) ?? dups[0];
@@ -946,13 +696,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(banner.inDetailPane, true,
                     'AT THE POINT OF PICKING — beside the profile that was picked, in flow');
 
-                /* AND NOTHING #49 CANNOT CONSUME (P9). The refusal's kind reaches the
-                 * person through the server's own two sentences — "Unsupported profile"
-                 * and "Invalid profile" — and stays a VALUE on the store's state, asserted
-                 * three lines up. It used to be bound onto a `kind` attribute here as well;
-                 * ui-alert-banner declares no such property, attribute or rule (its whole
-                 * properties map is {_hasHeadline, _hasRemedy}), so that attribute painted
-                 * nothing and implied a distinction the surface never made. */
                 assert.equal(banner.kindAttr, null,
                     `the banner carries an inert kind= attribute — ${JSON.stringify(banner.attributes)}`);
                 assert.ok(!banner.attributes.includes('kind'), 'and not under any spelling');
@@ -960,34 +703,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__sel.forget('POST', '/api/v1/machine/profile'));
             });
 
-        /**
-         * WHAT THE REFUSAL COSTS THE CHART — MEASURED, RECORDED, NOT DECIDED.
-         *
-         * §4.2's give order is normative and it inverts in this state: "list and chart
-         * share the loss until the chart hits --ui-chart-min-h; then the notes cap
-         * tightens", and "The chart is never reduced to a strip". With the banner on
-         * screen the CHART pays the whole bill and the notes give nothing.
-         *
-         * THE MECHANISM, and it is a seam rather than either cluster's mistake. The banner
-         * is a sibling of the tile strip inside the single slot="summary" div, which is
-         * detail-pane grid ROW 2, an `auto` track. Row 2 grows by the banner plus a gap
-         * while the PANE'S BLOCK SIZE DOES NOT CHANGE. Row 4 is
-         * fit-content(var(--ui-selector-notes-max-share)) — a share of a box that did not
-         * shrink, so it does not tighten by one pixel — and grid fills a fit-content track
-         * to its growth limit BEFORE a flexible track gets anything (CSS Grid §12.6 before
-         * §12.7). Row 3, minmax(0, 1fr), is the only flexible track, so it absorbs
-         * everything down to zero. build:skeleton's give-order sweep shrank the STAGE,
-         * where 32% of a smaller pane genuinely does tighten; the ordering holds for every
-         * row of that table and fails the moment the loss comes from a SIBLING ROW.
-         *
-         * THIS TEST ASSERTS THE ARRANGEMENT AS IT STANDS, AND WILL FAIL WHEN IT IS FIXED —
-         * that is its job, in the same idiom as "B9's trigger" in
-         * test/live-connection-gates.test.mjs. The remedy is a design call with three
-         * costed options and it is Ben's, recorded in DEFERRED_QUESTIONS_core-loop.md §11
-         * (and in DEFERRED_QUESTIONS_skeleton.md §4, whose reversal — a definite floor on
-         * the third track — is one of the three). Whoever applies one updates this test in
-         * the same commit, and until then the number has a name instead of a belief.
-         */
         test('§4.2 GIVE ORDER, in the refusal state: the chart pays and the notes do not — DQ',
             async () => {
                 const plotFloor = px(await page.resolveToken('--ui-chart-min-h', 'block-size'));
@@ -1019,28 +734,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(shown.pane, rest.pane, 'the pane itself does not change size — the loss is internal', 1);
                 assert.ok(shown.banner > 0, 'the banner is on screen and has a box');
 
-                /* THE CHART TRACK, AND IT NOW DEPENDS ON THE SIZE. This was one claim -
-                 * "under the plot floor at both geometries", measured at 115.39px on BENCH
-                 * and 0px on FLOOR - until 25 August 2026.
-                 *
-                 * BENCH GAINED 44px THAT DAY and the defect stopped reproducing there.
-                 * Ben: "Buttons are too tall, we are using the header height buttons when
-                 * we shouldn't" and "The gap between the bottom of the header and the
-                 * functions below is too big." Both panes' first row went from
-                 * --ui-toolbar-h (120) to --ui-selector-band-h (64) and their inset from 18
-                 * to 24, which is 56 back and 12 spent. The chart track measures 186.906px
-                 * now, clear of the 160px floor.
-                 *
-                 * THE GIVE ORDER IS NOT FIXED, and that distinction is the whole point of
-                 * keeping this test. Nothing changed about WHICH box gives first; the pane
-                 * simply stopped running out at bench. FLOOR still drives the chart to 0px
-                 * with the notes at their cap, so DEFERRED_QUESTIONS_core-loop.md §11
-                 * stands - it is now reachable at one geometry instead of two.
-                 *
-                 * SO THE PIN IS PER-SIZE, and it is spelled as "either it clears the floor
-                 * or the ordering below catches it" rather than as a number per geometry:
-                 * a change that takes bench back under the floor fails on the ordering
-                 * assertion, which is the claim that actually matters. */
                 const clearsFloor = px(shown.rows[2]) >= plotFloor;
                 assert.ok(shown.card >= plotFloor,
                     `and the card is on its own floor (${shown.card}px), overflowing its track`);
@@ -1056,11 +749,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'if this now passes the floor, the give order was fixed: update this pin '
                     + 'and DEFERRED_QUESTIONS_core-loop.md §11');
 
-                /* AND THE NOTES GAVE NOTHING AT BENCH — 206.719px before and after, to the
-                 * thousandth. At FLOOR they give only what is left AFTER the chart has
-                 * reached zero, which is the inversion stated as an ordering rather than as
-                 * a pixel: the notes must never be the box still at its cap while the chart
-                 * is under its floor. */
                 const chartUnderFloorBy = plotFloor - px(shown.rows[2]);
                 const notesGave = rest.notes - shown.notes;
                 assert.ok(notesGave < chartUnderFloorBy,
@@ -1123,9 +811,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(opened.offers, RESTORABLE.length,
                     'the offer list is hidden AND isDefault AND carrying a bundle filename');
 
-                /* THE ROUND TRIP. The restore answers with the record it un-hid, and the
-                 * listing that follows carries it as VISIBLE — which is what the handler
-                 * does (existing.copyWith(visibility: visible)) and what a person sees. */
                 const first = RESTORABLE[0];
                 const restored = { ...first, visibility: 'visible' };
                 await page.evalFn((body) => window.__sel.answer(
@@ -1146,16 +831,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         test('D6 — the purge half is not on this screen', async () => {
-            /* THE PATH IS THE CLAIM, and it changed shape in wave 5.8. This screen DOES
-             * call `DELETE /api/v1/profiles/<id>` now — that is Hide, ReaPrime's SOFT
-             * delete, which sets a visibility and removes nothing. What is still deferred
-             * is `DELETE /api/v1/profiles/<id>/purge`, the one route that removes a
-             * record. So the count is of paths ENDING in /purge rather than of every
-             * DELETE, and the old spelling (every DELETE to /api/v1/profiles) would now
-             * fail for the right feature.
-             *
-             * The other half of this guarantee is `test/profile-library-store.test.mjs`,
-             * which walks src/ and fails if a call site for the purge route appears. */
             const purge = await page.evalFn(() => window.__sel.countCallsEndingIn('DELETE', '/purge'));
             assert.equal(purge, 0, 'nothing here purges; Part 1 defers the purge half');
             const controls = await page.eval(`(function () {
@@ -1170,23 +845,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * ═════════════════════════════════════════════════════════════════ */
 
         test('the loop added seven overlays and the grid still has two ITEMS', async () => {
-            /* THE CLAIM IS ABOUT GRID ITEMS, NOT DOM CHILDREN, and it was spelled as a name
-             * list until the screen grew a toast (25 August 2026, Ben's "Copy Slate" on the
-             * favourite-assignment refusals).
-             *
-             * WHAT P1 IS ABOUT is a dialog LEAKING INTO THE LAYOUT: display:none until it
-             * opens, then a third grid item that shoves the two real ones. A name list
-             * caught that, but it also catches an element that can never be a grid item at
-             * all. CSS is explicit here - an absolutely or fixed positioned child of a grid
-             * container is NOT a grid item (css-grid-2 §6) - so ui-toast, whose host is
-             * `position: fixed` (ui-toast.js:425), takes no track and moves nothing. It is
-             * the same placement editor-screen.js:981 makes, for the same reason.
-             *
-             * SO THE ASSERTION IS NOW WHAT IT ALWAYS MEANT: every top-level child either
-             * takes a track or is out of flow, and exactly two take tracks. That is
-             * strictly stronger than the name list - it would still fail on a dialog in
-             * flow, and it fails on a positioned element that quietly returned to static,
-             * which the name list could not see. */
             const items = await page.eval(`(function () {
                 var root = document.querySelector('selector-screen').shadowRoot;
                 return JSON.stringify(Array.prototype.map.call(root.children, function (c) {
@@ -1213,44 +871,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             })()`);
             const found = JSON.parse(overlays);
-            /* SIX, AND THE ROSTER MOVED TWICE. It was four on 24 Aug 2026 — confirm-hide,
-             * share-code, versions, restore; the LOAD confirm went, because a button
-             * labelled Confirm that opened a dialog asking you to confirm asked the same
-             * question twice, and the hide confirm and the share-code dialog arrived with
-             * the add doors.
-             *
-             * TWO MORE ON 25 AUG 2026, both from the detail pane's three actions (Ben:
-             * "Copy slate" on the audit's "Three buttons, or one menu"): confirm-reset for
-             * Reset, and confirm-remove for Remove-for-good, the second of which Ben asked
-             * to be built "behind a confirm that says plainly it cannot be undone".
-             *
-             * THE NUMBER IS NOT THE CLAIM; P1 is, and P1 is the assertion above: however
-             * many overlays this screen grows, the GRID still has exactly two items. This
-             * count is here so a SEVENTH arrives named rather than unnoticed. */
             assert.equal(found.dialogs, 6,
                 'six dialog surfaces: confirm-hide, confirm-reset, confirm-remove, share-code, versions, restore');
-            /* ONE SCREEN MENU, AND ONE PER ROW — and BOTH halves of that moved on
-             * 25 August 2026.
-             *
-             * THE DETAIL PANE'S OVERFLOW MENU IS GONE. Ben, on the selector audit's "Three
-             * buttons, or one menu": "Copy slate." Slate carries Hide / Reset / Edit as
-             * three worded buttons in the title row, so the menu that used to hold them is
-             * not there to count. What remains at screen level is the add menu on the list
-             * toolbar — three doors behind one menu, because they are three ways to do one
-             * thing.
-             *
-             * THE PER-ROW MENUS ARE NEW, from the same day: "add the … so that we can hide
-             * it, assign it but maybe we should also have a remove as well?" So the total
-             * is the row count plus one rather than a fixed 2.
-             *
-             * IT IS SPELLED AS ARITHMETIC, not as the 80 this fixture happens to produce:
-             * a change to the fixture's listing moves the expectation with it, and a menu
-             * that appears on something OTHER than a row still fails.
-             *
-             * IT COUNTS ROW MENUS AND NOT TREE ITEMS, because they are not the same
-             * number: 93 tree items against 79 rows that carry a menu. The difference is
-             * the FOLDER headings, which are tree items with children and no actions of
-             * their own — there is nothing to hide, reset or assign about a family. */
             assert.equal(found.screenMenus, 1, 'the add menu on the list toolbar');
             assert.ok(found.rowMenus > 0, 'the rows really do carry their own menus');
             assert.ok(found.rowMenus < found.rows,
@@ -1268,32 +890,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and the pane still does (§4.2 names two scroll regions)');
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * 11. P13 — A CLOSED OVERLAY IS OUT OF THE TAB ORDER, ON THIS SCREEN
-         *
-         * ITEMS `bug-P13-closed-dialogs-leave-tab-order`: "Today the selector's DaisyUI
-         * `.modal` stand-ins leave 16 focusables reachable inside closed dialogs. This
-         * wave inherits and VERIFIES IT ACROSS ITS FOUR DIALOGS; it does not re-build the
-         * machinery." Wave 5.2 built the machinery and asserts it at component level
-         * (ui-dialog, ui-confirm-dialog, dialog-contract) — but none of those suites mounts
-         * `<selector-screen>`, so until this test the wave's own row was undelivered: the
-         * behaviour was right by inheritance, and a change that put these four overlays
-         * back in the tab order would have failed nothing in the tree (finding cross-2).
-         *
-         * THE SUBJECT COUNT IS FOUR DIALOGS PLUS TWO MENUS —
-         * DEFERRED_QUESTIONS_core-loop.md, "Not built": #confirm-hide (#19), #share-code and #versions
-         * (#18), #restore (#18), and #actions (#21) is the context menu. The menu is
-         * censused with them because P13 is about an overlay that holds focusables while
-         * shut, and a menu holds items.
-         *
-         * THE OPEN CENSUS IS NOT DECORATION. It is the only thing standing between this
-         * test and a vacuous pass: if the walk could not reach inside these hosts, every
-         * count would be zero and closed-is-zero would mean nothing. So an OPEN dialog must
-         * report reachable controls, and the open-then-close cycle — the half-state the
-         * defect actually hides in, where a stand-in has painted its controls once already
-         * — must return to zero.
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('P13 — every dialog and both menus hold nothing reachable while closed',
             async () => {
                 const census = async () => {
@@ -1303,12 +899,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
 
                 const closed = await census();
-                /* SEVEN SINCE 25 Aug 2026: `actions` left (three worded buttons now, not a
-                 * menu, and reachable by design), `confirm-reset` and `confirm-remove`
-                 * joined. What follows is the roster as it stood on 24 Aug:
-                 * the LOAD confirm is gone (a Confirm that asked you to confirm), the HIDE
-                 * confirm and the SHARE-CODE dialog arrived, and the add menu joined the
-                 * profile-actions one. P13's claim is unchanged and is about all of them. */
                 assert.equal(closed.length, 7, 'six dialog surfaces and the add menu');
                 assert.deepEqual(closed.filter((o) => o.missing).map((o) => o.id), [],
                     'an overlay this screen is supposed to own is not in its root');

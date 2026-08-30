@@ -1,27 +1,5 @@
 /**
- * page-helpers.js — the code that runs INSIDE the page, as a string.
- *
- * A node module that exports source text rather than a browser module under
- * `test/`, for two reasons. First, `Page.addScriptToEvaluateOnNewDocument` installs
- * it before any of the page's own script runs, so a helper is available even to the
- * first evaluate after a navigation. Second, Node's test runner treats every `.js`
- * file under `test/` as a test file (Node 20 has no `--test-exclude`), so a real
- * browser module here would need the node-safe wrapper the fixtures carry — and a
- * string cannot be run by accident.
- *
- * WRITING RULES for the text below: no backticks and no `${`, because it lives
- * inside a template literal. ES2020 syntax only — it is parsed by Chrome, not by the
- * bundler this tree does not have.
- *
- * THE SELECTOR DIALECT. Shadow DOM means `document.querySelector('#plain')` finds
- * nothing, so every helper takes a piercing path:
- *
- *     'base-fixture >>> #plain'          host, then into its shadow root
- *     'live-screen >>> chart-card >>> canvas'
- *
- * Each `>>>` steps through one shadow boundary. This is the same identity the
- * capture battery's walker records as an anchor path (SCOPE Part 10 §13, adaptation
- * 1) — `anchorPath()` below produces one from an element, which is the inverse.
+ * The code that runs INSIDE the page, as a string.
  */
 
 export const PAGE_HELPERS = String.raw`

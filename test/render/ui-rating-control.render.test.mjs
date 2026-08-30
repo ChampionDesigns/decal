@@ -1,63 +1,5 @@
 /**
- * ui-rating-control.render.test.mjs — Wave 4 item #46's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles, box geometry and BEHAVIOUR,
- * never source text, at BOTH standard geometries — 1281x801 @ dsf 1.5 and the
- * 1000x600 floor (CONVENTIONS §10, Part 8 §2).
- *
- * WHAT THIS SUITE IS REALLY FOR. #46 is on Part 4's "Components that exist to fix a
- * known defect" table — "#46 Rating control | L4 — box shorter than its contents with
- * the DYE handoff" — and the acceptance test for every row there is the same sentence:
- * THE DEFECT CANNOT BE EXPRESSED. So §2 is not "the column looks right"; it is four
- * assertions a component with a hand-derived height could not pass, and one of them
- * aims Slate's own number straight at the element:
- *
- *   §2.1  with the handoff present the box is EXACTLY its contents, nothing overflows
- *         and nothing scrolls — the direct inverse of "children sum to 176 in a 165px
- *         box; measured bottom 1156 against 1145" (LAYOUT_SPEC_DRAFT.md §7.2 L4).
- *   §2.2  the fourth child GROWS the box by its own height plus the gap, which is the
- *         event Slate's 165px was not present for.
- *   §2.3  a screen states Slate's own 165px on the element and the box is still as
- *         tall as its contents. `min-block-size: max-content` outranks a stated
- *         height, so even a consumer that reintroduces the number cannot reintroduce
- *         the bug.
- *   §2.4  the box is not a number at all: drill --ui-control-h and the host follows
- *         the handoff. This is the assertion the two oracle records make impossible
- *         for Slate —
- *           CITE live-ready .slate-shot-rate [i=154] height = 165px <- slate-live.css
- *                (hash)main-page .slate-shot-rate authored 165px (FROZEN/hardcoded)
- *           CITE live-ready (hash)shot-dye-btn [i=158] height = 64px <- slate-live.css
- *                (hash)main-page .slate-rate-dye authored var(--slate-control-height)
- *                (token-driven)
- *         one box frozen, one child token-driven, and nothing to reconcile them.
- *   §2.5  no row surrenders under a short container (spec §2.4's stated order of
- *         surrender) — the ergonomic floors hold instead of the controls squashing,
- *         which is L4 arriving again through the other door.
- *
- * ORACLE, re-read mechanically through prov_query.py, DISQUALIFICATION CHECK FIRST.
- * `.slate-shot-rate` and its four children ARE bug L4, so their box is disqualified as
- * a target and is quoted only as what Slate does. Their paint is not on the bug list
- * and is carried:
- *   CITE live-ready .slate-shot-rate [i=154] rect 1720,980,172,165
- *   CITE live-ready .slate-derived-label [i=155] rect 1745,980,129,17
- *   CITE live-ready (hash)shot-rating-score [i=156] rect 1745,1009,24,27
- *   CITE live-ready (hash)shot-rating-slider [i=157] rect 1745,1048,147,32
- *   CITE live-ready (hash)shot-dye-btn [i=158] rect 1745,1092,147,64
- *        -> 17 + 12 + 27 + 12 + 32 + 12 + 64 = 176 in a 165px box; the 12s are
- *           --slate-space-3, read off the gaps between those rects.
- *   CITE live-ready .slate-derived-label [i=155] text-transform = uppercase <-
- *        slate-live.css (hash)main-page .slate-derived-label authored uppercase
- *   CITE live-ready .slate-derived-label [i=155] font-size = 14px <- authored
- *        var(--slate-text-sm) (token-driven)   [the microcap role]
- *   CITE live-ready (hash)shot-rating-score [i=156] color = rgb(148, 161, 169) <-
- *        slate-live.css (hash)main-page .slate-rate-score[data-rated="false"] authored
- *        var(--slate-muted) (token-driven)     [the captured shot is UNRATED]
- *   CITE live-ready (hash)shot-derived-ratio [i=147] font-size = 20px <- authored
- *        var(--slate-text-lg) (token-driven)   [the neighbours are a FIXED step, so
- *        the rate score is the only fluid number in the zone]
- * Slate's rects are frozen 1920x1200 captures; LAYOUT_SPEC_DRAFT.md governs responsive
- * behaviour and the oracle has no vote there. Colours are asserted against resolved
- * tokens, never hexes, so the suite is true in both themes.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -75,9 +17,6 @@ import {
 
 const MODULE = ['/src/components/ui-rating-control.js'];
 
-/* A STATED STAGE WIDTH, so every measured box is the CONTAINER's answer and not the
- * viewport's — the two geometries must produce identical numbers (spec §2.1 Rule 1).
- * 260px sits comfortably above Slate's own 172px zone. */
 const STAGE = 260;
 
 const MARKUP = `
@@ -90,16 +29,6 @@ const MARKUP = `
       <ui-rating-control id="unrated" shot-id="shot-1"></ui-rating-control>
       <ui-rating-control id="nothing" handoff></ui-rating-control>
     </div>`;
-
-/* ---- deep selectors -------------------------------------------------------
- *
- * THE COLUMN IS THREE BUTTONS AND THE SLIDER IS BEHIND ONE OF THEM. Ben, 25 August
- * 2026: "For the 'rate this shot' make that a sort of button that is pressed that opens
- * a model to give it a rating out of 100", and "Add a new button under this input that
- * has I can enter 'ALL NOTES'". So the resting column is #rate / #notes / #handoff, and
- * #sheet-score and #slider exist only while the sheet is open. Every selector below
- * that reaches into the sheet is therefore reached only after `openSheet()`.
- */
 
 const RATING = '#rating';
 /** The score, at rest: this component's own two spans, not a stat tile. */
@@ -153,13 +82,6 @@ const zone = (page, host = '#rating') => page.evalFn((sel) => {
     };
 }, host);
 
-/**
- * Press the score button and wait for the sheet.
- *
- * EVERY SLIDER ASSERTION GOES THROUGH THIS, by a real hit-tested click rather than by
- * setting `.open` — a sheet that only opens when a test sets a property is a sheet no
- * finger can open.
- */
 const openSheet = async (page, host = '#rating') => {
     await page.click(`${host} >>> #rate >>> #btn`);
     await page.settle(3);
@@ -167,13 +89,6 @@ const openSheet = async (page, host = '#rating') => {
         'the score button must open the sheet the slider lives in');
 };
 
-/**
- * Press Done and wait for the sheet to go.
- *
- * THE SHEET IS `showModal()` (ui-dialog.js:117), so exactly ONE can be open in the
- * document — a test that reads two controls' sheets has to shut the first, or its click
- * on the second lands on the first one's backdrop.
- */
 const closeSheet = async (page, host = '#rating') => {
     await page.click(`${host} >>> #sheet-done >>> #btn`);
     await page.settle(3);
@@ -195,12 +110,6 @@ const drag = async (page, value) => {
     await page.dispatch(TRACK, 'input');
 };
 
-/**
- * The commit. `composed: false` on purpose — a native `change` does NOT cross a shadow
- * boundary, and ui-slider re-dispatches its own composed one for exactly that reason
- * (ui-slider.js:347-352). Forcing composed here would deliver TWO commits for one
- * gesture and the count assertions would be measuring the harness.
- */
 const commit = async (page, value) => {
     await page.evalFn((sel, v) => {
         const el = window.__h.need(sel);
@@ -224,10 +133,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return fn(page);
         });
 
-        /* ===================================================================
-         * 1. THE RIG IS THE RIG, AND THE COLUMN IS THERE
-         * =================================================================== */
-
         test('the emulated geometry is the one the suite asked for', () => mounted(async (page) => {
             const env = JSON.parse(await page.eval(
                 'JSON.stringify({dpr: devicePixelRatio, w: innerWidth, h: innerHeight})',
@@ -238,10 +143,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the compound composes #33, #23, #1 and #29, and re-implements none of them',
             () => mounted(async (page) => {
-                /* AT REST THE COLUMN IS THREE BUTTONS. The score is one of them now — it
-                 * carries the cap and the number it opens the sheet to change, so the
-                 * corner says the same thing it always said and the press is where the
-                 * slider used to be. */
                 const parts = await page.evalFn(() => {
                     const el = document.getElementById('rating');
                     return [...el.shadowRoot.children]
@@ -250,7 +151,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(parts, ['ui-button#rate', 'ui-button#notes', 'ui-button#handoff'],
                     'the resting column is the score, the notes and the handoff, in that order');
 
-                /* AND THE SHEET IS #29 HOLDING #33 AND #23. */
                 await openSheet(page);
                 const sheet = await page.evalFn(() => {
                     const el = document.getElementById('rating');
@@ -273,17 +173,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a raw <button> here is a second button implementation');
             }));
 
-        /* ===================================================================
-         * 2. BUG L4 — THE BOX CANNOT BE SHORTER THAN ITS CONTENTS
-         * =================================================================== */
-
         test('L4 §2.1: with the handoff present the box IS its contents, and nothing overflows',
             () => mounted(async (page) => {
                 const z = await zone(page);
                 assert.equal(z.rows.length, 3, 'the handoff must be on the stage for this test');
 
-                /* Slate: children sum to 176 in a 165px box, bottom 1156 against 1145.
-                 * Here the sum IS the box. */
                 const sum = z.rows.reduce((n, row) => n + row.height, 0) + 2 * z.gap;
                 near(z.host.height, sum,
                     'the box must be exactly the sum of its rows and gaps (L4 is the case where it is 11px less)');
@@ -292,7 +186,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(last.bottom <= z.host.bottom + 0.5,
                     `the handoff escapes the bottom of its zone by ${(last.bottom - z.host.bottom).toFixed(2)}px — that IS L4`);
 
-                /* And it is not hidden instead: spec §2.4 bans content silently removed. */
                 assert.ok(z.scrollHeight <= z.clientHeight + 0.5,
                     `the zone clips its own content: scrollHeight ${z.scrollHeight} against clientHeight ${z.clientHeight}`);
                 assert.equal(z.overflowY, 'visible',
@@ -313,11 +206,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('L4 §2.3: a screen states Slate\'s own 165px and the box is STILL its contents',
             () => mounted(async (page) => {
-                /* THE DEFECT, AIMED AT THE COMPONENT. 165px is not a number this suite
-                 * invented: CITE live-ready .slate-shot-rate [i=154] height = 165px <-
-                 * slate-live.css (hash)main-page .slate-shot-rate authored 165px
-                 * (FROZEN/hardcoded). In Slate that declaration IS bug L4. Here it is
-                 * a stated height that min-block-size: max-content outranks. */
                 const free = await zone(page);
                 await page.setStyle(RATING, { 'block-size': '165px' });
                 await page.settle(2);
@@ -340,10 +228,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('L4 §2.4: the box is not a number — drill --ui-control-h and the host follows the handoff',
             () => mounted(async (page) => {
-                /* The assertion Slate cannot pass, stated as a token drill. Its box is
-                 * FROZEN under token perturbation and its handoff is token-driven, so
-                 * retargeting the control height there moves the button and leaves the
-                 * container exactly where it was. */
                 const before = await zone(page);
                 const control = parseFloat(await page.resolveValue('var(--ui-control-h)', 'width'));
 
@@ -355,9 +239,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(2);
                 const restored = await zone(page);
 
-                /* ALL THREE ROWS ARE BUTTONS NOW, so all three follow the token and the
-                 * host follows all three. That is a STRONGER form of the same assertion,
-                 * not a weaker one: Slate's box is frozen against every one of them. */
                 for (const row of drilled.rows) {
                     near(row.height, 120, `row #${row.id} must take the drilled control height`);
                 }
@@ -369,11 +250,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('L4 §2.5: no row surrenders — a short container floors rather than squashing',
             () => mounted(async (page) => {
-                /* Spec §2.4's third bullet: "a defined order of surrender when the
-                 * container is shorter than the sum of the floors." Nothing here
-                 * surrenders — flex items shrink by default, and a squashed slider is
-                 * L4 arriving through the other door (spec §2.2, ergonomics is
-                 * physical). */
                 const control = parseFloat(await page.resolveValue('var(--ui-control-h)', 'width'));
 
                 await page.setStyle(RATING, { 'block-size': '80px' });
@@ -391,14 +267,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the floors held but the box did not follow them');
             }));
 
-        /* ===================================================================
-         * 3. TOKENS ARE CONSUMED, NOT COPIED
-         * =================================================================== */
-
         test('the column gap is --ui-space-3, drilled', () => mounted(async (page) => {
-            /* Slate: --slate-rate-gap: var(--slate-space-3), measured 12px between all
-             * three pairs of child rects. It is the only spacing decision this file
-             * makes, so it is the one that has to be a token. */
             await assertTokenDrill(page, {
                 token: '--ui-space-3',
                 value: DRILL_LENGTH,
@@ -408,14 +277,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('an unrated score is --ui-muted and a rated one is not — drilled', () => mounted(async (page) => {
-            /*   CITE live-ready (hash)shot-rating-score [i=156] color = rgb(148, 161, 169)
-             *        <- slate-live.css (hash)main-page .slate-rate-score[data-rated="false"]
-             *        authored var(--slate-muted) (token-driven)
-             * The captured shot is UNRATED, which is why the corpus records the muted
-             * branch, and the branch is the point: "an unrated shot must not look like
-             * a shot rated zero" (slate-live.css:1533). The drill is the other point —
-             * the value has to reach a composed child's shadow root from :root, which
-             * is literally what Radian will do (Part 8 §2). */
             assert.notEqual(
                 await page.prop(RATE_NUM, 'color'),
                 await page.prop('#unrated >>> #rate .num', 'color'),
@@ -446,33 +307,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             near(parseFloat(await page.prop(RATING, 'opacity')), dim,
                 'the host takes the one disabled dial');
-            /* Without the opt-out the base dims the host AND each child: .38 x .38 =
-             * .14, a zone nearly three times fainter than every other disabled control
-             * in the skin. ui-preset-bank.js and ui-tab-bar.js solved this identically.
-             * Three rows now rather than three mixed controls, and the reasoning is the
-             * same for every one of them. */
             for (const [name, sel] of [['the score', RATE], ['the notes', NOTES], ['the handoff', HANDOFF]]) {
                 near(parseFloat(await page.prop(sel, 'opacity')), 1,
                     `${name} must not dim a second time inside a dimmed host`);
             }
         }));
 
-        /* ===================================================================
-         * 4. SELECTION — THERE IS NONE, AND THAT IS ASSERTED RATHER THAN ASSUMED
-         * =================================================================== */
-
         test('no selection treatment exists here: a rating is a value, not a selected state',
             () => mounted(async (page) => {
-                /* The wave law is that no component may own a private "selected" look
-                 * and that every selectable one expresses selection through the four
-                 * dials (DECISIONS.md:244, spec §3.9). The honest form of that
-                 * assertion for a component with NO selection is that turning all four
-                 * dials to a drill value changes nothing on screen — which is also what
-                 * catches a fifth treatment being added here later.
-                 *
-                 * ui-slider.js says the same thing about itself in one line: "There is
-                 * no selectionSurface here: a slider has a value, not a selected
-                 * state." */
                 const states = await page.evalFn(() => {
                     const out = [];
                     const walk = (root) => {
@@ -513,10 +355,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ===================================================================
-         * 5. FOCUS AND THE HIT FLOOR
-         * =================================================================== */
-
         test('the focus ring is the one ring and nothing clips it (bug L24)', () => mounted(async (page) => {
             /* THE SCORE IS A BUTTON NOW, so it is the first thing a keyboard reaches in
              * this zone and it has to take the ring like any other. */
@@ -538,27 +376,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await assertHitFloor(page, TRACK, { mode: 'box', axes: ['block'] });
         }));
 
-        /* ===================================================================
-         * 6. THE CONTAINER FLOOR
-         * =================================================================== */
-
         test('container floor: at Slate\'s own 172px zone the ergonomics hold and the TYPE absorbs it',
             () => mounted(async (page) => {
-                /* CITE live-ready .slate-shot-rate [i=154] rect 1720,980,172,165 — the
-                 * zone Slate ships. Below it NOTHING here shrinks: --ui-hit-min and
-                 * --ui-control-h are physical (spec §2.2, §2.3 case 2), and since parity
-                 * surface 0 the score's display step is physical too — --ui-display-xs is
-                 * Slate's flat 27px where it used to be clamp(22px, 2.2cqi, 27px) and
-                 * absorbed a narrow container by shrinking the reading. Slate has no
-                 * fluid type anywhere, and a shot's score is one of the readings Ben
-                 * asked to stop shrinking.
-                 * So the assertion below is now "the score HOLDS at 27px in the 172px
-                 * zone AND the zone still contains its rows", which is what the clamp was
-                 * buying and is the part that actually matters.
-                 *
-                 * AND THE CAP HAS TO FIT, which is the one thing this corner's new shape
-                 * added. ui-button pads 24px a side, so a 172px zone is a 122px content
-                 * box, and the cap is a SENTENCE rather than a word. */
                 const wide = parseFloat(await page.prop(RATE_NUM, 'font-size'));
 
                 await page.setStyle('#stage', { 'inline-size': '172px' });
@@ -579,11 +398,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `the digits must hold their size in the narrow container: ${narrow}px against ${wide}px`);
                 near(narrow, 27, 'the score is Slate\'s --slate-display-xs 27px in a 172px zone too');
 
-                /* THE CAP'S ARITHMETIC, PINNED. The component states 114px at --ui-text-xs
-                 * against 143 at --ui-text-sm, and 122px of content box at Slate's own
-                 * zone. Those three numbers are the whole reason the cap is one step down
-                 * from the microcap role every other caption uses, so they are asserted
-                 * rather than trusted — an earlier comment claimed 264 and 210. */
                 const cap = await page.evalFn(() => {
                     const el = document.getElementById('rating').shadowRoot;
                     const node = el.querySelector('#rate .cap');
@@ -615,19 +429,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the same stated container gives the same numbers whatever the viewport',
             () => mounted(async (page) => {
-                /* Spec §2.1 Rule 1, made falsifiable: a rule keyed to the viewport
-                 * rather than to the container would make these differ between the two
-                 * geometries. Recorded from the 260px stage above. */
                 const z = await zone(page);
                 near(z.host.width, STAGE, 'host width from a 260px stage');
                 near(z.gap, 12, 'the gap from a 260px stage');
                 near(z.host.height, 216, 'the column from a 260px stage: three 64px rows and two 12px gaps');
                 assert.deepEqual(z.rows.map((r) => r.id), COLUMN, 'and the same three rows');
             }));
-
-        /* ===================================================================
-         * 7. ACCESSIBILITY
-         * =================================================================== */
 
         test('the slider is named and announces a VALUE, never a bare percentage',
             () => mounted(async (page) => {
@@ -646,17 +453,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         unratedText: track('unrated').getAttribute('aria-valuetext'),
                     };
                 }, ratedText);
-                /* THE SLIDER NAMES ITS RANGE. It sits in a sheet already headed with the
-                 * cap, so repeating "Rate this shot" there would be the heading twice with
-                 * the range dropped — see #sliderName. */
                 assert.match(named.ratedName, /0/, 'the name must state the scale it is on');
                 assert.match(named.ratedName, /100/);
                 assert.ok(named.ratedName && named.ratedName.length > 0,
                     'a control with no visible label of its own MUST carry an accessible name');
                 assert.match(named.ratedText, /73/, 'the announced value must be the score');
-                /* The audible half of "an unrated shot must not look like a shot rated
-                 * zero" (slate-live.css:1533). A thumb parked at the floor announcing
-                 * "0" is exactly the lie the visual half refuses. */
                 assert.doesNotMatch(named.unratedText, /^0$|\b0 of\b/,
                     'an unrated control announced a zero');
                 assert.ok(named.unratedText.length > 0, 'an unrated control announced nothing at all');
@@ -692,19 +493,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('an aria-label written by a screen is MOVED onto the rate button, not copied',
             () => mounted(async (page) => {
-                /* Written in the screen's MARKUP, which is where a name is written —
-                 * adoption happens on connect and on every update, the same shape
-                 * ui-preset-bank.js and ui-tab-bar.js use, so a name that appears on
-                 * an already-mounted host with no other change is not covered. That is
-                 * deliberate rather than overlooked: the alternative is a mutation
-                 * observer per component for a case no screen produces.
-                 *
-                 * IT LANDS ON THE BUTTON, AND THAT IS THE FIX THIS SHAPE NEEDED. The name
-                 * used to be moved onto the slider, and the slider now lives inside a
-                 * sheet that is closed at rest — so a screen-written name reached NOTHING
-                 * until somebody opened it. A finished half with no other half, which is
-                 * the defect class this fork exists to remove. The button is the zone's
-                 * one entry point and the only control on screen at rest. */
                 const after = await page.evalFn(() => {
                     const el = document.getElementById('named');
                     return {
@@ -744,42 +532,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the cap over the score is the microcap role, uppercase', () => mounted(async (page) => {
-            /*   CITE live-ready .slate-derived-label [i=155] text-transform = uppercase
-             *        <- slate-live.css (hash)main-page .slate-derived-label authored uppercase
-             *   CITE live-ready .slate-derived-label [i=155] font-size = 14px <- authored
-             *        var(--slate-text-sm) (token-driven)  [= --ui-text-sm 15px here] */
             const cap = await page.computed(RATE_CAP, ['text-transform', 'font-size', 'color', 'letter-spacing']);
             assert.equal(cap['text-transform'], 'uppercase');
             assert.equal(cap.color, await page.resolveToken('--ui-muted'));
-            /* --ui-tracking-cap is .12em, so the resolved px follows the size the cap is
-             * set at. Asserted as the RATIO, which is what makes it the role's tracking
-             * rather than a number that happens to match at one step. */
             near(parseFloat(cap['letter-spacing']) / parseFloat(cap['font-size']), 0.12,
                 'the cap tracking is the role\'s .12em, whatever size it is set at', 0.005);
 
-            /* ONE STEP DOWN FROM THE MICROCAP, and the reason is measured rather than
-             * asserted by taste — see the container-floor test, which pins the three
-             * numbers. This is the only cap in the tree that is a SENTENCE inside a
-             * button, so it is the only one that departs. */
             assert.equal(cap['font-size'], await page.resolveValue('var(--ui-text-xs)', 'font-size'));
         }));
 
-        /* ===================================================================
-         * 8. BEHAVIOUR — THE EVENTS, AND THE THINGS THAT ARE NOT PORTED
-         * =================================================================== */
-
-        /* CHANGED 29 AUGUST 2026, audit F-011. This test used to assert that a drag
-         * PUBLISHES `rating-input`:
-         *
-         *     assert.ok(inputs.length >= 1, 'a drag must publish rating-input');
-         *
-         * That emit was heard nowhere in `src/` (FINDINGS F-011) and is now removed
-         * — the drag preview was never carried by it. The half of this test that
-         * matters is unchanged and is what proves the removal safe: BOTH numbers
-         * still follow the thumb, because they repaint from the component's own
-         * `_draft` state property, not from an event a screen would have to answer.
-         * The commit half (`rating-change`, F-010, now heard on the live screen) is
-         * also unchanged: a drag still must not publish one. */
         test('a drag moves the number locally and publishes NOTHING — the preview is the control\'s own',
             () => mounted(async (page) => {
                 await openSheet(page);
@@ -794,10 +555,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a drag must publish nothing at all: a per-pixel announcement no screen '
                     + 'hears is a wire that only looks live (F-011)');
 
-                /* BOTH NUMBERS FOLLOW THE THUMB — the tile above it in the sheet, and the
-                 * score on the button behind it, so closing the sheet does not appear to
-                 * discard the drag. THIS is the drag preview, and it owes nothing to an
-                 * event: `_draft` is a reactive state property and setting it re-renders. */
                 const shown = await page.evalFn(() => {
                     const el = document.getElementById('rating').shadowRoot;
                     return {
@@ -838,9 +595,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
                 await page.settle(3);
 
-                /* shot-rating.js:160-181 needed a running id check for exactly this:
-                 * "a stale-id guard is what stops a fast arrow-press through the
-                 * history from landing the previous shot's rating on this one." */
                 const shown = await page.evalFn(() => {
                     const el = document.getElementById('rating').shadowRoot;
                     return {
@@ -873,14 +627,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         rate: inner('rate'), notes: inner('notes'), handoff: inner('handoff'),
                     };
                 });
-                /* shot-rating.js:69-73: "With no shot on screen there is nothing to
-                 * rate: scheduleSave() drops the write, so a drag painted a score that
-                 * was never stored anywhere. Say so on the control rather than
-                 * accepting input and discarding it."
-                 *
-                 * EVERY ROW REFUSES, and it refuses on the NATIVE control rather than
-                 * merely dimming — a dimmed button a finger still activates is the same
-                 * lie one layer down. */
                 assert.equal(state.rate, true, 'the score button must refuse when there is no shot');
                 assert.equal(state.notes, true, 'the notes button must refuse when there is no shot');
                 assert.equal(state.handoff, true, 'the handoff must refuse when there is no shot');
@@ -916,10 +662,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the handoff is absent, not hidden, on a machine without the plugin',
             () => mounted(async (page) => {
-                /* Slate hides it with the `hidden` attribute, so the element is in the
-                 * tree on every machine and the column's arithmetic has to account for
-                 * a child that may or may not be there — which is the shape of L4. Here
-                 * the row simply does not exist. */
                 assert.equal(await page.count('#plain >>> #handoff'), 0,
                     'a machine without the handoff must have no handoff row at all');
                 assert.equal(await page.count('#rating >>> #handoff'), 1);
@@ -928,10 +670,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.count('#plain >>> ui-button'), 2);
                 assert.equal(await page.count('#rating >>> ui-button'), 3);
             }));
-
-        /* ===================================================================
-         * 9. THE GALLERY ENTRY IS THIS COMPONENT
-         * =================================================================== */
 
         test('every gallery state mounts and renders the column', () => mounted(async (page) => {
             assert.equal(galleryEntry.id, 'ui-rating-control');

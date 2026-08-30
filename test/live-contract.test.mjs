@@ -1,23 +1,5 @@
 /**
- * live-contract.test.mjs — the Live screen's contract check, as a BUILD activity.
- *
- * ITEM `live-contract-check`. The standing rule, `DECISIONS.md:144-157` and SCOPE Part 3
- * §7: "Every endpoint a screen calls gets its path, verb, request body and response shape
- * checked against the ReaPrime handler AS IT IS WRITTEN, at the moment the screen is
- * built." Not before, not in a later audit pass — now, in the same commit as the caller.
- *
- * WHY THIS EXISTS BESIDE GATE D. Gate D asks a repo-wide question ("does every route the
- * client addresses have a row, and is every row true at the pin?"). This asks a screen-
- * shaped one: THESE six rows are the ones Live's connection-and-gates cluster depends on,
- * this is what each one is depended on FOR, and if a row's shape moves, the assertion that
- * fails names the screen that breaks. The D7 episode is the reason it is worth writing
- * twice: "a 'missing endpoint' claim that was false on both halves, caught only by opening
- * the handler" (UPSTREAM_WORK.md, top).
- *
- * THE 31 LIVE CONTRACT BUGS ARE A FLOOR, NOT A CEILING (`CAPABILITY_DIFF.md`, the one
- * section usable unedited). Two of them are this cluster's and are asserted below by their
- * mechanism rather than by their number: an absent `GHC` key read as `false`, and an
- * arm-time refusal that never reaches a person.
+ * The Live screen's contract check, as a BUILD activity.
  */
 
 import { test, describe } from 'node:test';
@@ -36,13 +18,6 @@ const TABLE = JSON.parse(read('src/data/CONTRACTS.json'));
 const restRow = (id) => TABLE.rest.find((row) => row.id === id);
 const socketRow = (id) => TABLE.sockets.find((row) => row.id === id);
 
-/**
- * WHAT THIS SCREEN TOUCHES — the cluster's declared contract surface.
- *
- * `why` is the half a route table cannot hold: which item depends on the row, and what
- * would break if the shape moved. It is also this suite's own honesty check — a row that
- * cannot be given a `why` is a row this screen does not actually need.
- */
 const SURFACE = Object.freeze([
     {
         kind: 'socket', id: 'devices', path: '/ws/v1/devices',
@@ -97,8 +72,6 @@ describe('the contract surface this screen depends on', () => {
     });
 
     test('every REST row this cluster calls is tabled as CONSUMED, and names its caller', () => {
-        // Gate D asserts this repo-wide; here it is asserted with the CALLER named, which
-        // is what turns "some file addresses this" into "this screen depends on this".
         for (const entry of SURFACE.filter((e) => e.kind === 'rest')) {
             const row = restRow(entry.id);
             assert.equal(row.status, 'consumed',

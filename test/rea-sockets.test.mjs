@@ -1,9 +1,4 @@
-// THE ONE LIFECYCLE POLICY, under test.
-//
-// Each of the four policies the old tree ran at once has a test here that would fail under
-// it: dedupe (a second subscriber must not open a second socket), close-before-open,
-// silence-the-superseded, and refcounted teardown. Everything runs against a fake socket —
-// no DOM, no server, no timers.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -220,9 +215,6 @@ describe('policy F — an error envelope is a signal, not a frame', () => {
         channel.onSignal((s) => signals.push(s));
         opened[0].open();
         opened[0].message({ pressure: 8.6 });
-        // The literal envelope every handler in the pinned tree spells the same way
-        // (json_response.dart). On this particular channel ReaPrime never sends one —
-        // the classification is uniform on purpose, so no channel is the one that forgot.
         opened[0].message({ error: 'No machine connected' });
         assert.deepEqual(frames, [{ pressure: 8.6 }]);
         assert.deepEqual(channel.last(), { pressure: 8.6 }, 'the last real frame is untouched by a refusal');
@@ -323,11 +315,6 @@ describe('send: no queue, no invented delivery', () => {
     });
 
     test('a brightness the handler would drop SILENTLY is refused instead', () => {
-        // display_handler logs a warning and replies with nothing, so an out-of-range or
-        // non-integer brightness is indistinguishable from one that worked. This is the
-        // display/brightness policy untangled: the connector carries the command and
-        // checks its shape; WHO drives brightness on the wake edge is the screensaver
-        // component's call (D10 gives the skin ownership of blanking; Q13 is still open).
         const { sockets, opened } = makeSockets();
         const row = WS_CHANNELS.display;
         const channel = sockets.channel({ key: row.key, path: row.path, channel: row });
@@ -367,11 +354,6 @@ describe('the channel table', () => {
     });
 
     test('it agrees with the GENERATED spec table — two tables that could drift, guarded', () => {
-        // `rea-routes.generated.js` is the DOCUMENTED surface, generated from
-        // websocket_v1.yml; WS_CHANNELS is the CONSUMED surface, hand-written because
-        // handler symbols, accepted commands and the frame/envelope split are not in the
-        // spec. They must agree about addresses, and the difference between them must be
-        // exactly the three sockets EXCLUDED_WS.md names — never an accident.
         const documented = SOCKET_CHANNELS.map((c) => c.route).sort();
         const consumed = Object.values(WS_CHANNELS).map((c) => c.path).sort();
         const excluded = ['/ws/v1/logs', '/ws/v1/machine/raw', '/ws/v1/webview/logs'];
@@ -405,8 +387,6 @@ describe('the channel table', () => {
     });
 
     test('classification order: error beats operation, on the devices socket', () => {
-        // A FAILED connect result carries both. Read as a command result it would look
-        // like a successful reply with an odd extra key.
         const failed = { deviceId: 'x', operation: 'connect', outcome: 'failed', error: 'boom' };
         assert.equal(classifyMessage(failed, WS_CHANNELS.devices).kind, WS_MESSAGE.ERROR);
         const ok = { deviceId: 'x', operation: 'connect', outcome: 'connected', state: 'connected' };
@@ -442,14 +422,6 @@ describe('diagnostics', () => {
     });
 });
 
-/* ────────────────────────────────────────────────────────────────────────────────────
- * RULE G's LATCH SURVIVES A SCREEN UNMOUNT.
- *
- * `unavailable stays unavailable` above never unsubscribes, and that is exactly the path
- * where it did not: the rule-E refcount close called `closeNow()` with its old flat default
- * of IDLE, so the verdict evaporated the moment the last screen went away and the next
- * subscriber restarted the reconnect loop the cap exists to stop.
- */
 describe('rule G outranks rule E — a verdict is not undone by an unmount', () => {
     test('unsubscribing does not un-latch UNAVAILABLE', () => {
         const { sockets, opened } = makeSockets();
@@ -497,9 +469,6 @@ describe('rule G outranks rule E — a verdict is not undone by an unmount', () 
 
 describe('status() says what is true, including after a close', () => {
     test('a socket the server closed is not reported open, and send() refuses on it', () => {
-        // This was masked in production only by the vendored wrapper dispatching
-        // `connecting` BEFORE `close` on a reconnect — another module's event order, and no
-        // basis for this one's correctness. With the injected fake there is no such cover.
         const { sockets, opened } = makeSockets();
         const channel = sockets.channel({ key: 'devices', path: '/ws/v1/devices', channel: WS_CHANNELS.devices });
         channel.subscribe(() => {});
@@ -517,8 +486,6 @@ describe('status() says what is true, including after a close', () => {
     });
 
     test('a reconnect in progress still reads as connecting, not idle', () => {
-        // The wrapper raises `connecting` then `close` and does NOT re-raise `connecting` on
-        // later attempts, so a close must not overwrite it.
         const { sockets, opened } = makeSockets();
         const channel = sockets.channel({ key: 'snap', path: '/ws/v1/machine/snapshot', channel: snapshot() });
         channel.subscribe(() => {});

@@ -1,24 +1,5 @@
 /**
- * editor-settings-fields.render.test.mjs — THE SETTINGS TAB HAS REAL FIELDS (audit F-031).
- *
- * SIX INTENTS, ONE FAULT. `editor-screen` rendered the settings panel with a bare
- * `<slot name="settings">` and NO fallback content, and `app-root` mounts `<editor-screen>`
- * with no light-DOM children — so in the shipped app the slot had zero assigned elements
- * and there was nothing on the glass to press. The rows visible on the screens page came
- * from a capture fixture's hand-built `<div slot="settings">` items carrying literals, wired
- * to nothing: typing `W3EDIT` into one left the draft and the change count unmoved with no
- * request on the wire. A profile's name, author, beverage and notes could not be edited from
- * this screen at all.
- *
- * WHAT IS ASSERTED IS THE WHOLE CHAIN, because every link of it was intact before and the
- * fault was that they were not joined: the control composes, the draft takes the value, the
- * change is COUNTED, and the next save carries it. A test that only asserted the rows exist
- * would pass against the capture fixture, which is the exact shape of the original defect.
- *
- * THE FALLBACK MUST NOT DISPLACE A CALLER'S OWN ROWS — the harness, the capture fixture and
- * several render suites mount their own — so that is asserted too.
- *
- * A8: nothing here reads a source file.
+ * The.
  */
 
 import { test, describe, before, after } from 'node:test';

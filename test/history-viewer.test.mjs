@@ -1,44 +1,5 @@
 /**
  * The History viewer — two shots, and the alignment between them.
- *
- * THIS SUITE IS A PORT OF ITS PREDECESSOR'S INTENT AND NOT OF ITS FORM.
- * `slate/app/test/history-viewer.test.mjs` opens with the reason it exists, and it is
- * the reason this file exists too:
- *
- *   "These EXECUTE the trace builders rather than reading the source, because the bug
- *    this whole surface was rebuilt around was invisible to source reading: the previous
- *    alignment slider addressed a trace index one past the end, the code looked entirely
- *    correct, the renderer threw, a catch swallowed it, and the control did nothing at
- *    all."
- *
- * That intent ports. THE FORM DOES NOT: the old file `readFileSync`s `history-viewer.js`
- * into a `SRC` constant and `chart.js` into `CHART` and then matches regexes against
- * them, which is an A8 violation on its face — and A8 is a live guard in this tree
- * (`npm run a8`), not a preference. Eight of its assertions are source matches. Every one
- * of them is re-asked here as behaviour: not "does `tracesForB` contain `x: shifted(`"
- * but WHERE THE TRACES MOVED.
- *
- * THREE THINGS THE OLD SUITE DID THAT ARE DELIBERATELY NOT HERE:
- *
- *   1. THE SHAPE TESTS. Five of its tests assert on `pqAlignmentMarks` and `stepShapes`
- *      trace objects — Plotly-shaped values built on a live path, mutated, and never
- *      read (bugs chart-C8 and H7, which are two halves of one defect). A test asserting
- *      on trace objects nothing renders is a block wherever it appears, including one
- *      written "temporarily", so the stratum and its pins are dropped together. The P-Q
- *      correspondence marks are also Q16 — OPEN, explicitly not a v1 blocker, riding
- *      with D1's deferred phase either way.
- *   2. THE DOM SHIM. `installDomShim()` was the first line of the old file because the
- *      real module touched the DOM at import. `src/lib/history-viewer.js` and
- *      `src/lib/history-compare.js` are import-clean, so this suite runs in `node:test`
- *      with no browser and no shim.
- *   3. THE TWO SUITES THAT TEST A COPY. `chart-gap-meaning.test.mjs` and
- *      `expanded-step-marks.test.mjs` re-implement the logic inline for the same reason
- *      the shim existed. They are DISCARDED, not ported: the policy they re-implemented
- *      lives in `chart-align.js` and `gap-contract.js` and is pinned against the real
- *      functions.
- *
- * WHAT IS RENDERED IS PINNED IN `test/render/history-compare.render.test.mjs`: where a
- * trace ends up on the plot, the strip's height, and the cost of the redraw.
  */
 
 import test, { describe } from 'node:test';
@@ -111,10 +72,6 @@ describe('the resampler — the defect that both invented data and lost it', () 
     });
 
     test('the same seven claims hold for the shipped channel aligner — one policy, not two', () => {
-        /* `history-compare.js` delegates its interpolation to `chart-align.js`'s
-         * `bridgeUnspoken`, which `alignChannels` also uses. This is what makes "one
-         * policy" checkable rather than asserted: the same claims, the same answers, two
-         * entry points. */
         for (const claim of gapContractClaims()) assert.ok(claim.length > 0);
         const viaResampler = GAP_CONTRACT.map((c) => resampleOnto(c.axis, c.source.x, c.source.y));
         const viaAligner = GAP_CONTRACT.map((c) => alignChannels({
@@ -125,9 +82,6 @@ describe('the resampler — the defect that both invented data and lost it', () 
     });
 
     test('a gated null is a break and the reading after it survives — it is never held', () => {
-        /* Slate's `resampleOnto` writes the PREVIOUS reading into a slot whose next source
-         * sample is not a number, so the line runs flat through the gate AND the first
-         * real reading after it is dropped. Both halves, on one source. */
         const column = resampleOnto([0, 1, 2, 3], [0, 1, 2, 3], [10, null, null, 40]);
         assert.deepEqual(column, [10, null, null, 40]);
         assert.notEqual(column[1], 10, 'holding the last value across a gate invents data');
@@ -302,10 +256,6 @@ describe('the offset moves B, and only B', () => {
     });
 
     test('driving to both ends and past the shorter trace\'s end raises nothing', async () => {
-        /* THE PORTED SUITE'S WHOLE REASON. The mock's pair stages the exact condition:
-         * 3.26 s and 8.54 s against a +/-5 s limit, so a full-limit slide addresses
-         * instants past the other shot's end. The old code threw there and a catch
-         * swallowed it. Nothing here catches anything — an escape would fail the run. */
         const { viewer, store } = stage();
         await store.readPage();
         await viewer.select(ALIGNMENT_SLOT.REFERENCE, SHORT.id);
@@ -327,9 +277,6 @@ describe('the offset moves B, and only B', () => {
     });
 
     test('there is no catch anywhere in the path to swallow a failure', async () => {
-        /* Asked as behaviour, not as a source match: a store that fails must reach
-         * `viewer.failure` as the typed result it was, and must not be turned into a
-         * silence or into a re-worded string. */
         const transport = {
             request: async () => ({ ok: false, status: 500, message: 'the machine said no', data: null }),
         };
@@ -576,14 +523,6 @@ describe('A solid, B dashed, same hue, out of the legend', () => {
     });
 
     test('the shared-hue token and the fade are B\'s alone, and A keeps the table\'s treatment', () => {
-        /* THIS TEST USED TO PIN THE DEFECT. It asserted `Object.keys(spec)` was exactly
-         * `['key']` and read that as "the card's own treatments still decide" — but the
-         * comparison is composed with `setChannels`, which is the SURFACE's API and does
-         * not run the card's merge of `CHANNEL_TREATMENTS`. What it really pinned was A
-         * drawing all five series solid at the major width while Live drew the same five,
-         * from the same derivation, with its targets dashed and minor. A's treatment now
-         * comes from the one table, handed in; what stays B's alone is the pair of fields
-         * that mean "this is the other shot". */
         const treatments = [{ key: 'targetPressure', minor: true, dash: 'dash' }];
         const specs = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: true, treatments });
         for (const spec of specs.slice(0, FLOW_TOP_CHANNELS.length)) {
@@ -609,12 +548,6 @@ describe('A solid, B dashed, same hue, out of the legend', () => {
 /* ═══════════════════════════════════════════════ the typed failure, and its reader */
 
 describe('the typed failure reaches a screen VERBATIM', () => {
-    /* THE GETTER HAD NO READER. `viewer.failure`, `viewer.status` and `viewer.reads` had
-     * zero readers under src/ — measured with a transport answering 500 to every request,
-     * the screen rendered two empty states reading "No shot selected", which is what a
-     * machine with no recorded shots renders too. `failureRefusal` is the reader; these
-     * tests pin what it may and may not do with the machine's words. */
-
     const failure = (over = {}) => ({
         ok: false, kind: 'http', status: 500, message: 'the machine said no',
         problem: null, method: 'GET', url: '/api/v1/shots', cause: null, ...over,
@@ -633,9 +566,6 @@ describe('the typed failure reaches a screen VERBATIM', () => {
     });
 
     test('the server\'s body wins over the transport\'s summary, through rea-errors\' own reader', () => {
-        /* The 404 the handler really sends for an unknown id is `{error: Shot not found}`
-         * (shots-store.js quotes it), and `reaMessageOf` is the function written to unwrap
-         * exactly that. A second unwrapping here would be a second answer. */
         const refusal = failureRefusal(failure({ status: 404, problem: { error: 'Shot not found' } }));
         assert.equal(refusal.heading, 'Shot not found');
         assert.equal(refusal.body, 'The machine answered 404.');

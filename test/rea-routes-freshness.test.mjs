@@ -1,13 +1,4 @@
-// The staleness gate for src/data/rea-routes.generated.js.
-//
-// SCOPE Part 2 §7: every committed generated file has its generator in scripts/ and a test
-// that regenerates it and fails on a diff. The artifact is committed so a contributor can
-// clone and open index.html with no toolchain; this test is what stops "committed" from
-// decaying into "hand-edited".
-//
-// Byte equality alone would pass if the generator and the artifact were wrong together, so
-// the checks below also re-derive the headline facts from the yml text independently of
-// the parser, and pin the provenance stamp to the bytes it claims to describe.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -190,8 +181,6 @@ describe('the generator refuses rather than guesses', () => {
     });
 
     test('an exception that is no longer needed fails the build with the remedy', () => {
-        // Simulate the upstream fix landing: drop `orderBy` from the parsed spec and the
-        // generator must refuse to run rather than carry a workaround nobody needs.
         const fixed = structuredClone(restSpec);
         fixed.paths['/api/v1/shots'].get.parameters =
             fixed.paths['/api/v1/shots'].get.parameters.filter((p) => p.name !== 'orderBy');

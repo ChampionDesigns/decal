@@ -1,19 +1,4 @@
-// The damped y ceiling and the temperature band — Gate 5, salvage 2 of 3.
-//
-// THIS SUITE IS THE CORRECTED ONE, and the correction is the point. Gate 5's row says:
-// "the chart-autoscale suite ... must be corrected in the same commit as its code
-// (Part 6 'Tests')". The old suite pinned the LITERAL VALUES of five constants belonging
-// to three expanded-chart autoscalers that nothing read — `computeExpandedR2Max`,
-// `computeExpandedPowerYMax`, `computeExpandedZMax` — which is a test asserting that dead
-// code has not changed. The functions are dropped, so the assertions about them are gone
-// and one assertion takes their place: that they are still gone.
-//
-// What is pinned instead is BEHAVIOUR the bench taught, in both directions:
-//   * a spike must never be lost (the old fixed 0..10 axis drew two vertical walls with
-//     the peak missing between them);
-//   * the axis must not chase a spike back down, and must not jitter around one;
-//   * only the GROUP TARGET anchors the temperature band, because the mix target is a
-//     servo setpoint that dives to ~37 °C on a hot group and would squash the trace.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -148,9 +133,6 @@ describe('computeTempRange — ONLY the group target anchors', () => {
     });
 
     test('THE BENCH LESSON: the mix TARGET never anchors, it only widens', () => {
-        // The DE1 slams its servo setpoint around to steer the group; on a hot-group shot
-        // it dives to ~37 °C to demand cold water. Anchoring on it padded a further 10 °C
-        // below that ([27, 95]) and squashed the group trace to a flat ribbon.
         const dive = computeTempRange([88], [92, 90], [], [37, 60, 88]);
         assert.deepEqual(dive, [37, 93],
             'the dive is fully visible (37) and NOT padded below (27) — widening only');
@@ -178,13 +160,6 @@ describe('computeTempRange — ONLY the group target anchors', () => {
     });
 });
 
-
-/* ===========================================================================
- * `widenBand` — the temperature axis's hysteresis. Ben, 29 August 2026: "when I watch the
- * shot live the temperature chart flickers." The band had no memory and was recomputed
- * from scratch every frame; the mix target is a servo setpoint the DE1 slams around, so
- * the floor jumped and the axis snapped with it.
- * =========================================================================== */
 describe('widenBand — a temperature band may only grow within a shot', () => {
     test('the first band of a shot is taken whole', () => {
         assert.deepEqual(widenBand(null, [70, 95]), [70, 95]);

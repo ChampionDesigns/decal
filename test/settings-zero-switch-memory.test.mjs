@@ -1,48 +1,5 @@
 /**
- * settings-zero-switch-memory.test.mjs — D09, both halves: what a master switch comes back
- * to, and how its memory can be forgotten.
- *
- * AUDIT F-049 had three faces. Round 1 fixed the first — the remembered value is staged
- * with the machine field, so Cancel takes back both — and `settings-leaf-model-commit-band
- * .test.mjs` is that half. It left the other two to Ben, in its own words: *"the restore
- * ladder still consults `STORED_DEFAULTS` before the machine's own held setpoint (the
- * 70-overwritten-by-60 case, S03), and the three keys are still write-only from the UI
- * (S03c)."* Ben's decision D09 (30 August 2026) settled both. This file is that decision,
- * asserted.
- *
- * ═══ HALF ONE — THE LADDER ═══
- *
- * S03, measured on the device: a warmer holding `{"temperature":70,"enabled":false}` — the
- * real tablet's own closing state — switched **on** from the glass was written
- * `{"temperature":60,"enabled":true}`. The ladder read the memory key first, and an absent
- * kv key is not absent to the settings store: `STORED_DEFAULTS.cupWarmerTarget = 60`
- * answered for it, in the same shape a real memory would have. **A real 70 overwritten by
- * a shipped 60 with no word on the glass.**
- *
- * TWO THINGS HAD TO CHANGE AND EITHER ALONE IS NOT ENOUGH, which is why the cases below
- * are split rather than folded into one end-to-end check:
- *   the LADDER now reads `storedValue()` (the stored number ALONE) before it reaches the
- *   decided default, and consults the machine in between; and the PORT now publishes the
- *   machine's held setpoint at all — `machine-fields-port.js` collapses `enabled:false` to
- *   `cupWarmerTemperature: 0`, correctly, so before D09 there was no held 70 anywhere
- *   above that door for a ladder to consult.
- *
- * ═══ HALF TWO — THE FORGETTING ═══
- *
- * S03c: `steamTempWhenOn`, `tankTempWhenOn` and `cupWarmerTarget` were WRITE-ONLY from the
- * UI — absent→set existed, set→absent did not, anywhere in `src/`. The audit checked the
- * one plausible candidate on the real tablet: **"Restore defaults" made 0 DELETEs and 0 kv
- * writes, and `cupWarmerTarget` was still 62 and `tankTempWhenOn` still 47 afterwards.**
- * D09 gives that button the job, because a restore that leaves a private memory behind is
- * the restore lying — the page reads as shipped and the next switch-on resurrects a number
- * from a session nobody remembers.
- *
- * AND THE FORGETTING IS STAGED, which is F-049's own lesson applied in the other
- * direction: a DELETE fired on the press would destroy a memory outside the commit band
- * and Cancel could not bring it back.
- *
- * A pure test over the real stores — the real storage router, the real settings store, a
- * recording memory backend — so "it reaches the kv layer" is exercised rather than mocked.
+ * D09, both halves: what a master switch comes back to, and how its memory can be forgotten.
  */
 
 import { test, describe } from 'node:test';
@@ -65,20 +22,10 @@ function recordingBackend() {
         writes,
         async get(key) { return data.get(key); },
         async set(key, value) { writes.push({ key, value }); data.set(key, value); return true; },
-        /* A REMOVE IS RECORDED AS ITS OWN KIND, not as a write of null: half two's whole
-         * claim is that a DELETE happens, and a log that spelled both the same could not
-         * tell a delete from a write of an empty value. */
         async remove(key) { writes.push({ key, remove: true }); data.delete(key); return true; },
     };
 }
 
-/**
- * The warmer OFF with its setpoint still held — S03's exact starting state.
- *
- * `cupWarmerTemperature: 0` is what the door publishes for `enabled:false`, and
- * `cupWarmerHeldTarget: 70` is the number the mat is still holding. Both, together, are
- * the state the old ladder could not see the second half of.
- */
 const WARMER_OFF_HOLDING_70 = Object.freeze({
     fan: 30, usb: true, flushTemp: 90, flushTimeout: 5, flushFlow: 6,
     hotWaterFlow: 8, steamFlow: 1.2, tankTemp: 44, steamPurgeMode: 0,
@@ -98,10 +45,6 @@ function harness({ document: served = WARMER_OFF_HOLDING_70, kvSeed = {} } = {})
         [LAYERS.kvNumpad]: recordingBackend(),
     };
     const storage = createStorageRouter({ backends });
-    /* SEEDED THROUGH THE ROUTER, because a backend is keyed by the PHYSICAL name and the
-     * router is what derives it. Seeding the Map directly puts the value under a name the
-     * router never asks for, and every read then falls through to the default — which is
-     * the very confusion this file is about. */
     const settings = createSettingsStore({ storage, capabilities: answering('present') });
     return { kv, storage, settings, kvSeed, served };
 }
@@ -128,10 +71,6 @@ const rowById = (model, leaf, id) => model.allRows(leaf).find((view) => view.id 
 /** Every kv write and delete the run made — the request log this file asserts on. */
 const kvLog = (kv) => kv.writes.map((w) => (w.remove ? `DELETE ${w.key}` : `${w.key}=${w.value}`));
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * HALF ONE — THE RESTORE LADDER
- * ═══════════════════════════════════════════════════════════════════════ */
-
 describe('D09 — a master switch comes back to the machine before a shipped default', () => {
     test('THE MEASURED CASE: a warmer holding 70 with the switch off comes back to 70, not 60',
         async () => {
@@ -153,9 +92,6 @@ describe('D09 — a master switch comes back to the machine before a shipped def
         });
 
     test('a STORED memory outranks the machine — the user\'s own last word wins', async () => {
-        /* The rung order is not arbitrary. A memory is what this skin was ASKED to
-         * remember; the machine's number is what it happens to be holding. Where both
-         * exist the memory is the more recent statement of intent. */
         const rig = await opened({ kvSeed: { cupWarmerTarget: 55 } });
         const row = rowById(rig.model, rig.leaf, 'accessories-cup-warmer-enabled');
 
@@ -177,9 +113,6 @@ describe('D09 — a master switch comes back to the machine before a shipped def
     });
 
     test('with no memory and no held setpoint, the shipped default still answers', async () => {
-        /* RUNG 4 IS STILL THERE. D09 reordered the ladder; it did not remove a rung. On a
-         * machine that has never had its warmer switched on there is no memory and no held
-         * number, and `STORED_DEFAULTS` is the only value anybody has decided. */
         const rig = await opened({
             document: { ...WARMER_OFF_HOLDING_70, cupWarmerHeldTarget: 0 },
         });
@@ -190,9 +123,6 @@ describe('D09 — a master switch comes back to the machine before a shipped def
     });
 
     test('a row with no heldField is unchanged — steam and the tank skip that rung', async () => {
-        /* THE OTHER TWO `zeroSwitch` ROWS SAY "OFF" BY PUTTING A ZERO IN THE FIELD, so
-         * there is no held number to consult and the ladder must behave exactly as it did.
-         * This is the regression half of the reorder. */
         const rig = await opened({
             leaf: 'machine-steam',
             document: { ...WARMER_OFF_HOLDING_70, steamTargetTemperature: 0 },
@@ -205,17 +135,9 @@ describe('D09 — a master switch comes back to the machine before a shipped def
     });
 
     test('zero is never a value to come back to, on any rung', () => {
-        /* Restoring a zero would turn the switch straight back off, which is why every
-         * rung is filtered for a POSITIVE number rather than merely a defined one. The
-         * machine fallback at the foot of the ladder is 0 for this field — so a leaf that
-         * reached it would produce exactly that non-restore. */
         assert.equal(MACHINE_FALLBACKS.cupWarmerTemperature, 0);
     });
 });
-
-/* ═══════════════════════════════════════════════════════════════════════════
- * THE PORT HALF — the held setpoint has to EXIST above the door
- * ═══════════════════════════════════════════════════════════════════════ */
 
 describe('D09 — the cup-warmer door publishes the machine\'s held setpoint', () => {
     const doorOver = (warmer) => cupWarmerDoorFor({
@@ -225,10 +147,6 @@ describe('D09 — the cup-warmer door publishes the machine\'s held setpoint', (
 
     test('an OFF warmer reads the SETTING as zero and the HELD target as its real number',
         async () => {
-            /* BOTH CLAIMS AT ONCE, because the first is what made the second necessary. The
-             * setting must be 0 — that is what the switch and every gated row below it act
-             * on — and the held number must survive somewhere, or the ladder has nothing to
-             * ask. Before D09 only the first existed. */
             const out = await doorOver({ temperature: 70, enabled: false, currentTemperature: 41.5 })
                 .read();
             assert.equal(out.cupWarmerTemperature, 0, 'the SETTING is off');
@@ -251,10 +169,6 @@ describe('D09 — the cup-warmer door publishes the machine\'s held setpoint', (
         assert.equal('cupWarmerHeldTarget' in out, false);
     });
 });
-
-/* ═══════════════════════════════════════════════════════════════════════════
- * HALF TWO — FORGETTING, AND IT IS INSIDE THE COMMIT BAND
- * ═══════════════════════════════════════════════════════════════════════ */
 
 describe('D09 — Restore defaults forgets what the master switch remembered', () => {
     test('the press stages a forget and sends NOTHING', async () => {
@@ -302,11 +216,6 @@ describe('D09 — Restore defaults forgets what the master switch remembered', (
         });
 
     test('AND THE DELETE IS A DELETE, not a write of null', async () => {
-        /* ReaPrime's kv handler does `jsonDecode(body) ?? body`, and `jsonDecode("null")`
-         * is null — so a written null lands the four-character STRING 'null' in the store
-         * and reads back as a present, truthy setting. The router routes a null write to
-         * remove() for exactly this reason; asserting the shape here means a later
-         * refactor that "simplifies" the forget into `set(key, null)` goes red. */
         const rig = await opened({ kvSeed: { cupWarmerTarget: 62 } });
         await rig.model.restoreDefaults(rig.leaf);
         await rig.model.commit();
@@ -317,10 +226,6 @@ describe('D09 — Restore defaults forgets what the master switch remembered', (
 
     test('a leaf whose memory key holds nothing stages no forget and makes no DELETE',
         async () => {
-            /* Otherwise every press of this button on every machine posts a DELETE for a
-             * key that was never there. `storedValue()` is the read that can tell "absent"
-             * from "shipped default" — `value()` cannot, and using it here would stage a
-             * forget on every leaf for ever. */
             const rig = await opened({});
             const before = kvLog(rig.kv).length;
 
@@ -345,10 +250,6 @@ describe('D09 — Restore defaults forgets what the master switch remembered', (
 
     test('after a forget, switching on falls to the machine — which is the two halves meeting',
         async () => {
-            /* THE POINT OF THE WHOLE DECISION, in one run: the stale 62 is gone, so the
-             * ladder reaches the machine's held 70 instead of resurrecting a number from a
-             * session nobody remembers. Before D09 the memory could not be removed AND the
-             * ladder would have preferred a shipped 60 to the machine anyway. */
             const rig = await opened({ kvSeed: { cupWarmerTarget: 62 } });
             await rig.model.restoreDefaults(rig.leaf);
             await rig.model.commit();

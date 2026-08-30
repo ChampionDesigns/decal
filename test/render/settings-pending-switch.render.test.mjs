@@ -1,38 +1,5 @@
 /**
- * settings-pending-switch.render.test.mjs — D08: a switch that has not been read does not
- * say "off".
- *
- * THE FINDING THIS CLOSES is audit F-042's stated weak case. Round 1 gave every unanswered
- * settings row a pending face — disabled, dashed, asserting nothing — and wrote down the
- * one archetype where that was not enough:
- *
- *     "a disabled `ui-switch` still announces checked/unchecked, so a pending switch
- *      asserts 'off' to a screen reader even while it refuses input; `ui-switch` carries
- *      role='switch' and has no third state"
- *
- * MEASURED on the tablet, and it is not a theoretical window: Accessories › Cup Warmer
- * booted with the pre-warm switch reading FALSE for about four seconds while the server
- * held TRUE. Ben's ruling (D08, 30 Aug 2026): "a switch whose source has not answered
- * renders as a skeleton/inert row, never a false 'off' ... a screen reader must not hear
- * 'off' while pending."
- *
- * WHAT IS ASSERTED, AND WHY IT IS THE ACCESSIBILITY TREE RATHER THAN THE MARKUP. The
- * failure was never "the wrong element is in the DOM" — it was "the right element makes a
- * claim nobody has earned". So the load-bearing assertion is over
- * `Accessibility.getFullAXTree`: while pending, no node in the leaf has role `switch`, and
- * nothing in it is checked. The DOM assertions beside it say WHICH mechanism delivered
- * that, so a future change that keeps the tree honest by some other route still passes and
- * a future change that quietly re-adds the control fails on the tree, not on a selector.
- *
- * AND THE SETTLED HALF IS ASSERTED TOO, in the same page. A fix that deleted the switch
- * would pass every pending assertion here and ship a leaf with no control on it, so the
- * release step demands the real `ui-switch` back, carrying the value the gated backend
- * held all along — which is `false` where the shipped default is `true`, so the settled
- * face cannot be the fallback wearing the answer's clothes.
- *
- * ONE GEOMETRY. Nothing in this file is a measurement of a box; it is a question about
- * what the row claims. The geometry sweep belongs to `settings-leaves.render.test.mjs`,
- * which measures rects.
+ * D08: a switch that has not been read does not say "off".
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -84,10 +51,6 @@ describe('D08 — a pending switch asserts nothing', () => {
             roles: slotted.map((el) => el.getAttribute('role')),
             ariaChecked: slotted.map((el) => el.getAttribute('aria-checked')),
             knobs: slotted.map((el) => el.shadowRoot?.querySelector('.knob') ? 1 : 0),
-            /* The sentence a reader is given INSTEAD of a state, read off the live node.
-             * It lives in #5's SHADOW root since the fix moved there — a consumer cannot
-             * forget it and cannot double it — so the light DOM is empty and both are
-             * reported, because "which tree is it in" is the thing that changed. */
             text: slotted.map((el) => el.shadowRoot?.querySelector('.a11y')?.textContent.trim() ?? '')
                 .join(' ').trim(),
             lightText: slotted.map((el) => el.textContent.trim()).join(' ').trim(),
@@ -133,17 +96,6 @@ describe('D08 — a pending switch asserts nothing', () => {
             + 'heard, and D08 is that it must not',
         );
 
-        /* THE WIDER CLAIM, ONE STEP WIDER THAN THE ROLE NAME, because `checked` is not the
-         * switch role's alone: a `checkbox` or a `menuitemcheckbox` introduced later
-         * carries the same false assertion under a different name, and a fix that renamed
-         * the role rather than removing the control would pass the check above.
-         *
-         * `radio` IS DELIBERATELY NOT IN THIS LIST, and it is not an oversight. This leaf's
-         * saver-TYPE row is a BANK, and a bank is drawn as a radio group whose unselected
-         * members each announce `checked=false` — three of them, measured. A pending bank
-         * asserting "none of these is chosen" is arguably the same fault one archetype
-         * over, but D08 is a ruling about SWITCHES and widening it here would be this
-         * worker deciding a question Ben has not been asked. It is in the FIXLOG for him. */
         const CHECKABLE = new Set(['switch', 'checkbox', 'menuitemcheckbox']);
         const asserted = nodes.filter((node) => CHECKABLE.has(node.role));
         assert.deepEqual(
@@ -154,15 +106,6 @@ describe('D08 — a pending switch asserts nothing', () => {
 
     test('AND THE FALLBACK IT WOULD HAVE DRAWN IS THE WRONG ONE — the defect, measured',
         async () => {
-            /* THIS IS THE ASSERTION THAT MAKES THE OTHERS MEAN SOMETHING. `valueFor` is
-             * untouched by the F-042 work: while pending the model still hands back the
-             * shipped default, and for this key that default is `true` while the backend
-             * holds `false`. So the control that used to be rendered here would have drawn
-             * and announced ON, and the answer four seconds later is OFF.
-             *
-             * It is the tablet's cup-warmer case with the polarity reversed — there the
-             * server held TRUE and the page drew FALSE — and reversing it is the point: a
-             * pending face is not "draw the safe value", it is "draw no value". */
             const rows = await page.evalFn(() => window.__pendingLeaf.rows());
             const row = rows.find((r) => r.id === ROW);
             assert.equal(row.pending, true, 'still in the window');
@@ -178,9 +121,6 @@ describe('D08 — a pending switch asserts nothing', () => {
         assert.equal(control.lightText, '',
             'and it is #5\'s, not the leaf\'s — one owner, so it cannot be doubled');
 
-        /* #29's rule 3 — "never name a role-less generic". If the skeleton were given the
-         * row's heading it would announce "Show screen saver" as though it were a control,
-         * which is the fault one step quieter. */
         assert.deepEqual(control.labelled, [null], 'the row named the pending switch');
 
         /* AND THE SENTENCE IS REACHABLE, not display:none'd out of the tree: the shared
@@ -212,9 +152,6 @@ describe('D08 — a pending switch asserts nothing', () => {
 
     test('once the source answers, the real switch is back — with the ANSWER, not the default',
         async () => {
-            /* The gate was opened by the case above; this suite shares one page, and the
-             * order is deliberate — the box comparison needs the pending face still on
-             * screen, and everything after it needs the settled one. */
             const rows = await page.evalFn(() => window.__pendingLeaf.rows());
             const row = rows.find((r) => r.id === ROW);
             assert.equal(row.pending, false, 'the backend answered');

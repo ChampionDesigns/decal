@@ -1,18 +1,5 @@
 /**
- * step-matrix-rows.test.mjs — wave 5.5, the step-matrix cluster's MODEL half.
- *
- * The layout claims live in `test/render/step-matrix.render.test.mjs`, where they are
- * rendered boxes. What is asserted here is what the matrix DECIDES before anything is
- * painted: which primitive fills a cell, which step key an edit writes, and — the one
- * that matters most — that not one bound is declared anywhere in the row model.
- *
- * B2 IS A TOTALITY CLAIM AND IT IS CHECKED AS ONE. Every ranged row resolves to a field
- * id `editor-ranges.js` declares, and every entry it hands back is the SAME OBJECT the
- * owning table holds. `Object.is` is the check for the same reason the ranges suite gives:
- * a copied range compares equal on min/max and is a second table.
- *
- * A8: nothing here reads a file's text. Every assertion is about a value a function
- * returned.
+ *.5, the step-matrix cluster's MODEL half.
  */
 
 import { test, describe } from 'node:test';
@@ -56,12 +43,6 @@ const step = (over = {}) => ({
     ...over,
 });
 
-/**
- * THE CLASS GOES INTO BOTH HALVES OF THE DOOR (27 August 2026). It used to resolve only
- * the machine table; since Ben's flow-ceiling lift the AUTHORING table has two rows that
- * depend on it too — a flow step's target and a pressure step's flow limit — and a door
- * handed one machine's limits with no class would answer half its fields for the other.
- */
 const doorFor = (machineClass = 'bengle') => createEditorRanges({
     machineLimits: limitsFor(machineClass),
     machineClass,
@@ -96,9 +77,6 @@ describe('the ten rows, and Slate\'s own order', () => {
     });
 
     test('NOT ONE BOUND IS DECLARED IN THE ROW MODEL (B2)', () => {
-        /* Walk every value the module exports and refuse a min, a max or a step. The
-         * check is over the SHAPE rather than over a list of names, because the second
-         * table always arrives as one extra key nobody looked for. */
         const banned = new Set(['min', 'max', 'step', 'ceiling', 'floor', 'limit']);
         const walk = (value, path) => {
             if (!value || typeof value !== 'object') return;
@@ -128,12 +106,6 @@ describe('the ten rows, and Slate\'s own order', () => {
     });
 
     test('and the door hands back the owning table\'s OWN object, never a copy', () => {
-        /* THE MODE RANGES ARE ASKED FOR THE SAME MACHINE THE DOOR WAS BUILT FOR. Two of
-         * the eight (mode, slot) pairs resolve per machine class now, so `modeRanges(pump)`
-         * with no class would be the DE1's answer compared against a Bengle door — a
-         * mismatch that is a real defect in the door and, asked this way, would look like
-         * one in the table. The identity claim is unchanged and is still the point: a
-         * copied range compares equal on min/max and is a second table. */
         for (const machineClass of ['bengle', 'de1']) {
             const door = doorFor(machineClass);
             assert.ok(Object.is(door.rangeFor('stepSeconds'), AUTHORING_RANGES.seconds));
@@ -145,8 +117,6 @@ describe('the ten rows, and Slate\'s own order', () => {
                     modeRanges(pump, machineClass).limiter), `${machineClass} ${pump} limiter`);
             }
         }
-        // And the lift is visible from the matrix's own door, which is the surface Ben
-        // was looking at when he asked "why is flow limited to 15ml/s".
         assert.equal(doorFor('bengle').rangeFor('stepTarget', { pump: 'flow' }).max, 20);
         assert.equal(doorFor('bengle').rangeFor('stepLimiter', { pump: 'pressure' }).max, 20);
         assert.equal(doorFor('de1').rangeFor('stepTarget', { pump: 'flow' }).max, 15);
@@ -254,11 +224,6 @@ describe('D2 — every label is a key, and the composed names are templates', ()
     });
 
     test('every label is ENGLISH TEXT, so an untranslated string is never an identifier', () => {
-        /* i18n/source/strings.json's own keyRule: "A key IS its English text.
-         * Untranslated strings therefore render as English, never as a bare
-         * identifier." So the claim a model can make is about the KEYS: each is a
-         * readable phrase, and each survives the door with its own text. What the
-         * catalogue holds is the generator's business (test/i18n-freshness.test.js). */
         const keys = [
             ...STEP_MATRIX_ROWS.map((row) => row.label),
             ...PROBE_OPTIONS.map((option) => option.label),
@@ -281,11 +246,6 @@ describe('D2 — every label is a key, and the composed names are templates', ()
 });
 
 describe('the words and the per-surface overrides are Slate\'s, measured 25 Aug 2026', () => {
-    /* EVERY ASSERTION IN THIS BLOCK HAS AN ORACLE, and the oracle is the running Slate
-     * driven through CDP on the same two profiles Ben named — a 2-step and a 5-step.
-     * These are not preferences; each one was a DRIFT, and one of them
-     * (Fast|Smooth -> Jump|Ramp) had already been filed as cmp-seh-2 "undeclared". */
-
     test('Transition reads Fast and Smooth, which is the matrix\'s surface wording', () => {
         const options = bankOptionsFor(matrixRow('transition'), step(), 1, {}).options;
         assert.deepEqual(options.map((o) => o.label), ['Fast', 'Smooth'],
@@ -317,9 +277,6 @@ describe('the words and the per-surface overrides are Slate\'s, measured 25 Aug 
     test('the limiter says OFF rather than a number it does not have', () => {
         assert.equal(matrixRow('limiter').zeroLabel, 'OFF',
             'ORACLE span.pe-value-number.pe-limiter-off reads "OFF"');
-        /* AND THE STATE IT NAMES IS THE ONE THE MODEL ALREADY ANSWERS. The profile the
-         * oracle drew carried `limiter: null` on that step; readValue answers null, and
-         * a typed 0 is the same state — the authoring ranges say so ("0 = no limit"). */
         assert.equal(readValue(matrixRow('limiter'), step({ limiter: null })), null);
         assert.equal(readValue(matrixRow('limiter'), step({ limiter: { value: 0 } })), 0);
         assert.equal(readValue(matrixRow('limiter'), step({ limiter: { value: 6 } })), 6);

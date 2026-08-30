@@ -1,26 +1,5 @@
 /**
- * editor-versions-name.render.test.mjs — THE VERSION ROW HAS A NAME (audit F-016, row 2).
- *
- * F-016 is the Wave 1 inventory of controls whose accessible name resolved to the empty
- * string under the plan's cascade (aria-label → aria-labelledby → &lt;label&gt; → title →
- * collapsed visible text). Sixteen rows; two of them are the editor's, and this is the one
- * that is not a chart well: the `ui-button` of a version record in the Previous versions
- * dialog, state `editor--steps`. The entry's own note says why it had nothing to inherit —
- * "its label is composed per record from a title and a timestamp, so no verbatim name
- * exists to copy".
- *
- * WHY THE NAME IS THE WHOLE ROW AND NOT JUST THE TITLE. Two versions of one profile
- * normally SHARE a title — that is what a version is — so a name built from the title alone
- * would name every row in the dialog identically, which is F-017's defect manufactured on
- * purpose. The date is the discriminator the row is drawn around, and the change line is
- * what tells apart two saves a minute apart.
- *
- * THE NAME IS READ OFF CHROME'S OWN ACCESSIBILITY TREE, not off the attribute. An attribute
- * assertion would pass against a name that never reaches the tree — a `label` on a host
- * that forgot to forward it, or a control hidden from the tree by an ancestor — which is
- * exactly the class of defect F-016 is an inventory of.
- *
- * A8: nothing here reads a source file.
+ * The.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -52,15 +31,6 @@ const RECORDS = [
     },
 ];
 
-/**
- * Hand the screen a library door holding a ready version list, and show the dialog.
- *
- * `#versionsBody` reads `boot.library.get().versions` and nothing else, so this is the
- * whole of what the dialog needs — no save loop, no transport. The dialog is SHOWN because
- * a closed `<ui-dialog>` wraps a closed native `<dialog>`, which is `display: none` and is
- * therefore absent from the accessibility tree; a name assertion against it would be
- * vacuous.
- */
 async function showVersions(page) {
     await page.evalFn(async (sel, records) => {
         const screen = window.__h.need(sel);

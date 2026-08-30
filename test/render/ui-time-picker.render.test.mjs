@@ -1,46 +1,5 @@
 /**
- * ui-time-picker.render.test.mjs — Wave 4 item #54's rendering suite.
- *
- * Gate A: headless Chrome over CDP, computed styles and box geometry only, never
- * source text, at BOTH standard geometries — 1281×801 @ dsf 1.5 and the 1000×600
- * floor (CONVENTIONS §10).
- *
- * WHAT THIS SUITE IS REALLY FOR. #54's row carries no bug id (`ITEMS.json` "#54":
- * `"bugs": []`), so the defects it must make inexpressible are cited from the spec
- * instead, and each has its own block below:
- *
- *   §4  O16  "Literal colours in two sheets whose own headers claim they have none"
- *            (§7.7, `time-picker-modal.css:192`) — and line 192 IS this component:
- *            `.tpm-num-sel { fill: #fff }`, the selected clock number. A hex renders
- *            identically to a token in a screenshot, so only a drill can tell them
- *            apart. Every selected paint here is drilled.
- *   §5  §2.2 row 1  "Control heights, touch targets, hairlines: FIXED TOKEN. Never
- *            fluid ... A control that shrinks with the window becomes unusable
- *            exactly when the window is small." Slate's twelve targets are
- *            `<circle r="22">` inside an SVG at `max-width: 78vw` — 44 units that
- *            scale with the viewport, under a 48px floor before they even start.
- *   §6  §4.6 / §2.1 Rule 1  "The time picker `overflow: visible`s at
- *            `max-height: 96vh` and needs a ≥590px-tall viewport to fit." Three
- *            viewport queries in one overlay. Measured here as: the same container
- *            gives the same face at 1281×801 and at 1000×600.
- *
- * THE ORACLE HAS NO VOTE, and the disqualification check says so three ways:
- * `prov_query.py find --cls tpm-svg` → "searched 49 state(s), found 0 element(s) in
- * 0 state(s)" (same for tpm-dialog / tpm-clock / tpm-seg / tpm-num) — the picker is
- * not one of the 49 states; this row is the spec's one FLUID element, and "Slate has
- * no answer: 98.4% of its geometry is frozen"; and §7.7 O16 files a bug against the
- * very rule that would be copied. So every number below is a token, a read-only
- * source read of `time-picker-modal.css` / `.js`, or a derivation — never a Slate
- * pixel. The two oracle answers that ARE quotable corroborate a token rather than
- * setting one:
- *
- *   CITE settings-machine-sleep---wake-schedules #schedule-time-input [i=76]
- *        font-size = 17px  <-  slate-shell.css `#subpage-host #settings-content-area
- *        input:not([type="range"])…` authored `var(--slate-text-base)`
- *        !important=yes  (token-driven)   → --ui-text-base, the chip glyph.
- *   CITE settings-connection-scale .slate-bank-item [i=45] rect 126 x 62
- *        (`find --cls slate-bank-item` → 41 elements in 13 states) → --ui-control-inner,
- *        the composed readout's floor, owned by #3 and asserted in its own suite.
+ *.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -58,12 +17,6 @@ import {
 
 const MODULE = ['/src/components/ui-time-picker.js'];
 
-/* The dialog-mounted case needs #18's module TOO. window.__h.mount waits on
- * customElements.whenDefined() for every hyphenated tag on the stage, so a state
- * that mounts <ui-dialog> without ui-dialog.js having been imported does not fall
- * back to a plain div — it waits forever on a promise nothing will resolve, with no
- * page error anywhere (measured for ui-menu; the gallery's demo sidecars exist for
- * the same reason). Cost while writing this file: one hung suite. */
 const MODULE_IN_DIALOG = [...MODULE, '/src/components/ui-dialog.js'];
 
 /* 06:30 — the wake time the schedule sheet opens on, and an hour whose chip is not
@@ -78,19 +31,7 @@ const MARKUP = `${TP}${TP_MIN}${TP_OFF}${TP_DIS}`;
 const boxed = (width, inner, id = 'stage') =>
     `<div id="${id}" style="inline-size:${width}px">${inner}</div>`;
 
-/* ---------------------------------------------------------------------------
- * THE DERIVATION UNDER TEST, restated once so the assertions can name it.
- *
- * Twelve labels 30 degrees apart on a ring of radius 98 in a 264-unit box put two
- * adjacent centres 2 * 98 * sin(15deg) = 50.73 units apart = 19.215% of the face.
- * The component computes this from its own geometry constants and hands it to the
- * sheet as --_ui-tp-pitch; the tests below never assert this number directly —
- * they assert the RATIO it produces, so the constant lives in exactly one place
- * (spec §2.3: "The same number written in two places" is banned).
- * ------------------------------------------------------------------------- */
-const FACE_MAX = 264;   // SOURCE time-picker-modal.css:153 `width: 264px`
-/* A stage between the derived floor (~250px) and that cap — the band where the face
- * genuinely tracks its container, which is what §5.2 #54 means by "fluid". */
+const FACE_MAX = 264;
 const FACE_MID = 256;
 
 /** Rendered lengths at dsf 1.5 are not string-comparable; whole CSS px are. */
@@ -125,13 +66,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* ================================================================
-         * 1. THE PORT IS THE ONLY ARITHMETIC — rendered, not read.
-         *    `time-picker-core.js` is PORT-AS-IS (SCOPE.md:2641). These check the
-         *    component consumes it rather than re-deriving: the checked chip, the
-         *    hand angle and the readout must all agree with the exported functions.
-         * ============================================================== */
-
         test('the hour dial checks the hour, and 12 o\'clock lives at index 0', () => mounted(async (page) => {
             // 06:30 -> to12h(6) = { h12: 6, ampm: 'AM' } -> selIndex = 6 % 12 = 6.
             const checked = await page.evalFn(
@@ -153,9 +87,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the hand points where hourHandAngle / minuteHandAngle say', () => mounted(async (page) => {
-            // hourHandAngle(6) = (6 % 12) * 30 - 90 = 90deg -> straight DOWN, so the
-            // hand's free end is directly below the hub. Read the rendered SVG
-            // geometry, never the source.
             const hourHand = await page.evalFn(
                 () => {
                     const l = window.__h.need('#tp >>> .hand');
@@ -165,8 +96,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(hourHand.x2, hourHand.x1, 'hourHandAngle(6) = 90deg: no horizontal component', 0.02);
             assert.ok(hourHand.y2 > hourHand.y1 + 90, 'and it points down the full ring radius');
 
-            // minuteHandAngle(30) = 30 * 6 - 90 = 90deg -> also straight down.
-            // minuteHandAngle(37) = 37 * 6 - 90 = 132deg -> down and to the LEFT.
             const offHand = await page.evalFn(
                 () => {
                     const l = window.__h.need('#off >>> .hand');
@@ -178,9 +107,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('an off-tick minute checks nothing — snapMinute decides, not a guess', () => mounted(async (page) => {
-            // 07:37: snapMinute(37, 5) === 35 !== 37, so no chip is the answer and the
-            // hand alone carries it. Slate: "no exact number between ticks"
-            // (time-picker-modal.js:61).
             const checked = await page.evalFn(
                 () => [...window.__h.need('#off >>> #ring').querySelectorAll('[role="radio"]')]
                     .filter((b) => b.getAttribute('aria-checked') === 'true').length,
@@ -201,24 +127,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a garbage value renders a real time and does not overwrite the caller', () => mounted(
             async (page) => {
-                // parseTime24 falls back rather than returning NaN (:20, :23) — the
-                // reason the module was PORT-AS-IS. The FALLBACK is drawn; `value` is
-                // left exactly as the caller wrote it until a real choice is made.
                 const live = await page.evalFn(() => window.__h.need('#bad >>> #live').textContent.trim());
-                /* '7:00 AM' AND NOT '07:00 AM' SINCE 29 AUGUST 2026 (audit F-043). This
-                 * line read
-                 *
-                 *     assert.equal(live, '07:00 AM', …);
-                 *
-                 * which pinned a string this component assembled for itself out of a
-                 * padded hour, a colon, a padded minute and a hard-coded AM. That second
-                 * spelling is the finding: the opener that leads here wrote a THIRD one
-                 * ("07:00", 24-hour, no period) for the same value. The live region is now
-                 * `wall-clock.js`'s `clockTime`, the same formatter the Live header and the
-                 * screensaver use, and its 12-hour face is `hour: 'numeric'` by decision
-                 * ("24-hour is fixed-width and 12-hour is not"). The claim this test makes
-                 * — the fallback time is DRAWN, and `value` is not rewritten — is
-                 * unchanged. */
                 assert.equal(live, '7:00 AM', 'parseTime24 fallback { h24: 7, m: 0 }, drawn');
                 const attr = await page.evalFn(() => window.__h.need('#bad').getAttribute('value'));
                 assert.equal(attr, 'nope', 'the caller\'s string is not silently rewritten');
@@ -233,23 +142,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('no value at all draws the fallback and invents no value', () => mounted(
             async (page) => {
-                /* THE ZERO-CONFIGURATION STATE. Every other mount in this file and all
-                 * eight gallery states set `value=`, so the state a consumer gets by
-                 * writing `<ui-time-picker>` and nothing else was drawn by no stated
-                 * rule and asserted by no test. It is the SAME path as the garbage case
-                 * above — parseTime24's documented fallback { h24: 7, m: 0 }
-                 * (time-picker-core.js:14-25) — and both halves are pinned here: the
-                 * face opens on a real time, and `value` is not rewritten to one.
-                 *
-                 * A7 does not reach this: there is no server data in this component
-                 * (CARRY_FORWARD.md:242); the fallback is the ported module's own
-                 * totality, which is why it was PORT-AS-IS. */
                 const live = await page.evalFn(
                     () => window.__h.need('#zero >>> #live').textContent.trim(),
                 );
-                /* '7:00 AM' since 29 August 2026 — see the garbage-value case above for
-                 * the quote and the reason. `07:00 AM` was the second spelling F-043 is
-                 * about; the state this test pins is unchanged. */
                 assert.equal(live, '7:00 AM', 'an unset value must draw parseTime24s fallback');
 
                 const checked = await page.evalFn(
@@ -282,13 +177,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             '<ui-time-picker id="zero"></ui-time-picker>',
         ));
 
-        /* ================================================================
-         * 2. TOKENS ARE CONSUMED, NOT COPIED — the standing token drill.
-         * ============================================================== */
-
         test('the artwork paints from --ui-steel', () => mounted(async (page) => {
-            // SOURCE time-picker-modal.css:165-172 — the hand's stroke and the hub's
-            // fill are both --tpm-accent-soft, which is var(--slate-steel) (:25).
             await assertTokenDrill(page, {
                 token: '--ui-steel',
                 value: DRILL_COLOUR,
@@ -303,8 +192,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'fill',
                 expected: DRILL_COLOUR,
             });
-            // The tinted disc behind the numbers is a color-mix OF the same token, so
-            // it moves without landing on the drill value.
             await assertTokenDrill(page, {
                 token: '--ui-steel',
                 value: DRILL_COLOUR,
@@ -333,9 +220,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the readout digits are --ui-display-md, slotted into #3', () => mounted(async (page) => {
-            // The whole reason the digits are slotted rather than left to the bank:
-            // ui-bank's own .item states font-size: var(--ui-text-base), and a time
-            // readout is display type (time-picker-modal.css:99).
             const bankItem = await page.prop('#tp >>> #field >>> #item-0', 'font-size');
             const digits = await page.prop('#tp >>> .digits', 'font-size');
             assert.notEqual(
@@ -350,15 +234,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the composed banks have a real box — containment does not collapse them', () =>
             mounted(async (page) => {
-                // THE BUG THIS EXISTS FOR, found by the meridiem test below and fixed
-                // in .display: the base puts container-type: inline-size on every
-                // UiElement :host, so a ui-bank's width can no longer come from its
-                // contents. Sized with an auto flex-basis both banks measured 2px —
-                // their two hairlines — with the item buttons overflowing a host that
-                // is `overflow: hidden`. On screen: invisible. In a screenshot diff
-                // against nothing: unremarkable. To the touch: dead. Part 8 §3 Rule 1
-                // is exactly this class ("pixel-identical and completely dead to
-                // input"), so it is asserted on geometry AND on the hit test.
                 const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
                 const inner = parseFloat(await page.resolveValue('var(--ui-control-inner)', 'height'));
 
@@ -372,17 +247,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `#${bank} is ${host.width}px around two cells of ${a.width} + ${b.width}: `
                         + 'its items are overflowing a host that clips them',
                     );
-                    // SOURCE time-picker-modal.css:90-92 .tpm-seg { width: 88px } —
-                    // four equal cells, HH MM AM PM, at Slate's own segment width.
                     near(a.width, 88, `#${bank} cell 0 is one --_ui-tp-seg`, 1.5);
                     near(b.width, 88, `#${bank} cell 1 is one --_ui-tp-seg`, 1.5);
                     near(a.height, inner, `#${bank} cell 0 is --ui-control-inner tall`, 1.5);
                     assert.ok(a.height >= floor - 0.5, `#${bank} cell 0 clears --ui-hit-min`);
 
-                    // And the browser's own hit test agrees that the cell is what is
-                    // under the cell. elementsFromPoint retargets across the shadow
-                    // boundary, so the answer is the outermost host — which is the
-                    // picker when the cell is really there, and the page when it is not.
                     const under = await page.evalFn((x, y) => {
                         const path = document.elementsFromPoint(x, y);
                         return path.length ? path[0].tagName : null;
@@ -396,11 +265,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the readout refuses to shrink too — the clock is the fluid half, not it', () =>
             mounted(async (page) => {
-                // §2.2 row 1 twice over. Letting this row track its container puts the
-                // four cells at 48px in a 200px stage, which is 12px of content box
-                // after #3's own padding-inline: every digit ellipsises away while the
-                // clock beside it stays perfectly legible. So the row overflows, and
-                // the READOUT — not the clock — is this body's binding floor.
                 for (const cell of ['#field >>> #item-0', '#field >>> #item-1',
                     '#meridiem >>> #item-0', '#meridiem >>> #item-1']) {
                     const box = await page.box(`#squeezed >>> ${cell}`);
@@ -415,11 +279,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }, boxed(200, '<ui-time-picker id="squeezed" value="06:30"></ui-time-picker>')));
 
-        /* ================================================================
-         * 3. THE DIAL DRILL — selection exists here three times over, and there is
-         *    ONE treatment behind all three. (CONVENTIONS §4; spec §3.9.)
-         * ============================================================== */
-
         test('the selected number is the four dials and nothing else', () => mounted(async (page) => {
             await assertOneSelectionTreatment(page, {
                 selected: chip(6),
@@ -429,12 +288,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('one treatment reaches the chip, the readout and the meridiem together', () =>
             mounted(async (page) => {
-                // Slate paints these three in three different places — .tpm-num-sel
-                // (fill: #fff), .tpm-seg-active (--slate-steel) and .tpm-ampm-on
-                // (--slate-steel, whose comment records that "#fff was a literal, and
-                // on a steel fill in the dark theme it is 1.35:1"). Three rules is how
-                // six treatments started. Here it is one fragment: move the dial ONCE
-                // and all three must follow.
                 const face = await page.resolveToken('--ui-selected-face', 'background-color');
                 const targets = [
                     chip(6),                                 // the clock number
@@ -461,11 +314,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        /* ================================================================
-         * 4. O16 — `time-picker-modal.css:192` `.tpm-num-sel { fill: #fff }`.
-         *    "Literal colours in two sheets whose own headers claim they have none."
-         * ============================================================== */
-
         test('O16: the selected number\'s ink is a dial, so it can move — a hex cannot',
             () => mounted(async (page) => {
                 const ink = await page.resolveToken('--ui-selected-ink', 'color');
@@ -482,15 +330,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     expected: DRILL_COLOUR,
                 });
 
-                // The half that makes it O16's death rather than O16's twin: nothing in
-                // this component paints a `fill` on the numbers at all. The chips are
-                // HTML buttons, so `fill` is inert on them, and the SVG carries no text.
                 const svgText = await page.count('#tp >>> svg text');
                 assert.equal(svgText, 0, 'no SVG <text> to need a fill literal');
             }));
 
         test('O16: the resting number is --ui-text, also a token', () => mounted(async (page) => {
-            // SOURCE time-picker-modal.css:176 `fill: var(--tpm-text)` = var(--slate-text).
             const text = await page.resolveToken('--ui-text', 'color');
             assert.equal(await page.prop(chip(5), 'color'), text);
             await assertTokenDrill(page, {
@@ -498,10 +342,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 selector: chip(5), property: 'color', expected: DRILL_COLOUR,
             });
         }));
-
-        /* ================================================================
-         * 5. §2.2 ROW 1 — the artwork is fluid, the finger is not.
-         * ============================================================== */
 
         test('every one of the twelve targets is --ui-hit-min, at every face size', () =>
             mounted(async (page) => {
@@ -515,10 +355,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         near(box.height, floor, `#${host} chip ${i} block hit extent`);
                     }
                 }
-                // Slate's own number, for the record: <circle r="22"> inside a 264-unit
-                // viewBox at width: 264px is 44 x 44 CSS px — under the floor at its
-                // NATURAL size, before 78vw shrinks it further
-                // (time-picker-modal.js:77, time-picker-modal.css:152-155).
                 assert.ok(floor > 44, 'matching Slate here would reproduce the defect');
             }));
 
@@ -534,9 +370,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('two adjacent targets never overlap, because the FACE has the floor', () =>
             mounted(async (page) => {
-                // This is what --_ui-tp-pitch buys, measured rather than asserted from
-                // the constant: at the face's own minimum, two neighbouring chips are
-                // still at least one hit-min apart centre to centre.
                 const floor = parseFloat(await page.resolveValue('var(--ui-hit-min)', 'width'));
                 const centres = [];
                 for (let i = 0; i < 12; i += 1) {
@@ -555,20 +388,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }, boxed(200, '<ui-time-picker id="squeezed" value="06:30"></ui-time-picker>')));
 
-        /* ================================================================
-         * 6. THE CONTAINER FLOOR — and no viewport anywhere.
-         *    spec §2.4 (a floor and a stated overflow), §2.1 Rule 1, §4.6.
-         * ============================================================== */
-
         test('the face reads its own container and stops at the artwork\'s size', () =>
             mounted(async (page) => {
                 const wide = await page.box('#wide >>> #face');
                 near(wide.width, FACE_MAX, 'a 600px stage gives the natural 264px face');
                 near(wide.height, FACE_MAX, 'aspect-ratio 1 — no second length declared');
 
-                // 256px sits between the derived touch floor (~250px) and the artwork's
-                // 264px cap, which is the only band in which "reads its own container" is
-                // observable at all — and it is exactly the band the min() exists for.
                 const mid = await page.box('#mid >>> #face');
                 near(mid.width, FACE_MID, 'a 256px stage gives a 256px face: the container is read');
                 near(mid.height, FACE_MID, 'and it stays square, from aspect-ratio alone');
@@ -592,10 +417,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
                 near(face.height, face.width, 'the floor is applied on one axis; the ratio keeps both');
 
-                // And the floor is DERIVED, not typed: halve the touch token and the
-                // face's floor follows it in the same proportion. A hard-coded 250px
-                // would sit still here. (Ratio, not value, so the pitch constant is
-                // never written twice — spec §2.3.)
                 const before = parseFloat(await page.prop('#squeezed >>> #face', 'min-inline-size'));
                 await page.setToken('--ui-hit-min', DRILL_LENGTH);
                 const after = parseFloat(await page.prop('#squeezed >>> #face', 'min-inline-size'));
@@ -612,12 +433,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('§4.6: no vw, no vh — the same container gives the same face at both geometries', () =>
             mounted(async (page) => {
-                // Slate's picker reads the viewport three times: max-width: 78vw on the
-                // SVG, max-width: 96vw / max-height: 96vh on the dialog. Its own failure
-                // mode is in the spec: it "needs a >=590px-tall viewport to fit". These
-                // numbers are pinned per geometry BY THE SUITE RUNNING TWICE — the
-                // 1281x801 pass and the 1000x600 pass must both see 264 and 300, and a
-                // single vw anywhere in the component would split them.
                 const wide = await page.box('#wide >>> #face');
                 const mid = await page.box('#mid >>> #face');
                 near(wide.width, FACE_MAX, `264px at ${geometry.width}x${geometry.height}`);
@@ -628,20 +443,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, boxed(600, '<ui-time-picker id="wide" value="06:30"></ui-time-picker>', 'stage-wide')
              + boxed(FACE_MID, '<ui-time-picker id="mid" value="06:30"></ui-time-picker>', 'stage-mid')));
 
-        /* ================================================================
-         * 7. THE FOCUS RING — one treatment, unclipped (bug L24's class).
-         * ============================================================== */
-
         test('the 12 o\'clock chip takes the one ring, unclipped', () => mounted(async (page) => {
-            // Chip 0 is the worst case: it sits highest in the face, closest to the
-            // readout above it, so a ring drawn at the OUTSET offset has the least room.
             await assertFocusUnclipped(page, chip(0));
         }));
 
         test('a chip inside the dialog body\'s scrollport is still unclipped', () => mounted(
             async (page) => {
-                // #18's .body is `overflow-y: auto`, which makes it a clipper. This is
-                // the arrangement the component actually ships in.
                 await assertFocusUnclipped(page, '#tp >>> #chip-0');
             },
             '<ui-dialog id="d" open heading="Set time">'
@@ -649,13 +456,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             + '</ui-dialog>',
             MODULE_IN_DIALOG,
         ));
-
-        /* ================================================================
-         * 8. ARIA — Appendix 15 (the aria-driven state contract) and Appendix 10
-         *    (roving tabindex, "exactly as implemented"). Slate's clock has NONE of
-         *    this: <text>/<circle> with data-val and a delegated click handler
-         *    (time-picker-modal.js:98-110) — no role, no tabindex, no state, no key.
-         * ============================================================== */
 
         test('the dial is a radiogroup of twelve radios, named by the mode', () => mounted(async (page) => {
             const ring = await page.evalFn(() => {
@@ -711,28 +511,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     live: p.getAttribute('aria-live'),
                 };
             });
-            /* `text: '6:30 AM'` since 29 August 2026 (audit F-043). It read
-             *
-             *     assert.deepEqual(live, { text: '06:30 AM', role: 'status', live: 'polite' });
-             *
-             * — the hand-assembled string. The announcement now comes from the skin's one
-             * time formatter, so it is the same string the control that OPENED this picker
-             * prints. Everything else this test asserts is untouched. */
             assert.deepEqual(live, { text: '6:30 AM', role: 'status', live: 'polite' });
 
-            // O9's shape, one body along: it has to be visually hidden AND still in the
-            // accessibility tree, so display:none / visibility:hidden / width:0 are all
-            // wrong (CONVENTIONS §5a).
             const style = await page.computed('#tp >>> #live', ['display', 'visibility', 'width', 'position']);
             assert.notEqual(style.display, 'none');
             assert.notEqual(style.visibility, 'hidden');
             assert.equal(style.position, 'absolute');
             assert.ok(parseFloat(style.width) > 0, 'still laid out, so still announced');
         }));
-
-        /* ================================================================
-         * 9. IT WORKS TO THE TOUCH — the half a screenshot gate cannot see.
-         * ============================================================== */
 
         test('tapping an hour writes it through to24h and advances to the minute dial', () =>
             mounted(async (page) => {
@@ -757,10 +543,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.click('#tp >>> #meridiem >>> #item-1');
                 assert.equal(await page.evalFn(() => window.__h.need('#tp').value), '18:30');
 
-                // Switching which SEGMENT of the readout is active changes no time, so
-                // it must not surface as this component's `change` — ui-bank fires
-                // composed + bubbling, and without stopPropagation the screen would see
-                // a time change every time the user looked at the minutes.
                 await page.click('#tp >>> #field >>> #item-1');
                 assert.equal(
                     await page.evalFn(() => window.__h.need('#tp').getAttribute('mode')), 'minute',
@@ -794,10 +576,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.evalFn(() => window.__h.need('#dis').value), '18:00');
             assert.deepEqual(await page.recordedEvents(), [], 'no change from a disabled control');
         }));
-
-        /* ================================================================
-         * 10. EVERY GALLERY STATE RENDERS — the battery photographs these.
-         * ============================================================== */
 
         test('every gallery state mounts and produces a face', async () => {
             for (const state of galleryEntry.states) {

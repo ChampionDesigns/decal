@@ -1,24 +1,5 @@
 /**
  * THE FIT — the one number that maps the design onto a screen.
- *
- * Two things are pinned here, and the second matters more than the first.
- *
- * 1. The arithmetic, at the geometries that exist: Ben's tablet, the parity gate, a
- *    16:9 desk, a UHD panel. These numbers were MEASURED in a real browser before the
- *    module was written (four launches, `fillsScreen` true and `scrolls` false at every
- *    one), so the table below is a record of observed behaviour, not a restatement of
- *    the formula in a second place.
- *
- * 2. THAT THE INLINE COPY IN index.html AGREES. The fit has to run before first paint —
- *    the frame it would otherwise miss is the frame the tablet reflows in — and nothing
- *    can be imported that early, so index.html carries a hand-written copy. Two
- *    implementations of one rule is exactly the shape that goes wrong quietly: the
- *    theme boot's own inlined copy silently reverted the theme on every boot for the
- *    same reason, which is why test/storage-routes.test.mjs runs THAT script against
- *    the real backend. This does the same — it executes the actual <script> out of the
- *    actual file and compares its three properties with the module's, geometry by
- *    geometry. Perturbation-proved: changing MIN_DESIGN_WIDTH in the module alone fails
- *    this file, and so does changing MIN_W in index.html alone.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,11 +14,6 @@ import {
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/**
- * The measured table. `designW`/`designH` are what a real Chrome laid out at each
- * viewport with the wrapper this module drives; every row also had the app filling the
- * screen exactly, with no scrollbar in either axis.
- */
 const GEOMETRIES = [
     { name: "Ben's tablet",  width: 1281, height: 801,  scale: 0.6675, designW: 1919.1, designH: 1200 },
     { name: 'the 1920 gate', width: 1920, height: 1200, scale: 1,      designW: 1920,   designH: 1200 },
@@ -47,14 +23,6 @@ const GEOMETRIES = [
     { name: '5:4',           width: 1280, height: 1024, scale: 0.8533, designW: 1500,   designH: 1200 },
 ];
 
-/**
- * The geometries the INLINE-COPY agreement runs at. `GEOMETRIES` alone is not enough
- * and the first version of this file proved it: height binds on every landscape screen,
- * so MIN_DESIGN_WIDTH, both caps and both scale limits were dead constants there —
- * changing MIN_DESIGN_WIDTH in the module alone still passed. Each row below exists to
- * make exactly one otherwise-unreachable constant bind, so a one-ended edit to any of
- * the six fails. Perturbation-proved, one constant at a time, in both files.
- */
 const AGREEMENT_GEOMETRIES = [
     ...GEOMETRIES,
     { name: 'portrait (MIN_DESIGN_WIDTH binds)', width: 800, height: 1280 },
@@ -85,9 +53,6 @@ test('the scale and the design width match what the browser measured', () => {
 });
 
 test("the tablet lands within a unit of the oracle's 1920", () => {
-    /* This is the whole reason the parity work done at 1920x1200 is valid on Ben's
-     * glass without being re-measured. If this ever drifts, the oracle drifted with it
-     * and every prior comparison needs re-reading. */
     const fit = computeFit({ width: 1281, height: 801 });
     assert.ok(Math.abs(fit.designWidth - 1920) < 1.5,
         `the tablet lays out at ${fit.designWidth}, not ~1920 — the oracle no longer applies to it`);
@@ -129,8 +94,6 @@ test('portrait gives up width last — the design gets taller, never narrower', 
     assert.ok(portrait.designWidth >= MIN_DESIGN_WIDTH,
         'a portrait viewport squeezed the design below the width the rails need');
 });
-
-/* ---- the published properties, and what reads them back ------------------- */
 
 /** The smallest document that `applyFit`, `readScale` and `installFit` need. */
 function fakeWindow(width, height) {
@@ -197,14 +160,6 @@ test('a scale change is announced once, and a resize that changes nothing is sil
     assert.equal(win.listenerCount('resize'), 0);
 });
 
-/* ---- the keyboard, and the latch that outlives the focus ------------------ */
-
-/**
- * A window whose DOCUMENT has listener machinery and an active element — which
- * `fakeWindow` deliberately does not. The two are separate on purpose: the plain stub
- * is what exercises `installFit`'s optional calls (`doc.addEventListener?.`), and a
- * fake that always answered them would quietly delete that coverage.
- */
 function keyboardWindow(width, height) {
     const win = fakeWindow(width, height);
     const docListeners = new Map();
@@ -223,18 +178,6 @@ function keyboardWindow(width, height) {
 const scaleOf = (win) => parseFloat(win.props.get('--ui-app-scale'));
 
 test('a keyboard shrink stays refused after the field it belonged to has gone', () => {
-    /* THE MEASURED FAILURE, 27 August 2026, at the bench geometry through CDP. Focus the
-     * selector's filter; drop the viewport to 430 as the WebView does when the keyboard
-     * opens — refused correctly, the panel held 0.6675. Then NAVIGATE AWAY, which is what
-     * tapping Save or a nav row does. `focusout` fires with the keyboard still up, the
-     * field has gone so nothing is "being typed into", and the still-shrunken 430 was
-     * taken for the size of the screen: scale 0.4 (the MIN_SCALE floor), design 2400x1200
-     * (the MAX_DESIGN_WIDTH cap), painted 960x480 inside 1281x801. It recovers only if
-     * the keyboard's close happens to deliver a resize.
-     *
-     * The rule is not "don't refit on focusout" — a plain resize arriving after the blur
-     * had exactly the same hole. It is that a refused shrink stays refused until the
-     * height comes back. */
     const win = keyboardWindow(1281, 801);
     installFit(win);
     assert.equal(scaleOf(win), 0.6675, 'the bench fit did not apply');
@@ -256,7 +199,6 @@ test('a keyboard shrink stays refused after the field it belonged to has gone', 
     assert.equal(win.props.get('--ui-app-w'), '1919.1011235955057px',
         'the design width moved — the panel was re-laid-out at the keyboard height');
 
-    /* The keyboard closes. The latch releases at the height it was protecting. */
     win.innerHeight = 801;
     win.fire('resize');
     assert.equal(scaleOf(win), 0.6675, 'the panel did not come back when the keyboard closed');
@@ -295,13 +237,6 @@ test('the latch is narrow: it never fires without a field, and never blocks a gr
     assert.equal(scaleOf(win), 1, 'the panel did not return when the keyboard closed under focus');
 });
 
-/* ---- the inline copy in index.html ---------------------------------------- */
-
-/**
- * Pull the fit's inline script out of index.html and run it against a fake window.
- * Located by the properties it writes rather than by position, so adding a third
- * inline script above it does not silently start testing the wrong one.
- */
 function runInlineFit(win) {
     const html = readFileSync(path.join(REPO, 'index.html'), 'utf8');
     const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
@@ -332,16 +267,3 @@ test('the inline copy refuses a zero viewport instead of writing NaN', () => {
     assert.equal(props.size, 0, 'a teardown-sized viewport wrote NaN into the fit');
 });
 
-/* WHERE THE STYLESHEET HALF OF THIS WENT. An earlier draft of this file asserted on
- * the SOURCE TEXT of styles/document.css and styles/tokens.css — that app-root carries
- * `zoom: var(--ui-app-scale, 1)`, that `:root` does not, and that no rule sizes from a
- * viewport unit. The A8 guard rejected it, correctly: "a test that matches source text
- * makes the defect it describes unremovable", and the whole point of the fit is a
- * BEHAVIOUR — the app fills the screen at the right scale — which a browser can be
- * asked about directly. Those three claims are now:
- *
- *   test/render/app-fit.render.test.mjs   the app fills the screen, at the right zoom,
- *                                         with the foot band at its design height
- *   scripts/guards.js (viewportUnitGuard) no stylesheet sizes from the viewport
- *
- * which is also where each one belongs: one is a rendered fact, the other is a lint. */

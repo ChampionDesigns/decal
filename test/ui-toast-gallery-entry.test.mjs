@@ -1,17 +1,5 @@
 /**
- * ui-toast-gallery-entry.test.mjs — the wave-3 #22 gallery entry, checked against the
- * contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array
- * and the run's rule is whole-file writes; N builders appending to it in parallel is
- * N−1 entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the
- * wave's reviewer wires them in serially. This file is what makes that hand-off safe:
- * it asserts the shape the gallery needs BEFORE the wiring, so a malformed entry is a
- * red test here rather than a battery photographing an empty stage.
- *
- * `test/render/ui-toast.render.test.mjs` takes the other half — it mounts every state
- * in a real browser at both Gate A geometries and checks each one still has something
- * to photograph after the settle.
+ * The wave-3 #22 gallery entry, checked against the contract tools/gallery/entries.js documents.
  */
 
 import { test } from 'node:test';
@@ -85,10 +73,6 @@ test('every notice in every state is sticky, or the battery photographs an empty
 });
 
 test('no raw colour literal and no !important in the stage scaffolding', () => {
-    // tools/ is inside Gate C's scan roots and a gallery entry's inline style is
-    // authored CSS as far as scripts/lib/authored-css.js is concerned. Cheaper to fail
-    // here, with the state id in the message, than in the wave gate. Only the `html` is
-    // scanned, never the prose: the notes below quote contrast ratios and CSS values.
     for (const state of entry.states) {
         const html = state.html.replace(/&#[0-9]+;/g, '');
         assert.ok(

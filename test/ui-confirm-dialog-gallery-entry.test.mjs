@@ -1,16 +1,5 @@
 /**
- * ui-confirm-dialog-gallery-entry.test.mjs — wave 4 #19's gallery entry, checked
- * against the contract `tools/gallery/entries.js` documents.
- *
- * WHY THE ENTRY IS ITS OWN FILE. `tools/gallery/entries.js` is a single shared array
- * and the run's rule is whole-file writes; N builders appending to it in parallel is
- * N−1 entries lost. Each builder writes `tools/gallery/entries/<tag>.entry.js` and the
- * wave's cross-cutting writer wires them in serially. This file makes that hand-off
- * safe: a malformed entry is a red test here rather than a battery photographing an
- * empty stage.
- *
- * `test/render/ui-confirm-dialog.render.test.mjs` takes the other half — it mounts
- * every state in a real browser at both Gate A geometries.
+ *.js documents.
  */
 
 import { test } from 'node:test';

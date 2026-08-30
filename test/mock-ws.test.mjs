@@ -1,33 +1,5 @@
 /**
- * mock-ws.test.mjs — the WebSocket half of the offline mock, inside `npm test`.
- *
- * WHAT THIS CLOSES. Wave 0b, `waves/0b/REPORT.md:255-261`, verbatim: "The biggest
- * remaining hole, stated not papered over … Gate B rule 4 is closed for REST and open for
- * sockets." `tools/mock_rea.py` spoke no WebSocket — two verbs, no 101 — so the ten socket
- * rows of `src/data/CONTRACTS.json` had no instrument, and nothing in the tree could push
- * a frame at the stores. The 15 Hz render loop could not be proved against a live feed
- * because there was no live feed to prove it against.
- *
- * `tools/ws_frames.py` is the other half and `tools/WS_FRAMES.md` is where every value it
- * sends comes from. This suite asks the server, over a real handshake, using the tree's
- * own client (`test/harness/ws.js`):
- *
- *   * every socket row is served — nine upgrade, the plugin template answers 404 BEFORE
- *     the upgrade, which is the contract, not a gap;
- *   * the machine frames ARE the recording, key for key and value for value, minus the
- *     names the handler stopped sending (CB-03, CB-08) — the one reshape, checked against
- *     the fixture rather than described;
- *   * the cadence is what was asked for, at the 15 Hz the loop proof runs;
- *   * the phases play in the scripted order and the shot-state channel follows them;
- *   * fire and forget: no backlog at connect, and a second client gets its own clock;
- *   * the commands answer as the handlers answer, silence included — `setBrightness`
- *     drops a non-int with no reply, and a mock that helpfully replied would teach the
- *     skin a server that does not exist;
- *   * the checker's socket canaries each bite, one rule apiece.
- *
- * Python by design, like `mock-contract.test.mjs`: the instrument lives beside the mock it
- * drives, and a green suite that quietly stopped covering the capture rig is the decay the
- * canary rule exists to prevent.
+ * The WebSocket half of the offline mock, inside npm test.
  */
 
 import { test, before, after } from 'node:test';
@@ -142,10 +114,6 @@ before(async () => {
 
 after(() => { plain?.stop(); scripted?.stop(); });
 
-// --------------------------------------------------------------------------- //
-// The ten rows
-// --------------------------------------------------------------------------- //
-
 test('every socket row in the table is served — nine upgrade, the plugin row does not', async () => {
     const rows = TABLE.sockets;
     assert.equal(rows.length, 10);
@@ -154,9 +122,6 @@ test('every socket row in the table is served — nine upgrade, the plugin row d
             .replace('<id>', 'bengle-1-puckestimator')
             .replace('<endpoint>', 'timeToReady');
         if (row.id === 'pluginEndpoint') {
-            // Not a gap: ReaPrime answers an unloaded plugin 404 BEFORE the upgrade, so
-            // the socket never opens and plugin absence degrades to feature-absent. No
-            // plugin payload is recorded anywhere, so that is every plugin endpoint here.
             await assert.rejects(
                 WebSocketClient.connect(`ws://127.0.0.1:${plain.port}${target}`),
                 /handshake failed: HTTP\/1\.[01] 404/,
@@ -169,9 +134,6 @@ test('every socket row in the table is served — nine upgrade, the plugin row d
 });
 
 test('a plain GET of a socket path still answers the recorded 404 page', async () => {
-    // The nine ws__*.json fixtures are recordings of "Only WebSocket connections are
-    // supported." Serving one as anything else is the instrument rewriting a recording,
-    // and the upgrade headers are the whole difference.
     const res = await fetch(`http://127.0.0.1:${plain.port}/ws/v1/machine/snapshot`);
     assert.equal(res.status, 404);
     assert.match(res.headers.get('content-type'), /text\/html/);
@@ -184,10 +146,6 @@ test('a /ws/v1 path with no row is refused, not invented', async () => {
         WebSocketClient.connect(`ws://127.0.0.1:${plain.port}/ws/v1/machine/raw`),
         /handshake failed: HTTP\/1\.[01] 404/);
 });
-
-// --------------------------------------------------------------------------- //
-// The frames, against the recording and against the table
-// --------------------------------------------------------------------------- //
 
 test('machine frames ARE the recording, minus the names the handler stopped sending', async () => {
     const { frames } = await listen(plain.port, '/ws/v1/machine/snapshot', 700);
@@ -227,17 +185,12 @@ test('fire and forget: no backlog at connect, and a late client gets its own clo
     assert.ok(early.length <= 1,
         `${early.length} frames inside half a step of connect — that is a handed-over backlog`);
 
-    // A second subscriber is not handed the first one's history: it starts at the
-    // recording's own first sample, on its own clock. What the chart draws is what THIS
-    // client buffered, which is the thing the loop proof is measuring.
     const second = await listen(plain.port, '/ws/v1/machine/snapshot', 300);
     assert.deepEqual(second.frames[0], expectedMachineFrame(0));
 });
 
 test('the scale channel: a status envelope, then gravimetric frames off the same recording', async () => {
     const { frames } = await listen(plain.port, '/ws/v1/scale/snapshot', 700);
-    // `sendStatus` writes {"status":…} with NO timestamp — that absence is what separates
-    // it from a WeightSnapshot (isStatusEnvelope), and it is a signal, never a weight.
     assert.deepEqual(frames[0], { status: 'connected' });
     assert.ok(!Object.hasOwn(frames[0], 'timestamp'));
 
@@ -255,10 +208,6 @@ test('the scale channel: a status envelope, then gravimetric frames off the same
         assert.equal(frame.timerValue, null);
     });
 });
-
-// --------------------------------------------------------------------------- //
-// Phases
-// --------------------------------------------------------------------------- //
 
 test('the phases play in the scripted order, off the recording\'s own substates', async () => {
     const { frames } = await listen(scripted.port, '/ws/v1/machine/snapshot', 1200);
@@ -289,10 +238,6 @@ test('shot state follows the playback, and the terminal decision is the recordin
     assert.equal(terminal.decision.reason, 'machineEnded');
 });
 
-// --------------------------------------------------------------------------- //
-// The state channels and their commands
-// --------------------------------------------------------------------------- //
-
 test('the devices frame carries the recorded list and the B8 connectionStatus', async () => {
     const { frames } = await listen(scripted.port, '/ws/v1/devices', 250);
     assert.equal(frames.length, 1, 'one current state on connect, not a backlog');
@@ -300,8 +245,6 @@ test('the devices frame carries the recorded list and the B8 connectionStatus', 
     assert.deepEqual(frame.devices.map((d) => d.id), DEVICES.map((d) => d.id));
     assert.equal(typeof frame.scanning, 'boolean');
     const status = frame.connectionStatus;
-    // All five keys unconditionally: the handler builds the map literally, so an ABSENT
-    // key is malformed here — the opposite of the machine snapshot's rule.
     assert.deepEqual(Object.keys(status).sort(),
         ['error', 'foundMachines', 'foundScales', 'pendingAmbiguity', 'phase']);
     assert.equal(status.pendingAmbiguity, 'machinePicker');
@@ -333,9 +276,6 @@ test('the devices errors are the handler\'s own, and an unknown command is silen
         { send: [{ command: 'connect', deviceId: 'no-such-device' }], sendAfter: 40 });
     assert.ok(unknown.frames.some((f) => f.error === 'Device not found: no-such-device'));
 
-    // The Dart switch has no default: an unknown command gets nothing at all. Reproducing
-    // the silence is the point — an invented refusal is a field the client could learn
-    // from its instrument and never see from its server.
     const silent = await listen(scripted.port, '/ws/v1/devices', 300,
         { send: [{ command: 'teleport' }], sendAfter: 40 });
     assert.equal(silent.frames.filter((f) => f.error).length, 0);
@@ -350,9 +290,6 @@ test('display: an int 0..100 moves the state, anything else is dropped in silenc
     assert.equal(ok.frames[1].requestedBrightness, 42);
     assert.deepEqual(Object.keys(ok.frames[0].platformSupported).sort(), ['brightness', 'wakeLock']);
 
-    // display_handler.dart: `if (brightness is int && 0..100) … else log.warning` — no
-    // reply, no error envelope. Silence is indistinguishable from success, which is why
-    // rea-ws-channels.js validates the command before sending it.
     const dropped = await listen(scripted.port, '/ws/v1/display', 400,
         { send: [{ command: 'setBrightness', brightness: 42.5 },
             { command: 'setBrightness', brightness: 120 },
@@ -374,9 +311,6 @@ test('update: the version is the recorded one, and install answers the platform 
 });
 
 test('an unknown sensor id gets {"error":"not found"} and the socket CLOSES', async () => {
-    // That close is the client's re-discovery trigger (CB-07): the id derives from the
-    // machine's deviceId, so a machine swap mints a new one and the old id is dead for
-    // good. A socket that stayed open and silent would suppress the re-discovery.
     const { frames, closed } = await listen(plain.port,
         '/ws/v1/sensors/no-such-sensor-puckestimator/snapshot', 400);
     assert.deepEqual(frames, [{ error: 'not found' }]);
@@ -395,16 +329,9 @@ test('the estimator id streams the recorded channels under their live names', as
         assert.ok(Object.hasOwn(frame, 'confidence'), 'fusedConf -> confidence');
         assert.ok(Object.hasOwn(frame, 'flags'), 'estFlags -> flags');
         assert.ok(Object.hasOwn(frame, 'timestamp'));
-        // rev, sigmaQ and lagConfidence are ABSENT on purpose: encodeSample always writes
-        // them today and this recording predates that. An invented always-present channel
-        // is exactly the lie the instrument exists to stop.
         assert.ok(!Object.hasOwn(frame, 'rev'));
     }
 });
-
-// --------------------------------------------------------------------------- //
-// The channels no recording carries
-// --------------------------------------------------------------------------- //
 
 test('waterLevels and shotSettings are SILENT by default — nothing records them', async () => {
     for (const channel of ['/ws/v1/machine/waterLevels', '/ws/v1/machine/shotSettings']) {
@@ -421,10 +348,6 @@ test('a run script supplies them, in the units the row states', async () => {
     const settings = await listen(scripted.port, '/ws/v1/machine/shotSettings', 300);
     assert.deepEqual(settings.frames, [SCRIPT.shotSettings]);
 });
-
-// --------------------------------------------------------------------------- //
-// The checker, and its canaries
-// --------------------------------------------------------------------------- //
 
 function check(args = []) {
     try {

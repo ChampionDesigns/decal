@@ -1,7 +1,4 @@
-// The fan-out: one source, many observers, ONE frame of replay.
-//
-// The seed of Gate 4's stores, so its semantics are pinned here rather than discovered
-// later by a store that assumed something else.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -35,9 +32,6 @@ describe('replay: the shareReplay(1) mirror', () => {
     });
 
     test('null is a frame like any other — an emitted null replays as null', () => {
-        // Distinguishing "no frame yet" from "a frame whose value is null" matters: the
-        // devices link emits null for a malformed frame, and a late subscriber must be
-        // told "unknown", not left blank.
         const fanout = createFanout();
         fanout.emit(null);
         const seen = [];

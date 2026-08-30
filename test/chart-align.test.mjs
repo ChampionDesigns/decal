@@ -1,16 +1,4 @@
-// One x axis for N channels, and THE TWO MEANINGS OF NULL — Gate 5, salvage 1 of 3.
-//
-// Part 6 'Tests' names this suite specifically: "carry the gap-meaning test that pins
-// `bridgeUnspoken` with the function". The policy it pins is invisible until someone
-// replays a finished shot on the machine:
-//
-//   * an EXPLICIT null is a real gap — "no valid value at this instant" — and stays a
-//     break in the line;
-//   * a slot a channel simply never sampled is not a gap, because the quantity still
-//     existed between the readings either side, and is bridged.
-//
-// Conflating them drew a row of vertical cuts through every series at the same instants
-// on every replayed shot, and drew nothing at all live (the fast path hides it).
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 

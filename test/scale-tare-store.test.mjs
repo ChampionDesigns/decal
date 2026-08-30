@@ -1,14 +1,5 @@
 /**
  * The tare, and the two ways a machine says no.
- *
- * Ben, 23 Aug 2026: "with slate, if you tough the weight value it sends the tare command
- * to the machine resetting the weigh to 0.0g". The gesture is one line; what it is worth
- * depends entirely on whether the tare actually happened, and a 200 does not say.
- *
- * Slate shipped the naive version and fixed it (f813dea): the firmware refuses a tare
- * mid-shot and reports that only to its own serial console, while the MMR write still
- * succeeds — so awaiting the write and toasting "Scale tared" told the user something
- * that had not happened. These tests are that lesson, held.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -71,11 +62,6 @@ test('the weight settling near zero is what makes it DONE', async () => {
 });
 
 test('A 200 OVER A SILENT REFUSAL IS NOT A TARE — the weight never moved', async () => {
-    /* THE DEFECT SLATE SHIPPED. The firmware's doLCTare() returns early while a shot
-     * runs, because a mid-pour re-zero moves the mass reference under the running shot
-     * and stop-at-weight would over-deliver. It says so on its own serial console; the
-     * MMR write still succeeds, so ReaPrime answers 200 and the client learns nothing.
-     * Watching the weight is the only evidence there is. */
     const transport = scriptedTransport(OK);
     const scale = fakeScale(18.4);
     const store = createScaleTareStore({ transport, scale, now: fakeClock() });

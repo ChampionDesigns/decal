@@ -1,29 +1,5 @@
 /**
- * exit-sentence.test.mjs — the model layer of component #41, "Exit chip / sentence".
- *
- * Plain `node:test`: `src/lib/exit-sentence.js` is DOM-free by construction, and
- * that is the point of it existing (CONVENTIONS §10 — "Pure logic → node:test").
- * Everything rendered is asserted in `test/render/ui-exit-sentence.render.test.mjs`
- * at both Gate A geometries.
- *
- * THE THREE THINGS THIS SUITE IS REALLY FOR
- *
- *  1. **C8, as a mechanical fact.** The seam is `serializeExitSlots()` and it must
- *     carry every field Slate's hidden decomposed controls carried — comparator,
- *     value, unit, min, max, step — and it must answer with no element mounted,
- *     which is the property the hidden-DOM seam never had. Half of this file is
- *     that assertion.
- *
- *  2. **B2, by identity rather than by literal.** "Exactly one table" is not
- *     provable by grepping for numbers, because the next copy will have different
- *     numbers. It IS provable by object identity: every range this module hands
- *     out must be the very `AUTHORING_RANGES` object, so a hand-written copy —
- *     even a numerically identical one — fails.
- *
- *  3. **O5's deliberate conservatism, pinned as a REQUIREMENT.** `exit-validity.js`
- *     declines to flag a target of 0.0 mL/s, "a real zero-flow bloom technique"
- *     (exit-validity.js:11-12). A future reader who "fixes" that has broken a
- *     brewing technique, so the test says so in its name.
+ * The model layer of.
  */
 
 import { test, describe } from 'node:test';
@@ -49,19 +25,12 @@ import {
 import { REA_EXIT_TYPES } from '../src/data/rea-profile.js';
 import { deadExitReason } from '../src/lib/exit-validity.js';
 
-/* The step the oracle actually caught on screen, third column of editor-steps:
- *   CITE editor-steps .pe-chip-summary [i=193] text "Flowfalls below0.0 mL/s"
- *   CITE editor-steps .pe-chip-summary [i=200] text "Volumereaches100 mL"
- *   CITE editor-steps .pe-exit-dead-note [i=198] text
- *        "never fires — cannot fall below zero · e"                 (clipped) */
 const DEAD_FLOW_STEP = Object.freeze({
     pump: 'pressure',
     exit: { type: 'flow', condition: 'under', value: 0 },
     volume: 100,
 });
 
-/* First column of the same state:
- *   CITE [i=161] "Pressurerises past4.5 bar"   [i=167] "Volumereaches100 mL" */
 const PRESSURE_STEP = Object.freeze({
     pump: 'flow',
     exit: { type: 'pressure', condition: 'over', value: 4.5 },
@@ -69,10 +38,6 @@ const PRESSURE_STEP = Object.freeze({
 });
 
 const EMPTY_STEP = Object.freeze({ pump: 'flow' });
-
-/* ===========================================================================
- * APPENDIX 9 — the stable three slots
- * =========================================================================== */
 
 describe('Appendix 9 — the exit band has exactly three slots, always', () => {
     const cases = [
@@ -118,10 +83,6 @@ describe('Appendix 9 — the exit band has exactly three slots, always', () => {
     });
 });
 
-/* ===========================================================================
- * B2 — ONE ranges table
- * =========================================================================== */
-
 describe('B2 — every bound is the one table, by object identity', () => {
     test('the condition slot hands out the very AUTHORING_RANGES entry', () => {
         for (const type of REA_EXIT_TYPES) {
@@ -165,10 +126,6 @@ describe('B2 — every bound is the one table, by object identity', () => {
     });
 });
 
-/* ===========================================================================
- * GATE 2 — the exit types come from the address layer
- * =========================================================================== */
-
 describe('Gate 2 — exit types are the address layer\'s, not a typed literal', () => {
     test('only REA_EXIT_TYPES can occupy the condition slot', () => {
         for (const type of REA_EXIT_TYPES) {
@@ -193,10 +150,6 @@ describe('Gate 2 — exit types are the address layer\'s, not a typed literal', 
         assert.deepEqual(order, [...order].sort((a, b) => a - b));
     });
 });
-
-/* ===========================================================================
- * The port — exitConditionChoices, behaviour-identical to profile_editor.js:1414
- * =========================================================================== */
 
 describe('exitConditionChoices — ported from profile_editor.js:1414-1424', () => {
     const table = [
@@ -251,10 +204,6 @@ describe('exitConditionChoices — ported from profile_editor.js:1414-1424', () 
     });
 });
 
-/* ===========================================================================
- * The sentence's words
- * =========================================================================== */
-
 describe('the sentence', () => {
     test('a threshold carries a comparator; an accumulator carries the neutral verb', () => {
         const over = occupiedSlots(PRESSURE_STEP)[0];
@@ -285,7 +234,6 @@ describe('the sentence', () => {
         assert.equal(occupiedSlots(PRESSURE_STEP)[1].subject, 'Volume');
     });
 
-    /* The three strings the oracle caught, reproduced from the model alone. */
     test('the value reads at its own range\'s precision — the three oracle strings', () => {
         assert.equal(formatExitValue(4.5, 0.1), '4.5');
         assert.equal(formatExitValue(0, 0.1), '0.0');
@@ -297,10 +245,6 @@ describe('the sentence', () => {
         assert.equal(formatExitValue('x', 1), '');
     });
 });
-
-/* ===========================================================================
- * O5 — the unsatisfiable-exit warning, PORT-AS-IS
- * =========================================================================== */
 
 describe('O5 — the dead-exit flag, and its deliberate conservatism', () => {
     test('"flow falls below 0.0" is flagged, and says what will end the step instead', () => {
@@ -317,9 +261,6 @@ describe('O5 — the dead-exit flag, and its deliberate conservatism', () => {
         assert.equal(slot.note, 'nothing else ends this step');
     });
 
-    /* THE NAME OF THIS TEST IS THE POINT. exit-validity.js:11-12: "Explicitly NOT
-     * flagged: a TARGET of 0.0 mL/s. That is a zero-flow bloom, a real technique,
-     * and it is a different field from an exit threshold." */
     test('a TARGET of 0.0 mL/s is NOT flagged — the zero-flow bloom is a real technique', () => {
         const bloom = { pump: 'flow', flow: 0, exit: { type: 'pressure', condition: 'over', value: 4 }, seconds: 30 };
         const [slot] = occupiedSlots(bloom);
@@ -346,14 +287,7 @@ describe('O5 — the dead-exit flag, and its deliberate conservatism', () => {
     });
 });
 
-/* ===========================================================================
- * C8 — THE SEAM
- * =========================================================================== */
-
 describe('C8 — the serialisation seam, re-provided as a plain function', () => {
-    /* The fields Slate's hidden controls encoded: .pe-chip-cmp's direction,
-     * .pe-chip-val's value and unit, and the bounds the chip was built with
-     * (profile_editor.js:1637-1691). Every one of them, by name. */
     const REQUIRED = [
         'slot', 'type', 'field', 'subject', 'verb', 'condition',
         'value', 'text', 'unit', 'min', 'max', 'step',

@@ -1,31 +1,5 @@
 /**
- * a8-source-text.test.mjs — A8's guard and its canary.
- *
- * "Every guard ships with a canary. A fixture that deliberately violates the rule, and a
- *  test asserting the guard fails on it. All three old-guard failures were guards that
- *  silently stopped covering their target; a canary converts that decay from invisible
- *  to a red build." — SCOPE Part 8 §2, Gate C.
- *
- * THE RULE (SCOPE Part 5 §5, A8): "the old editor is pinned by tests that regex-match
- * the stylesheet's source text for the 1920x1200 lock and the 64px literals — tests that
- * made the defects UNREMOVABLE ... no test anywhere may match source text (the 29
- * text-scan test files do not port, CARRY_FORWARD.md §7)."
- *
- * The canary is as much the deliverable as the guard, so this file asserts in both
- * directions, and exactly:
- *
- *   - the guard FAILS on its canary, at the right file, with EVERY resolution hop
- *     represented — a hop that quietly stops working is a guard that quietly stops
- *     covering two thirds of the tree;
- *   - it does NOT fire on a clean render suite, nor on the file most likely to trip a
- *     careless scanner (`test/render/ui-menu.render.test.mjs` reads a GALLERY ENTRY and
- *     separately names a component path as the specifier it mounts);
- *   - prose is not code: a comment describing a read does not fire;
- *   - the ledger is CLOSED — every entry exists, every entry still trips, and rot is
- *     reported when one stops;
- *   - WAVE 5.5'S OWN SUITES ARE CLEAN, by name and by count, which is the claim the
- *     `a8-rendering-tests` row exists to make;
- *   - and the shipping tree is clean, which is the assertion the build actually runs.
+ * A8's guard and its canary.
  */
 
 import { test, describe } from 'node:test';
@@ -42,28 +16,14 @@ import { REPO_ROOT } from '../scripts/lib/authored-css.js';
 const CANARIES = ['test/fixtures/canaries'];
 const CANARY = 'test/fixtures/canaries/a8-source-text.js';
 
-/**
- * The wave-5.5 editor files, named because the row's claim is about these exactly: the
- * suite, the shared helper it asserts through, and the Gate B fixture. The helper is in
- * the list on purpose — "reading a .css/.js file and asserting on its contents is a block
- * wherever you find it, INCLUDING IN A HELPER", and a helper is where it would hide.
- */
 const EDITOR_TESTS = [
     'test/render/editor-skeleton.render.test.mjs',
     'test/harness/editor.js',
     'test/fixtures/editor-shell-fixture.js',
 ];
 
-/* The two paths the inline fixtures below need, COMPOSED rather than written out: a
- * path literal spelled in full anywhere in this file would make the guard's own test
- * trip the guard. Composing them is also the honest demonstration that the scanner
- * matches a literal and not a concatenation — one string, or nothing. */
 const SHEET = `styles/${'tokens'}.css`;
 const MODULE = `src/components/${'ui-stepper'}.js`;
-
-/* ---------------------------------------------------------------------------
- * The tree the build actually guards
- * ------------------------------------------------------------------------- */
 
 describe('A8 over the shipping tree', () => {
     test('no test matches the source text of a style or component file', async () => {
@@ -83,10 +43,6 @@ describe('A8 over the shipping tree', () => {
             assert.deepEqual(DEFAULT_TEST_ROOTS, ['test'], 'one root, and it is test/');
         });
 });
-
-/* ---------------------------------------------------------------------------
- * The canary
- * ------------------------------------------------------------------------- */
 
 describe('the canary fires, and fires on every hop', () => {
     test('the guard fails on the canary and names it', async () => {
@@ -128,10 +84,6 @@ describe('the canary fires, and fires on every hop', () => {
     });
 });
 
-/* ---------------------------------------------------------------------------
- * A guard that fires on everything gets switched off
- * ------------------------------------------------------------------------- */
-
 describe('the guard is precise', () => {
     test('a render suite that mounts a component module does not trip', async () => {
         for (const rel of EDITOR_TESTS) {
@@ -143,10 +95,6 @@ describe('the guard is precise', () => {
     });
 
     test('the file most likely to trip a careless scanner does not', async () => {
-        /* It reads a GALLERY ENTRY (tools/gallery/) and separately names
-         * '/src/components/ui-menu.js' as the specifier it MOUNTS. A file-wide
-         * two-signal scan fires on it; an argument-scoped one does not, and the
-         * difference is whether anyone leaves this guard switched on. */
         const rel = 'test/render/ui-menu.render.test.mjs';
         const source = await fsp.readFile(path.resolve(REPO_ROOT, rel), 'utf8');
         assert.match(source, /src\/components\/ui-menu\.js/, 'the bait is still there');
@@ -154,9 +102,6 @@ describe('the guard is precise', () => {
     });
 
     test('prose is not code — a comment describing a read does not fire', () => {
-        /* THE FIXTURES ARE ASSEMBLED, NOT WRITTEN OUT. A path literal spelled in full
-         * here would make THIS file trip the guard it tests, which is a fine joke and a
-         * broken build. `SHEET` and `MODULE` below are the two paths, composed. */
         const prose = [
             `// the old suite did readFileSync("${SHEET}") and matched 1920px`,
             `/* and ${MODULE} was read the same way */`,
@@ -183,19 +128,6 @@ describe('the guard is precise', () => {
             `a fixture and a generated data module are not styles: ${JSON.stringify(found.hits)}`);
     });
 
-    /**
-     * THE SUBTREES THE PATTERN GREW, asserted so the widening cannot quietly shrink back.
-     *
-     * The pattern once reached `src/components/` and `src/screens/` only — the two
-     * directories the OLD editor's pins lived in — so a suite could read
-     * `src/lib/machine-limits.js` or `src/stores/…` and match its text with the guard
-     * reporting a clean tree. That is the B2 surface: the ONE ranges table pinned by
-     * source text is exactly the failure A8 exists to prevent, and it was out of reach.
-     *
-     * `src/data/` stays out, and the case above is the assertion that says so — it is the
-     * registry subtree (CONTRACTS.json is read as the oracle by five suites), and a
-     * cross-check between two lists is not a look at source text.
-     */
     for (const [subtree, module] of [['lib', 'machine-limits'], ['stores', 'settings-store']]) {
         test(`a read of src/${subtree}/ fires — the widened pattern reaches it`, () => {
             /* COMPOSED, like SHEET and MODULE above: spelled out, it would make this file
@@ -224,10 +156,6 @@ describe('the guard is precise', () => {
         assert.equal(found.hits[0].line, 2, 'reported at the line the path is on');
     });
 });
-
-/* ---------------------------------------------------------------------------
- * The ledger is a ratchet
- * ------------------------------------------------------------------------- */
 
 describe('the ledger', () => {
     test('every entry is a file that exists and still reads source text', async () => {
@@ -269,16 +197,9 @@ describe('the ledger', () => {
     });
 });
 
-/* ---------------------------------------------------------------------------
- * The wave's own claim
- * ------------------------------------------------------------------------- */
-
 describe('wave 5.5: the editor\'s tests', () => {
     test('every editor test file exists, and zero of them match source text', async () => {
         const files = await listTestFiles();
-        /* Basename starts with `editor` — the wave's own files. Anchored, so
-         * `ui-notes-editor-gallery-entry.test.mjs` (a wave-3 component suite that
-         * happens to contain the word) is not counted as one of this wave's. */
         const editor = files.filter((f) => /^editor[-.]/.test(path.basename(f)));
 
         assert.ok(editor.length > 0, 'the wave landed at least one editor suite');

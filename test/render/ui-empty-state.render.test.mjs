@@ -1,24 +1,5 @@
 /**
- * ui-empty-state.render.test.mjs — component #38 (wave 1, item #38) in a real
- * browser, at BOTH Gate A geometries: 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor.
- *
- * Everything asserted here is computed style, box geometry or behaviour. Nothing
- * reads a source file, and no number appears that is not either a token's own value
- * or a physical constant.
- *
- * THE HEADLINE ASSERTION IS T11. LAYOUT_SPEC_DRAFT.md §7.5:
- *
- *     "The loading/empty states are authored centred and rendered LEFT-ALIGNED by
- *      three shell rules — four call sites affected."
- *      (slate-shell.css:1304-1306, 1326-1328, 1244-1250)
- *
- * A test that only asserts "the block is centred" would have passed on Slate too —
- * Slate's markup IS centred, and the defect is that something else wins. So the
- * suite injects the three rules verbatim into the document, plus the fourth
- * mechanism `.slate-caption { text-align: left !important }`
- * (slate-components.css:109-118), and asserts the block is still centred with the
- * hostile rules provably in force on the host.
+ *.5 (the bench truth) and the 1000×600 floor.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -34,8 +15,6 @@ import {
 
 const MODULE = ['/src/components/ui-empty-state.js'];
 
-/* One mount carrying every shape the component has. Ids are for querying, classes
- * are for the cascade (CONVENTIONS §9). */
 const MARKUP = `
     <ui-empty-state id="plain" heading="No settings match your search"
         >Try a shorter search, or clear it to see every category.</ui-empty-state>
@@ -61,13 +40,6 @@ const MARKUP = `
     <ui-empty-state id="clipped" tabindex="0" focus-ring="inset" heading="Inset"></ui-empty-state>
 `;
 
-/**
- * The three shell rules of T11 and the library rule that is its fourth mechanism,
- * transcribed to what they can reach from OUTSIDE a shadow root. Slate's originals
- * name `#subpage-host #settings-content-area …`; the equivalent hostile environment
- * for a component is "every selector a screen sheet could possibly write", which is
- * the host, its light-DOM subtree, and inheritance.
- */
 const T11_PRESSURE = `
     /* slate-shell.css:1326-1328 — [class*="text-center"] { text-align: left !important } */
     ui-empty-state, ui-empty-state * { text-align: left !important; }
@@ -79,15 +51,6 @@ const T11_PRESSURE = `
     ui-empty-state p, ui-empty-state div { text-align: left !important; }
 `;
 
-/**
- * T11'S MODERN SPELLING, and the one the transcription above does NOT cover: the
- * shell rules reach a BLOCK-layout host, and Slate's own four call sites are flex
- * columns (slate-shell.css:1304-1306 targets `.flex.flex-col.items-center`). An
- * outer-tree normal declaration beats the base's `:host { display: block }` whatever
- * the specificity, so one line from any screen sheet changes the host's layout mode —
- * and `justify-self` is ignored on a flex item, which is why this needs its own
- * pressure block rather than another selector in the one above.
- */
 const T11_FLEX_HOST = `
     ui-empty-state {
         display: flex;
@@ -141,8 +104,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* == BUG T11, ASSERTED DEAD ========================================== */
-
         test('T11: the block is centred at rest, on both axes', () => mounted(async (page) => {
             const s = await page.computed('#plain >>> #empty', ['text-align', 'justify-items', 'align-content']);
             assert.equal(s['text-align'], 'center', 'declared, not inherited — that is the whole fix');
@@ -166,8 +127,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }, T11_PRESSURE);
             await page.settle(2);
 
-            // The test is only worth anything if the hostile rules ARE in force. Slate's
-            // four call sites lose exactly here, on the host's own inherited value.
             assert.equal(
                 await page.prop('#boxed', 'text-align'), 'left',
                 'the pressure did not apply — this assertion would be vacuous',
@@ -178,12 +137,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(s['justify-items'], 'center', 'T11 reproduced: the cross axis moved');
 
             const host = await page.box('#boxed');
-            // T11's MODERN FORM. CSS Box Alignment applies in block layout now, so
-            // `justify-items: start` on the host reaches .empty — the host's only
-            // child box — and shrink-wraps it to the inline start. MEASURED before
-            // the component declared justify-self: 1281 -> 499px wide, 391px off
-            // centre, at both Gate A geometries. The shadow boundary alone does not
-            // stop this one; the declaration does.
             const empty = await page.box('#boxed >>> #empty');
             assert.equal(empty.width, host.width, 'the block was shrink-wrapped by the host\'s alignment');
 
@@ -198,12 +151,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T11: a flex-layout host cannot shrink-wrap or left-align the block', () =>
             mounted(async (page) => {
-                // The rules above are the 2019 spelling. This is the 2026 one, and it is
-                // the shape Slate's four call sites already have: a flex column. MEASURED
-                // with only justify-self/align-self in force: host 1281 -> block 124.94px,
-                // heading 578px off centre — worse than the 391px the block-layout pair
-                // was written to close. `justify-self` is ignored on a flex item; a
-                // percentage inline size is not.
                 await pressure(page, T11_FLEX_HOST);
                 assert.equal(
                     await page.prop('#boxed', 'display'), 'flex',
@@ -230,12 +177,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('T11: the stated limit — a content-sized track is the HOST\'s box, not ours', () =>
             mounted(async (page) => {
-                // Honest pin, not a defect hidden in prose: `display: grid;
-                // justify-content: start` on the host sizes the TRACK to the item, and a
-                // percentage against that track is circular. Nothing inside a shadow root
-                // can widen it — spec §2.1 Rule 1, a component reads its own container,
-                // and the container is the consumer's. What the component still owns is
-                // everything inside the block, so that stays centred.
                 await pressure(page, T11_GRID_TRACK);
                 const host = await page.box('#boxed');
                 const empty = await page.box('#boxed >>> #empty');
@@ -250,20 +191,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('T11: the prose is centred too — the fourth mechanism is dropped', () => mounted(async (page) => {
-            // slate-components.css:109-118 sets `.slate-caption { text-align: left
-            // !important }`, so the supporting prose of the ONE empty state in the
-            // corpus is left-aligned inside a centred card by the library itself.
-            // Here the caption treatment is kept and that declaration is not.
             assert.equal(await page.prop('#boxed >>> #body', 'text-align'), 'center');
         }));
 
         test('T11: prose passed as `body` is out of reach; slotted prose is the stated limit', () =>
             mounted(async (page) => {
-                // The fourth mechanism is only DEAD for prose the component renders. A
-                // slotted <p> is the consumer's own element in the consumer's own tree,
-                // and an outer normal declaration already outranks ::slotted() — the
-                // !important that would win is forbidden (§2.1 Rule 3). So the component
-                // offers the immune path as a property and states the other.
                 await pressure(page, T11_PRESSURE);
                 assert.equal(
                     await page.prop('#slotted p', 'text-align'), 'left',
@@ -283,11 +215,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('slotted prose loses its UA margin, so the oracle\'s inner gap is the rendered gap', () =>
             mounted(async (page) => {
-                // slate-components.css:108 `.slate-caption { margin: 0 }`, kept and
-                // carried onto slotted prose. MEASURED without it: margin-block 16px on a
-                // slotted <p>, turning the oracle's 8px heading→prose gap into 24px.
-                // ::slotted() beats the UA origin — author always does — which is why
-                // this defence works where the alignment one cannot.
                 const m = await page.computed('#slotted p', ['margin-top', 'margin-bottom']);
                 assert.deepEqual(m, { 'margin-top': '0px', 'margin-bottom': '0px' });
 
@@ -299,8 +226,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the `body` property and the slot are two ways in, and both render', () =>
             mounted(async (page) => {
-                // Predictable over clever: a caller who sets both gets both, which is
-                // visible. Silently suppressing one would be the invisible failure.
                 const parts = await page.evalFn(() => {
                     const el = document.getElementById('prosed');
                     return {
@@ -325,15 +250,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     lightChildren: document.querySelector('#plain').children.length,
                 }));
                 assert.equal(reach.deep, 0, 'a screen sheet has no selector that reaches .empty');
-                // The light DOM holds only what the screen put there, which is why the
-                // shadow boundary — not discipline — is what ends the bug (SCOPE.md:2295).
                 assert.equal(reach.lightChildren, 0, '#plain slots text only');
             }));
 
         test('T11 is fixed with zero !important', () => mounted(async (page) => {
-            // The hostile rules above all carry !important and all lose, which is the
-            // proof that the win comes from the boundary and from declaring rather than
-            // inheriting — not from a louder declaration (CONVENTIONS §6).
             const important = await page.evalFn(() => {
                 const root = document.querySelector('#plain').shadowRoot;
                 return [...root.adoptedStyleSheets]
@@ -344,12 +264,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(important, [], 'zero !important in the component\'s own rules');
         }));
 
-        /* == STANDING ASSERTION 1: TOKENS ARE CONSUMED, NOT COPIED =========== */
-
         test('drill: --ui-space-7 moves the well\'s inset', () => mounted(async (page) => {
-            // ORACLE settings-help-talk-to-decent .flex [i=42] padding-left = 36px
-            // <- app.css `.p-\[36px\]` authored `36px` !important=no (FROZEN/hardcoded).
-            // spec §3.3 snaps off-scale spacing to the nearest step: "36 -> 40".
             const drill = await assertTokenDrill(page, {
                 token: '--ui-space-7',
                 value: DRILL_LENGTH,
@@ -360,8 +275,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-space-6 moves the plain block\'s inset', () => mounted(async (page) => {
-            // Slate's plain call sites carry p-8 = 32px (settings.js:6851 et al);
-            // spec §3.3: "32 -> 28".
             const drill = await assertTokenDrill(page, {
                 token: '--ui-space-6',
                 value: DRILL_LENGTH,
@@ -372,9 +285,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-key moves the well\'s ground', () => mounted(async (page) => {
-            // ORACLE settings-help-talk-to-decent .flex [i=42] background-color:
-            // dark rgb(26, 33, 39) / light rgb(248, 249, 249) <- slate-shell.css
-            // authored `var(--slate-key)` !important=yes (token-driven).
             await assertTokenDrill(page, {
                 token: '--ui-key',
                 value: DRILL_COLOUR,
@@ -386,9 +296,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-line moves the well\'s dashed edge', () => mounted(async (page) => {
-            // ORACLE ... border-top-color: dark rgb(58, 72, 82) / light
-            // rgb(203, 208, 211) <- slate-shell.css authored `(NOT CAPTURED — set via a
-            // CSS shorthand)` !important=yes (token-driven).
             await assertTokenDrill(page, {
                 token: '--ui-line',
                 value: DRILL_COLOUR,
@@ -396,19 +303,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'border-top-color',
             });
             const s = await page.computed('#boxed >>> #empty', ['border-top-width', 'border-top-style']);
-            // ORACLE ... border-top-width = 2px (themes identical) = --ui-border-w-strong;
-            // `dashed` is outside the 18-property surface — read-only from
-            // settings.js:2049 `border-2 border-dashed`.
             assert.equal(s['border-top-width'], '2px');
             assert.equal(s['border-top-style'], 'dashed');
         }));
 
         test('drill: --ui-control-h moves the glyph disc, --ui-key-on its ground', () =>
             mounted(async (page) => {
-                // ORACLE settings-help-talk-to-decent .slate-emptystate-icon [i=43]
-                // width = 64px, height = 64px; background-color: dark rgb(40, 49, 57) /
-                // light rgb(227, 231, 233) <- slate-shell.css
-                // `#subpage-host .slate-emptystate-icon`.
                 const box = await page.box('#boxed >>> #icon');
                 assert.deepEqual([box.width, box.height], [64, 64], 'the measured disc');
 
@@ -427,9 +327,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('drill: --ui-text-md and --ui-weight-medium move the heading', () => mounted(async (page) => {
-            // ORACLE settings-help-talk-to-decent .text-[24px] [i=44] font-size = 18px
-            // <- slate-shell.css authored `var(--slate-text-md)` !important=yes;
-            // font-weight = 500 <- slate-shell.css authored `500` !important=yes.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-text-md',
                 value: DRILL_LENGTH,
@@ -441,9 +338,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-muted moves the prose and the glyph ink together', () => mounted(async (page) => {
-            // ORACLE .slate-caption [i=45] color: dark rgb(148, 161, 169) / light
-            // rgb(90, 101, 108) <- slate-components.css `.slate-caption` authored
-            // `var(--slate-muted)`; and .slate-emptystate-icon [i=43] color, same token.
             await assertTokenDrill(page, {
                 token: '--ui-muted',
                 value: DRILL_COLOUR,
@@ -457,8 +351,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('drill: --ui-text moves the heading ink across the shadow boundary', () =>
             mounted(async (page) => {
-                // ORACLE .text-[24px] [i=44] color: dark rgb(244, 247, 248) / light
-                // rgb(23, 26, 28) <- app.css `.text-\[var\(--text-primary\)\]`.
                 await assertTokenDrill(page, {
                     token: '--ui-text',
                     value: DRILL_COLOUR,
@@ -468,10 +360,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('drill: --ui-space-4 moves the gap the oracle measured', () => mounted(async (page) => {
-            // ORACLE settings-help-talk-to-decent .flex [i=42] gap = 18px <-
-            // slate-shell.css `:is([class*="gap-[30px]"], [class*="gap-[24px]"])`
-            // authored `18px` !important=yes (FROZEN/hardcoded) — 18px is --ui-space-4
-            // exactly, so the frozen literal becomes a token with no visible change.
             const drill = await assertTokenDrill(page, {
                 token: '--ui-space-4',
                 value: DRILL_LENGTH,
@@ -479,28 +367,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'row-gap',
             });
             assert.equal(drill.before, '18px');
-            // And the inner pair is Slate's gap-[8px] = --ui-space-2, exactly.
             assert.equal(await page.prop('#boxed >>> #text', 'row-gap'), '8px');
         }));
 
         test('the radius is a step in the vocabulary, not Slate\'s off-scale 20px', () =>
             mounted(async (page) => {
-                // spec §3.4 enumerates 4 / 6 / 8 / 12 / 9999 and drops rounded-[20px];
-                // styles/tokens.css:292 calls --ui-radius-lg "wells, panels, chart cards".
                 const lg = await page.resolveToken('--ui-radius-lg', 'border-top-left-radius');
                 assert.equal(await page.prop('#boxed >>> #empty', 'border-top-left-radius'), lg);
-                // The disc keeps its circle. ORACLE border-top-left-radius = 50%.
                 const disc = await page.box('#boxed >>> #icon');
                 const r = parseFloat(await page.prop('#boxed >>> #icon', 'border-top-left-radius'));
                 assert.ok(r >= disc.width / 2, `${r}px does not round a ${disc.width}px disc`);
             }));
 
-        /* == P21: NO GLYPH, NO GREY DISC ==================================== */
-
         test('P21: with no glyph the disc is not drawn at all', () => mounted(async (page) => {
-            // slate-shell.css:1605-1612 needs `background: none !important` because the
-            // disc is always in the markup: "a featureless grey rounded square … a grey
-            // block pretending to be art". Not rendering it needs no !important.
             assert.equal(await page.prop('#bare >>> #icon', 'display'), 'none');
             const box = await page.box('#bare >>> #icon');
             assert.deepEqual([box.width, box.height], [0, 0]);
@@ -524,8 +403,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.prop('#boxed >>> #actions', 'display'), 'flex');
             assert.equal(await page.prop('#boxed >>> #icon', 'display'), 'grid');
         }));
-
-        /* == STANDING ASSERTION 2: FOCUS GEOMETRY, UNCLIPPED (bug L24) ======= */
 
         test('an empty state is not interactive and takes no focus of its own', () =>
             mounted(async (page) => {
@@ -560,9 +437,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('focus-ring="inset" is the same treatment at the second offset', () =>
             mounted(async (page) => {
-                // The base attribute, not a second treatment (CONVENTIONS §3): an empty
-                // state inside a scrolling pane would otherwise have its ring cut on all
-                // four sides, which is bug L24's exact wording.
                 const g = await assertFocusUnclipped(page, '#clipped');
                 assert.equal(g.outlineOffset, '-3px', '--ui-focus-offset-inset');
                 assert.equal(
@@ -571,8 +445,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'one width, two offsets',
                 );
             }));
-
-        /* == THE COMPONENT READS ITS OWN CONTAINER ========================== */
 
         test('the block follows its container, not the viewport', () => mounted(async (page) => {
             await page.setStyle('#plain', { 'inline-size': '380px' });
@@ -614,8 +486,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.setStyle('#plain', { 'block-size': '420px' });
                 const host = await page.box('#plain');
                 const empty = await page.box('#plain >>> #empty');
-                // #plain has no glyph and no actions, so the heading/prose pair IS the
-                // whole visible content and its centre must be the pane's centre.
                 const text = await page.box('#plain >>> #text');
                 assert.equal(empty.height, 420, 'min-block-size: 100% is Slate\'s h-full');
                 const vertical = Math.abs(
@@ -623,17 +493,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
                 assert.ok(vertical < 0.5, `the block is ${vertical}px off the vertical centre`);
 
-                // The floor is a FLOOR: squeeze the host and the content grows past it
-                // rather than being silently cut (spec §2.4's habit, one component early).
                 await page.setStyle('#plain', { 'block-size': '20px', 'inline-size': '240px' });
                 const squeezed = await page.box('#plain >>> #empty');
                 assert.ok(squeezed.height > 20, `min-block-size clipped at ${squeezed.height}px`);
             }));
 
         test('no viewport query anywhere in the component\'s own rules', () => mounted(async (page) => {
-            // CONVENTIONS §2: container queries only. A @media (width…) in a primitive
-            // is the failure the whole container-hosting rule exists to prevent, and it
-            // is cheap to assert on the rendered sheet rather than on source text.
             const media = await page.evalFn(() => {
                 const root = document.querySelector('#plain').shadowRoot;
                 return [...root.adoptedStyleSheets]
@@ -644,13 +509,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(media, [], 'container queries only');
         }));
 
-        /* == THE ARIA CONTRACT ============================================== */
-
         test('the glyph is decorative and the words are the accessible content', () =>
             mounted(async (page) => {
-                // Slate leaves aria-hidden to the call site (settings.js:2052 puts it on
-                // the svg); here the wrapper carries it, so a caller cannot forget and
-                // announce a decorative disc.
                 assert.equal(
                     await page.evalFn(() =>
                         document.querySelector('#boxed').shadowRoot
@@ -662,8 +522,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     [...document.querySelector('#boxed').shadowRoot.querySelectorAll('[role]')]
                         .map((el) => el.getAttribute('role')));
                 assert.deepEqual(roles, []);
-                // The heading is a real text node, not an aria-label on a role-less div —
-                // which is bug L23's shape ("aria-label on role-less <div>s (×3)").
                 assert.equal(
                     await page.evalFn(() =>
                         document.querySelector('#plain').shadowRoot
@@ -672,12 +530,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        /* == TOKENS IN, NOTHING OUT ========================================= */
-
         test('the component declares no --ui-* of its own', () => mounted(async (page) => {
-            // CONVENTIONS §7 and Gate C's private-palette guard, asserted on the rendered
-            // sheet: internals are --_ui-*, and a public token declared in here would be
-            // Live's bug L12 ("a private palette duplicating the public tokens").
             const declared = await page.evalFn(() => {
                 const root = document.querySelector('#plain').shadowRoot;
                 return [...root.adoptedStyleSheets]
@@ -689,10 +542,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
-
-/* ---------------------------------------------------------------------------
- * Cross-geometry: the container decides, the viewport does not
- * ------------------------------------------------------------------------- */
 
 test('the same container renders the same block at both standard geometries', async () => {
     const read = (geometry) => browser.withPage({ geometry }, async (page) => {
@@ -719,10 +568,6 @@ test('the same container renders the same block at both standard geometries', as
     assert.equal(bench.headingSize, floor.headingSize);
     assert.ok(bench.centred && floor.centred, 'centred at both geometries');
 });
-
-/* ---------------------------------------------------------------------------
- * Both themes: every painted value is a token, so the theme carries it
- * ------------------------------------------------------------------------- */
 
 test('the well repaints from the token sheet in both themes', async () => {
     const read = (theme) => browser.withPage({ geometry: BENCH, theme }, async (page) => {

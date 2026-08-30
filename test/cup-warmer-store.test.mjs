@@ -1,14 +1,4 @@
-// The cup-warmer store — the fifty lines of thinking that survived, and the four dead
-// premises that must not come back.
-//
-// The old suite dies with its module (SCOPE Part 6, "Tests that die with their modules"):
-// every fixture in it encodes `temperature > 0` as the on state and reads pre-heat off a
-// route that never served it. This suite pins the opposite of each.
-//
-// The transport result is built here as a plain `{ok, status, data}` object rather than
-// imported from `rea-errors.js`: those three fields ARE the contract between the routes
-// surface and a store, and a test that constructs them by hand proves the store depends on
-// nothing more.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 

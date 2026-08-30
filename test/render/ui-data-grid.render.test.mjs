@@ -1,61 +1,5 @@
 /**
- * ui-data-grid.render.test.mjs — Gate A for component #34 (wave 4, item #34).
- *
- * Runs at BOTH standard geometries — 1281×801 @ dsf 1.5 (the bench truth) and the
- * 1000×600 floor — asserting only on computed style, box geometry, accessibility-tree
- * shape and behaviour, never on source text (Part 8 §2).
- *
- * THE STANDING CLASSES, and where each lives below:
- *   1. token drill — fourteen tokens, each retargeted on :root with the rendered value
- *      asserted to move, to land on the token, and to move back. This is also bug L12's
- *      class: a component holding a private copy of the public palette would paint
- *      identically and NOT move.
- *   2. THE DIAL DRILL, INVERTED. Row #34 depends on `tokens, #27` — not on #3 and not on
- *      the four dials — and no variant of it selects, so the drill runs as a NEGATIVE:
- *      all four dials retargeted, every selection spelling set on the host AND inside the
- *      shadow root, and not one rendered value may move. Part 10 §12's wave law is that
- *      no component in this wave owns a private "selected" look; a non-selectable one
- *      participates by being provably inert.
- *   3. focus geometry from --ui-focus-*, unclipped — and this component is bug L24's
- *      exact shape, because its frame is `overflow: auto`. The focusable is whatever the
- *      screen slots into a control column, which is also the ::slotted hole review
- *      finding cross-3 measured.
- *   4. container floor: the tracks ARE the responsive mechanism (spec §4.5). Asserted as
- *      behaviour — equal `fr` columns stay equal, a `grow: 2` column is twice its
- *      neighbours, the row-label track is `max-content` ACROSS ALL ROWS (the L20 fix),
- *      and below the sum of the `ch` minimums the frame scrolls with a visible gutter
- *      rather than clipping (spec §2.4).
- *   5. THE TWO ROW BUGS, asserted from CHROME'S OWN ACCESSIBILITY TREE:
- *        H4  "#hv-data-grid-{a,b} is a role=grid with NO ROWS — 28 children, 27 of them
- *            role-bearing, appended as direct children" (LAYOUT_SPEC_DRAFT §7, H4)
- *        L23 "aria-label on role-less <div>s (×3); a role=grid whose rows are not owned
- *            by the grid or a rowgroup" (LAYOUT_SPEC_DRAFT §7, L23)
- *      Both are asserted as INEXPRESSIBLE, not merely absent: every cell's AX parent is a
- *      row, every row's AX parent is a rowgroup, the table's AX children are rowgroups
- *      ONLY, the sole aria-label in the tree is on the roled element, and a consumer
- *      cannot inject an unowned cell because there is no default slot to inject it into.
- *   6. the seven declared departures, each asserted AS a departure with both numbers
- *      named, so a silent drift back to Slate's value is a red test too.
- *   7. aria. Row #34 cites no Appendix 15 rule and that is correct — Appendix 15 is the
- *      aria-driven STATE selector contract for .slate-bank / .slate-stepper and this
- *      component has no state a user can change. What is asserted is the contract it does
- *      define: the roles, the accessible name's home, the unit inside the column header's
- *      name, and the fact that a slotted control keeps its own AX node inside its cell.
- *
- * ORACLE VALUES ARE ASSERTED LITERALLY where the serialisation is stable, because
- * "measured from the oracle" should be checkable rather than claimed. Every literal
- * carries its CITE line; all of them were obtained mechanically with
- * realine-run/tools/prov_query.py (themes / value / find) against prov-baseline (dark)
- * and prov-light, with the disqualification check run first — see the component header.
- *
- * ONE MEASURED FACT THIS SUITE HAD TO RECORD RATHER THAN ASSERT AWAY: Chrome computes an
- * accessible name from RENDERED text, so a `.ui-microcap` header whose markup says
- * "Time" has the AX name "TIME". TYPE_ROLES.md's "text-transform is paint … the
- * accessible name keeps the case the author wrote" is true of `textContent` and not of
- * Chrome's name computation, and this is Slate's behaviour too (its row headers and
- * column headers are uppercased by CSS in exactly the same way), so it is neither a
- * regression nor this row's to fix. Both halves are asserted, so a future change to
- * either is visible.
+ * Gate A for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -71,13 +15,6 @@ import {
 } from '../harness/assertions.js';
 
 const MODULE = ['/src/components/ui-data-grid.js'];
-
-/* ---------------------------------------------------------------------------
- * The two variants the row names, as data.
- *
- * SCOPE.md:1697 — "Phase table and shot list → #34 data grid variants." The derived
- * list is the third and is deliberately absent (D1).
- * ------------------------------------------------------------------------ */
 
 /** Live's shot-data panel / the HV data page: a row-header column and three channels. */
 const PHASE_COLUMNS = [
@@ -128,35 +65,6 @@ const MARKUP = `
 </div>
 `;
 
-/* The oracle's own numbers, named once so the code that asserts them is readable.
- * Every line below is a verbatim prov_query.py answer; the component header carries the
- * full CITE lines with their winning rules.
- *   CITE live-ready #shot-data-panel [i=126] background-color: dark rgb(14, 19, 23) /
- *        light rgb(242, 243, 243)  <-  slate-live.css  `#main-page #shot-history-panel,
- *        #main-page #shot-data-panel`  !important=yes   (= --ui-fascia)
- *   CITE live-ready #shot-data-panel [i=126] border-top-width = 1px, border-top-color:
- *        dark rgb(82, 97, 107) / light rgb(170, 178, 183)   (= --ui-line-strong)
- *   CITE live-ready .h-9 [i=133] role=rowheader color: dark rgb(148, 161, 169) / light
- *        rgb(90, 101, 108)  <-  `#main-page #shot-data-panel [role="rowheader"]`
- *        authored `var(--slate-muted)` !important=yes; font-size = 15px,
- *        font-weight = 600, letter-spacing = 1.8px, text-transform = uppercase
- *   CITE live-ready #shot-data-pi-time [i=134] role=gridcell color: dark
- *        rgb(244, 247, 248) / light rgb(23, 26, 28) <- the same sheet authored
- *        `var(--slate-text)`; font-size = 17px <- authored `var(--slate-text-base)`;
- *        font-weight = 300 !important=yes; height = 34px !important=yes
- *   CITE live-ready #shot-data-total-time [i=142] font-weight = 300 — IDENTICAL to the
- *        non-total cell, which is departure 3's whole proof
- *   CITE live-ready <span> [i=127] font-size = 14px, font-weight = 600,
- *        letter-spacing = 1.4px, text-transform = uppercase   (a column label)
- *   CITE live-ready .shot-data-col-unit [i=128] font-size = 14px <- authored
- *        `var(--slate-text-sm)`; font-weight = 400 <- authored
- *        `var(--slate-weight-regular)`; letter-spacing = normal; text-transform = none
- *   CITE history-shotdata .sx-data-col [i=178] font-size = 14px, font-weight = 600,
- *        letter-spacing = 1.4px, text-transform = uppercase, gap = 6px, height = 33px
- *   CITE history-shotdata .sx-data-row [i=190] font-size = 20px, letter-spacing = normal,
- *        text-transform = none, width = 210px  (x6, all six identical)
- *   CITE history-shotdata .sx-data-cell [i=191] height = 33px, width = 242px (x36)
- */
 const ORACLE = {
     dark: {
         ground: 'rgb(14, 19, 23)',
@@ -235,12 +143,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         }));
 
-        /* -- 1. tokens are consumed, not copied ----------------------------- */
-
         test('drill: --ui-fascia is the ground (L12\'s class)', () => mounted(async (page) => {
-            // A component carrying its own copy of the palette would paint the same
-            // colour and NOT move — which is bug L12 exactly (Live re-declares the public
-            // palette three times under private names, one member with zero consumers).
             await assertTokenDrill(page, {
                 token: '--ui-fascia',
                 value: DRILL_COLOUR,
@@ -250,8 +153,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-space-5 / --ui-space-3 are the column and row gaps', () => mounted(async (page) => {
-            // slate-live.css:1899-1904, read read-only (a container gap was not probed):
-            //   .sx-data-grid { column-gap: var(--slate-space-5); row-gap: var(--slate-space-3) }
             await assertTokenDrill(page, {
                 token: '--ui-space-5',
                 value: '37px',
@@ -267,8 +168,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-space-1 is the label/unit gap and the cell\'s block padding', () => mounted(async (page) => {
-            // Departure 6 (the 6px snap) and departure 5 (the row height as a derivation)
-            // both read this one step, which is why they move together or not at all.
             await assertTokenDrill(page, {
                 token: '--ui-space-1',
                 value: '37px',
@@ -299,10 +198,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: the column header is the shared role at --ui-text-2xs', () => mounted(async (page) => {
-            // --ui-text-2xs's own comment in the token sheet reads "column headers,
-            // units" (styles/tokens.css:351), which is the size the oracle measured on
-            // BOTH implementations — CITE live-ready <span> [i=127] font-size = 14px and
-            // CITE history-shotdata .sx-data-col [i=178] font-size = 14px.
             await assertTokenDrill(page, {
                 token: '--ui-text-2xs',
                 value: '31px',
@@ -344,9 +239,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 selector: '#phase >>> #cell-preinfusion-time',
                 property: 'font-size',
             });
-            /* --ui-weight-light since parity surface 1: Slate's cells ARE the light
-             * numeric-readout role, 300 on Live and on the HV page alike, and the token
-             * exists again. */
             await assertTokenDrill(page, {
                 token: '--ui-weight-light',
                 value: '200',
@@ -363,9 +255,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-weight-regular is the emphasised row', () => mounted(async (page) => {
-            /* The emphasis is one step over the base, and since parity surface 1 both
-             * steps are Slate's own: base --ui-weight-light (300), emphasis
-             * --ui-weight-regular (400), which is the HV page's own pair. */
             await assertTokenDrill(page, {
                 token: '--ui-weight-regular',
                 value: '200',
@@ -376,11 +265,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: a column\'s ink is a --ui-channel-* token, and only a token', () => mounted(async (page) => {
-            // Slate paints four of its columns with the trace colours and says why:
-            // "Channel ink, matching the traces and the Live panel exactly"
-            // (slate-live.css:1950-1954). The ink arrives as a var() reference and is
-            // validated against INK_REFERENCE, so a screen cannot hand this component a
-            // literal — the drill is what proves the value is still the token's.
             await assertTokenDrill(page, {
                 token: '--ui-channel-volume',
                 value: DRILL_COLOUR,
@@ -388,7 +272,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'color',
             });
 
-            // …and a column that names no channel is exactly Slate's measured cell.
             await assertTokenDrill(page, {
                 token: '--ui-text',
                 value: DRILL_COLOUR,
@@ -396,9 +279,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 property: 'color',
             });
 
-            // An ink that is not a var(--ui-*) reference is IGNORED, not obeyed: the
-            // component would otherwise be a hole in Gate C, since a style attribute
-            // written from data is authored CSS no guard scans.
             const before = await page.prop('#phase >>> #cell-preinfusion-volume', 'color');
             await page.evalFn(() => {
                 const el = document.getElementById('phase');
@@ -422,10 +302,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('drill: --ui-focus-offset-inset reaches a slotted control (L24\'s fix)', () => mounted(async (page) => {
-            // The frame is overflow: auto, so it is a clipping ancestor and this is bug
-            // L24's exact shape. The one-line answer (CONVENTIONS §3) is the inset
-            // offset on the subtree; custom properties inherit down the FLAT tree, so a
-            // control the screen slots into a cell inherits it without knowing.
             await assertTokenDrill(page, {
                 token: '--ui-focus-offset-inset',
                 value: '-9px',
@@ -435,8 +311,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 prepare: (p) => p.focusVisible('#ab-0'),
             });
         }));
-
-        /* -- the measured starting values, both themes ---------------------- */
 
         test('the resting paint is the oracle\'s measured values, in both themes', () => mounted(async (page) => {
             for (const theme of ['dark', 'light']) {
@@ -494,8 +368,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.resolveToken('--ui-font-family', 'font-family'),
                 'CITE live-ready #shot-data-pi-time [i=134] font-family <- var(--slate-font-numeric), '
                 + 'which styles/tokens.css:346-347 records was already var(--slate-font-ui) — one family');
-            // Chrome serialises font-variant-numeric in its own canonical order, so the
-            // assertion is on the SET rather than on the string the component authored.
             assert.deepEqual(
                 (await page.prop('#phase >>> #cell-preinfusion-time', 'font-variant-numeric'))
                     .split(' ').sort(),
@@ -504,15 +376,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'value left OUT of Slate\'s tabular-nums list)');
         }));
 
-        /* -- 6. the declared departures ------------------------------------- */
-
         test('DEPARTURE 1: no border on any side, ever (CONVENTIONS §13)', () => mounted(async (page) => {
-            // CITE live-ready #shot-data-panel [i=126] border-top-width = 1px,
-            //      border-top-color: dark rgb(82, 97, 107) / light rgb(170, 178, 183)
-            // The Live panel's own markup is `border-r-0 border-b-0 … border
-            // border-base-400` (index.html:358): two sides of a box drawn by the box.
-            // LAYOUT_SPEC_DRAFT.md:521-525 puts that line on the SCREEN instead —
-            // gap: var(--ui-seam) over background: var(--ui-line-strong).
             for (const selector of ['#phase', '#phase >>> #frame', '#phase >>> #table']) {
                 const edges = await page.computed(selector,
                     ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width']);
@@ -527,16 +391,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'for the record: Slate\'s panel DID carry 1px of --ui-line-strong — the '
                 + 'divider changed owner, it did not disappear');
 
-            // …and the ground is opaque, which is what makes the component a legal seam
-            // CELL rather than a hole (CONVENTIONS §13 trap 1).
             assert.equal(await page.prop('#phase >>> #frame', 'background-color'),
                 await page.resolveToken('--ui-fascia', 'background-color'));
         }));
 
         test('DEPARTURE 2: the header rule is ONE line across every track, not a border per cell', () => mounted(async (page) => {
-            // Slate draws it as `.sx-data-col { border-bottom: … }` plus the same on
-            // `.sx-data-corner` (slate-live.css:1906-1919) inside a grid whose
-            // column-gap is 24px, so the "underline" is N segments with N−1 holes.
             const table = await page.box('#phase >>> #table');
             const rule = await page.box('#phase >>> #rule');
             assert.ok(Math.abs(rule.width - table.width) < 0.5,
@@ -560,12 +419,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('DEPARTURE 3: the total row is emphasised, and on Live that emphasis was DEAD', () => mounted(async (page) => {
-            // CITE live-ready #shot-data-total-time [i=142] font-weight = 300 <-
-            //      slate-live.css `#main-page #shot-data-panel [role="gridcell"]`
-            //      authored `300` !important=yes
-            // CITE live-ready #shot-data-pi-time   [i=134] font-weight = 300 <- the SAME
-            //      rule — identical, although the markup marks the total row
-            //      font-semibold (index.html:393-398). The important flag ate the intent.
             const plain = await page.prop('#phase >>> #cell-preinfusion-time', 'font-weight');
             const total = await page.prop('#phase >>> #cell-total-time', 'font-weight');
             assert.notEqual(total, plain,
@@ -580,8 +433,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the base cell IS Slate\'s 300 — parity surface 1 restored --ui-weight-light, '
                 + 'so the pair is Slate\'s own 300 -> 400 rather than a synthesised 400 -> 500');
 
-            // The ink half is Slate's working one, carried exactly:
-            // slate-live.css:1947 .sx-data-row[data-row="total"] { color: var(--slate-text) }
             assert.equal(await page.prop('#phase >>> #rowhead-total', 'color'),
                 await page.resolveToken('--ui-text', 'color'));
             assert.equal(await page.prop('#phase >>> #rowhead-preinfusion', 'color'),
@@ -599,22 +450,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'CITE history-shotdata .sx-data-row [i=190] text-transform = none');
             assert.equal(rowhead['text-transform'], ORACLE.transform);
 
-            /* The tracking IS the measured value again — parity surface 0 reversed the
-             * .04em departure, whose authority (LAYOUT_SPEC_DRAFT §3.5) writes ".04em"
-             * while citing the slate-tokens.css lines that declare .12em. */
             assert.equal(rowhead['letter-spacing'], ORACLE.slateRowHeadTracking,
                 'Slate measured 1.8px (.12em at 15px) and --ui-tracking-cap now carries it');
             assert.equal(Math.round(parseFloat(rowhead['letter-spacing']) * 100) / 100, 1.8,
                 '.12em at 15px is 1.8px');
-            /* SLATE-INCONSISTENT, and the column header is where it shows. Slate tracks
-             * this row head at .12em (1.8px at 15px) and the column head one step tighter
-             * at .1em (1.4px at 14px) — two values for one uppercase microcap role, on
-             * the same table. Rendered census over the 49 baseline states: .12em on 190
-             * elements, .1em on 68, .09em on 38, and single figures for six more values.
-             * ONE COMPONENT, ONE TOKEN, and the value is Slate's own declared
-             * --slate-tracking-cap .12em, which is also the Live page's microcap value —
-             * the tie-break Ben set. The column head gains 0.28px at 14px and now tracks
-             * like every other microcap in the skin. */
             const colTracking = await page.prop('#phase >>> #col-time', 'letter-spacing');
             assert.notEqual(colTracking, ORACLE.slateColTracking,
                 'Slate tracks the column head .1em against the row head\'s .12em; one token ends that');
@@ -623,11 +462,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('DEPARTURE 5: the row height is a derivation, not 34px', () => mounted(async (page) => {
-            // CITE live-ready #shot-data-pi-time [i=134] height = 34px !important=yes
-            // CITE history-shotdata .sx-data-cell [i=191] height = 33px
-            // CITE history-shotdata .sx-data-row  [i=190] height = 30px
-            // — three constants for one rhythm. Here it is --ui-text-base x line-height
-            // plus 2 x --ui-space-1, which is Appendix 12's rule.
             const cell = await page.box('#phase >>> #cell-preinfusion-time');
             const fontSize = parseFloat(await page.prop('#phase >>> #cell-preinfusion-time', 'font-size'));
             const pad = parseFloat(await page.prop('#phase >>> #cell-preinfusion-time', 'padding-top'));
@@ -664,11 +498,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'NO BLOCK FLOOR: C2\'s five-phase measurement was never taken '
                 + '(SCOPE.md:1918-1924), so this number is not this component\'s to invent');
 
-            // max-block-size: 100% is a MAXIMUM, and the assertion is on what it does
-            // rather than on its computed string (which stays "100%"): against an
-            // auto-height parent it resolves to none, so a grid in ordinary flow is
-            // simply as tall as its rows and hides nothing. The definite-track case is
-            // the block-scroll test below.
             const frameBox = await page.box('#phase >>> #frame');
             const tableBox = await page.box('#phase >>> #table');
             assert.ok(Math.abs(frameBox.height - tableBox.height) < 0.5,
@@ -679,8 +508,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(metrics.scrollHeight <= metrics.clientHeight + 0.5,
                 'and nothing is scrolled out of sight when there is room for it');
         }));
-
-        /* -- 2. THE DIAL DRILL, INVERTED ------------------------------------ */
 
         const SELECTION_READS = ['background-color', 'color', 'box-shadow', 'text-shadow', 'font-weight'];
         const SELECTION_PARTS = ['#frame', '#table', '#rule', '#corner', '#col-time',
@@ -696,10 +523,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         };
 
         test('the four dials reach NOTHING here — there is no selection surface to move', () => mounted(async (page) => {
-            // Part 10 §12's wave law: no component in this wave may own a private
-            // "selected" look, and #34's dependsOn is `tokens, #27` — not #3, not the
-            // dials. The A/B affordance on the shot list is #45's pick disc, slotted in
-            // by the screen and bringing its own selection with it.
             const before = await readSelectionSurface(page);
             for (const dial of ['--ui-selected-face', '--ui-selected-ink',
                 '--ui-selected-led', '--ui-selected-glow']) {
@@ -736,9 +559,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `[${name}] on the host painted a selected look.`);
             }
 
-            // The sharpest form: .is-selected set on the elements INSIDE the root, which
-            // is where a private treatment would hide. `selectionSurface` matches that
-            // class; a sheet that imported it would light up here.
             await page.evalFn((parts) => {
                 const root = document.getElementById('phase').shadowRoot;
                 for (const id of parts) {
@@ -756,26 +576,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'selectionSurface must not be in this component\'s styles at all');
         }));
 
-        /* -- 3. focus, unclipped -------------------------------------------- */
-
         test('a slotted control takes the ONE ring, and the scroll frame does not clip it (L24)', () => mounted(async (page) => {
-            // bug L24: "focus rings clipped on all four sides by the components they sit
-            // inside". The frame is a scroll container, so this is the case exactly; the
-            // assertion walks THROUGH shadow boundaries looking for a clipper.
             const g = await assertFocusUnclipped(page, '#ab-0');
             assert.equal(g.outlineOffset,
                 await page.resolveValue('var(--ui-focus-offset-inset)', 'outline-offset'),
                 'inside an overflow: auto frame the ring must be the INSET offset, or it '
                 + 'is drawn outside the scrollport and clipped');
 
-            // The last row, where a mistake shows: the ring must survive at the bottom
-            // edge of the scrollport too.
             await assertFocusUnclipped(page, `#ab-${LIST_ROWS.length - 1}`);
         }));
 
         test('the component itself takes no focus and offers no hit target', () => mounted(async (page) => {
-            // A table is read, not pressed. Growing a hit box here would put a target
-            // with nothing behind it over the numbers (CONVENTIONS §5, and #27's rule).
             const focusables = await page.evalFn(() => {
                 const root = document.getElementById('phase').shadowRoot;
                 return root.querySelectorAll(
@@ -786,8 +597,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the shadow tree grew a focusable; the only interactive thing in a data '
                 + 'grid is what a screen slots into a control column');
         }));
-
-        /* -- 4. the container floor, which IS the tracks --------------------- */
 
         test('equal columns are equal, and a grow: 2 column is twice its neighbours (§4.5 "become fr")', () => mounted(async (page) => {
             const phase = await tracks(page, '#phase >>> #table');
@@ -806,19 +615,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 `grow: 2 gave ${list[1]} against a neighbour's ${list[0]} — the shot list's `
                 + 'six fixed tracks totalling 554px become fr (spec §4.5)');
 
-            // No track is a Slate constant. 210 / 110 / 84 / 140 / 80 / 88 / 94 are the
-            // seven numbers §4.5 deletes; the row-label track is max-content and every
-            // other track is fr, so none of them can survive by coincidence.
             assert.notEqual(Math.round(phase[0]), ORACLE.slateHvRowHeadTrackWidth,
                 'CITE history-shotdata .sx-data-row [i=190] width = 210px — the fixed '
                 + 'row-label track §4.5 replaces');
         }));
 
         test('the row-label track is max-content ACROSS ALL ROWS — the one-grid proof (L20)', () => mounted(async (page) => {
-            // L20: "seven inline fixed grid templates in the shot-data markup, and the
-            // sheet's carefully-commented calc(34px + 128px + 16px) is hand-derived from
-            // them". Seven grids agree by arithmetic; ONE grid agrees by construction.
-            // Widening the label of the LAST row must widen the track for the FIRST.
             const before = (await tracks(page, '#phase >>> #table'))[0];
             const firstBefore = await page.box('#phase >>> #cell-preinfusion-time');
 
@@ -842,17 +644,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('below the sum of the ch minimums the frame scrolls inline, with a gutter', () => mounted(async (page) => {
-            // spec §2.4: an explicit floor and a stated overflow, and hiding the
-            // scrollbar is banned — bug T16 is that habit ("both nav columns hide their
-            // scrollbars while remaining scrollable").
-            // The floor is real: the tracks stop shrinking, so the content overflows the
-            // scrollport instead of the columns collapsing to nothing. Measured as
-            // "narrower host, same tracks" — a grid container's own box is always its
-            // containing block's width, so the overflow shows in scrollWidth and never
-            // in getBoundingClientRect.
-            //
-            // MEASURED BEFORE assertScrollFloor, which restores by REMOVING the property
-            // it set — and that would take the host's own authored inline-size with it.
             const at240 = await tracks(page, '#narrow >>> #table');
             const wide = await page.metrics('#narrow >>> #frame');
             assert.ok(wide.scrollWidth > wide.clientWidth + 0.5,
@@ -887,9 +678,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('an empty grid keeps its column legend and hands the space to #38', () => mounted(async (page) => {
-            // slate-live.css:1905 switches the grid to display: block when empty; here
-            // the header stays (a table with no rows is still a table with columns) and
-            // the empty slot is a home for the #38 empty state.
             assert.ok(await page.exists('#empty >>> #head'), 'the header survives');
             assert.ok(!(await page.exists('#empty >>> #body')), 'and there is no body rowgroup');
             assert.ok(await page.exists('#empty >>> #empty'), 'the empty region is there');
@@ -900,16 +688,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and it sits under the header rule, not over it');
         }));
 
-        /* -- 5. THE TWO ROW BUGS, from the accessibility tree ---------------- */
-
-        /**
-         * Chrome's own accessibility tree, indexed by nodeId, with a parent map built
-         * from childIds. Reading the tree rather than the attributes is the point: Slate
-         * had the attributes too — what it did not have was the OWNERSHIP.
-         */
-        /* Nodes Chrome inserts that carry no structure — a <slot> becomes one, and so
-         * does an ignored generic wrapper. A structural assertion has to look THROUGH
-         * them or it is asserting on Chrome's bookkeeping rather than on ownership. */
         const STRUCTURELESS = new Set(['none', 'generic', 'GenericContainer', 'InlineTextBox']);
 
         const axTree = async (page, name) => {
@@ -945,14 +723,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         };
 
         test('H4 is inexpressible: every cell is inside a row, and the table\'s children are rowgroups only', () => mounted(async (page) => {
-            // H4: "#hv-data-grid-{a,b} is a role=grid with NO ROWS — 28 children, 27 of
-            // them role-bearing, appended as direct children" (index.html:608, 615;
-            // history-viewer.js:811-837, a run of grid.appendChild(...)). The corpus
-            // proves the consequence across all 49 states:
-            //   prov_query.py find --role row      -> found 0 element(s) in 0 state(s)
-            //   prov_query.py find --role rowgroup -> found 0 element(s) in 0 state(s)
-            // while CITE history-shotdata .sx-data-cell [i=191] (x36),
-            // .sx-data-col [i=178] (x12) and .sx-data-row [i=190] (x6) are all there.
             const ax = await axTree(page, 'Shot data by phase');
             assert.ok(ax.table, 'the table must be in the accessibility tree at all');
 
@@ -973,11 +743,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('L23 is inexpressible: rows are owned, and the only aria-label is on the roled element', () => mounted(async (page) => {
-            // L23's two clauses that reach this component: "aria-label on role-less
-            // <div>s (×3)" and "a role=grid whose rows are not owned by the grid or a
-            // rowgroup". Live's defect is TWO levels deep — index.html:358 puts a
-            // role-less #shot-data-rows between the grid and its rows, and a role-less
-            // .shot-data-cols between each row and its cells.
             const ax = await axTree(page, 'Shot data by phase');
             const rows = ax.within(ax.table).filter((n) => n.role?.value === 'row');
             assert.equal(rows.length, PHASE_ROWS.length + 1);
@@ -989,8 +754,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and its rowgroup must be owned by the table itself');
             }
 
-            // Clause 1, as a DOM fact rather than an AX one: the only element in the
-            // shadow tree that may carry an aria-label is the one carrying the role.
             const labelled = await page.evalFn(() => {
                 const root = document.getElementById('phase').shadowRoot;
                 return [...root.querySelectorAll('[aria-label]')].map((el) => ({
@@ -1000,18 +763,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(labelled, [{ id: 'table', role: 'table' }],
                 'an aria-label landed on something without a role — L23\'s first clause');
 
-            // …and the host itself never takes one, which is where it would be easiest
-            // to put and would be the same defect one element out.
             assert.equal(await page.evalFn(
                 () => document.getElementById('phase').hasAttribute('aria-label'),
             ), false);
         }));
 
         test('a consumer cannot inject an unowned cell: there is no default slot', () => mounted(async (page) => {
-            // The structural half of "the defect cannot be expressed". Slate's grids are
-            // built by appendChild from outside; here the only slots are `empty` and the
-            // declared control columns, so light-DOM content with a cell role is
-            // assigned nowhere and renders nowhere.
             const stowaway = await page.evalFn(() => {
                 const el = document.getElementById('stowaway');
                 return { assigned: el.assignedSlot ? el.assignedSlot.name : null, rect: el.getBoundingClientRect().height };
@@ -1029,11 +786,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('a control slotted into a cell keeps its own AX node, inside its row', () => mounted(async (page) => {
-            // The shot list's reason for existing: "Every row carries an A and a B
-            // button, because which two shots is the only question this page exists to
-            // answer" (history-viewer.js:840-843). A control in a cell must stay a
-            // control — this is the shape ui-list-row measured Chrome folding away for
-            // `option` (its departure 7), and `cell` is not children-presentational.
             const ax = await axTree(page, 'Stored shots');
             const button = ax.within(ax.table).find((n) => n.role?.value === 'button');
             assert.ok(button, 'the slotted button is gone from the accessibility tree');
@@ -1042,8 +794,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(ax.role(cell), 'cell', 'the button must be inside its cell');
             assert.equal(ax.role(ax.owner(cell)), 'row', 'and that cell inside a row');
         }));
-
-        /* -- 7. aria ---------------------------------------------------------- */
 
         test('the accessible name is `label`, it moves, and the unit is part of a header\'s name', () => mounted(async (page) => {
             const ax = await axTree(page, 'Shot data by phase');
@@ -1057,11 +807,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'announcing a cell says "Weight g" — the unit belongs to the column, '
                 + 'not to every cell in it (slate-live.css:1920-1922)');
 
-            // MEASURED, and recorded rather than asserted away: Chrome computes an
-            // accessible name from RENDERED text, so a .ui-microcap header whose markup
-            // says "Weight" is named "WEIGHT". This is Slate's behaviour too — its column
-            // and row headers are uppercased by CSS in exactly the same way — so it is
-            // neither a regression nor this row's to fix. textContent keeps the case.
             assert.equal(await page.evalFn(
                 () => window.__h.q('#phase >>> #col-weight .col-label').textContent,
             ), 'Weight', 'text-transform is paint: the markup keeps the author\'s case');
@@ -1079,10 +824,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('the corner is a columnheader and the header rule is not in the tree at all', () => mounted(async (page) => {
-            // Slate's corner is a role-less div appended straight into a role="grid"
-            // (history-viewer.js:811, `cell('sx-data-corner', '')`), which is invalid
-            // content for the role. An empty columnheader is the table equivalent of an
-            // empty <th> and is what the corner has to be.
             const ax = await axTree(page, 'Shot data by phase');
             const corner = ax.within(ax.table).find((n) => n.role?.value === 'columnheader'
                 && n.name?.value === 'PHASE');
@@ -1094,8 +835,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.prop('#phase >>> #col-time', 'font-size'),
                 'the corner is a header like the others, not a fourth type treatment');
 
-            // The rule is decoration: it must never be a child of the table in the AX
-            // tree, or the table has a child that is neither a row nor a rowgroup.
             const ruleNode = await page.evalFn(() => {
                 const el = document.getElementById('phase').shadowRoot.getElementById('rule');
                 return { role: el.getAttribute('role'), hidden: el.getAttribute('aria-hidden') };
@@ -1103,19 +842,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(ruleNode, { role: 'presentation', hidden: 'true' });
         }));
 
-        /* -- A7: absence is a dash, never a number -------------------------- */
-
         test('an absence renders the dash, and nothing else ever happens to it (A7)', () => mounted(async (page) => {
-            // The extraction row has no volume, so its cell is a gap. A7: "NEVER PORT A
-            // FALLBACK PATH. A missing channel renders as a gap or a dash, never as a
-            // locally-recomputed ratio … every one of them produced a plausible number."
             const text = (selector) => page.evalFn((s) => window.__h.q(s).textContent.trim(), selector);
             assert.equal(await text('#phase >>> #cell-extraction-volume'), '—');
             assert.equal(await text('#phase >>> #cell-extraction-time'), '30');
 
-            // A reading-shaped absence from the address layer is the same gap, and it is
-            // recognised by src/data/reading.js's own predicate rather than by a second
-            // definition of "absent" written here.
             await page.evalFn(() => {
                 const el = document.getElementById('phase');
                 el.rows = el.rows.map((r) => (r.key === 'total'
@@ -1127,8 +858,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await text('#phase >>> #cell-total-time'), '—',
                 'an absence object rendered as something other than the dash');
 
-            // The dash is one mark, and it is a property so a screen that has imported
-            // units.js can pass NO_READING_MARK and there is still exactly one on screen.
             await page.evalFn(() => {
                 document.getElementById('phase').dash = '·';
                 return true;
@@ -1136,11 +865,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle();
             assert.equal(await text('#phase >>> #cell-extraction-volume'), '·');
         }));
-
-        /* -------------------------------------------------------------------
-         * The gallery entry renders. Its shape is checked without a browser in
-         * test/ui-data-grid-gallery-entry.test.mjs; this is the half that needs one.
-         * ----------------------------------------------------------------- */
 
         test('every gallery state mounts, paints and survives the battery\'s settle',
             () => browser.withPage({ geometry }, async (page) => {
@@ -1173,17 +897,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(seen.headers > 0, `${state.id}: nothing left to photograph`);
                     assert.ok(seen.width > 0 && seen.height > 0, `${state.id}: zero box`);
 
-                    // Any state that overflows must be scrolling, never clipping — a
-                    // baseline of a silently cut table is a baseline that is wrong forever
-                    // (spec §2.4; bug T16 is the habit).
                     if (seen.clipped) {
                         assert.equal(seen.overflow, 'auto',
                             `${state.id}: content overflows a frame that is not scrollable`);
                     }
 
-                    // The `empty` state is the one with no body, and it must still be the
-                    // one with no body — a demo whose constructor drifted would photograph
-                    // a full table under an "empty" title.
                     if (state.id === 'empty') {
                         assert.equal(seen.cells, 0, 'the empty state must have no cells');
                     } else {
@@ -1191,8 +909,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     }
                 }
             }));
-
-        /* -- the cross-geometry record -------------------------------------- */
 
         test('record the geometry-independent facts for the cross-check', () => mounted(async (page) => {
             acrossGeometries[geometry.name] = {

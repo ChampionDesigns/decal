@@ -1,30 +1,5 @@
 /**
- * live-shot-order.render.test.mjs — the Live band's arrows walk the history in TIME order.
- *
- * Written 30 August 2026, round 4 of the fix campaign. Ben, testing the deployed build on
- * the tablet: *"when I tap the previous shot button it doesn't show the previous but some
- * other shot, like the order is all messed up"*, and *"the history on the live page is not
- * done well"*.
- *
- * WHAT WAS ACTUALLY BROKEN. The arrows step an integer index through the shots store's
- * `items`, and until `orderShots` the store published that array exactly as the wire sent
- * it. Nothing between the socket and the arrow ever read a shot's `timestamp`. Measured
- * here on 30 August, before the fix: with a page emitted in any order but time order,
- * "Older" walked the emission verbatim — 08:40, then 13:30, then 08:06, then 11:38 — which
- * is Ben's sentence, reproduced.
- *
- * WHY A STAGED SERVER IS THE HONEST INSTRUMENT. The tablet's own ReaPrime answers in strict
- * timestamp order today (192.168.1.73, all 921 shots, read-only, 30 Aug 2026), so a test
- * against a faithful server can only ever show the arrows agreeing with it by luck. The
- * claim under test is that the CLIENT decides the order, and the only way to see a client
- * decide is to move the server off the answer and watch the client hold. The fixture's
- * `serveOrder(mode)` is that move, and it is the only thing in it a real server does not
- * do — `limit`, `offset` and the `order` reading are `_getShots`'s own arithmetic.
- *
- * REAL PRESSES ON REAL CONTROLS. Every step below is `#shot-older` / `#shot-newer` being
- * clicked inside a mounted `<live-screen>` over a real `createAppBoot`, a real transport
- * and the shipping shots store. Nothing dispatches `shot-step` by hand: the event's
- * direction convention (+1 older) is part of what can be wrong.
+ * The Live band's arrows walk the history in TIME order.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -52,15 +27,6 @@ const IN_TIME_ORDER = [
 
 const TIED = ['shot-tie-a', 'shot-tie-b'];
 
-/**
- * The expected walk for a given emission, tie and all.
- *
- * THE TIED PAIR'S INTERNAL ORDER IS THE SERVER'S, NOT A CONSTANT — that is the rule, so
- * the expectation has to be built from the emission rather than written down once. Two
- * shots at one instant cannot be told apart by the field they carry, so the honest answer
- * is the order they arrived in, and a test that hard-coded one side of the tie would be
- * pinning an accident of the fixture instead of the rule.
- */
 const expectedWalk = (emitted) => {
     const tieOrder = emitted.filter((id) => TIED.includes(id));
     let taken = 0;
@@ -90,10 +56,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(page.pageErrors, [], 'the band must run without throwing');
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * The band opens on the newest shot, whatever order the page arrived in
-         * ═════════════════════════════════════════════════════════════════ */
-
         for (const mode of ['desc', 'shuffled', 'page-shuffled', 'asc', 'insertion']) {
             test(`the band opens on the newest shot when the page arrives ${mode}`, async () => {
                 await staged(mode, async (page, emitted) => {
@@ -115,9 +77,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         return seen.map((b) => ({ id: b.id, at: b.timestamp }));
                     });
                     assert.deepEqual(walked.map((b) => b.id), expectedWalk(emitted));
-                    /* Stated as a property as well as a sequence, because the sequence is
-                     * only right if this is: every step is to an instant no later than the
-                     * one before it, and the whole walk is monotonic. */
                     for (let i = 1; i < walked.length; i += 1) {
                         assert.ok(
                             walked[i].at <= walked[i - 1].at,
@@ -161,10 +120,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(walked.indexOf(tie[1]), first + 1,
                     'the tied pair is adjacent — nothing sorts between them');
                 assert.equal(first, 2, 'and the pair sits where its instant belongs');
-                /* THE RULE, not the constant: the pair keeps the order the WIRE sent, so
-                 * two shots the field cannot tell apart are not silently reshuffled by
-                 * this client either. `shuffled` emits them tie-b first, which is why
-                 * this assertion is worth making here and nowhere else. */
                 assert.deepEqual(tie, emitted.filter((id) => TIED.includes(id)));
             });
         });
@@ -196,16 +151,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('a window narrower than the archive walks its own rows in time order', async () => {
-            /* `limit: 3` is the shape the real band is always in — 25 rows over an archive
-             * of 921 — and the reach is the WINDOW, which is the stated design (the whole
-             * archive is the History screen's pager, `live-wiring.js #onShotStep`).
-             *
-             * `page-shuffled` is the mode that belongs here and `shuffled` is not, and the
-             * difference is the boundary of what this fix can claim. A server that orders
-             * the whole ARCHIVE wrongly hands over the wrong three rows, and no client can
-             * sort its way back to rows it was never sent — that is a wrong WINDOW and it
-             * is reported, not repaired. What the client owns is the order INSIDE the page
-             * it was given, which is what this asserts. */
             await browser.withPage({ geometry }, async (page) => {
                 await page.mount(STAGE, MODULES);
                 await page.settle(6);
@@ -229,17 +174,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        /* ═══════════════════════════════════════════════════════════════════
-         * A press always moves exactly one row, including after the window shrinks
-         * ═════════════════════════════════════════════════════════════════ */
-
         test('a press still moves one row after the window has shrunk under the index', async () => {
-            /* BOTH WINDOW SIZES EXIST IN ONE SESSION: `app-boot.js askShots()` reads 25
-             * into this store and `history-viewer.js start()` re-reads the SAME store at
-             * 20 when the History screen opens. So an index reached on the wide window can
-             * outlive it. The band clamps on read, so it draws the last row — and the step
-             * used to be computed from the STALE index, which landed back on the row
-             * already showing and ate the press. */
             await browser.withPage({ geometry }, async (page) => {
                 await page.mount(STAGE, MODULES);
                 await page.settle(6);

@@ -1,9 +1,4 @@
-// The name tables, checked against ReaPrime's own serialisers.
-//
-// This is the contract check that matters most to Gate 2: not "does the reader work" but
-// "are these the names the server actually writes". The tables are re-derived here from
-// the Dart sources at the pinned commit, so a rename upstream turns this red on the next
-// run instead of turning a chart quietly wrong on the next shot.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -62,11 +57,6 @@ function methodBody(source, signature, after = '') {
     return assert.fail(`unterminated body for ${signature}`);
 }
 
-/**
- * Map keys written at the start of a line (optionally behind a conditional):
- * `'flow': flow,` and `if (x != null) "sensors": sensors,`. Keys nested INSIDE a value on
- * the same line — `'state': {'state': …}` — are deliberately not matched.
- */
 const mapKeys = (body) => [...body.matchAll(/^[ \t]*(?:if \([^)]*\)\s*)?['"](\w+)['"]\s*:/gm)].map((m) => m[1]);
 
 /** Every key in a one-line map literal, in order. */
@@ -147,8 +137,6 @@ describe('the puck estimator sensor', () => {
         const entries = [...body.matchAll(/(if \([^)]*\)\s*)?['"](\w+)['"]\s*:/g)];
         const unconditional = entries.filter((m) => !m[1]).map((m) => m[2]);
         assert.deepEqual(unconditional.sort(), [...ESTIMATOR_ALWAYS_PRESENT_CHANNELS].sort());
-        // Everything else is omitted on the firmware's wire sentinel: an absent key means
-        // "not observed", which a zero would misrepresent as a measurement of zero.
         const conditional = entries.filter((m) => m[1]).map((m) => m[2]);
         assert.ok(conditional.includes('r2') && conditional.includes('compliance'));
         assert.deepEqual([...unconditional, ...conditional].sort(), [...ESTIMATOR_CHANNELS].sort());
@@ -163,8 +151,6 @@ describe('the milk probe', () => {
     });
 
     test('a stored steam session still persists its own milkTemperature double', () => {
-        // One trace, two reads, until ReaPrime unifies them. This pins the fact that the
-        // second read is real, so nothing "simplifies" it away.
         const body = methodBody(read('steamSnapshot'), 'Map<String, Object?> toJson()');
         assert.deepEqual(inlineMapKeys(body), ['machine', 'milkTemperature']);
     });
@@ -194,8 +180,6 @@ describe('sensor ids and the stored sensors map', () => {
 
 describe('the rename table', () => {
     test("Part 6's seven ROWS cover twelve names, and every one is here", () => {
-        // The table has seven rows, not seven names: fusedR1/fusedR2 share a row, so do
-        // fusedC/estFlags, and all four detEvent* share one.
         assert.equal(new Set(SEVEN_RENAMES.map((r) => r.sevenRow)).size, SEVEN_RENAME_ROWS);
         assert.deepEqual(SEVEN_RENAMES.map((r) => r.dead), [
             'puckResistance', 'loadImpedance', 'hydraulicPower',

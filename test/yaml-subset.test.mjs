@@ -1,17 +1,4 @@
-// The YAML reader the route generator stands on.
-//
-// The generated route table is only as trustworthy as the parser under it, and a parser
-// that guesses is worse than no parser at all — its wrongness lands in a committed
-// artifact and reads like evidence. So two things are tested here: that the supported
-// subset is parsed correctly, and that everything OUTSIDE the subset throws rather than
-// producing something plausible.
-//
-// The whole-file check at the end is the real one: both specs parse, and the structural
-// facts asserted against them are the facts the generator depends on. Cross-checked once
-// during development against PyYAML over all 8,381 lines of the two files — byte-identical
-// structure except two `OFF` tokens, where PyYAML applies YAML 1.1 boolean resolution and
-// turns the string log level `OFF` into `false`. This parser is right and PyYAML is not,
-// which is a fair reminder that "use a real library" is not automatically the safe answer.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

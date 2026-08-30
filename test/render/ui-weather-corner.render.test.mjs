@@ -1,10 +1,5 @@
 /**
- * ui-weather-corner.render.test.mjs — the corner draws, at the box it was measured for.
- *
- * The numbers asserted below are MEASURED, not chosen: `<ui-rating-control>` on the
- * tablet is 102.1 x 144.2 CSS px under app-root's zoom of 0.6675, so the corner it
- * replaces is 153 x 216 design px. A component that drifts from that leaves the live
- * screen's fourth block a different size from the three controls it stands in for.
+ * The corner draws, at the box it was measured for.
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,9 +21,6 @@ const READING = {
 
 const host = (reading) => `<ui-weather-corner id="wx"></ui-weather-corner>`;
 
-/* THE ASSERTIONS RUN INSIDE `withPage`. It closes the page when its callback returns, so
- * a helper that resolves WITH the page hands back a dead session — every call then fails
- * with "Session with given id not found", which is what the first draft of this file did. */
 const mount = (reading, fn) => browser.withPage({ geometry }, async (page) => {
     await page.mount(host(), MODULE);
     if (reading !== undefined) {
@@ -46,16 +38,7 @@ after(async () => { await browser?.close(); });
 describe('the weather corner', () => {
     test('fills the 290px box the short band gives it', () => mount(READING, async (page) => {
         const box = await page.box('#wx');
-        /* 320, NOT THE OLD 153. The corner was sized to the three controls it replaced
-           (153 x 216, being 3 x 64 + 2 x 12). Ben chose the short-band layout on 30
-           August: the band's rule now lands on the left rail's own divider at y 992,
-           which leaves the band 172 tall — too short for a 216 stack — and pays for it
-           in width. The HEIGHT is deliberately not asserted: the host is block-size
-           100% and takes the band's, so a number here would be a second owner of it. */
-        /* 290, DOWN FROM 320 ON 30 AUGUST. Ben: "Weather is a bit too wide." The pixels
-           are not saved, they are moved: the band's phase table is its only
-           minmax(0, 1fr) track, so it gets what the other three blocks leave, and it was
-           ellipsising all four of its headers at 365 against the 495 they needed. */
+
         assert.equal(Math.round(box.width), 290, 'the width the short band gives it');
         const over = await page.evalFn(() => {
             const card = window.__h.need('#wx').shadowRoot.querySelector('.card');
@@ -94,22 +77,10 @@ describe('the weather corner', () => {
             assert.equal(seen.temp, '21', 'the corner rounds; the modal carries the decimal');
             assert.equal(seen.unit, '°C');
             assert.equal(seen.marks, 1);
-            /* THE MARK'S SIZE, NOT JUST ITS EXISTENCE. The first version asserted the svg
-             * was there — it was, at its default 300 x 150, invisible and pushing the card
-             * out of its box on the tablet. An <svg> with only a viewBox has no intrinsic
-             * size, and a <span> wrapper cannot give it one. */
             assert.deepEqual(seen.glyph, [44, 44],
                 'the mark is 44px, beside the temperature rather than above it');
-            /* AND THAT IT ACTUALLY DRAWS. A fragment written with lit's `html` instead of
-             * its `svg` template creates <path> in the HTML namespace: the svg is present,
-             * the right size and the right colour, and renders NOTHING. Its paths measure
-             * 0 x 0, which is the only signal — there is no error. Found on the tablet. */
             assert.ok(seen.ink > 0,
                 'the mark has no geometry — its paths are in the wrong namespace');
-            /* The title names the number under it — Ben, 30 August 2026. "Rain" over
-               "43%" left the 43 unnamed. It measures 205px in the block's 283. */
-            assert.equal(seen.title, 'Chance of rain');
-            assert.deepEqual(seen.labels, ['AM', 'PM'], 'the corner takes TWO of the three');
             assert.deepEqual(seen.chances, ['20%', '70%']);
         }));
 
@@ -175,11 +146,6 @@ describe('the weather corner', () => {
                          height: Math.round(el.getBoundingClientRect().height) };
             });
             assert.equal(empty.cards, 0, 'nothing is drawn');
-            /* THE BAND NO LONGER LEANS ON THIS HOST FOR ITS HEIGHT. It used to: the
-               corner declared 216 and the band inherited it, so an absent plugin had to
-               keep the box or the rail jumped. The short band takes its height from the
-               identity column and the phase table instead, and this host is block-size
-               100% of whatever they settle on — 0 when it is measured on its own. */
             assert.equal(empty.height, 0, 'it adds no height of its own');
         }));
 

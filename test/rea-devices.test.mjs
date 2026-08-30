@@ -1,15 +1,4 @@
-// /ws/v1/devices — B8: read the whole connection state, and answer it.
-//
-// FIXTURES ARE CONTRACT-CHECKED, NOT INVENTED (Gate B rule 4). Every frame below is the
-// literal shape ReaPrime writes at 2b047d02:
-//   * the state frame       — DevicesStateAggregator._buildSnapshot
-//   * each device entry     — DeviceListEntry.toJson  {name, id, state, type, available}
-//   * foundMachines/Scales  — built inline by _buildSnapshot: {name, id, state, type},
-//                             WITHOUT `available` (that asymmetry is real, and is why
-//                             `available` reads as null rather than false there)
-//   * connectionStatus      — {phase, foundMachines, foundScales, pendingAmbiguity, error}
-//   * error                 — ConnectionError.toJson
-//   * connect result        — DevicesHandler._connectResultBody
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 

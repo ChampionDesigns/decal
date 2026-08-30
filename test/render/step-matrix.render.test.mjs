@@ -1,31 +1,5 @@
 /**
- * step-matrix.render.test.mjs — wave 5.5, the step-matrix cluster:
- * `step-matrix-grid`, `step-matrix-scroll`, `compact-density`, `locked-value-box`,
- * `exit-chip-sentence`, `exit-band-slots`, `action-key-rail`, `matrix-accessibility`,
- * `step-name-input`.
- *
- * ONE SUITE, NINE ROWS, because they are claims about the same grid. Splitting them
- * would mean mounting the matrix nine times to ask nine questions about one layout —
- * and splitting the OWNER is the defect class this screen exists to retire (E2/E3/E5/E8:
- * one owner per dimension).
- *
- * A8, AND IT IS THE POINT OF THIS FILE. "The old editor is pinned by tests that
- * regex-match the stylesheet's SOURCE TEXT for the 1920x1200 lock and the 64px literals
- * — tests that made the defects UNREMOVABLE." Nothing here opens a file. Every
- * assertion is a computed style, a rendered box, a scroll metric or an accessible name
- * Chrome itself computed. The two suites that pinned Slate's editor
- * (`slate-editor-view-contract.test.mjs`, `review-tab-fixes.test.mjs`) have no
- * counterpart here by construction.
- *
- * EVERY NUMBER IS EITHER MEASURED OR RESOLVED FROM A TOKEN. There is no expected track
- * list in this file: the tracks are read off `getComputedStyle` and compared with the
- * tokens they were written from, and the fill/scroll threshold is SWEPT rather than
- * asserted at two convenient widths — a threshold asserted at two points is right at two
- * points and unproven in between.
- *
- * BOTH GATE A GEOMETRIES, AND BOTH SIDES OF THE FILL THRESHOLD. The matrix fills its
- * cell, so its inline size is ~1266 at BENCH and ~985 at FLOOR; the step count and the
- * stage width are driven so that each geometry sees both regimes.
+ *.5, the step-matrix cluster: step-matrix-grid, step-matrix-scroll, compact-density, locked-value-box, exit-chip-sentence, exit-band-slots, action-key-rail, matrix-accessibility, step-name-input.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -47,15 +21,6 @@ const steps = (n, over = () => ({})) => Array.from({ length: n }, (_, i) => matr
 }));
 
 /** The used track sizes of the matrix, as numbers. */
-/**
- * The used column tracks — WITHOUT the trailing filler.
- *
- * Since 25 August 2026 the grid ends in a 1fr track holding one presentational element
- * that paints the fascia over the space the capped step columns leave. It is a paint and
- * not a column of the table: nothing addresses it, no cell sits in it, and every
- * assertion here is about the rail and the step columns. Dropping it in ONE place is why
- * the twenty-odd `columns.length === steps + 1` claims below still read as they did.
- */
 const usedColumns = async (page) => tracks(await page.prop(EDITOR.matrix, 'grid-template-columns'))
     .map(px)
     .slice(0, -1);
@@ -66,13 +31,6 @@ const fillerTrack = async (page) => tracks(await page.prop(EDITOR.matrix, 'grid-
     .at(-1);
 const usedRows = async (page) => tracks(await page.prop(EDITOR.matrix, 'grid-template-rows')).map(px);
 
-/**
- * A custom property declared on the MATRIX rather than on :root.
- *
- * --_ui-step-w-fill and its neighbours live on this component's own :host, so the
- * document-level probe `page.resolveValue` reads them as empty and every comparison
- * against one silently becomes "expected 0". Read where they are declared.
- */
 const matrixVar = async (page, name) => px(await page.evalFn(
     (sel, n) => getComputedStyle(window.__h.need(sel)).getPropertyValue(n).trim(),
     EDITOR.matrix, name,
@@ -90,11 +48,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return fn(page);
         });
 
-        /* =================================================================
-         * 1. ONE GRID — the rail and every step column share it, and a row
-         *    and its label share a track BY CONSTRUCTION  (§4.3)
-         * ================================================================= */
-
         test('one grid: rail + N step columns, ten rows, and no literal track list',
             () => mounted(async (page) => {
                 const authored = await matrixAuthored(page);
@@ -107,8 +60,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(rows.length, authored.rows.length,
                     'ten rows, and every one of them implicit — nothing declares a row track');
 
-                /* E1's shape, stated as a measurement: the row tracks must NOT sum to the
-                 * scrollport. Slate's ten summed to exactly 1082 = the canvas height. */
                 const m = await page.metrics(EDITOR.matrix);
                 const total = rows.reduce((a, b) => a + b, 0);
                 assert.notEqual(Math.round(total), Math.round(m.clientHeight),
@@ -135,17 +86,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const before = await usedColumns(page);
                 assert.equal(before.length, 5);
 
-                /* --_ui-step-count is the one value that crosses from JS to CSS. E8 is a
-                 * declared, documented, exported and TESTED value wired to nothing, so the
-                 * proof is that moving it changes the rendered grid — not that it exists. */
                 await page.setStyle(EDITOR.matrix, { '--_ui-step-count': '2' });
                 await page.settle(3);
                 const after = await usedColumns(page);
                 assert.equal(after.length, 3, 'the used track list follows the count');
-                /* Put it back the way the component does — by rendering. The count is
-                 * written on the host in updated(), so an outside write is overwritten by
-                 * the next render rather than fought over: one owner, and it is the
-                 * element whose content the count describes. */
                 await page.evalFn((s) => {
                     const el = window.__h.need(s);
                     el.style.removeProperty('--_ui-step-count');
@@ -157,25 +101,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and the next render restores it from the step list');
             }, { steps: steps(4) }));
 
-        /* =================================================================
-         * 2. THE FILL THRESHOLD — derived from the container, swept
-         * ================================================================= */
-
         test('fill above, horizontal scroll below, and the flip happens exactly once',
             () => mounted(async (page) => {
-                /* THE SWEEP STARTS ABOVE THE FIT WIDTH, NOT AT THE VIEWPORT'S.
-                 *
-                 * It used to start at `geometry.width`, which worked while the step tracks
-                 * were minmax(auto, 1fr) and two steps fitted in 792px. Since 0.1.18 they
-                 * are Slate's constants, so two steps need 192 + 431 + 431 = 1054 plus
-                 * seams — MORE than the 1000x600 floor's 975px scrollport. Started there
-                 * the matrix is already scrolling and the sweep reports no flip at all,
-                 * which reads as "the threshold is gone" when it has simply moved.
-                 *
-                 * 1400 is above the fit width at both geometries, and the stage is set
-                 * independently of the viewport (setEditorWidth), so the claim stays what
-                 * it always was: the threshold is the CONTAINER'S, not the step count's
-                 * and not the window's. */
                 const sweep = await sweepFill(page, { from: 1400, to: 320, step: 8 });
                 assert.equal(sweep.flips.length, 1,
                     `exactly one fill/scroll flip, got ${sweep.flips.length}`);
@@ -183,10 +110,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const flip = sweep.flips[0];
                 assert.equal(flip.scrolls, true, 'the flip is fill -> scroll as the width shrinks');
 
-                /* AND THE THRESHOLD IS THE CONTAINER'S OWN ARITHMETIC: at the flip the
-                 * client width is one seam-and-track short of holding the rail plus N
-                 * step minima. Read from the used tracks, never from 1920 and never from
-                 * a steps.length comparison. */
                 await setEditorWidth(page, `${flip.w + 8}px`);
                 const filled = await usedColumns(page);
                 const seam = px(await page.resolveToken('--ui-seam', 'inline-size'));
@@ -195,15 +118,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(need <= m.clientWidth + 1,
                     'one step above the flip the tracks still fit the scrollport');
 
-                /* AND THE STEP COLUMN IS A CONSTANT ON BOTH SIDES OF THE FLIP.
-                 *
-                 * IT USED TO GROW, AND SINCE 0.1.18 IT DOES NOT. The matrix is built to
-                 * Slate's own two widths — profile_editor.js:2160-2161,
-                 * `steps.length <= 4 ? 431 : 372` — because the computed equal-share
-                 * width it had before produced 576px columns at two steps, which is where
-                 * Ben saw the steppers stretch. So what the container buys above the flip
-                 * is the FILLER track, not a wider column, and the flip is the one place
-                 * the difference is visible. */
                 const stepW = await matrixVar(page, '--_ui-step-w-fill');
                 await setEditorWidth(page, `${flip.w - 60}px`);
                 const pinnedA = (await usedColumns(page))[1];
@@ -218,9 +132,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(await fillerTrack(page) > 1,
                     'and the filler is what grew, so no seam ground is left uncovered');
 
-                /* The pinned minimum holds the widest control this grid composes: #42's
-                 * five-key rank, whose own header says a narrower container makes it
-                 * overflow where a reader can see. Here it never gets one. */
                 await setEditorWidth(page, `${flip.w - 240}px`);
                 const overhang = await page.evalFn((sel) => {
                     const el = window.__h.need(sel);
@@ -235,9 +146,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the step columns are equal, and they are Slate\'s constant, not a share',
             () => mounted(async (page) => {
-                /* SLATE'S CONSTANTS, NOT AN EQUAL SHARE. A share is what made the
-                 * steppers stretch at two steps (576px columns); the renderer Slate ships
-                 * picks between two numbers and never divides. */
                 const fill = await matrixVar(page, '--_ui-step-w-fill');
                 await setEditorWidth(page, `${geometry.width}px`);
                 const stepColumns = (await usedColumns(page)).slice(1);
@@ -246,20 +154,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     near(width, fill, 'at two steps every column is the fill width', 1);
                 }
 
-                /* AND GIVEN THE ROOM THEY ASK FOR, NOTHING SCROLLS. The 1000x600 floor is
-                 * NARROWER than a rail plus two of Slate's columns (192 + 431 + 431 =
-                 * 1054), so it scrolls there by design — that is the declared scroll mode
-                 * and the test above measures the flip into it. This one measures the
-                 * other side, at a stage that fits. */
                 await setEditorWidth(page, '1400px');
                 const m = await page.metrics(EDITOR.matrix);
                 assert.ok(m.scrollWidth <= m.clientWidth + 0.5,
                     'given the width the tracks ask for, nothing scrolls horizontally');
             }, { steps: steps(2) }));
-
-        /* =================================================================
-         * 3. THE RAIL — sticky, capped, ellipsised  (E19)
-         * ================================================================= */
 
         test('the rail is sticky and stays put while the step columns scroll under it',
             () => mounted(async (page) => {
@@ -281,10 +180,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('E19: a long row label is clipped to the rail and never reaches the first cell',
             () => mounted(async (page) => {
-                /* Written into the RENDERED label rather than through a translation file:
-                 * the claim is about what a longer word does to the box, and D2's own
-                 * requirement is that a longer translation of "Max Duration" cannot spill.
-                 * A8 — this is a live DOM write, not a file read. */
                 const long = 'Maximale Dauer dieses Schrittes in Sekunden'.repeat(3);
                 await page.evalFn((sel, text) => {
                     window.__h.need(`${sel} .rail-label`).textContent = text;
@@ -319,23 +214,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(columns[0] < columns[1], 'and is narrower than a step column');
             }, { steps: steps(2) }));
 
-        /* =================================================================
-         * THE RAIL'S OWN GROUND  (parity surface 4)
-         *
-         * The rail is sticky and the step columns scroll UNDER it, so a rail
-         * on the same fascia as the cells has nothing separating it from what
-         * is passing behind. Slate gives it the bar ground on all ten label
-         * cells and this matrix had the fascia. THE TYPE HALF LANDED ON
-         * 25 AUGUST 2026 and DQ-4-A is closed: the caps are on, and the
-         * "nothing is clipped" assertion below is what keeps them honest.
-         *
-         * WHAT UNBLOCKED IT WAS A WORD, NOT A WIDTH. The label that would not
-         * fit was EXIT CONDITIONS at 155px — and that was never Slate's word
-         * for the row. Slate reads "Exit when". With the wording corrected the
-         * widest label is MAX DURATION, the actions row draws none at all
-         * (also Slate's), and every label fits the 160px rail with the floor
-         * geometry untouched.
-         * ================================================================= */
         test('the rail has the bar ground, not the cells\', and no label is clipped',
             () => mounted(async (page) => {
                 assert.equal(await page.prop(matrixRail('duration'), 'background-color'),
@@ -345,14 +223,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.prop(matrixCell('duration', 0), 'background-color'),
                     'and it is not the cells\' ground, which is the point of it');
 
-                /* NOTHING ELLIPSISES, AT EITHER GATE A GEOMETRY, WITH THE CAPS ON.
-                 * This is what DQ-4-A turned on and it is measured in scroll mode too,
-                 * where every track sits at its minimum and the rail is 160px.
-                 *
-                 * THE ACTIONS ROW IS NOT IN THIS LIST because its label is not drawn:
-                 * it is a visually-hidden 1px box, so measuring it would compare a
-                 * word against a clip rectangle and always fail. Its NAME is asserted
-                 * in the E14 group test instead, which is the half that still matters. */
                 for (const row of ['head', 'temperature', 'probe', 'pump', 'transition',
                     'target', 'limiter', 'duration', 'exits']) {
                     const m = await page.metrics(`${matrixRail(row)} > .rail-label`);
@@ -360,10 +230,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${row}: the rail label is clipped (${m.scrollWidth} in ${m.clientWidth})`);
                 }
             }));
-
-        /* =================================================================
-         * 4. THE SCROLL REGION, THE FLOOR AND E1's TRAP
-         * ================================================================= */
 
         test('both axes scroll, visibly, and nothing clips silently',
             () => mounted(async (page) => {
@@ -412,25 +278,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('rows keep their own heights, and the BOX keeps the rows\' height',
             () => mounted(async (page) => {
-                /* A cell TALLER than the ten rows need: they must not stretch to fill it,
-                 * because stretch is what makes "the tracks sum to the container" true by
-                 * accident. The stage is driven past the window on purpose — the claim is
-                 * about the grid's own block sizing and not about what fits on screen.
-                 *
-                 * THE SECOND HALF LANDED 25 AUGUST 2026 and it is what Ben saw: this used
-                 * to assert `total < clientHeight`, i.e. that the box was TALLER than its
-                 * rows. That gap was real and it was visible — this host paints the seam
-                 * ground, so the leftover was a bar of --ui-line across the full width
-                 * with no cell over it, reading as an eleventh empty row. align-self:
-                 * start closed it.
-                 *
-                 * AND align-content IS `stretch` NOW, WHICH IS THE SAME RULING'S OTHER
-                 * HALF. Ben, 25 August 2026: "The buttons on the bottom of the editor
-                 * should be at the bottom of the screen with a gap above, not below." Only
-                 * ONE row can grow into the slack — the exits track is
-                 * minmax(--_ui-exit-cell-min, 1fr) and the other nine are min-content — so
-                 * "rows keep their own heights" is asserted per row below rather than by
-                 * pinning a keyword that now means the opposite of what it did. */
                 await page.setStyle('#stage', { 'block-size': '1600px' });
                 await page.settle(4);
                 assert.equal(await page.prop(EDITOR.matrix, 'align-content'), 'stretch');
@@ -440,10 +287,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const m = await page.metrics(EDITOR.matrix);
                 near(total, m.clientHeight, 'the rows fill the box exactly — no seam ground left over', 2);
 
-                /* NINE ROWS DO NOT MOVE AND ONE DOES. Shrink the stage by 200px: every
-                 * min-content track keeps its height to the pixel and the whole difference
-                 * comes off the exits track. A grid where the slack were spread would show
-                 * ten small changes instead. */
                 const exitsAt = px(await page.evalFn((sel) => getComputedStyle(window.__h.need(sel))
                     .getPropertyValue('--_ui-rows-before-exits'), EDITOR.matrix));
                 await page.setStyle('#stage', { 'block-size': '1400px' });
@@ -487,10 +330,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }, { steps: steps(3) }));
 
-        /* =================================================================
-         * 5. C3 — the named compact density
-         * ================================================================= */
-
         test('compact moves the vertical rhythm, and NOTHING else moves with it',
             () => mounted(async (page) => {
                 const read = async () => ({
@@ -498,10 +337,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     control: (await page.box(matrixControl('temperature', 0, 'ui-stepper'))).height,
                     cap: await page.box(`${matrixControl('temperature', 0, 'ui-stepper')} >>> #decrement`),
                     padding: px(await page.prop(matrixCell('temperature', 0), 'padding-top')),
-                    /* BOTH EDGES, because this row's are NOT equal. `temperature` opens a
-                     * group, so it pays 2 x --_ui-matrix-rhythm at the top and one at the
-                     * bottom (step-matrix.js, the group-start rule). A test that doubled
-                     * the top edge predicted 8px of movement where the row moves 6. */
                     pad: (await page.computed(matrixCell('temperature', 0),
                         ['padding-top', 'padding-bottom'])),
                 });
@@ -515,7 +350,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(4);
                 const regular = await read();
 
-                /* THE RHYTHM MOVES. */
                 assert.ok(regular.padding > compact.padding,
                     `compact tightens the rhythm (${compact.padding} vs ${regular.padding})`);
                 assert.ok(regular.row > compact.row,
@@ -544,11 +378,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the matrix declares no --ui-density arithmetic of its own',
             () => mounted(async (page) => {
-                /* The mechanism constraint, as a measurement: --ui-density computes to the
-                 * SAME number inside the matrix as on the root, because C3 re-declares the
-                 * cap it wants and never the multiplier. A subtree that re-declared
-                 * --ui-density would show a different number here and change nothing on
-                 * screen — the exact silent failure tokens.css:1176-1182 describes. */
                 const root = parseFloat(await page.evalFn(
                     () => getComputedStyle(document.documentElement).getPropertyValue('--ui-density'),
                 ));
@@ -558,10 +387,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 ));
                 assert.equal(inside, root, 'one --ui-density, and the matrix does not re-declare it');
             }, { steps: steps(2) }));
-
-        /* =================================================================
-         * 6. THE CELLS — #43 against #4, E7, and E15's slack
-         * ================================================================= */
 
         test('#43 locked box and the compact stepper agree on cell metrics',
             () => mounted(async (page) => {
@@ -578,18 +403,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(cellA.height, cellB.height, 'and the row does not notice which one it holds');
             }, { steps: steps(2, (i) => (i === 1 ? { transition: 'hold' } : {})) }));
 
-        /* =================================================================
-         * THE VALUE'S INK IS ITS CHANNEL'S  (parity surface 4)
-         *
-         * Slate inks every matrix value in the colour of the channel it
-         * belongs to — target variant for a setpoint, plain for a limit — and
-         * this matrix painted all of them --ui-text. The oracle lines and the
-         * derivation are in src/lib/step-matrix-rows.js (matrixChannel).
-         *
-         * Asserted against the TOKENS rather than against hex, and then
-         * drilled: a rule that had copied a literal would pass the first half
-         * and fail the second, which is bug L12's shape.
-         * ================================================================= */
         test('every matrix value is inked by the channel it speaks for, and the ink is a token',
             () => mounted(async (page) => {
                 const num = (row, index) => `${matrixControl(row, index, 'ui-stepper')} >>> #number`;
@@ -617,8 +430,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await ink('--ui-channel-flow'),
                     'a pressure step limits FLOW, plain channel again');
 
-                /* And the ones that speak for no channel keep the cell's ink — Slate's
-                 * own treatment of a duration. */
                 assert.equal(await page.prop(num('duration', 0), 'color'),
                     await page.prop(matrixCell('duration', 0), 'color'),
                     'a duration commands nothing, so it inherits');
@@ -643,10 +454,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('E7: the step-name input keeps its line box with the type scale raised',
             () => mounted(async (page) => {
-                /* THE FIELD IS BEHIND A PRESS SINCE 0.1.18. At rest the head cell draws
-                 * the name as a button; the ui-text-field is rendered only for the step
-                 * being edited, so E7's box has to be brought on screen the way a person
-                 * brings it on screen. */
                 await openStepName(page, 0);
                 const input = `${matrixNameField(0)} >>> #control`;
                 assert.equal(await page.exists(input), true,
@@ -660,10 +467,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(before.m.scrollHeight <= before.m.clientHeight,
                     'nothing is clipped at the desk harness scale');
 
-                /* THE TABLET RENDERS TEXT ABOUT 10% LARGER AND THAT MARGIN IS SPOKEN FOR
-                 * (Part 2 §5 rule 3), so the box is proved against the raised scale rather
-                 * than against the harness's own numbers. E7 is 28.8px of line box in a
-                 * 28px box — about 31.7 on the tablet. */
                 await page.setToken('--ui-type-scale', '1.1');
                 await page.settle(4);
                 const after = await clean();
@@ -683,9 +486,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('E15: at the narrowest column no control overflows its own cell',
             () => mounted(async (page) => {
-                /* E15 is 2px of slack nobody connected: "cell padding 12 + control 346 =
-                 * 370 in a 372px column". Here the three numbers are read back at the
-                 * width where the column is exactly its minimum. */
                 await setEditorWidth(page, '600px');
                 await page.settle(3);
                 const authored = await matrixAuthored(page);
@@ -704,10 +504,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         + `(${cell.x}..${cell.right})`);
                 }
             }, { steps: steps(6) }));
-
-        /* =================================================================
-         * 7. THE EXIT BAND — three stable slots, contained  (C8, E16)
-         * ================================================================= */
 
         test('the exit row keeps ONE height across add and remove',
             () => mounted(async (page) => {
@@ -746,9 +542,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             () => mounted(async (page) => {
                 const plain = (await page.box(matrixCell('exits', 0))).height;
 
-                /* A "falls below 0" exit is dead by exit-validity.js's own rule, and the
-                 * note is the uncapped wrapping <p> that spilled into the rows above and
-                 * below in Slate. */
                 await seedMatrix(page, {
                     steps: steps(2, (i) => (i === 0
                         ? { exit: { type: 'pressure', condition: 'under', value: 0 }, volume: 30, weight: 36 }
@@ -772,17 +565,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('C8: the rendered sentence IS the model seam\'s value, so the two cannot drift',
             () => mounted(async (page) => {
-                /* THIS READ IS THE SUITE SET'S ONE FLAKE, AND THE PIN IS IN THE HARNESS
-                 * (parity surface 2). It failed intermittently with `Runtime.evaluate:
-                 * Promise was collected` — 6 red in 9 runs at the floor geometry by
-                 * parity surface 1's review. Two page-side theories were tried and
-                 * measured out: parking the chain on `window` so the page holds a
-                 * reference (2 red in 6) and removing `awaitPromise` from this
-                 * expression entirely, reading the result off a polled property
-                 * (2 red in 6 again). Neither is the mechanism. It is the CDP round
-                 * trip losing the remote object it was told to await, so the fix is one
-                 * scoped retry in `Page.eval` (test/harness/index.js) and this
-                 * expression is left as the plain read it should be. 0 red in 6 after. */
                 const seam = JSON.parse(await page.eval(
                     "import('/src/lib/exit-sentence.js').then(function (m) {"
                     + ' var step = window.__h.need("step-matrix").steps[0];'
@@ -798,17 +580,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         return button ? button.textContent.replace(/\s+/g, ' ').trim() : null;
                     }, matrixCell('exits', 0), record.slot);
                     assert.ok(rendered, `slot ${record.slot} is on screen`);
-                    /* Compared without spacing: the sentence's parts are laid out with a
-                     * flex gap rather than joined by space characters, so the CHARACTERS
-                     * on screen are the seam's and the gaps between them are geometry. */
                     const words = record.sentence.replace(/\s+/g, '');
                     assert.equal(rendered.replace(/\s+/g, ''), words,
                         `slot ${record.slot}: the visible sentence and the seam are one value`);
                 }
 
-                /* AND THE HIDDEN CONTROL SET IS NOT BACK. C8 replaced the decomposed
-                 * comparator/value/bounds inputs with this function; a shadow tree holding
-                 * inputs nobody can see would be the thing the decision retired. */
                 const hidden = await page.evalFn((sel) => {
                     const el = window.__h.need(`${sel} ui-exit-sentence`);
                     return [...el.shadowRoot.querySelectorAll('input, select')]
@@ -820,10 +596,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     ? { exit: { type: 'pressure', condition: 'over', value: 4 }, volume: 30 }
                     : {})),
             }));
-
-        /* =================================================================
-         * 8. C7 — the action key rail is buttons, and there is no drag
-         * ================================================================= */
 
         test('five keys per step, all buttons, with the reorder pair disabled at the ends',
             () => mounted(async (page) => {
@@ -883,10 +655,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(names, ['Step 1', 'Step 2', 'Step 3'], 'and the order is untouched');
             }, { steps: steps(3) }));
 
-        /* =================================================================
-         * 9. E14 — table semantics and per-cell names, from Chrome's own tree
-         * ================================================================= */
-
         test('the matrix is a TABLE with rows, headers and cells — not a div with a role',
             () => mounted(async (page) => {
                 const nodes = await accessibleNames(page);
@@ -930,29 +698,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('E14: a control whose own name repeats is inside a NAMED group',
             () => mounted(async (page) => {
-                /* #41 and #42 name their own buttons ("Remove Volume", "Move step left"),
-                 * which is right inside one band and repeats across columns. The context
-                 * that separates them is the group each cell wraps, named per step. */
                 const nodes = await accessibleNames(page);
-                /* "Exit when" is Slate's own wording, measured 25 August 2026; this
-                 * read "Exit conditions" until then. The ACTIONS row's label is no
-                 * longer drawn — Slate draws none — but it is still SPOKEN, and this
-                 * assertion is the one that proves it: hiding the rail label must not
-                 * cost the group its accessible name. */
                 const groups = namesFor(nodes, 'group').filter((n) => /^(Exit when|Step actions), step/.test(n));
                 assert.equal(groups.length, 3 * 2, 'one exit group and one action group per step');
                 assert.equal(new Set(groups).size, groups.length, 'each named for its own step');
             }, { steps: steps(3) }));
 
         test('the keyboard reaches every step column, in order', () => mounted(async (page) => {
-            /* Walked with a real Tab through CDP, which is also what puts the page into
-             * keyboard modality. The claim is reachability and ORDER: the matrix is one
-             * grid in row-major DOM order, so tabbing crosses a row before it descends. */
-            /* TWO STOPS PER HEAD CELL SINCE 0.1.18 — the name is a button that opens the
-             * field, and the pen beside it opens the same field. There is no ui-text-field
-             * to focus at rest, so the walk starts on the first name button, and the claim
-             * is about the ORDER the cells are reached in rather than the count of stops
-             * inside each one. */
+
             await page.evalFn(() => {
                 const el = window.__h.need('step-matrix');
                 el.shadowRoot.querySelector('[data-cell="head-0"] .name-display').focus();
@@ -972,10 +725,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the head row is crossed left to right before the next row starts');
         }, { steps: steps(3) }));
 
-        /* =================================================================
-         * 10. THE EVENTS OUT — the draft is the screen's
-         * ================================================================= */
-
         test('a cell change leaves as one event with its coordinates, and mutates nothing',
             () => mounted(async (page) => {
                 const authored = await matrixAuthored(page);
@@ -983,12 +732,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn((sel, type) => window.__h.record(sel, [type, 'change']),
                     EDITOR.matrix, authored.change);
 
-                /* BRING THE COLUMN INTO THE SCROLLPORT FIRST. Since 0.1.18 the step tracks
-                 * are Slate's constants, so two steps need 1054px and the 1000x600 floor's
-                 * scrollport is 975 — the second column's increment key is CLIPPED there,
-                 * and a hit-tested click on a clipped control lands on nothing. That is the
-                 * declared scroll mode working, not a defect, so the test scrolls the way a
-                 * finger would. */
                 await scrollMatrix(page, { left: 'max' });
                 await page.settle(2);
                 await page.click(`${matrixControl('temperature', 1, 'ui-stepper')} >>> #increment`);
@@ -1015,9 +758,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn((sel, type) => window.__h.record(sel, [type]),
                     EDITOR.matrix, authored.change);
 
-                /* #6 re-dispatches a COMPOSED change, because the native one is
-                 * composed:false and would stop at its own shadow boundary — the matrix
-                 * listens on the host and would otherwise never hear a rename. */
                 /* The field is behind a press since 0.1.18 — open step 2's the way a person
                  * does, then type into it. */
                 await openStepName(page, 1);
@@ -1040,10 +780,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a refused range renders the control UNAVAILABLE, never a plausible band (A7)',
             () => mounted(async (page) => {
-                /* No capability answer means no machine class, and machine-limits.js
-                 * serves no steam row — but brewTemp is machine-independent, so the
-                 * refusal has to be provoked at the door itself: a matrix with no ranges
-                 * at all is what a screen that has not received the table yet holds. */
                 await page.evalFn((sel) => { window.__h.need(sel).ranges = null; }, EDITOR.matrix);
                 await page.settle(4);
 
@@ -1069,34 +805,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }, { steps: steps(2) }));
 
-        /* =================================================================
-         * SLATE PARITY, MEASURED 25 AUGUST 2026 — Ben: "can you compare the
-         * profile editor page between slate and Decal, check 2 step profile
-         * and 5 step profile. Make [it] match slate"
-         *
-         * The oracle for every number and word below is the running Slate,
-         * driven through CDP on the two profiles he named. The MODEL half of
-         * this is in step-matrix-rows.test.mjs; what is asserted here is what
-         * is DRAWN, which is where three of the four differences lived.
-         * ================================================================= */
         describe('the drawn half matches the oracle', () => {
             test('the head cell is the ordinal, the name and the MODE — Slate\'s three lines',
                 () => mounted(async (page) => {
-                    /* ORACLE:
-                     *   <div class="pe-step-header">
-                     *     <span class="pe-step-num">01</span>
-                     *     <input class="pe-step-name">
-                     *     <span class="pe-step-summary" data-tone="flow">Flow</span>
-                     *   </div>
-                     * This drew "Step 1 of 2" and no mode line at all.
-                     *
-                     * THE ORDINAL IS "1." AND NOT "01", AND THAT IS BEN'S, NOT A DRIFT.
-                     * 25 August 2026 he moved the number INSIDE the name line — "The step
-                     * number needs to be smaller, maybe around 75% of the title size" —
-                     * and asked for the full stop and the space. A number on its own line
-                     * can be zero-padded because it is a column of numbers; a label on the
-                     * front of a name is not, and "01. Preinfusion" reads as a version.
-                     * Ben's ruling outranks the oracle wherever the two disagree. */
                     const drawn = await page.evalFn((sel) => {
                         const el = window.__h.need(sel);
                         const cell = el.shadowRoot.querySelector('[data-cell="head-0"]');
@@ -1135,17 +846,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(cells[2].number, '9.0', 'a set limit is still its number');
                     assert.equal(cells[2].unit, 'bar', 'a set limit prints its measure');
 
-                    /* THE ONE PLACE THIS CELL DOES NOT FOLLOW THE ORACLE, and it is a
-                     * decision rather than a drift — made in the same commit as the rest of
-                     * this parity work (0.1.18), with its reason written where it is made
-                     * (ui-stepper.js): Slate draws "OFF" and then "bar", which reads as a
-                     * QUANTITY IN BAR. "OFF" on its own reads as what it is.
-                     *
-                     * AND "OFF" IS THE WHOLE ANSWER. The row is named `Limiter` and the
-                     * measure only means anything once there is a number in it — a limit
-                     * that is switched off is not switched off IN BAR. So nothing has to
-                     * carry the unit here, and the editable cell that does carry it (in its
-                     * accessible name) is asserted below rather than assumed. */
                     assert.equal(cells[0].unit, null, 'an OFF value prints no unit beside it');
                     assert.equal(cells[1].unit, null, 'and a typed zero is the same state');
                 }, {
@@ -1158,14 +858,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('an EDITABLE limiter still speaks its measure, off or not',
                 () => mounted(async (page) => {
-                    /* ui-stepper names its value button `<label>, <value> <unit>` and the
-                     * unit is dropped from the PAINT only — so an editable OFF limiter
-                     * announces the measure even though nothing is drawn beside it. The
-                     * read-only cell above has no such name and does not need one: its
-                     * announcement is its text, and "OFF" is the whole answer there.
-                     *
-                     * ui-stepper's own note claims this for every stepper. It is true for
-                     * the editable branch, which is the one that has a name to put it in. */
                     const spoken = await page.evalFn((sel) => {
                         const el = window.__h.need(sel);
                         const read = (i) => el.shadowRoot
@@ -1205,20 +897,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('the tracks FILL the region, so no seam ground is left beside them',
                 () => mounted(async (page) => {
-                    /* SLATE'S STEP TRACK IS FIXED — grid-template-columns "192px 431px
-                     * 431px" on a two-step profile — and ours is 1fr. That difference is
-                     * OPEN, deliberately: see the track list in step-matrix.js for the two
-                     * things a fixed track cost when it was measured in place (a 900px
-                     * slab of uncovered --ui-line, and a box that would not shrink to its
-                     * own tracks, clipping the last column at 864px of 1022).
-                     *
-                     * THE DIFFERENCE IS CLOSED NOW, AND IT IS CLOSED THE WAY THIS COMMENT
-                     * ASKED FOR: the step tracks ARE Slate's constants (0.1.18), and a
-                     * trailing minmax(0, 1fr) FILLER track carries the remainder. So the
-                     * property asserted here is unchanged — the tracks sum to the
-                     * scrollport and this host's seam ground is covered edge to edge — and
-                     * the filler is counted rather than sliced off, because the filler is
-                     * what does the covering. */
                     const cols = await usedColumns(page);
                     assert.equal(cols.length, 3, 'the rail and two step columns');
                     const filler = await fillerTrack(page);
@@ -1230,9 +908,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const total = cols.reduce((a, b) => a + b, 0) + filler + seam * cols.length;
                     near(total, m.clientWidth, 'the tracks and their seams fill the scrollport', 3);
 
-                    /* AND THE FILLER IS PAINTED, not a gap with a track in it. E1's class
-                     * is a declared thing wired to nothing; a filler track with no cell
-                     * over it is the same bar of --ui-line this test exists to forbid. */
                     const covered = await page.evalFn((sel) => {
                         const el = window.__h.need(sel);
                         const node = el.shadowRoot.querySelector('.filler');

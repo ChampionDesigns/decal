@@ -1,14 +1,4 @@
-// THE FIVE TRANSCRIBED `profileManager.js` RULES, UNDER TEST.
-//
-// The source module has NO executing test — `CARRY_FORWARD.md` lists it under "text-scan
-// only" and says of its two live bugs that both are "the kind any executing test would
-// have caught". This suite is that test, and it is why the rules were transcribed into a
-// DOM-free module rather than ported into a screen.
-//
-// Two things are asserted against the RECORDED FIXTURE rather than against invented data,
-// because the numbers are the argument: rule 1 hides 69 of 147 records, and rule 4's five
-// named titles are unique on the filtered listing and ambiguous on the unfiltered one.
-// A fixture refresh that changes either should fail here and be read, not re-baselined.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -56,8 +46,6 @@ import { LAYERS } from '../src/lib/storage-routes.js';
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const FIXTURE = JSON.parse(readFileSync(
     `${REPO}tools/rea-fixtures/api__v1__profiles~includeHidden=true.json`, 'utf8'));
-
-/* ------------------------------------------------------------------ doubles */
 
 const record = (id, title, extra = {}) => ({
     id,
@@ -123,8 +111,6 @@ const routerOver = (kv, logger) => createStorageRouter({
 });
 
 const titlesOf = (records) => records.map((r) => r.profile.title);
-
-/* =========================================================== rule 1 */
 
 describe('rule 1 — soft-deleted and hidden profiles are filtered from listings', () => {
     test('both named states are dropped and everything else lists', () => {
@@ -210,8 +196,6 @@ describe('rule 1 — soft-deleted and hidden profiles are filtered from listings
     });
 });
 
-/* =========================================================== rule 2 */
-
 describe('rule 2 — the three-step title-prefix stripping ladder', () => {
     test('step 1: a SPACED delimiter is a category; keep the tail', () => {
         assert.equal(stripCategoryPrefix('A-Flow / default-dark'), 'default-dark');
@@ -236,8 +220,6 @@ describe('rule 2 — the three-step title-prefix stripping ladder', () => {
     test('step 2: a 2+ uppercase/digit tag prefix goes', () => {
         assert.equal(stripTagPrefix('GHC/manual pressure control'), 'manual pressure control');
         assert.equal(stripTagPrefix('DE1/Espresso'), 'Espresso');
-        // The source pattern allows whitespace around the slash, so the spaced form is a
-        // tag too — in the ladder step 1 has already taken it, so this never fires there.
         assert.equal(stripTagPrefix('V60 / something'), 'something');
     });
 
@@ -267,9 +249,6 @@ describe('rule 2 — the three-step title-prefix stripping ladder', () => {
     });
 
     test('RECORDED: step 3 takes the tail of both step-2 counterexamples, as the source does', () => {
-        // The source's own comment says these two "stay intact"; they stay intact THROUGH
-        // STEP 2 and step 3 then shortens them. Transcribed as written; the question of
-        // qualifying step 3 is recorded, not decided here.
         assert.equal(shortProfileTitle('A/B testing'), 'B testing');
         assert.equal(shortProfileTitle('Light/Medium'), 'Medium');
     });
@@ -302,8 +281,6 @@ describe('rule 2 — the three-step title-prefix stripping ladder', () => {
         assert.equal(UNTITLED_PROFILE_KEY, 'Untitled');
     });
 });
-
-/* =========================================================== rule 3 */
 
 describe('rule 3 — metadata writes serialize through one chain', () => {
     const base = () => record('profile:abc', 'Some profile', { metadata: { dose: 18 } });
@@ -339,8 +316,6 @@ describe('rule 3 — metadata writes serialize through one chain', () => {
         assert.equal(transport.bodies.length, 2);
         assert.equal(transport.peak, 1, 'two PUTs were in flight at once — the chain did not serialize');
         assert.equal(chain.peakConcurrency(), 1);
-        // The proof that matters: the second write carries the FIRST write's field. Without
-        // the chain both read `{dose:18}` and the last PUT to resolve drops the other.
         assert.deepEqual(transport.bodies[0].body, { metadata: { dose: 18, grinderSetting: '4.2' } });
         assert.deepEqual(transport.bodies[1].body, { metadata: { dose: 18, grinderSetting: '4.2', targetYield: 36 } });
     });
@@ -435,13 +410,7 @@ describe('rule 3 — metadata writes serialize through one chain', () => {
     });
 });
 
-/* ============================== the handler bodies rule 3 was written against */
-
 describe('rule 3\'s premise, re-read at the pin', () => {
-    // Contract checking is a BUILD activity (DECISIONS.md:144-157): path, verb, request
-    // body and response shape checked against the ReaPrime handler as the call is written.
-    // These four gates are on the `putProfilesById` row; this is the re-read that earns
-    // them. They live here rather than in gate-d.test.mjs because they belong to the rule.
     const dart = (rel) => readReaFile(rel).text;
 
     test('a supplied metadata map REPLACES wholesale — there is no server-side merge', () => {
@@ -453,8 +422,6 @@ describe('rule 3\'s premise, re-read at the pin', () => {
 
     test('`metadata: null` therefore KEEPS the stored map — which is why a null transform is refused', () => {
         const record = dart('lib/src/models/data/profile_record.dart');
-        // The same `??` read from the other side: there is no branch anywhere in copyWith
-        // that sets metadata to null or to an empty map on its own.
         assert.ok(!/metadata:\s*null/.test(record), 'nothing in copyWith clears the metadata');
     });
 
@@ -487,8 +454,6 @@ describe('rule 3\'s premise, re-read at the pin', () => {
         assert.deepEqual(Object.values(PROFILE_VISIBILITY), ['visible', 'hidden', 'deleted']);
     });
 });
-
-/* =========================================================== rule 4 */
 
 describe('rule 4 — fallback titles, so first launch is never an empty rail', () => {
     test('the five titles are transcribed verbatim', () => {
@@ -577,8 +542,6 @@ describe('rule 4 — fallback titles, so first launch is never an empty rail', (
         assert.equal(isEmptyAssignments({ 0: null, 3: 'profile:x' }), false);
     });
 });
-
-/* =========================================================== rule 5 */
 
 describe('rule 5 — auto-populate marks itself retryable', () => {
     const listing = () => [record('profile:d', 'Default'), record('profile:g', 'Gentle and sweet')];
@@ -678,8 +641,6 @@ describe('rule 5 — auto-populate marks itself retryable', () => {
     });
 });
 
-/* ============================================ which record the machine is running == */
-
 describe('the remembered profile id — the fact R1 cannot recover from a title', () => {
     const records = [
         { id: 'profile:a', profile: { title: 'Extractamundo Dos!' } },
@@ -709,9 +670,6 @@ describe('the remembered profile id — the fact R1 cannot recover from a title'
     });
 
     test('THE TITLE IS STILL THE CHECK, so a profile loaded by something else is not claimed', () => {
-        /* The machine may be running something this skin never armed. A remembered id
-         * whose record no longer carries the workflow's title is stale, and stale is the
-         * same as absent. */
         assert.equal(rememberedRecord(records, 'profile:c', 'Extractamundo Dos!'), null);
         assert.equal(rememberedRecord(records, 'profile:gone', 'Extractamundo Dos!'), null);
     });
@@ -723,26 +681,6 @@ describe('the remembered profile id — the fact R1 cannot recover from a title'
         assert.equal(rememberedRecord(records, null, 'Extractamundo Dos!'), null);
     });
 });
-
-/* =========================================================== rule 6 */
-
-/*
- * RULE 6 IS TESTED AGAINST THE SHAPES MEASURED ON BEN'S BENCH, not against invented
- * trees. Every fixture below is a reduction of something read off his tablet on
- * 28 August 2026 from `GET /api/v1/profiles?includeHidden=true` (221 records, 118 hidden),
- * with the ids shortened and the chains trimmed to the shortest form that still contains
- * the fault. The two that matter are named for what they are:
- *
- *   THE FORWARD SHAPE   a save superseded the record in the slot; the parent went hidden
- *                       and a visible child exists.  (slot 4, `profile:0546347d…`)
- *   THE BACKWARD SHAPE  an undo-and-save resolved to an ancestor by content hash; the
- *                       record in the slot went hidden and has NO children at all, and
- *                       its living row is its own PARENT.  (slot 0, `profile:fa35f1ee…`)
- *
- * The backward shape is the one the 27 August follow-through could not see, so it is the
- * one to keep watching: a change that makes `livingFavouriteTarget` walk only downward
- * will still pass every forward test in this file.
- */
 
 const hidden = (id, title, extra = {}) => record(id, title, {
     visibility: PROFILE_VISIBILITY.HIDDEN, ...extra,
@@ -758,8 +696,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('THE FORWARD SHAPE: a superseded parent resolves to its visible child', () => {
-        // Ben's slot 4 in miniature: the record in the slot was hidden by settleToOneRow
-        // and the save that hid it is the visible row below.
         const records = [
             hidden('p:old', 'Pressure Tuning', { createdAt: '2026-08-27T10:59:10' }),
             record('p:new', 'Pressure Tuning', { parentId: 'p:old', createdAt: '2026-08-27T19:14:56' }),
@@ -781,8 +717,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('a BRANCHING subtree takes the newest visible record by createdAt', () => {
-        // Ben's slot-4 chain branches five ways. The rail must land on the newest, which
-        // is not the shallowest and not the first in listing order.
         const records = [
             hidden('p:root', 'Pressure Tuning', { createdAt: '2026-08-27T10:59:10' }),
             record('p:early', 'Pressure Tuning', { parentId: 'p:root', createdAt: '2026-08-27T11:39:06' }),
@@ -794,11 +728,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('createdAt decides, NOT updatedAt — a re-shown old version must not outrank a new one', () => {
-        /* This is the tie-break stated in rule 6 branch 2, and it is the branch Ben's own
-         * data could not exercise: on his bench the newest-born record is also the most
-         * recently touched, so both measures agree. They disagree whenever a bare
-         * visibility flip touches an older record — which is exactly what settleToOneRow
-         * does on the restore path — and then `updatedAt` would promote the OLD version. */
         const records = [
             hidden('p:root', 'P', { createdAt: '2026-08-27T10:00:00' }),
             record('p:old', 'P', {
@@ -813,10 +742,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('THE BACKWARD SHAPE: a hidden dead end resolves UP to its visible parent', () => {
-        /* Ben's slot 0, and the hole in the 27 August follow-through. `p:child` was hidden
-         * and `p:parent` un-hidden in the same transaction, because the save hashed back
-         * to content the server already held. `p:child` has no descendants at all, so a
-         * downward-only rule has no answer and leaves the slot on a hidden record. */
         const records = [
             hidden('p:gran', 'Extractamundo Dos! (2)', { createdAt: '2026-08-23T08:18:27' }),
             record('p:parent', 'Extractamundo Dos! (2)', {
@@ -833,9 +758,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('a descendant BEATS an ancestor — down is tried before up', () => {
-        /* Both branches can answer for the same record. Down is the supersession chain and
-         * is what "the most recent version" means; up is only the fallback for a dead end.
-         * Reversing the two would walk a favourite BACKWARDS on every ordinary save. */
         const records = [
             record('p:anc', 'P', { createdAt: '2026-08-01T00:00:00' }),
             hidden('p:slot', 'P', { parentId: 'p:anc', createdAt: '2026-08-02T00:00:00' }),
@@ -858,9 +780,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('A7 — an id that is not in the corpus is left alone, never cleared and never guessed', () => {
-        /* The listing can be partial or can have failed. Clearing here would destroy a
-         * choice on the strength of a bad read; matching by title would put an unrelated
-         * profile under a name its owner trusts. */
         const records = [record('p:a', 'Rao Allongé'), record('p:b', 'Rao Allongé')];
         const answer = livingFavouriteTarget(records, 'p:missing');
         assert.equal(answer.id, null);
@@ -886,8 +805,6 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
 });
 
 describe('rule 6 over a whole rail', () => {
-    /* BEN'S RAIL AS MEASURED, reduced. Two of five slots named hidden records — one of
-     * each shape — one slot was empty, and two were already correct. */
     const corpus = () => [
         // slot 0's family: the backward shape.
         hidden('p:e-gran', 'Extractamundo Dos! (2)', { createdAt: '2026-08-23T08:18:27' }),
@@ -928,11 +845,6 @@ describe('rule 6 over a whole rail', () => {
     });
 
     test('THE PARTIAL MAP: a short rail comes back with all five slots', () => {
-        /* This is the other way a slot gets silently cleared. `setFavourite` used to write
-         * `{...current.assignments, [index]: id}`, and the store's initial `assignments`
-         * is `{}` — so a write before the first load resolved would persist a ONE-KEY map
-         * and delete the other four slots from storage. Normalising here makes a short map
-         * unwriteable rather than merely unreachable. */
         const result = healFavouriteAssignments({ 2: 'p:lever' }, corpus());
         assert.deepEqual(Object.keys(result.assignments), ['0', '1', '2', '3', '4']);
         assert.deepEqual(result.assignments, { 0: null, 1: null, 2: 'p:lever', 3: null, 4: null });
@@ -953,10 +865,6 @@ describe('rule 6 over a whole rail', () => {
     });
 
     test('a bundled template is NOT dragged onto a profile derived from it', () => {
-        /* settleToOneRow refuses to hide an isDefault parent — "a new profile derived from
-         * it, not a version that replaces it" — so the template stays visible and rule 6
-         * branch 1 leaves the slot on it. A rail pointing at the factory profile is a
-         * correct rail. */
         const records = [
             record('p:factory', 'Rao Allongé', { isDefault: true }),
             record('p:mine', 'Rao Allongé', { parentId: 'p:factory', createdAt: '2026-08-28T09:00:00' }),
@@ -969,10 +877,6 @@ describe('rule 6 over a whole rail', () => {
 
 describe('rule 6 — the convergence case, decided rather than stumbled into', () => {
     test('two slots on two versions of ONE profile both heal, and the duplicate stands', () => {
-        /* Legal to create: `setFavourite`'s duplicate guard compares ids, and v1 and v2
-         * are two different ids. Once both are superseded they name the same living
-         * record. Breaking the tie would mean clearing a slot or leaving one on a hidden
-         * record — the first destroys a choice, the second is the fault being fixed. */
         const records = [
             hidden('p:v1', 'P', { createdAt: '2026-08-01T00:00:00' }),
             hidden('p:v2', 'P', { parentId: 'p:v1', createdAt: '2026-08-02T00:00:00' }),
@@ -986,10 +890,6 @@ describe('rule 6 — the convergence case, decided rather than stumbled into', (
 });
 
 describe('rule 6 — a SOFT-DELETED record is not a living row either', () => {
-    /* `visibility: 'deleted'` is rule 1's other excluded state (`isListable`). An earlier
-     * draft of rule 6 tested `!== HIDDEN`, which is rule 1 with one clause missing: it
-     * called a deleted record living, so it would leave a slot sitting on one and heal
-     * other slots ONTO one. Both directions are pinned here. */
     const deleted = (id, title, extra = {}) => record(id, title, {
         visibility: PROFILE_VISIBILITY.DELETED, ...extra,
     });

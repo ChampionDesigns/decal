@@ -1,33 +1,5 @@
 /**
- * editor-add-step-aria.render.test.mjs — THE ADD DOOR SITS IN A LEGAL ARIA SLOT (D05).
- *
- * Ben, 30 August 2026, reviewing the first round's stated departure — F-033 shipped the
- * add-step door as a `<button>` loose inside `role="table"` and said so in the source:
- *
- *   "the add-step door must sit in a LEGAL ARIA slot, not as a button loose inside
- *    role=table. Rework the matrix roles so the door is reachable AND strict."
- *
- * The strict reading of `table` takes ROWS and row groups as its children and nothing
- * else, so a control among them is a shape nobody is promised. Two known-good shapes were
- * named: put the door outside the table element, or give the table a real row/cell wrapper
- * for it. **The door is outside the table** — the rows now live in their own `role="table"`
- * element inside the matrix's shadow root and the door is that element's sibling. It adds
- * a COLUMN, not a row, and belongs to no row, so a row/cell wrapper would have announced a
- * table position it does not occupy.
- *
- * WHAT THIS FILE MEASURES, and every claim is Chrome's own accessibility tree:
- *   1. the table's AX children are ALL rows — nothing else is in there;
- *   2. the door is in the tree, named, a button, and NOT a descendant of the table;
- *   3. the table still has its ten rows, its headers and its cells, and its name;
- *   4. a zero-step profile exposes NO table at all (an empty `role="table"` is the same
- *      violation from the other side) and still reaches the door, by keyboard;
- *   5. a read-only matrix exposes the table and no control.
- *
- * F-033's own behaviours are asserted by `editor-add-step.render.test.mjs` and are not
- * repeated here; this file is about the shape a screen reader is handed.
- *
- * A8: no assertion reads a source file. The tree comes from `Accessibility.getFullAXTree`,
- * the boxes from the layout, the focus from a real Tab.
+ * The.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -44,11 +16,6 @@ const ADD = `${MATRIX} >>> #add-step`;
 /** ARIA's own list of what may be a child of `role="table"`. */
 const TABLE_CHILD_ROLES = ['row', 'rowgroup'];
 
-/**
- * THE WHOLE TREE, WITH ITS EDGES — parent and child ids kept, which is the difference
- * between this and the harness's `accessibleNames` (that one flattens to role+name).
- * Containment is the claim here, so the edges are the evidence.
- */
 async function axTree(page) {
     await page.send('Accessibility.enable');
     const { nodes } = await page.send('Accessibility.getFullAXTree');

@@ -1,32 +1,4 @@
-/**
- * ui-file-button.render.test.mjs — audit F-016 rows #7, #12 and #13.
- *
- * WHY THIS FILE EXISTS, AND WHY IT PINS A NEGATIVE.
- *
- * Wave 1 listed sixteen controls whose accessible name resolved to the empty string.
- * Three of them are the same element in three mounts: the hidden `input#picker` inside
- * `<ui-file-button>` — `selector-screen`'s Upload, and the screen-saver leaf's two.
- *
- * IT IS NOT A DEFECT, and the FIXPLAN's proposed remedy for it — "mirror the button's
- * label" onto the input — would have been the move this campaign rejected by name
- * elsewhere: turning a finding green while changing nothing a person is told. The input
- * carries `aria-hidden="true"` and `tabindex="-1"` DELIBERATELY, and the component's own
- * header says why in the sentence Wave 1's probe could not read: "the BUTTON is the
- * control, and announcing both would announce the same thing twice."
- *
- * MEASURED through `Accessibility.getFullAXTree`, which is the instrument that settles
- * it: the picker is not in the tree at all — Chrome reports it `ignored`, role `none` —
- * and the two buttons beside it are named. There is no unnamed control here; there is an
- * element with an interactive TAG that a tag-based inventory rowed.
- *
- * So the finding closes as a false positive, in the same shape as F-016 row #2 (the
- * editor's versions button, verified by cluster E on the same night), and this file is
- * the guard that keeps it true: an aria-label added to the picker, or `aria-hidden`
- * removed from it, fails here rather than passing quietly and announcing every Upload
- * button twice.
- *
- * Gate A, both standard geometries. No source text is read (a8).
- */
+
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -77,9 +49,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-016 #7/#12/#13 — and the hidden picker is not in the tree at all',
             () => mounted(async (page) => {
-                /* THE WHOLE VERDICT. If this element were exposed it would need a name;
-                 * it is not exposed, so it does not, and giving it one would put a second
-                 * announcement of the same control next to the first. */
                 const nodes = await axTree(page);
                 const exposed = nodes
                     .filter((n) => !n.ignored)
@@ -90,10 +59,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(exposed, [],
                     `no file input may be exposed — saw ${JSON.stringify(exposed)}`);
 
-                /* AND THE MECHANISM IS STILL THE ONE THE HEADER DESCRIBES, so a future
-                 * reader who deletes either attribute finds out here. `display: none`
-                 * is checked too: it is the wrong tool (some engines refuse to open a
-                 * picker for a display-none input) and the clip is what replaces it. */
                 const shape = await page.evalFn(() => ['images', 'upload'].map((id) => {
                     const input = document.getElementById(id).shadowRoot.getElementById('picker');
                     const cs = getComputedStyle(input);
@@ -116,10 +81,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the button still opens the picker — hidden is not disabled',
             () => mounted(async (page) => {
-                /* The reason the input is clipped rather than removed. If this ever
-                 * stops working, the "fix" of un-hiding it is what a reader will reach
-                 * for, and the two tests above would then be wrong for the right
-                 * reason. This one keeps them honest. */
                 const opened = await page.evalFn(() => {
                     const host = document.getElementById('images');
                     const input = host.shadowRoot.getElementById('picker');

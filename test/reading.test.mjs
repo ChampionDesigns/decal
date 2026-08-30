@@ -1,8 +1,4 @@
-// The validity substrate: key presence in, an absence with a reason out.
-//
-// Every assertion here is one that the FALLBACK version of the same code would fail — that
-// is the point. The old skin's readers returned a plausible number for a missing key, and
-// a test that only checked "returns a number" passed on both.
+
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -43,8 +39,6 @@ describe('absence is a value, not a number', () => {
     });
 
     test('arithmetic on an absence is loud, not plausible', () => {
-        // The whole failure mode in one assertion: a fallback returns 0 and the chart
-        // draws a flat line that looks like a measurement. NaN cannot be drawn by accident.
         assert.ok(Number.isNaN(Number(NO_READING)));
         assert.ok(Number.isNaN(NO_READING + 1), 'addition');
         assert.ok(Number.isNaN(NO_READING * 2), 'multiplication');
@@ -147,9 +141,6 @@ describe('channel sets', () => {
 });
 
 test('no gate constant is re-implemented anywhere in the data layer', () => {
-    // ReaPrime gates the derived channels on flow >= 0.3 mL/s and pressure >= 0.3 bar and
-    // OMITS the key when it fails. Key presence is the whole test, so a copy of 0.3 in this
-    // skin would be a second thing to drift. There is none, and this is the check.
     const dir = fileURLToPath(new URL('../src/data/', import.meta.url));
     const offenders = readdirSync(dir)
         .filter((f) => f.endsWith('.js'))

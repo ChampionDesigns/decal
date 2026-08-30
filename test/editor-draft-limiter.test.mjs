@@ -1,31 +1,4 @@
-/**
- * editor-draft-limiter.test.mjs — ARMING A LIMITER FROM A STORED `null` (audit F-048).
- *
- * Ben, 29 August 2026: "add a limiter... press save... an error, something about null."
- *
- * WHAT WENT WRONG, IN ONE LINE. `applyStepValue`'s limiter branch read
- * `isObject(step.limiter) ? step.limiter : {}` — so a step whose profile stores
- * `limiter: null` (64 of the 147 fixture records carry at least one) armed as
- * `{"value": 0.1}` with NO `range`. ReaPrime's `StepLimiter.fromJson` hands that null
- * `range` to `parseDouble(String)` and answers 500 on a create, 400 on an update, and the
- * draft stays poisoned: stepping back to OFF leaves `{"value": 0}`, still rangeless, and
- * the NEXT save fails identically, taking every other edit in the draft with it.
- *
- * ZERO AND ABSENT ARE ONE STATE ON THE GLASS AND TWO ON THE WIRE. A limiter stored as
- * `{value: 0, range: 0.6}` draws the same `OFF` cell and arms cleanly; that is why the
- * edge survived a whole e2e suite whose limiter test edited an already-set limiter.
- *
- * THIS FILE IS A NEW SIBLING RATHER THAN A BLOCK IN `editor-draft.test.mjs` because that
- * file carries Ben's own in-flight work (the `exit-remove` rule, 29 Aug) and the fix
- * campaign's standing order is not to edit it.
- *
- * A8: every assertion is about a returned value. Nothing here reads a source file.
- *
- * THE ORACLE IS NOT IMPORTED HERE and cannot be: it is Dart. The bodies these rules
- * produce were fed to `_audit/transitions-2026-08-29/oracle/rea_oracle.dart` in the fix
- * loop instead, and the verify log records the ACCEPTs. What this file pins is the SHAPE
- * the oracle turned out to need — a numeric `range` on every limiter that leaves here.
- */
+
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -103,9 +76,6 @@ describe('arming a limiter on a step whose stored limiter is null (F-048)', () =
     });
 
     test('stepping back to OFF leaves a COMPLETE zero, so the next save is clean too', () => {
-        /* THE POISON'S SECOND HALF. The finding: "stepping the limiter back to OFF leaves a
-         * rangeless {value:0}, the cell looks restored, and the NEXT Save fails
-         * identically, taking every other edit in the draft with it." */
         const armed = applyStepValue(draft(), { index: 0, field: 'limiter', value: 0.1 }).draft;
         const off = applyStepValue(armed, { index: 0, field: 'limiter', value: 0 }).draft;
         wellFormed(off.steps[0].limiter, 'stepped back to OFF');
