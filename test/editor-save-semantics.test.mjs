@@ -1,5 +1,5 @@
 /**
- *.5, items save-semantics (B10/R8) and profile-versions (B11).
+ *.5, items save-semantics ( /R8) and profile-versions.
  */
 
 import { test, describe } from 'node:test';
@@ -527,11 +527,11 @@ describe('the offline mock proves the REQUEST and the REFUSAL, never a success',
 });
 
 describe('commitPlan: the route follows the gesture, never a diff', () => {
-    test('the band\'s Save on a dirty draft is B11\'s path, and it closes — DQ-629, Ben\'s ruling', () => {
+    test('the band\'s Save on a dirty draft is the lineage path, and it closes', () => {
         const plan = commitPlan({ gesture: COMMIT_GESTURE.SAVE, dirty: true, seated: true });
         assert.equal(plan.operation, SAVE_OPERATION.NEW_VERSION);
         assert.equal(plan.close, true,
-            'Ben, 27 August 2026: "pressing save should close and arm, I shouldn\'t need '
+            'the decision: "pressing save should close and arm, I shouldn\'t need '
             + 'to press save twice"');
     });
 

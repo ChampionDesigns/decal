@@ -16,13 +16,13 @@ const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></d
  * shots claim the same moment.
  */
 const IN_TIME_ORDER = [
-    'shot-t0',      // 2026-08-29 13:30
-    'shot-t1',      // 2026-08-29 11:38
-    'shot-tie-a',   // 2026-08-29 08:40  ─┬─ one instant, two shots
-    'shot-tie-b',   // 2026-08-29 08:40  ─┘
-    'shot-t4',      // 2026-08-29 08:30
-    'shot-t5',      // 2026-08-29 08:06
-    'shot-t6',      // 2026-08-28 07:48
+    'shot-t0',      // 13:30
+    'shot-t1',      // 11:38
+    'shot-tie-a',   // 08:40  ─┬─ one instant, two shots
+    'shot-tie-b',   // 08:40  ─┘
+    'shot-t4',      // 08:30
+    'shot-t5',      // 08:06
+    'shot-t6',      // 07:48
 ];
 
 const TIED = ['shot-tie-a', 'shot-tie-b'];

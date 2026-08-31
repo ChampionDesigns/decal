@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -228,7 +228,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(minor, '2px', 'the minor stroke token');
             assert.notEqual(major, minor,
                 'THE §6.2 DEFECT: Slate draws border-top: 3px for every entry regardless '
-                + 'of the series weight it stands for (slate-components.css:868). Two '
+                + 'of the series weight it stands for. Two '
                 + 'tokens, two weights, or the key cannot be checked against the plot.');
         }));
 
@@ -262,7 +262,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the swatch is --ui-legend-swatch-w wide and butt-capped like the trace', () => mounted(async (page) => {
             const box = await page.box(`${chip('pressure')} .swatch`);
-            near(box.width, 30, 'SOURCE slate-tokens.css:76 / styles/tokens.css:538 — 30px', 0.6);
+            near(box.width, 30, '/ styles/tokens.css:538 — 30px', 0.6);
             assert.equal(await page.prop(swatchLine('pressure'), 'stroke-linecap'), 'butt',
                 'bug chart-C7: round caps exist only inside bandsPlugin, so every ordinary '
                 + 'series is butt-capped and the key must be too');
@@ -298,7 +298,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the chip renders at Slate\'s 44px when the words fit', () => mounted(async (page) => {
             const box = await page.box(chip('pressure'));
-            near(box.height, 44, 'CITE expanded-charts .slate-chart-legend-item height = 44px', 0.6);
+            near(box.height, 44, 'expanded-charts .slate-chart-legend-item height = 44px', 0.6);
             const wide = await page.box(chip('targetPressure'));
             assert.ok(wide.width > box.width,
                 'a longer label makes a wider chip: the oracle reads nine distinct widths '
@@ -453,7 +453,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const pressed = () => page.evalFn((s) => [...window.__h.need(s).renderRoot.querySelectorAll('button')]
                 .map((b) => b.getAttribute('aria-pressed')), '#legend');
 
-            /* Two pointer clicks inside DOUBLE_TAP_MS (uplot-legend.js:19, 320ms).
+            /* Two pointer clicks inside DOUBLE_TAP_MS 320ms).
              * `detail: 1` is what makes them pointer clicks — see the keyboard test. */
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
@@ -464,7 +464,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
             await page.dispatch(chip('flow'), 'click', { detail: 1 });
             assert.deepEqual(await pressed(), ['true', 'true', 'true', 'true', 'true'],
-                'SOURCE uplot-legend.js:68-73 — "Without the second half, an isolating '
+                '"Without the second half, an isolating '
                 + 'double tap is a one-way trip that needs five taps to undo."');
         }));
 
@@ -612,7 +612,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the gaps are the spacing tokens, and they drill', () => mounted(async (page) => {
             const row = await page.computed('#legend >>> .row', ['column-gap', 'row-gap', 'flex-wrap']);
-            assert.equal(row['column-gap'], '12px', 'SOURCE slate-components.css:836 var(--slate-space-3)');
+            assert.equal(row['column-gap'], '12px', 'var(--slate-space-3)');
             assert.equal(row['row-gap'], '8px', 'and var(--slate-space-2)');
             assert.equal(row['flex-wrap'], 'wrap');
 

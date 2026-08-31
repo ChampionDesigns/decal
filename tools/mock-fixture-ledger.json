@@ -3,13 +3,13 @@
   "wave": "5.4",
   "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
   "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — read, never restated",
-  "reaRoot": "/home/ben/bengle/_port/worktrees/rea-reanchor-v3",
+  "reaRoot": "${REA_ROOT}",
   "authority": "The handler body AS WRITTEN at the pinned commit, same as src/data/CONTRACTS.json. A recorded fixture is evidence and never authority: when the two disagree the handler decides which is stale, and the fixture is never edited to agree.",
   "sections": {
     "nonJson": "Fixtures that are not JSON at all. Recorded, kept, and served as what they are.",
     "unadopted": "Routes the mock has a recording for that the client does not address, so the contract table has no row (its rowRule admits consumed / declared / recorded only). Each one is still checked against its handler at the pin and carries the same columns a table row does, so the GATE agent can merge it verbatim if the client later adopts the route.",
     "findings": "Fixtures the handler at the pin REFUTES. `disposition: refuse` takes the frame out of the mock's reply path (410 with the evidence); `disposition: serve` keeps it and says why the violation cannot mislead a screen.",
-    "resolved": "PROVENANCE, NOT AN EXEMPTION — the checker does not read this section and nothing is suppressed by it. A fixture that was REPLACED, with the command that reproduces the replacement byte for byte. Nothing here was edited: each entry names a committed blob that is a truer recording of the route than the bytes wave 0a copied, so the ledger keeps the record of why tools/FIXTURES.sha256 moved.",
+    "resolved": "PROVENANCE, NOT AN EXEMPTION — the checker does not read this section and nothing is suppressed by it. A fixture that was REPLACED, with the command that reproduces the replacement byte for byte. Nothing here was edited: each entry names a committed blob that is a truer recording of the route than the bytes copied, so the ledger keeps the record of why tools/FIXTURES.sha256 moved.",
     "upgraded": "PROVENANCE, NOT AN EXEMPTION — the checker does not read this section and nothing is suppressed by it. A route whose recording is INCOMPLETE against the handler at the pin, and which the mock therefore serves through the handler's own pure transform rather than verbatim. The bytes on disk are untouched and tools/FIXTURES.sha256 does not move: this is the same standing rule the `authority` line above states, applied where the disagreement is an ABSENCE rather than a contradiction. Every entry names the handler code that is being applied and the exact expression, so a reader can check the instrument against the server."
   },
   "nonJson": [
@@ -154,9 +154,9 @@
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "evidence": "the inline `app.get('/api/v1/machine/cupWarmer', …)` answers exactly `{'temperature': t.toInt(), 'enabled': await bengle.getCupWarmerEnabled(), 'currentTemperature': await bengle.getCupWarmerCurrentTemperature()}`. Three keys. The recording has no `enabled` at all and carries three `prewarm*` keys the handler never writes — pre-heat moved to its own route, GET /api/v1/machine/cupWarmer/preheat, whose CupWarmerPreheatState.toJson is {enabled, leadMinutes, active}.",
-      "retires": "CB-18 / CB-19. `prewarmEnabled|prewarmLeadMinutes` is a forbiddenSpelling in the contract table: CB-19 is the old skin's `resolvePrewarm` reading prewarm* off THIS route and concluding, permanently, that the firmware had no pre-warm. Gate D scans the client for that spelling. Nothing scanned the frames the client is developed against — and this is one of them.",
+      "retires": ". `prewarmEnabled|prewarmLeadMinutes` is a forbiddenSpelling in the contract table: is the previous skin's `resolvePrewarm` reading prewarm* off THIS route and concluding, permanently, that the firmware had no pre-warm. `gate-d` scans the client for that spelling. Nothing scanned the frames the client is developed against — and this is one of them.",
       "why": "The fixture predates the pre-heat split. It is a recording of an older ReaPrime, not of the server at the pin.",
-      "bench": "re-record GET /api/v1/machine/cupWarmer from a Bengle machine on current ReaPrime; until then the mock refuses the route and any cup-warmer control renders its absent state. Slate's git HEAD carries the same stale bytes (md5 4881ad9e…, identical to the working-tree copy), so a re-copy does NOT fix this one."
+      "bench": "re-record GET /api/v1/machine/cupWarmer from a Bengle machine on current ReaPrime; until then the mock refuses the route and any cup-warmer control renders its absent state. the previous skin's git HEAD carries the same stale bytes (md5 4881ad9e…, identical to the working-tree copy), so a re-copy does NOT fix this one."
     }
   ],
   "resolved": [
@@ -166,24 +166,24 @@
       "row": "getShotsLatest",
       "wasDisposition": "refuse",
       "replacedOn": "2026-08-17",
-      "restoreCommand": "git -C /home/ben/bengle/_skinlab/slate show 5705362:review/tools/rea-fixtures/api__v1__shots__latest.json",
+      "restoreCommand": "git show 5705362:review/tools/rea-fixtures/api__v1__shots__latest.json",
       "handlerSymbol": "ShotsHandler._getLatestShot",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "The bytes wave 0a copied were Slate's UNCOMMITTED working-tree edit: 221203 B, md5 ab6b9472…, byte-identical to api__v1__shots__cd020a51-….json, i.e. the by-id response pasted over this route's file — 426 measurements on a route whose handler is `jsonOk(shot?.toJsonWithoutMeasurements())`. The committed blob at 5705362 is 1984 B with keys [annotations, id, stopReason, timestamp, workflow] and no `measurements` key: a recording of THIS route, of the shot d5139a1f that was latest when it was taken. Swapping in the committed blob is not editing a fixture — it replaces a paste with a recording, which is what Gate B rule 4 asks for.",
+      "evidence": "The bytes copied were the previous skin's UNCOMMITTED working-tree edit: 221203 B, md5 ab6b9472…, byte-identical to api__v1__shots__cd020a51-….json, i.e. the by-id response pasted over this route's file — 426 measurements on a route whose handler is `jsonOk(shot?.toJsonWithoutMeasurements())`. The committed blob at 5705362 is 1984 B with keys [annotations, id, stopReason, timestamp, workflow] and no `measurements` key: a recording of THIS route, of the shot d5139a1f that was latest when it was taken. Swapping in the committed blob is not editing a fixture — it replaces a paste with a recording, which is what the contract check asks for.",
       "consequence": "getShotsLatest went from 410-with-evidence (and a `no-fixture` coverage note reading 'only a REFUTED recording') to a served 200. tools/FIXTURES.sha256 moved for this file: 1c03ea7c… → the hash of the committed blob."
     },
     {
-      "fixture": "api__v1__shots~limit=20~offset=0~order=desc.json",
+      "fixture": "api__v1__shots~limit=20~offset=0~order=desc",
       "path": "/api/v1/shots?limit=20&offset=0&order=desc",
       "row": "getShots",
       "wasDisposition": "serve",
       "replacedOn": "2026-08-17",
-      "restoreCommand": "git -C /home/ben/bengle/_skinlab/slate show '5705362:review/tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc.json'",
+      "restoreCommand": "git show '5705362:review/tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc'",
       "handlerSymbol": "ShotsHandler._getShots",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "The copied bytes had 21 items for limit=20, with the 15 Aug shot cd020a51 PREPENDED to a recorded 12–13 Aug page — a frame `shot_dao.getShotsPaginated`'s SQL LIMIT cannot produce. The committed blob at 5705362 has items=20, limit=20, offset=0, total=321: the page as recorded. Same uncommitted Slate working-tree edit as the latest-shot one, same swap.",
+      "evidence": "The copied bytes had 21 items for limit=20, with one shot cd020a51 PREPENDED to a recorded 12–13 Aug page — a frame `shot_dao.getShotsPaginated`'s SQL LIMIT cannot produce. The committed blob at 5705362 has items=20, limit=20, offset=0, total=321: the page as recorded. Same uncommitted the previous skin working-tree edit as the latest-shot one, same swap.",
       "consequence": "The `invariant` finding stops reproducing, so the ledger entry that declared it had to go with it (an entry that no longer reproduces is `ledger-stale`, by design). tools/FIXTURES.sha256 moved for this file: 7b9c9f9d… → the hash of the committed blob."
     },
     {
@@ -192,12 +192,12 @@
       "row": "getMachineLedStrip",
       "wasDisposition": "serve",
       "replacedOn": "2026-08-30",
-      "restoreCommand": "git -C /home/ben/bengle/_skinlab/decal show HEAD:tools/rea-fixtures/api__v1__machine__ledStrip.json   # also kept on disk as tools/rea-fixtures/api__v1__machine__ledStrip.json.pre-2026-08-30, which is not globbed as a fixture (the walkers take *.json)",
+      "restoreCommand": "git show HEAD:tools/rea-fixtures/api__v1__machine__ledStrip.json",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/ledStrip)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "RE-RECORDED FROM THE RUNNING MACHINE, read-only: GET http://192.168.1.73:8080/api/v1/machine/ledStrip -> 200, on Ben's standing machine authorization and by his decision D22 of 30 Aug 2026. The old bytes are a real recording and were never edited; what changed is that they disagree with the machine about the 16-bit spelling. Recorded: frontStrip/backStrip/frontSwitch all sleeping 4A4A2B2B0000, awake FFFFC1C18080 -- every channel BYTE-REPLICATED. Machine, now: sleeping 400022000000; awake FF00D900A000 (front strip and front switch) and FF00D3008E00 (back strip) -- every channel SHIFTED INTO THE HIGH BYTE, and the two strips no longer identical. The awake values match _audit/e2e-2026-08-29/settings-B-e2e.md section 3.5 exactly, which read FF00D900A000 and FF00D3008E00 off the tablet before writing anything, so this is the same machine state the audit measured and not a one-off. Same byte length as the file it replaces, no trailing newline either side.",
-      "consequence": "The fixture now agrees with the machine that audit F-044 already made the skin agree with. F-044 (FIXLOG S-6, 29 Aug) changed led8to16 from replication to a high-byte shift on the strength of the machine over this recording -- 'O2: the machine is the truth teller' -- and deliberately did NOT edit the fixture, because a recording is evidence. D22 replaces the recording with a newer recording, which is a different act from editing one. led-colour.js's decode path takes the high byte and ignores the low one, so both spellings still decode identically and nothing that reads this fixture changes meaning; test/settings-bespoke.test.mjs asserts exactly that (ledColour16ToHex8('FFFFC1C18080') === ledColour16ToHex8('FF00C1008000')). tools/FIXTURES.sha256 moved for this file: 3900117e827ed6e04e146b65279e69ead85408252a24aada05dbad90bf8657d9 -> 27142cbb449b9fcdcf6605bde8db7d0dceb50a4180812aa3361efecde4e377ef. mock-contract and gate-d re-run green after the swap."
+      "evidence": "RE-RECORDED FROM THE RUNNING MACHINE, read-only: GET http://192.0.2.10:8080/api/v1/machine/ledStrip -> 200 The old bytes are a real recording and were never edited; what changed is that they disagree with the machine about the 16-bit spelling. Recorded: frontStrip/backStrip/frontSwitch all sleeping 4A4A2B2B0000, awake FFFFC1C18080 -- every channel BYTE-REPLICATED. Machine, now: sleeping 400022000000; awake FF00D900A000 (front strip and front switch) and FF00D3008E00 (back strip) -- every channel SHIFTED INTO THE HIGH BYTE, and the two strips no longer identical. The awake values match the end-to-end run. earlier run/the end-to-end notes section 3.5 exactly, which read FF00D900A000 and FF00D3008E00 off the tablet before writing anything, so this is the same machine state an earlier run measured and not a one-off. Same byte length as the file it replaces, no trailing newline either side.",
+      "consequence": "The fixture now agrees with the machine that audit F-044 already made the skin agree with. F-044 (FIXLOG S-6, 29 Aug) changed led8to16 from replication to a high-byte shift on the strength of the machine over this recording -- ': the machine is the truth teller' -- and deliberately did NOT edit the fixture, because a recording is evidence. replaces the recording with a newer recording, which is a different act from editing one. led-colour.js's decode path takes the high byte and ignores the low one, so both spellings still decode identically and nothing that reads this fixture changes meaning; test/settings-bespoke.test.mjs asserts exactly that (ledColour16ToHex8('FFFFC1C18080') === ledColour16ToHex8('FF00C1008000')). tools/FIXTURES.sha256 moved for this file: 3900117e827ed6e04e146b65279e69ead85408252a24aada05dbad90bf8657d9 -> 27142cbb449b9fcdcf6605bde8db7d0dceb50a4180812aa3361efecde4e377ef. mock-contract and gate-d re-run green after the swap."
     }
   ],
   "upgraded": [

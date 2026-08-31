@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -358,19 +358,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                     assert.equal(await page.prop('#plain', 'background-color'), want.ground,
                         `${theme}: --ui-fascia IS the ground a settings leaf sits on `
-                        + '(CITE #right-panel [i=36])');
+                        + '(#right-panel [i=36])');
                     assert.equal(await page.prop('#plain >>> #heading', 'color'), want.headingInk,
-                        `${theme}: CITE .slate-heading [i=39] color <- var(--slate-text)`);
+                        `${theme}: .slate-heading [i=39] color <- var(--slate-text)`);
                     assert.equal(await page.prop('#plain >>> #caption', 'color'), want.captionInk,
-                        `${theme}: CITE .slate-caption [i=40] color <- var(--slate-muted)`);
+                        `${theme}: .slate-caption [i=40] color <- var(--slate-muted)`);
                     assert.equal(await page.prop('#read >>> #reading', 'color'), want.readingInk,
                         `${theme}: DEPARTURE 7 — the reading is an aside, in --ui-muted`);
 
                     assert.equal(await page.prop('#hinted >>> #hint', 'color'), want.captionInk,
                         `${theme}: DEPARTURE 2 — --ui-muted, not --ui-text at opacity 0.6`);
                     assert.equal(await page.prop('#hinted >>> #hint', 'opacity'), '1',
-                        `${theme}: and no opacity literal survives (CITE .text-[20px] [i=45] `
-                        + 'opacity = 0.6 <- app.css .opacity-60)');
+                        `${theme}: and no opacity literal survives (.text-[20px] [i=45] `
+                        + 'opacity = 0.6 <- .opacity-60)');
 
                     // The seam ink is unchanged even though this component never draws it.
                     assert.equal(await page.resolveToken('--ui-line', 'color'), want.seam,
@@ -386,31 +386,31 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'border-top-width', 'border-bottom-width', 'box-shadow',
                 ]);
                 assert.equal(row['min-height'], ORACLE.rowMinHeight,
-                    'SOURCE slate-shell.css:1294 min-height: var(--slate-control-height)');
+                    'min-height: var(--slate-control-height)');
                 assert.equal(row['padding-top'], ORACLE.rowPaddingBlock,
-                    'SOURCE slate-shell.css:1295 padding-block: var(--slate-space-3) — T13\'s 12px');
+                    'padding-block: var(--slate-space-3) — T13\'s 12px');
                 assert.equal(row['padding-bottom'], ORACLE.rowPaddingBlock, 'symmetrical');
                 assert.equal(row['column-gap'], ORACLE.rowGap,
-                    'SOURCE slate-shell.css:1296 gap: var(--slate-space-5)');
+                    'gap: var(--slate-space-5)');
                 assert.equal(row['border-top-width'], '0px',
                     'the divider is the container gap, never a per-row border (CONVENTIONS §13)');
                 assert.equal(row['border-bottom-width'], '0px');
                 assert.equal(row['box-shadow'], 'none');
 
                 const type = await page.computed('#plain >>> #heading', ['font-size', 'font-weight']);
-                assert.equal(type['font-size'], ORACLE.headingSize, 'CITE [i=39] 20px');
-                assert.equal(type['font-weight'], ORACLE.headingWeight, 'CITE [i=39] 500');
+                assert.equal(type['font-size'], ORACLE.headingSize, '[i=39] 20px');
+                assert.equal(type['font-weight'], ORACLE.headingWeight, '[i=39] 500');
 
                 const hint = await page.computed('#hinted >>> #hint',
                     ['font-size', 'font-weight', 'white-space', 'overflow-wrap']);
-                assert.equal(hint['font-size'], ORACLE.hintSize, 'CITE [i=45] 17px');
-                assert.equal(hint['font-weight'], ORACLE.hintWeight, 'CITE [i=45] 400');
+                assert.equal(hint['font-size'], ORACLE.hintSize, '[i=45] 17px');
+                assert.equal(hint['font-weight'], ORACLE.hintWeight, '[i=45] 400');
                 assert.equal(hint['white-space'], 'normal',
-                    'DEPARTURE 6: settings.js:1455\'s whitespace-nowrap is NOT carried. It '
+                    'DEPARTURE 6: \'s whitespace-nowrap is NOT carried. It '
                     + 'is a frozen-viewport choice — with nowrap and the flex default '
                     + 'min-width:auto the hint can neither wrap nor shrink, so it leaves '
                     + 'the row and any pane with overflow:hidden eats it, which is what '
-                    + 'LAYOUT_SPEC_DRAFT.md §2.4 forbids. Normal wrapping is identical at '
+                    + 'forbids. Normal wrapping is identical at '
                     + 'every width Slate was captured at');
                 assert.equal(hint['overflow-wrap'], 'anywhere',
                     '§2.4 at the level of one word — the same rule and the same reason as '
@@ -420,8 +420,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'anywhere', 'and the heading takes it too');
 
                 const caption = await page.computed('#plain >>> #caption', ['font-size', 'font-weight']);
-                assert.equal(caption['font-size'], ORACLE.captionSize, 'CITE [i=40] 16px');
-                assert.equal(caption['font-weight'], ORACLE.captionWeight, 'CITE [i=40] 400');
+                assert.equal(caption['font-size'], ORACLE.captionSize, '[i=40] 16px');
+                assert.equal(caption['font-weight'], ORACLE.captionWeight, '[i=40] 400');
 
                 const reading = await page.computed('#read >>> #reading', ['font-size', 'font-weight']);
                 assert.equal(reading['font-size'], ORACLE.readingSize, 'DEPARTURE 7 — .ui-body 17px');
@@ -431,7 +431,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(gaps['row-gap'], ORACLE.labelGap,
                     'measured: caption y=295 − (heading y=265 + h=26) = 4');
                 assert.equal(await page.prop('#hinted >>> #line', 'column-gap'), ORACLE.lineGap,
-                    'DEPARTURE 4: settings.js:3632 gap-[14px] snaps to --ui-space-3 (bug T20\'s class)');
+                    'DEPARTURE 4: gap-[14px] snaps to --ui-space-3 (bug T20\'s class)');
             }));
 
         test('every measured LINE BOX is reproduced by the type roles, not by a declaration',
@@ -441,13 +441,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `${what}: rendered ${got.toFixed(2)}px against the measured ${want}px`,
                 );
                 near((await page.box('#plain >>> #heading')).height, ORACLE.headingLineBox,
-                    'CITE .slate-heading [i=39] rect h=26');
+                    '.slate-heading [i=39] rect h=26');
                 near((await page.box('#hinted >>> #hint')).height, ORACLE.hintLineBox,
-                    'CITE .text-[20px] [i=45] rect h=26 (17 × 1.5 = 25.5)');
+                    '.text-[20px] [i=45] rect h=26 (17 × 1.5 = 25.5)');
                 near((await page.box('#plain >>> #caption')).height, ORACLE.captionLineBox,
-                    'CITE .slate-caption [i=40] rect h=24');
+                    '.slate-caption [i=40] rect h=24');
                 near((await page.box('#read >>> #reading')).height, ORACLE.readingLineBox,
-                    'CITE #cupWarmerCurrentTemp [i=54] rect h=27 — the DOCUMENT leading, '
+                    '#cupWarmerCurrentTemp [i=54] rect h=27 — the DOCUMENT leading, '
                     + 'not the markup\'s leading-[1.2]');
             }));
 
@@ -456,7 +456,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const floor = await page.box('#bare');
                 assert.equal(Math.round(floor.height), 64,
                     'a heading-only row is exactly the floor: 26 + 2×12 = 50, floored to '
-                    + 'the 64px of slate-shell.css:1294');
+                    + 'the 64px of ');
 
                 const full = await page.box('#read');
                 assert.ok(full.height > 64,
@@ -636,7 +636,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     return hint.getClientRects().length;
                 });
                 assert.equal(oneLine, 1,
-                    'a range that fits still sits on one line — settings.js:1455\'s intent '
+                    'a range that fits still sits on one line — \'s intent '
                     + 'survives at every width Slate was captured at');
             }));
 
@@ -714,7 +714,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 assert.equal(after.imposterPad, ORACLE.rowPaddingBlock,
                     'the injected rule must really match the imposter, or this whole test '
-                    + 'is vacuous — settings.js:2391 wears exactly these four classes');
+                    + 'is vacuous — wears exactly these four classes');
                 assert.ok(Math.abs((after.imposter - before.imposter) - ORACLE.slateT13Delta) < 0.51,
                     'T13 reproduced: the imposter title moved '
                     + `${(after.imposter - before.imposter).toFixed(2)}px, against the `
@@ -1082,7 +1082,7 @@ describe('the gallery states are capture inputs, so they have to render', () => 
                 };
             });
             assert.equal(got.imposterPad, '12px',
-                'slate-shell.css:1295 must actually match the imposter in this state');
+                'must actually match the imposter in this state');
             assert.equal(got.headings.length, 2, 'two rows, one of them wearing the shape');
             assert.ok(Math.abs(got.headings[0] - got.headings[1]) < 0.51,
                 `the two rows disagree by ${(got.headings[0] - got.headings[1]).toFixed(2)}px — `

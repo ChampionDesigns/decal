@@ -18,7 +18,7 @@ export const entry = {
             id: 'default',
             title: 'Default (a count)',
             notes:
-                'Slate\'s .slate-badge exactly: --ui-key-on face, --ui-text-2 ink, 14px '
+                'The reference skin\'s .slate-badge exactly: --ui-key-on face, --ui-text-2 ink, 14px '
                 + '--ui-text-2xs at --ui-weight-medium, --ui-radius corners, --ui-space-2 '
                 + 'inline padding. No declared height - the box IS the line box.',
             html: '<ui-badge>2</ui-badge>',
@@ -29,7 +29,7 @@ export const entry = {
             notes:
                 'default / active / attention side by side, which is the comparison that '
                 + 'matters: a badge that says the same thing on every row says nothing. '
-                + 'Active and attention carry --ui-weight-semibold where Slate carried 600 '
+                + 'Active and attention carry --ui-weight-semibold where the reference skin carried 600 '
                 + '(styles/tokens.css:369-371 - three weights, not five).',
             html:
                 '<div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">'
@@ -55,7 +55,7 @@ export const entry = {
             id: 'counts',
             title: 'Counts, one to three digits',
             notes:
-                'Slate\'s own set: 24.83px at one digit and 30px at two (folder counts on '
+                'The reference skin\'s own set: 24.83px at one digit and 30px at two (folder counts on '
                 + 'the profile selector). The marker is sized by its text, not by a track.',
             html:
                 '<div style="display:flex; gap:12px; align-items:center">'
@@ -70,7 +70,7 @@ export const entry = {
             notes:
                 'The host is narrow at an unchanged viewport. The marker clamps to its '
                 + 'container and ellipsises rather than escaping the row it belongs to - '
-                + 'a departure from Slate, which never meets a narrow container because '
+                + 'a departure from the reference skin, which never meets a narrow container because '
                 + 'its geometry is frozen at 1920x1200. It never wraps to two lines.',
             hostStyle: { 'inline-size': '96px' },
             html: '<ui-badge variant="attention">Update available</ui-badge>',

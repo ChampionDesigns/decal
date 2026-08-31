@@ -73,7 +73,7 @@ export const MILK_PROBE_CHANNELS = Object.freeze(['timestamp', 'temperature']);
 
 /**
  * Sensor deviceId suffixes. Both ids are `${machineDeviceId}-<suffix>`, so A MACHINE SWAP
- * PRODUCES A NEW ID — which is why discovery re-runs on socket close (Gate 3) and why
+ * PRODUCES A NEW ID — which is why discovery re-runs on socket close and why
  * nothing here caches an id.
  */
 export const SENSOR_ID_SUFFIX = Object.freeze({

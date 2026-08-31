@@ -96,7 +96,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const body = parseFloat(await page.prop(SURFACE, 'font-size'));
 
             assert.equal(heading, 28, 'the dialog heading is not --ui-text-xl');
-            assert.equal(body, 18, 'the editing surface is not --ui-text-md (notes-modal.css:249 asked for it)');
+            assert.equal(body, 18, 'the editing surface is not --ui-text-md asked for it)');
 
             const ratio = heading / body;
             assert.ok(
@@ -174,7 +174,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(claims.hostRole, null, 'the host took a role');
             assert.equal(claims.hostTabindex, null, 'the host took a tabindex');
             /* The three elements this component authors, named rather than left to the
-             * exclusion list above: aria-hidden on any of them IS the O8 mechanism. */
+             * exclusion list above: aria-hidden on any of them IS the mechanism. */
             assert.equal(claims.hostHidden, false, 'the host used aria-hidden to hide itself');
             assert.equal(claims.frameHidden, false, 'the frame used aria-hidden to hide itself');
             assert.equal(claims.editorHidden, false, 'the editor host used aria-hidden to hide itself');
@@ -452,7 +452,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await open(page);
             const name = await page.evalFn(() => document.getElementById('notes')
                 .editor.codemirror.getInputField().getAttribute('aria-label'));
-            /* CodeMirror's input is an unlabelled textarea — the same hole as O9's
+            /* CodeMirror's input is an unlabelled textarea — the same hole as the rule's
              * unlabelled backspace, one component over. */
             assert.equal(name, 'Notes');
         }));

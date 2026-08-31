@@ -1,7 +1,7 @@
 // CANARY — deliberately violates the dead-name rule. Never imported by the app.
 //
 // This is what a ported module looks like when it re-bakes a name ReaPrime deleted, and it
-// is exactly the shape the old skin shipped: a dead name plus a fallback that manufactures
+// is exactly the shape the previous skin shipped: a dead name plus a fallback that manufactures
 // a plausible number, so the miss never surfaces on a bench.
 //
 // test/rea-dead-names.test.mjs asserts the scanner FAILS on this file. A guard that has

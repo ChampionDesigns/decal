@@ -1,14 +1,14 @@
 /**
  * type-roles-fixture - the rendering subject for component #13, the type roles
- * (wave 1; the row that "dissolves into the token layer plus a shared style module
- * rather than an element", SCOPE.md:1531).
+ * (; the row that "dissolves into the token layer plus a shared style module
+ * rather than an element").
  *
- * There is no `<ui-title>` and there never will be, so Gate A needs a subject that is
+ * There is no `<ui-title>` and there never will be, so the render harness needs a subject that is
  * not the thing under test: this fixture is one, in the same sense that
  * `base-fixture.js` is a subject for the base conventions. It makes no design
  * decisions - every value it renders comes from `src/components/type-roles.js` or from
  * a token - and it exists so the rig can assert on COMPUTED styles and box geometry
- * rather than on source text (Part 8 §2 Gate A).
+ * rather than on source text (the notes the render harness).
  *
  * IT MOUNTS THE ROLES ON PLAIN ELEMENTS, which is the whole point: `<h1 class=
  * "ui-title">`, `<p class="ui-caption">`, `<span class="ui-microcap">`. A type role is
@@ -17,44 +17,44 @@
  *
  * WHAT EACH ID IS FOR - the assertions this fixture is built to support:
  *
- *   #title          .ui-title on an <h1>. 28px --ui-text-xl at 500 --ui-weight-medium,
- *                   --ui-text ink, line-height 1.2. Its UA margin must be zeroed:
- *                   spacing is the layout's job.
- *   #title-div      the SAME role on a <div>, to prove a role reads identically on a
- *                   semantic element and a generic one. Every computed type property
- *                   and both block margins must match #title.
- *   #heading        .ui-heading on an <h2>. 20px --ui-text-lg at 500, line-height 1.3.
- *   #override       .ui-heading on an <h3> that the fixture's OWN bare element rule
- *                   re-sizes. The roles are authored inside :where(), so a role is
- *                   (0,0,0) and a plain `h3 { font-size: var(--ui-text-note) }` wins
- *                   with no !important anywhere - which is the mechanism bug T11 did
- *                   not have (a shared alignment an author could not override).
- *   #caption        .ui-caption with real copy. 16px --ui-text-note at 400,
- *                   --ui-muted ink, line-height 1.5, capped at --ui-measure (70ch) so
- *                   it stops well short of a wide container.
- *   #caption-centred the same role plus the fixture's own `.centred` class. T11 again,
- *                   from the other side: an author who WANTS centred copy gets it.
- *   #body           .ui-body. 17px --ui-text-base at 400, line-height 1.5, and no
- *                   colour of its own - the ink is inherited.
- *   #numeric-inline .ui-numeric inside #body: the modifier composes, taking its size,
- *                   weight and colour from the role it sits in.
- *   #microcap       .ui-microcap. 15px --ui-text-sm at 700 --ui-weight-semibold,
- *                   --ui-tracking-cap, --ui-muted, rendered uppercase - while
- *                   textContent stays as authored, because text-transform is paint and
- *                   the accessible name is not.
- *   #numeric-a/-b   two equal-length digit strings in the numeric role. Tabular
- *                   figures means they occupy exactly the same width; a readout that
- *                   changes must not jitter.
- *   #plain-a/-b     the same two strings with no role, for contrast.
- *   #readout        the display scale composed with the numeric role - a component's
- *                   own `font-size: var(--ui-display-md)` on an element carrying
- *                   .ui-numeric. This is the documented way to build a big number, and
- *                   it is deliberately NOT a seventh role: the clamp resolves against
- *                   `cqi`, i.e. the COMPONENT's own container (spec §3.5, §2.1 Rule 1),
- *                   so it belongs to whoever owns that container. Narrow the host and
- *                   this must shrink while every UI-scale role above holds its size.
- *   #unroled        a plain <span> with no role at all. The shared module must do
- *                   nothing until a class asks it to.
+ * #title .ui-title on an <h1>. 28px --ui-text-xl at 500 --ui-weight-medium,
+ * --ui-text ink, line-height 1.2. Its UA margin must be zeroed:
+ * spacing is the layout's job.
+ * #title-div the SAME role on a <div>, to prove a role reads identically on a
+ * semantic element and a generic one. Every computed type property
+ * and both block margins must match #title.
+ * #heading .ui-heading on an <h2>. 20px --ui-text-lg at 500, line-height 1.3.
+ * #override .ui-heading on an <h3> that the fixture's OWN bare element rule
+ * re-sizes. The roles are authored inside :where, so a role is
+ * (0,0,0) and a plain `h3 { font-size: var(--ui-text-note) }` wins
+ * with no !important anywhere - which is the mechanism bug did
+ * not have (a shared alignment an author could not override).
+ * #caption .ui-caption with real copy. 16px --ui-text-note at 400,
+ * --ui-muted ink, line-height 1.5, capped at --ui-measure (70ch) so
+ * it stops well short of a wide container.
+ * #caption-centred the same role plus the fixture's own `.centred` class. again,
+ * from the other side: an author who WANTS centred copy gets it.
+ * #body .ui-body. 17px --ui-text-base at 400, line-height 1.5, and no
+ * colour of its own - the ink is inherited.
+ * #numeric-inline .ui-numeric inside #body: the modifier composes, taking its size,
+ * weight and colour from the role it sits in.
+ * #microcap .ui-microcap. 15px --ui-text-sm at 700 --ui-weight-semibold,
+ * --ui-tracking-cap, --ui-muted, rendered uppercase - while
+ * textContent stays as authored, because text-transform is paint and
+ * the accessible name is not.
+ * #numeric-a/-b two equal-length digit strings in the numeric role. Tabular
+ * figures means they occupy exactly the same width; a readout that
+ * changes must not jitter.
+ * #plain-a/-b the same two strings with no role, for contrast.
+ * #readout the display scale composed with the numeric role - a component's
+ * own `font-size: var(--ui-display-md)` on an element carrying
+ * .ui-numeric. This is the documented way to build a big number, and
+ * it is deliberately NOT a seventh role: the clamp resolves against
+ * `cqi`, i.e. the COMPONENT's own container (rule 1),
+ * so it belongs to whoever owns that container. Narrow the host and
+ * this must shrink while every UI-scale role above holds its size.
+ * #unroled a plain <span> with no role at all. The shared module must do
+ * nothing until a class asks it to.
  */
 
 /* NODE-SAFE SHAPE, required of every browser-only file under test/: node --test claims
@@ -74,7 +74,7 @@ const { typeRoles } = await import('../../src/components/type-roles.js');
 
 TypeRolesFixture = class TypeRolesFixture extends UiElement {
     /* The shared module goes FIRST, with the structural fragments: it is a default
-     * layer, and every rule in it is written to lose a tie (CONVENTIONS §4). No
+     * layer, and every rule in it is written to lose a tie (CONVENTIONS). No
      * `UiElement.baseStyles` spread - finalizeStyles prepends the base for every
      * subclass. */
     static styles = [

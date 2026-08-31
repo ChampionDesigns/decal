@@ -127,7 +127,7 @@ export function createLiveStores({
     const live = {
         feeds,
         shot,
-        /** The B8 answer path, or null if no link was injected. Never re-implemented here. */
+        /** The answer path, or null if no link was injected. Never re-implemented here. */
         devices: devicesLink,
         sensorDiscovery,
 

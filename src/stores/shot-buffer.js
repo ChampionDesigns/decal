@@ -104,7 +104,7 @@ export function createShotBuffer({
                 phase,
                 open: true,
                 joinedLate,
-                /** B6: undecided until the first sample gives the selector something to
+                /** Undecided until the first sample gives the selector something to
                  *  decide FROM. Named while it is pending, never filled with a default. */
                 sources: null,
                 sourcesPending: true,
@@ -209,7 +209,7 @@ export function createShotBuffer({
                 const position = {
                     index: i,
                     stampMs: stamped ? stamp : null,
-                    // null, never zero: a sample we cannot place in time is a gap (B4).
+                    // null, never zero: a sample we cannot place in time is a gap.
                     seconds: stamped && context.originMs !== null ? (stamp - context.originMs) / 1000 : null,
                 };
                 for (const visitor of list) visitor.sample(entry, position, context);

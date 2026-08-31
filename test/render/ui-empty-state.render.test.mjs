@@ -41,13 +41,13 @@ const MARKUP = `
 `;
 
 const T11_PRESSURE = `
-    /* slate-shell.css:1326-1328 — [class*="text-center"] { text-align: left !important } */
+    /* [class*="text-center"] { text-align: left !important } */
     ui-empty-state, ui-empty-state * { text-align: left !important; }
-    /* slate-shell.css:1304-1306 — .flex.flex-col.items-center { align-items: stretch !important } */
+    /* .flex.flex-col.items-center { align-items: stretch !important } */
     ui-empty-state, ui-empty-state * { align-items: flex-start !important; justify-items: start !important; }
-    /* slate-shell.css:1244-1250 — #settings-content-area > * { padding-inline: 0 !important } */
+    /* #settings-content-area > * { padding-inline: 0 !important } */
     ui-empty-state, ui-empty-state * { padding-left: 0 !important; padding-right: 0 !important; }
-    /* slate-components.css:109-118 — .slate-caption { text-align: left !important } */
+    /* .slate-caption { text-align: left !important } */
     ui-empty-state p, ui-empty-state div { text-align: left !important; }
 `;
 

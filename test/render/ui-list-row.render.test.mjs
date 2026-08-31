@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -223,9 +223,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const weight = await page.prop('#picked >>> #title', 'font-weight');
                 const restingWeight = await page.prop('#unpicked >>> #title', 'font-weight');
                 assert.equal(weight, ORACLE.selectedWeight,
-                    'CITE slate-shell.css:310 — the selected title is Slate\'s 500');
+                    'the selected title is Slate\'s 500');
                 assert.equal(restingWeight, ORACLE.rowFontWeight,
-                    'CITE [i=21] — an unselected title is Slate\'s 400');
+                    '[i=21] — an unselected title is Slate\'s 400');
                 assert.equal(weight, await page.resolveToken('--ui-selected-weight', 'font-weight'),
                     'the 500 is READ from the dial, not written in this component');
 
@@ -233,7 +233,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 for (const pseudo of ['::before', '::after']) {
                     const p = await page.computed('#picked', ['content', 'background-color'], { pseudo });
                     assert.equal(p.content, 'none',
-                        `slate-shell.css:588-596 draws a ${pseudo} steel bar on the selected row; `
+                        `draws a ${pseudo} steel bar on the selected row; `
                         + 'the LED dial is the sanctioned expression of that and Slate ships it at 0px');
                 }
             }));
@@ -311,11 +311,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const row = await page.computed('#plain', ['background-color', 'color']);
                 assert.equal(row['background-color'], want.ground,
                     `${theme}: --ui-fascia IS the ground Slate's transparent row sat on `
-                    + '(CITE #profile-editor-grid [i=6])');
-                assert.equal(row.color, want.rowInk, `${theme}: --ui-text (CITE [i=21] color)`);
+                    + '(#profile-editor-grid [i=6])');
+                assert.equal(row.color, want.rowInk, `${theme}: --ui-text ([i=21] color)`);
 
                 assert.equal(await page.resolveToken('--ui-line', 'color'), want.seam,
-                    `${theme}: CITE [i=21] border-top-color — the ink survives the move to a gap`);
+                    `${theme}: [i=21] border-top-color — the ink survives the move to a gap`);
             }
         }));
 
@@ -324,24 +324,24 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'min-height', 'padding-left', 'padding-right', 'font-size', 'font-weight',
                 'border-top-left-radius', 'border-top-width', 'box-shadow',
             ]);
-            assert.equal(row['min-height'], ORACLE.rowMinHeight, 'CITE [i=21] 64px');
-            assert.equal(row['padding-left'], ORACLE.rowPaddingLeft, 'CITE [i=21] 24px');
+            assert.equal(row['min-height'], ORACLE.rowMinHeight, '[i=21] 64px');
+            assert.equal(row['padding-left'], ORACLE.rowPaddingLeft, '[i=21] 24px');
             assert.equal(row['padding-right'], ORACLE.rowPaddingLeft, 'symmetrical: padding: 0 24px');
-            assert.equal(row['font-size'], ORACLE.rowFontSize, 'CITE [i=21] 20px');
-            assert.equal(row['font-weight'], ORACLE.rowFontWeight, 'CITE [i=21] 400');
+            assert.equal(row['font-size'], ORACLE.rowFontSize, '[i=21] 20px');
+            assert.equal(row['font-weight'], ORACLE.rowFontWeight, '[i=21] 400');
             assert.equal(row['border-top-left-radius'], ORACLE.rowRadius,
-                'CITE [i=21] 0px — rows touch, so the corners are square');
+                '[i=21] 0px — rows touch, so the corners are square');
             assert.equal(row['border-top-width'], ORACLE.rowBorderWidth,
                 'DEPARTURE 2: the 1px separator is the container gap, not a per-row border');
-            assert.equal(row['box-shadow'], 'none', 'CITE [i=21] box-shadow = none');
+            assert.equal(row['box-shadow'], 'none', '[i=21] box-shadow = none');
 
             const rendered = await page.box('#plain');
             assert.equal(Math.round(rendered.height), 64,
-                'CITE [i=21] height = 64px — the rendered box, not the rule');
+                '[i=21] height = 64px — the rendered box, not the rule');
 
             const title = await page.box('#plain >>> #title');
             assert.equal(Math.round(title.height), ORACLE.titleLineBox,
-                'CITE <span> [i=22] height = 30px — 20px × the 1.5 in styles/document.css:64');
+                '<span> [i=22] height = 30px — 20px × the 1.5 in styles/document.css:64');
 
         }));
 
@@ -613,9 +613,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     pickedProp: true,
                     hostTabindex: '0',
                     shadowButtons: 0,
-                }, 'Slate\'s role="option" (profile_selector.js:784) is DISQUALIFIED: that line '
+                }, 'Slate\'s role="option" is DISQUALIFIED: that line '
                     + 'is inside bug P12, whose complaint is "non-option children inside the '
-                    + 'listbox". The row used to render one itself (LAYOUT_SPEC_DRAFT.md:1141) '
+                    + 'listbox". The row used to render one itself '
                     + 'and since D11 renders none — but a consumer may still SLOT one, so the '
                     + 'role stays the list\'s to state. aria-selected is reflected in BOTH '
                     + 'states for whatever role arrives.');
@@ -860,9 +860,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(disc.left > row.left, 'the disc is not crowding the title');
                 assert.ok(disc.right <= action.left + 0.5,
                     'and it sits before the row actions, as Slate orders them '
-                    + '(profile_selector.js:811 then :886)');
+                    + 'then :886)');
                 assert.equal(Math.round(action.right), Math.round(row.right - 24),
-                    'row actions end on the row\'s own 24px inset (CITE [i=21] padding) — '
+                    'row actions end on the row\'s own 24px inset ([i=21] padding) — '
                     + 'the row owns the placement even though it does not own the control');
 
                 // An empty favourite slot must not leave a gap behind it.
@@ -884,10 +884,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const badge = await page.computed('#chip >>> #provenance >>> #badge',
                 ['background-color', 'border-left-width', 'border-top-left-radius']);
             assert.notEqual(badge['background-color'], 'rgba(0, 0, 0, 0)',
-                'a badge is its face — slate-shell.css:318 background: transparent !important '
+                'a badge is its face — background: transparent !important '
                 + 'cannot reach it');
             assert.equal(badge['border-left-width'], '0px',
-                'and slate-shell.css:316 border-left: 1px solid var(--slate-line-strong) cannot either');
+                'and border-left: 1px solid var(--slate-line-strong) cannot either');
             assert.equal(badge['border-top-left-radius'], '6px', '--ui-radius, the badge\'s own');
 
             assert.equal(await page.exists('#plain >>> #provenance'), false,

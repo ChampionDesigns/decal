@@ -23,7 +23,7 @@ export const entry = {
             title: 'The four variants',
             notes:
                 'default / primary / ghost / danger, side by side. Primary against '
-                + 'default is P8\'s exact comparison: in Slate these two paint the same.',
+                + 'default is P8\'s exact comparison: in the reference skin these two paint the same.',
             html:
                 '<div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">'
                 + '<ui-button>Cancel</ui-button>'
@@ -49,7 +49,7 @@ export const entry = {
             id: 'disabled',
             title: 'Disabled',
             notes:
-                'One dial at .38, applied once. Slate re-paints a disabled button to a '
+                'One dial at .38, applied once. The reference skin re-paints a disabled button to a '
                 + 'transparent face with muted ink; spec §3.7 settles a single opacity '
                 + 'token, so a disabled primary stays navy and simply dims.',
             html:

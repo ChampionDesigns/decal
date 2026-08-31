@@ -46,6 +46,6 @@ test('the states straddle the crossover, because that is the whole component', (
     assert.ok(widths.some((w) => w < 572), 'no collapsed 1-up state');
     assert.ok(
         entry.states.some((s) => s.html.includes('columns="1"')),
-        'no update-list state — LAYOUT_SPEC_DRAFT.md:922 gives the row two uses, not one',
+        'no update-list state — gives the row two uses, not one',
     );
 });

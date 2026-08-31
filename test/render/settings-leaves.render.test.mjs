@@ -281,7 +281,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 return fan[0].hint;
             };
 
-            test('the fan threshold renders Ben\'s band on a Bengle, in °C and not a percentage', async () => {
+            test('the fan threshold renders the decided band on a Bengle, in °C and not a percentage', async () => {
                 const hint = await fanHint(['cupWarmer']);
                 assert.equal(hint, '40–60 °C');
                 assert.doesNotMatch(hint, /%/, 'the old page printed a percentage over a caption saying °C');
@@ -633,7 +633,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         id: view.id, pending: view.pending, inert: view.inert,
                     }));
                 });
-                /* EVERY ROW HAS ANSWERED by the time a leaf is on screen and settled —
+                /* EVERY ROW HAS ANSWERED by the time a leaf is on screen and settled
                  * which is why the fault only ever showed for the first few seconds. */
                 assert.ok(settled.length > 0);
                 for (const row of settled) {
@@ -695,7 +695,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `steamPurgeMode staged as ${wrote.type} — a DOM string reaching an int field`);
                 assert.equal(wrote.value, 1);
                 /* THIS SUITE SHARES ONE PAGE, so a staged field left here is a change
-                 * count D11's section reads later. Discard rather than commit: the
+                 * count the rule's section reads later. Discard rather than commit: the
                  * write path is not what this test is about. */
                 await page.evalFn(() => { window.__settings.model().discard(); return true; });
                 await page.settle();
@@ -1273,7 +1273,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const band = await bandText();
                 assert.equal(band.count, 0);
                 assert.doesNotMatch(band.all, /Save \(/, 'the count is gone with the staged edits');
-                assert.match(band.all, /Save/, 'and Slate\'s pair stays — Ben, 25 Aug 2026');
+                assert.match(band.all, /Save/, 'and the decided pair stays');
             });
         });
 
@@ -1733,7 +1733,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         patch: window.__settings.model().pendingPatch,
                     };
                 });
-                assert.equal(seen.value, 'volume', "Ben's rule: volume selected when there is no scale");
+                assert.equal(seen.value, 'volume', "the rule: volume selected when there is no scale");
                 assert.deepEqual(seen.cells, [
                     { label: 'Volume', disabled: false },
                     { label: 'Weight', disabled: true },

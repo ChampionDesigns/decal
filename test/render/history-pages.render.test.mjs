@@ -1,5 +1,5 @@
 /**
- *.6, the PAGES cluster: hist-flow-page, hist-data-page, hist-components, and bugs H1, H4, H5 and chart-C7.
+ * The PAGES cluster: hist-flow-page, hist-data-page, hist-components.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -123,7 +123,7 @@ const READ_FLOW = `(() => {
 
 /**
  * The live uPlot series of one plot, with the colour RESOLVED by calling uPlot's own
- * stroke function. Not the authored spec and not a stylesheet: what the canvas is being
+ * stroke function. Not the authored value and not a stylesheet: what the canvas is being
  * stroked with, this frame.
  */
 const READ_SERIES = (id) => `(() => {
@@ -345,7 +345,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(6);
                 const tight = await page.eval(READ_FLOW);
                 assert.ok(tight.shown.top && tight.shown.temp,
-                    'both cards paint even here — this is the assertion Ben\'s decision reverses');
+                    'both cards paint even here — this is the assertion the decision reverses');
                 assert.equal(tight.clips.grid, 'visible', 'the grid does not clip');
                 assert.equal(tight.clips.host, 'visible', 'and neither does the page');
                 assert.ok(tight.gridContent > tight.grid.h + 0.5,
@@ -896,7 +896,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             assert.deepEqual(found, { timeKey: 0, pq: 0, power: 0 },
                 'the flow and data pages carry no time key, no trajectory and no power page: '
-                + 'D1 still holds everywhere except the one surface Ben named');
+                + 'the carve-out still holds everywhere except the one named surface');
         });
 
         test('parity 6 — the shot list is read in three inks, by column', async () => {
@@ -934,7 +934,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(seen.length >= 20,
                     `the ${key} column paints ${seen.length} cells; the list is twenty rows long`);
                 assert.deepEqual([...new Set(seen)], [colour],
-                    `CITE history-shotdata: every cell of this column carries one ink, and `
+                    `history-shotdata: every cell of this column carries one ink, and `
                     + `the ${key} column's is ${colour}`);
             }
         });

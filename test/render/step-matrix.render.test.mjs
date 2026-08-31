@@ -15,7 +15,7 @@ import {
     matrixNameField, openStepName,
 } from '../harness/editor.js';
 
-/** N plain steps. Values only — no fixture here states a bound (B2). */
+/** N plain steps. Values only — no fixture here states a bound. */
 const steps = (n, over = () => ({})) => Array.from({ length: n }, (_, i) => matrixStep({
     name: `Step ${i + 1}`, ...over(i),
 }));
@@ -165,7 +165,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const before = await page.box(matrixRail('pump'));
                 assert.equal(await page.prop(matrixRail('pump'), 'position'), 'sticky');
 
-                /* E17's first leftover is "z-index: 2 on a position: static element". This
+                /* the rule's first leftover is "z-index: 2 on a position: static element". This
                  * one is on a positioned box, so it is consulted. */
                 assert.notEqual(await page.prop(matrixRail('pump'), 'z-index'), 'auto');
 
@@ -364,7 +364,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(compact.control, controlH, 'compact keeps the control height');
                 near(regular.control, controlH, 'and so does regular');
 
-                /* NOR DOES THE TOUCH FLOOR. The cap is C3's own re-declaration
+                /* NOR DOES THE TOUCH FLOOR. The cap is 's own re-declaration
                  * (--ui-stepper-cap 78 -> --ui-control-h 64) and both clear --ui-hit-min. */
                 const hit = px(await page.resolveToken('--ui-hit-min', 'inline-size'));
                 assert.ok(compact.cap.width >= hit, `compact cap ${compact.cap.width} >= ${hit}`);
@@ -819,7 +819,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             spoken: cell.querySelector('.a11y').textContent.trim(),
                         };
                     }, 'step-matrix');
-                    assert.equal(drawn.ordinal, '1.', 'the number and the full stop Ben asked for');
+                    assert.equal(drawn.ordinal, '1.', 'the number and the full stop asked for');
                     assert.equal(drawn.mode, 'Flow', 'the mode table\'s own word');
                     assert.equal(drawn.tone, 'flow', 'and the tint is data, not a colour in a template');
                     assert.equal(drawn.spoken, 'Step 1 of 2',

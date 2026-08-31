@@ -62,7 +62,7 @@ const MINIMAL = `
   <ui-dialog id="d"><p slot="body" id="prose">Nothing to focus in here.</p></ui-dialog>
 </div>`;
 
-/** Two dialogs opened as SIBLINGS — Appendix 13's nested-Escape case, hard mode. */
+/** Two dialogs opened as SIBLINGS — the appendix's nested-Escape case, hard mode. */
 const SIBLINGS = `
 <div id="page" style="padding: 60px">
   <button id="invoker">Open</button>
@@ -247,7 +247,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const box = await page.box(DIALOG);
             near(box.width, 820,
                 'ORACLE modal-numpad .numpad-modal-container [i=166] rect w=820 (captured at 1920x1200), '
-                + 'and SOURCE numpad-modal.css:13 min(820px, calc(100vw - 48px)) — the intrinsic width');
+                + 'and min(820px, calc(100vw - 48px)) — the intrinsic width');
 
             // Clamped: ask for a dialog wider than the window and the min() must bind.
             await page.setStyle('#d', { '--_ui-dialog-inline': '4000px' });
@@ -371,7 +371,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const style = await page.computed(ACTIONS, ['display', 'justify-content', 'column-gap']);
             assert.equal(style.display, 'flex');
             assert.equal(style['justify-content'], 'flex-end',
-                'SOURCE slate-shell.css:2227-2231 — O13\'s footer, under the name #16 left for it');
+                'O13\'s footer, under the name #16 left for it');
             assert.equal(style['column-gap'], await page.resolveValue('var(--ui-space-4)', 'column-gap'));
         }));
 
@@ -617,7 +617,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.press('Escape');
             await page.settle(2);
             assert.deepEqual(JSON.parse(await page.eval('JSON.stringify(window.__esc)')), [],
-                'numpad-modal.js:260-268 — own the key before anything else acts on it');
+                'own the key before anything else acts on it');
         }));
 
         test('one Escape closes ONE of two sibling dialogs, top-most first', () => mounted(async (page) => {
@@ -1002,11 +1002,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await openByPress(page);
             const wide = await page.prop(BODY, 'padding-top');
             assert.equal(wide, await page.resolveValue('var(--ui-space-5)', 'padding-top'),
-                'SOURCE numpad-modal.css:61 padding: 24px');
+                'padding: 24px');
 
             await page.setStyle('#d', { '--_ui-dialog-inline': '600px' });
             assert.equal(await page.prop(BODY, 'padding-top'), await page.resolveValue('var(--ui-space-4)', 'padding-top'),
-                'SOURCE numpad-modal.css:416 — the shell\'s share of the one breakpoint §4.6 keeps, as a CONTAINER query');
+                'the shell\'s share of the one breakpoint §4.6 keeps, as a CONTAINER query');
 
             await page.setStyle('#d', { '--_ui-dialog-inline': null });
             assert.equal(await page.prop(BODY, 'padding-top'), wide, 'and back');

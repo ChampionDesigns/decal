@@ -22,7 +22,7 @@ const BESPOKE_PANES = Object.freeze([
     ['accessories', 'accessories-lighting'],
 ]);
 
-/** The three that are gated on the served capability array (A3). */
+/** The three that are gated on the served capability array. */
 const GATED = Object.freeze(['machine-sleep-wake-schedules', 'calibration-load-cells', 'accessories-lighting']);
 
 const near = (got, want, what, tol = 0.51) => assert.ok(
@@ -165,7 +165,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 2. THE ONE MEASURE — T1 and T21
+         * 2. THE ONE MEASURE — and 
          * ═════════════════════════════════════════════════════════════════ */
 
         describe('eight leaves, one measure (T1, T21)', () => {
@@ -292,7 +292,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await freshWalk();
 
                 const intro = await wizardReport(page);
-                assert.equal(intro.chips, 5, 'five steps, Ben"s own');
+                assert.equal(intro.chips, 5, 'five steps, as decided');
                 assert.equal(intro.current, 1, 'and the walk opens on the first');
                 assert.match(intro.button, /start/i);
                 assert.equal(intro.stepperCount, 0, 'nothing is being weighed yet');
@@ -656,7 +656,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         isOn: led.isOn('awake'),
                     };
                 });
-                /* LED_DEFAULT_ON = 'FFFFAAAA5555' (settings.js:3827) -> #FFAA55. */
+                /* LED_DEFAULT_ON = 'FFFFAAAA5555' -> #FFAA55. */
                 assert.deepEqual(run.strip.map((hex) => hex.toLowerCase()),
                     ['#ffaa55', '#ffaa55', '#ffaa55']);
                 assert.equal(run.isOn, true);
@@ -1366,7 +1366,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(report.word, 'Preferred');
                 assert.equal(report.aligned, true, 'over the switch column, not floating above the list');
                 assert.equal(new Set(report.heights).size, 1,
-                    'and no row is taller than its neighbours — the regression Ben reported');
+                    'and no row is taller than its neighbours — the reported regression');
             });
 
             test('both pages say that Search does not connect for you', async () => {
@@ -3287,11 +3287,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(got.messages.length, 2);
                 assert.match(got.messages[0].text, /grind seems coarse/);
                 assert.match(got.messages[1].text, /1\.2 finer/);
-                /* WHO WROTE IT. `from_user` is the ONLY thing on the record that says so —
+                /* WHO WROTE IT. `from_user` is the ONLY thing on the record that says so
                  * non-empty means Decent, absent means the account. */
                 assert.equal(got.messages[0].from, 'you');
                 assert.equal(got.messages[1].from, 'decent');
-                assert.match(got.messages[1].text, /Ray/);
+                assert.match(got.messages[1].text, /Support/);
                 assert.equal(got.empty, null, 'a thread with messages must not also say it is empty');
                 assert.equal(got.error, null);
             });
@@ -3299,14 +3299,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('a thread with an empty value in it still reads, which is what Slate’s regex was for', async () => {
                 await linkedPane();
                 await page.evalFn(() => window.__settings.supportThread(
-                    '[{"from_user":"Ray","now":1756200000,"subject": ,"body":"No subject on this one."}]',
+                    '[{"from_user":"Support","now":1756200000,"subject": ,"body":"No subject on this one."}]',
                 ));
                 const got = await box();
                 assert.equal(got.error, null, 'the one malformed shape Slate documents is repaired, not reported');
                 assert.equal(got.messages.length, 1);
                 assert.match(got.messages[0].text, /No subject on this one/);
                 await page.evalFn(() => window.__settings.supportThread(
-                    JSON.stringify([{ from_user: 'Ray', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.' }]),
+                    JSON.stringify([{ from_user: 'Support', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.' }]),
                 ));
             });
 
@@ -3340,7 +3340,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     "ReaPrime's own emailSerialMismatch tests body == '0' on a 200; a store reading only the "
                     + 'status would report a refusal as an empty thread');
                 await page.evalFn(() => window.__settings.supportThread(
-                    JSON.stringify([{ from_user: 'Ray', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.' }]),
+                    JSON.stringify([{ from_user: 'Support', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.' }]),
                 ));
             });
 

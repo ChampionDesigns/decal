@@ -1,5 +1,5 @@
 /**
- * B7 at Settings volume (.4, item b7-storage-routing).
+ * at Settings volume (.4, item b7-storage-routing).
  */
 
 import { test, describe } from 'node:test';

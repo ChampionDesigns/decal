@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 /** The screen's module, for `page.mount(markup, EDITOR_MODULE)`. */
 export const EDITOR_MODULE = Object.freeze(['/src/screens/editor-screen.js']);
 
-/** Every box this wave measures, by its deep selector. One spelling, tree-wide. */
+/** Every box this repo measures, by its deep selector. One spelling, tree-wide. */
 export const EDITOR = Object.freeze({
     screen: 'editor-screen',
     band: 'editor-screen >>> #band',

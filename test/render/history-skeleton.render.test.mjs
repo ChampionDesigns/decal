@@ -349,7 +349,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(m.scrollHeight <= m.clientHeight + 0.5, `${id} does not scroll`);
                 }
 
-                /* And the region above them owns none of it (bug L24: overflow:auto
+                /* And the region above them owns none of it (bug: overflow:auto
                  * makes a box a clipping ancestor, and a region that clipped would clip
                  * a focus ring it does not own). */
                 const region = await page.metrics(PAGE);
@@ -439,7 +439,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const back = await page.box(`${S} >>> #back >>> #btn`);
                 near(back.height, lg,
-                    'CITE history-viewer #hv-back [i=161] rect 82x82 — a band control is tall');
+                    'history-viewer #hv-back [i=161] rect 82x82 — a band control is tall');
 
                 const band = px(await page.resolveToken('--ui-band-h', 'block-size'));
                 const inset = px(await page.resolveToken('--ui-band-inset', 'block-size'));
@@ -526,7 +526,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + '"the circle vanished and left a faint letter floating in the header"');
                 assert.equal(got['border-top-color'],
                     await page.resolveToken('--ui-line-strong', 'border-top-color'),
-                    'CITE history-viewer .slate-hv-pick-tag [i=166] border-top-color');
+                    'history-viewer .slate-hv-pick-tag [i=166] border-top-color');
                 assert.equal(got.color, await page.resolveToken('--ui-text', 'color'),
                     'ORACLE same element color -> --ui-text, never --ui-muted');
                 const tag = await page.evalFn(() => window.__h.need('history-screen')

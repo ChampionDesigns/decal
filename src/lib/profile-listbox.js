@@ -1,5 +1,5 @@
 /**
- * THE REAL LISTBOX: its keys, its ids, its grouping (bug P12).
+ * THE REAL LISTBOX: its keys, its ids, its grouping.
  */
 
 import { groupProfilesByFolder } from './profile-folders.js';
@@ -105,7 +105,6 @@ export const R1_PROVISIONAL_ATTR = 'data-r1-provisional';
 /** The tag a grep finds when R1 lands and the provisional path comes out. */
 export const R1_PROVISIONAL_HIGHLIGHT = Object.freeze({
     ask: 'R1',
-    decision: 'B1',
     what: 'the loaded-profile highlight falls back to a title match against the listing',
     marking: R1_PROVISIONAL_ATTR,
     mustNotSurvive: 'v1 sign-off',

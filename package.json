@@ -11,6 +11,8 @@
     "gate-d": "node scripts/gate-d.js",
     "gate-wire": "node scripts/gate-wire.js",
     "i18n": "node scripts/build-i18n.js",
-    "mock-contract": "python3 tools/check_mock_contract.py"
+    "mock-contract": "python3 tools/check_mock_contract.py",
+    "private-scan": "node scripts/private-scan.js",
+    "prose-scan": "node scripts/prose-scan.js"
   }
 }

@@ -567,7 +567,6 @@ describe('D6 — restore to factory, and the half that is deferred', () => {
     });
 
     test('THE PURGE HALF LANDED, AND IT IS THE ONE IRREVERSIBLE ROUTE', async () => {
-        assert.equal(D6_PURGE_IS_LANDED.decision, 'D6');
         assert.equal(D6_PURGE_IS_LANDED.routeId, 'deleteProfilesByIdPurge');
 
         const target = LISTABLE[1];
@@ -709,7 +708,7 @@ describe('the favourite rail — rules 4 and 5 through the store', () => {
         const entries = store.favouriteEntries();
         assert.equal(entries.length, 5);
         assert.equal(entries[3], null,
-            'profileManager.js:450 threw a ReferenceError on exactly this input');
+            'threw a ReferenceError on exactly this input');
         assert.ok(entries.filter(Boolean).every((e) => typeof e.name === 'string' && e.name.length > 0),
             'and a filled slot carries rule 2\'s short label');
     });

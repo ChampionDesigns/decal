@@ -1,5 +1,5 @@
 /**
- *.6, hist-route-conversion and bug H9's surviving half, in a real engine at both Gate A geometries.
+ *.6, hist-route-conversion and bug H9's surviving half, in a real engine at both the render harness geometries.
  */
 
 import { test, describe, before, after } from 'node:test';

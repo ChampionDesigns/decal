@@ -28,10 +28,10 @@ export const entry = {
     title: 'Exit chip / sentence',
     module: '../../src/components/ui-exit-sentence.js',
     notes:
-        'Wave 4 #41, decision C8: the exit chip is ONLY a sentence and a remove ×. Slate '
+        'Wave 4 #41, decision C8: the exit chip is ONLY a sentence and a remove ×. The reference skin '
         + 'built the decomposed comparator / − / value / + controls and hid four of the five '
-        + 'with .pe-chip.has-summary (profile-editor-v3.css:695-698), keeping them "in the DOM '
-        + 'as a serialization/test seam" (profile_editor.js:1716-1729) — documented intent, '
+        + 'with .pe-chip.has-summary, keeping them "in the DOM '
+        + 'as a serialization/test seam" — documented intent, '
         + 'recorded as OQ-10, and the register accepted C8 against it: build the visible '
         + 'sentence and re-provide the seam as a plain function. That function is '
         + 'serializeExitSlots() in src/lib/exit-sentence.js, and there is nothing hidden in '
@@ -39,12 +39,12 @@ export const entry = {
         + 'Volume, Weight — occupied first, add-slots below, so the band never reorders. '
         + 'B2: not one min/max/step is authored in either file; every bound is AUTHORING_RANGES '
         + 'through the profile_modes port, which unified three disagreeing copies '
-        + '(CARRY_FORWARD.md §3d). The dead-exit warning is exit-validity.js, PORT-AS-IS, '
+        + 'The dead-exit warning is exit-validity.js, port-as-is, '
         + 'including its refusal to flag a 0.0 mL/s TARGET (a real zero-flow bloom).',
     states: [
         {
             id: 'threshold-and-volume',
-            title: 'A threshold and a volume, at Slate\'s 346px',
+            title: 'A threshold and a volume, at the reference skin\'s 346px',
             hostStyle: { 'inline-size': '346px' },
             notes:
                 'The oracle\'s first column. The sentence lands on 274 x 64 and the × on 64 x 64 '
@@ -67,9 +67,9 @@ export const entry = {
                 + 'takes an outline in --ui-tint-power and the note goes UNDER it as a sibling '
                 + 'row, never as a child: "the chip is a fixed-height row in a grid, and a child '
                 + 'that wraps to a second line tears the card\'s layout apart" '
-                + '(profile_editor.js:1764-1767). CITE [i=198] .pe-exit-dead-note color = '
+                + '. CITE [i=198] .pe-exit-dead-note color = '
                 + 'rgb(229, 165, 14) ← var(--slate-power) = --ui-tint-power, exact. THIS IS THE '
-                + 'STATE THAT KILLS E16: Slate appends that note into a fixed 280px track with no '
+                + 'STATE THAT KILLS E16: the reference skin appends that note into a fixed 280px track with no '
                 + 'overflow anywhere, so it spills into the rows above and below. Here the band '
                 + 'is content-sized with a floor and a stated overflow, and the note wraps inside '
                 + 'its own row. The note also names what WILL end the step, from the step\'s '
@@ -120,8 +120,8 @@ export const entry = {
             notes:
                 'The remove button keeps its 64px floor (ergonomics is physical — --ui-hit-min '
                 + 'and --ui-control-h are the two tokens density never multiplies) and the '
-                + 'sentence takes what is left, ellipsising subject and verb. Slate\'s summary '
-                + 'does exactly this (profile-editor-v3.css:726-738, overflow hidden + '
+                + 'sentence takes what is left, ellipsising subject and verb. The reference skin\'s summary '
+                + 'does exactly this (overflow hidden + '
                 + 'text-overflow ellipsis) — which is the half of E19 it got RIGHT; the rail '
                 + 'labels one file over are the half it got wrong.',
             html: `<ui-exit-sentence step='${PRESSURE_STEP}' index="0"></ui-exit-sentence>`,
@@ -132,9 +132,9 @@ export const entry = {
             hostStyle: { 'inline-size': '560px' },
             notes:
                 'The same band with 214px more to give. Nothing is 274px here: the sentence is '
-                + '1fr, the × is its own floor, the gap is one token. Slate\'s 274 was frozen at '
+                + '1fr, the × is its own floor, the gap is one token. The reference skin\'s 274 was frozen at '
                 + '1920x1200 and the oracle says so in its own banner — "geometry is FROZEN, '
-                + 'quote it as what Slate does, never as Decal\'s responsive target".',
+                + 'quote it as what the reference skin does, never as Decal\'s responsive target".',
             html: `<ui-exit-sentence step='${PRESSURE_STEP}' index="0"></ui-exit-sentence>`,
         },
         {

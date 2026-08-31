@@ -10,13 +10,13 @@ export const entry = {
         'Wave 4 #54, the body of a #18 instance — never its own modal machinery. The clock '
         + 'is the one element the spec calls genuinely fluid (§5.2 #54), and it stays fluid: '
         + 'the disc, the hand and the hub are an SVG viewBox that scales with the container. '
-        + 'What does NOT scale is the finger. Slate\'s twelve targets are SVG circles at r=22 '
+        + 'What does NOT scale is the finger. The reference skin\'s twelve targets are SVG circles at r=22 '
         + 'inside an SVG at max-width: 78vw — a 44-unit touch target that shrinks with the '
         + 'window and is already under the 48px floor at its natural size. Here they are HTML '
         + 'buttons at --ui-hit-min, at fluid POSITIONS and a fixed SIZE (spec §2.2 row 1), '
         + 'which is also what lets the four selection dials reach the selected number: '
-        + 'background-color does not paint an SVG <text>, and that is exactly why Slate reached '
-        + 'for `fill: #fff` — bug O16, time-picker-modal.css:192. All the time arithmetic is '
+        + 'background-color does not paint an SVG <text>, and that is exactly why the reference skin reached '
+        + 'for `fill: #fff` — bug O16. All the time arithmetic is '
         + 'src/lib/time-picker-core.js, PORT-AS-IS.',
     states: [
         {
@@ -26,16 +26,16 @@ export const entry = {
                 + 'the digits slotted in at --ui-display-md, so the bank keeps the roles, the '
                 + 'roving tabindex, the seam and the four dials while the body owns the type. '
                 + 'The hand angle is hourHandAngle(6) from the ported core; the 6 chip sits on '
-                + 'the end of it and IS the knob Slate drew separately.',
+                + 'the end of it and IS the knob the reference skin drew separately.',
             html: '<ui-time-picker value="06:30" label="Wake time"></ui-time-picker>',
         },
         {
             id: 'minute-dial',
             title: 'Minute dial — the same face, twelve other labels',
             notes: 'mode="minute". Nothing about the artwork changes: same viewBox, same ring '
-                + 'radius, same chips, minuteHandAngle(30) instead of hourHandAngle(6). Slate '
+                + 'radius, same chips, minuteHandAngle(30) instead of hourHandAngle(6). The reference skin '
                 + 'auto-advances here after an hour is tapped ("like the OS picker", '
-                + 'time-picker-modal.js:105) and so does this — but only on an explicit choice, '
+                + 'the old picker) and so does this — but only on an explicit choice, '
                 + 'never on arrow-key roving, because a dial that changes under the caret is '
                 + 'unusable from a keyboard.',
             html: '<ui-time-picker value="06:30" mode="minute" label="Wake time"></ui-time-picker>',
@@ -45,15 +45,15 @@ export const entry = {
             title: 'Off the ticks — 07:37',
             notes: 'The minute dial exposes multiples of five, so 37 has no chip to check: '
                 + 'snapMinute(37) is 35, which is not 37, so aria-checked is false on all twelve '
-                + 'and the hand alone carries the value. Slate\'s comment for the same branch is '
-                + '"no exact number between ticks" (time-picker-modal.js:61). Look at this one '
+                + 'and the hand alone carries the value. The reference skin\'s comment for the same branch is '
+                + '"no exact number between ticks". Look at this one '
                 + 'to confirm the hand reads as the answer when no number is lit.',
             html: '<ui-time-picker value="07:37" mode="minute" label="Wake time"></ui-time-picker>',
         },
         {
             id: 'readout',
             title: 'The departure: no colon',
-            notes: 'Slate separates HH and MM with a <span class="tpm-colon">:</span> because its '
+            notes: 'the reference skin separates HH and MM with a <span class="tpm-colon">:</span> because its '
                 + 'two segments are detached rounded boxes 8px apart. The readout here is a '
                 + 'one-piece bank, so the divider is the bank\'s own seam — CONVENTIONS §13, "a '
                 + 'divider is a gap, not a border". Two hours are shown side by side so the seam '
@@ -66,7 +66,7 @@ export const entry = {
             id: 'in-dialog',
             title: 'Where it actually lives — inside #18',
             notes: 'The whole overlay, assembled: the title is the dialog\'s `heading` and the '
-                + 'Cancel/OK pair is its `actions` slot. Slate drew both inside the card, and its '
+                + 'Cancel/OK pair is its `actions` slot. The reference skin drew both inside the card, and its '
                 + 'title is bug A10 — "the time picker\'s is 20px/800 against the component\'s '
                 + '28px/500". Not restating the type here is how A10 dies for this consumer. '
                 + 'Modality, the focus trap, inertness, Escape and the scrim are all #18\'s; this '

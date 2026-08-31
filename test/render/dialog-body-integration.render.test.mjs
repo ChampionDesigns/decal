@@ -523,7 +523,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.equal(events[0].detail.reason, 'escape');
 
                         assert.deepEqual(await escapes(p), [],
-                            'numpad-modal.js:260-268 — the shell owns the key before anything else acts on it');
+                            'the shell owns the key before anything else acts on it');
 
                         assert.equal(
                             await p.evalFn(() => document.getElementById('outside').inert === true), false,

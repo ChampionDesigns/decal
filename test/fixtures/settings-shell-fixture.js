@@ -1,12 +1,12 @@
 /**
- * settings-shell-fixture — the Settings screen, mounted and driven, for Gate B.
+ * settings-shell-fixture — the Settings screen, mounted and driven, for the contract check.
  *
- * Wave 5.4, the skeleton-and-navigation cluster.
+ * the skeleton-and-navigation cluster.
  *
  * WHY THIS ONE IS SO MUCH SMALLER THAN `selector-loop-fixture`, and it is not an
  * omission: the Settings SKELETON has no data layer. It imports nothing from `src/data/`
  * or `src/stores/`, opens no socket, makes no request, and reads no storage key — every
- * one of those has its own row in this wave (`b7-storage-routing` resolves reads and
+ * one of those has its own row (`b7-storage-routing` resolves reads and
  * writes through `src/lib/storage-routes.js`; the leaves' rows own their endpoints). So
  * there is no transport to wrap and no boot to build: the fixture creates the element,
  * hands it attributes, and lets Lit render.
@@ -33,12 +33,12 @@ if (typeof HTMLElement !== 'undefined') {
 await import('../../src/screens/settings-screen.js');
 
 /* ---------------------------------------------------------------------------
- * THE LEAVES' HALF (wave 5.4, the one-primitive cluster).
+ * THE LEAVES' HALF (the one-primitive cluster).
  *
  * The skeleton needed no data layer; the leaves are the thing that connects one. So the
  * fixture now BUILDS THE MODEL — not a boot, and not a transport: a memory-backed
  * storage router, the real settings store over it, the real capability store (which has
- * asked nothing, so every gate reads UNKNOWN and every gated row is hidden — A3
+ * asked nothing, so every gate reads UNKNOWN and every gated row is hidden
  * fail-closed, and the honest picture against a mock that answers 503 by design), the
  * real limits table through the R2 door, and a SCRIPTED machine document so the machine
  * rows have values to draw.
@@ -118,7 +118,7 @@ const MACHINE_SETTINGS = {
 };
 
 /** `GET /machine/settings/advanced`'s six — the SECOND DE1 document, and the door that
- *  had a client from wave 0b and no caller until 24 Aug 2026. */
+ *  had a client and no caller. */
 const MACHINE_ADVANCED = {
     heaterPh1Flow: 4, heaterPh2Flow: 6, heaterIdleTemp: 20, heaterPh2Timeout: 10,
     heaterVoltage: 230, refillKitSetting: 2,
@@ -132,7 +132,7 @@ const MACHINE_ADVANCED = {
  * to say the workflow door "stays out: the Live rail's own suite owns that document, and a
  * second workflow store here would be two answers to one question in one page." That was
  * true while the only rows behind it were the steam and hot-water TARGETS, which this suite
- * renders as absent on purpose. On 26 August 2026 four more rows moved onto it — steam flow
+ * renders as absent on purpose. Four more rows moved onto it — steam flow
  * and all three flush values — because the Live rail was reading them off the workflow while
  * the settings page read them off `/machine/settings`, one setting through two doors. With
  * no door here those four rows would render their fallbacks and this suite would be
@@ -208,9 +208,9 @@ const publishUpdateFeed = () => {
 /* ---- the scale feed, through the REAL reader ------------------------------
  *
  * THE CALIBRATION WALK IS THE ONLY SETTINGS SURFACE THAT DRAWS A LIVE NUMBER, and until
- * 27 August 2026 this fixture had no scale at all — so `_scaleWeight` was null in every
+ * this fixture had no scale at all — so `_scaleWeight` was null in every
  * run and the walk's reading rendered the absence dash whatever the case did. The check step's
- * "What the scale reads" line was, in this suite, untestable; the audit's point 103 put
+ * "What the scale reads" line was, in this suite, untestable; an earlier run's point 103 put
  * the same line on three more steps, which made an unexercised path three times wider.
  *
  * A RAW FRAME THROUGH THE REAL READER, exactly as the update feed above and for the same
@@ -260,7 +260,7 @@ function buildModel() {
 
     /* THE DE1 SETTINGS DOOR, scripted. The OTHER door is real: `flowMultiplier` goes
      * through the calibration store over the fixture transport, which is what makes
-     * D9's two-door split a thing this fixture exercises rather than describes. */
+     * the rule's two-door split a thing this fixture exercises rather than describes. */
     const settingsPort = {
         read: async () => ({ ...MACHINE_SETTINGS }),
         /* A REFUSABLE WRITE. `SERVER.settingsRefuse` makes this door answer false, which is
@@ -373,7 +373,7 @@ function buildModel() {
                 },
             },
             /* AND THE ANSWER IS THE CHANNEL'S OWN SHAPE, `{ok}` or `{ok, reason}` — added
-             * 29 August 2026 for audit F-035. `rea-sockets.js`'s `send()` answers
+             * for audit F-035. `rea-sockets.js`'s `send()` answers
              * `{ok: false, reason: 'socket is not open'}` when the socket is down and
              * `live-stores.checkAppUpdate` answers `{ok: false, reason: 'the update feed is
              * not attached'}` when `attachAll()` has not run; a fixture that only ever
@@ -518,7 +518,7 @@ function buildModel() {
          * the row falls back to its stored key and the suite would be measuring the
          * fallback, which is precisely the defect its own tests exist to catch.
          *
-         * ONE SOURCE FOR BOTH HALVES: `SERVER.displayFrame` is what `displayFrame(...)`
+         * ONE FOR BOTH HALVES: `SERVER.displayFrame` is what `displayFrame(...)`
          * arms and `SERVER.brightnessSent` is what a case asserts a command against, so
          * the bespoke `display` door above and this panel cannot disagree. */
         panel: {
@@ -566,19 +566,19 @@ function buildModel() {
 
 
 /* ---------------------------------------------------------------------------
- * THE BESPOKE CLUSTER'S HALF (wave 5.4, `bespoke-leaves-nine`, D7, D9).
+ * THE BESPOKE CLUSTER'S HALF (`bespoke-leaves-nine`).
  *
  * A FAKE SERVER, NOT FAKE STORES. The nine bespoke leaves read four real stores
  * (`machine-info-store`, `led-strip-store`, `calibration-store`, `skins-store`) and every
  * one of them is constructed here FOR REAL, over a transport whose `request()` answers
- * from the table below. That is deliberate and it is what makes the D7 drill possible:
+ * from the table below. That is deliberate and it is what makes the drill possible:
  * a hand-rolled fake store would prove that the fake store coalesces writes, which is
  * not the claim. The claim is about `led-strip-store.js`, so the suite drives
  * `led-strip-store.js` and counts what reaches the wire.
  *
  * THE DEFAULT IS THE MOCK'S OWN VERDICT. `capabilitiesFail` starts TRUE, so
  * `/machine/capabilities` fails exactly as `tools/mock_rea.py` makes it fail (503, by
- * design, no fixture), `entries` stays null and every A3 gate reads UNKNOWN — which
+ * design, no fixture), `entries` stays null and every gate reads UNKNOWN — which
  * means lighting, load cells and sleep/wake render NOTHING until a driver says otherwise.
  * A fixture whose default was "everything present" would photograph a machine nobody has.
  * ------------------------------------------------------------------------- */
@@ -602,7 +602,7 @@ const INFO_START = {
     buildNumber: '2259',
     appStore: false,
     fullVersion: '1.0.0-bengle.1+2259',
-    localIp: '192.168.1.73',
+    localIp: '192.0.2.10',
 };
 
 /** `ScaleCalibrationState.toJson`'s five fields, at the machine's resting state. */
@@ -656,7 +656,7 @@ const SERVER = {
     ],
 
     /* THE TEN LEAVES THAT LANDED ON 24 AUG 2026. Every one of them is a route ReaPrime
-     * already served with no client behind it, so the fixture server grows with them —
+     * already served with no client behind it, so the fixture server grows with them
      * fake server, real stores, which is this file's whole rule. */
     presence: {
         userPresenceEnabled: true,
@@ -676,7 +676,7 @@ const SERVER = {
      *                  an Open button onto a page of raw JSON.
      *   time-to-ready  a websocket and nothing else. No button, and never had one.
      *   settings       one http endpoint whose id is `ui`. The convention both HTML-serving
-     *                  plugins use and the one Slate hard-codes. This is the button's row.
+     *                  plugins use and the one the previous skin hard-codes. This is the button's row.
      *
      * AND TWO OF THE THREE CARRY A SECOND CASE. The settings plugin's description ends in a
      * raw localhost URL, exactly as the real one does, so the blurb's stripping is provable;
@@ -697,7 +697,7 @@ const SERVER = {
             ],
             /* THE SIX THE REAL MANIFEST DECLARES, verbatim from
              * `tools/rea-fixtures/api__v1__plugins.json` (a capture off the bench tablet).
-             * It carried only the first three until 29 August 2026, which is why audit
+             * It carried only the first three, which is why audit
              * F-045 — "a numeric plugin setting opens a text keyboard" — could not be
              * driven here: the fixture had no `type: "number"` field for the leaf that
              * renders one. Three added, none changed. */
@@ -737,7 +737,7 @@ const SERVER = {
             description: 'Displays settings. http://localhost:8080/api/v1/plugins/settings.reaplugin/ui',
             /* ALREADY SPELLED WITH ITS OWN v, which the real manifest does not do today and
              * a third-party manifest is free to do tomorrow — `version` is free-form text.
-             * The row wrote `v${version}` outright until 27 August 2026, so this is the
+             * The row wrote `v${version}` outright, so this is the
              * manifest that rendered "vv2.0.0". */
             version: 'v2.0.0',
             loaded: true,
@@ -765,12 +765,12 @@ const SERVER = {
      * A STRING AND NOT AN ARRAY, deliberately. The account proxy relays the upstream body
      * VERBATIM and the transport reads it with `expect: 'text'`, so the thing the store
      * actually receives is text — and the one property most worth proving is that the
-     * store survives the MALFORMED shape Slate had to write a regex for (`"subject": ,`).
+     * store survives the MALFORMED shape the previous skin had to write a regex for (`"subject": ,`).
      * A fixture that handed over a parsed array could not express that at all, and the
      * repair would be untested code guarding against a case the suite could not produce.
      */
     supportThread: JSON.stringify([
-        { from_user: 'Ray', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.', automsg: 0 },
+        { from_user: 'Support', now: 1756200000, subject: 'Re: grinder', body: 'Try 1.2 finer.', automsg: 0 },
         { now: 1756100000, subject: 'grinder', body: 'The grind seems coarse.' },
     ]),
     /** Every message the fixture accepted, as `{subject, body}`. */
@@ -782,7 +782,7 @@ const SERVER = {
     /**
      * WHAT `POST /feedback` ANSWERS, or null for the ordinary 201 with no issue named.
      *
-     * THE THREE OUTCOMES ARE THREE DIFFERENT SCREENS and until 27 August 2026 this fixture
+     * THE THREE OUTCOMES ARE THREE DIFFERENT SCREENS and this fixture
      * could only produce one of them: a 201 with `{success:true}` and nothing else. So the
      * store's handling of the issue it filed, and its handling of a refusal's REASON, were
      * both untestable — which is how both came to be missing. `{status, body}`.
@@ -801,7 +801,7 @@ const SERVER = {
         nightModeMorningTime: 420,
         lowBatteryBrightnessLimit: true,
         /* THE DECAID PAGE'S FOUR, AND THEY WERE MISSING. The page went from an apology to
-         * four controls on 26 August 2026, and this payload never grew the keys behind
+         * four controls, and this payload never grew the keys behind
          * them — so all four rows read ABSENT in every test and every capture, and nothing
          * could tell a row that works from a row that does not. Same shape as the reset
          * table's NOW column, found the same way.
@@ -856,7 +856,7 @@ const SERVER = {
      *
      * Null is the default and it is a real state — a settings page opened with no scale
      * paired, which is most of them — and the calibration walk must draw the absence dash for
-     * it rather than a zero nobody weighed (A7). `scaleWeight(...)` arms it.
+     * it rather than a zero nobody weighed. `scaleWeight(...)` arms it.
      */
     scaleFrame: null,
     /**
@@ -869,14 +869,14 @@ const SERVER = {
      */
     scaleStale: false,
     /**
-     * `GET /api/v1/info`, at the shape `tools/rea-fixtures/api__v1__info.json` records —
+     * `GET /api/v1/info`, at the shape `tools/rea-fixtures/api__v1__info.json` records
      * which is a REAL capture off a bench tablet, branch and commit included.
      *
      * `appInfo(null)` makes the route fail, which is what a ReaPrime too old to serve this
      * route looks like and is the state every fact row must draw as a dash.
      */
     info: { ...INFO_START },
-    /* WHAT A SEARCH TURNS UP — one of each type since 26 August 2026, because the Machine
+    /* WHAT A SEARCH TURNS UP — one of each type, because the Machine
      * page renders the found list now and a fixture with only scales in it could not tell
      * "no machine found" from "the list is not rendered". */
     scanResults: [
@@ -917,7 +917,7 @@ const SERVER = {
      * pair exists to pin — a header Save that closed the page without committing anything. */
     ledCommits: 0,
     ledResets: 0,
-    /** When true, a PUT parks until `releaseLed()` — "a slow mock", D7's own condition. */
+    /** When true, a PUT parks until `releaseLed()` — "a slow mock", the rule's own condition. */
     ledHeld: false,
     ledParked: [],
 };
@@ -941,7 +941,7 @@ function createFixtureTransport() {
     const writeListeners = [];
     return {
         socketUrl: () => 'ws://fixture',
-        /* THE ABSOLUTE URL OF A PATH, and it was missing until 27 August 2026.
+        /* THE ABSOLUTE URL OF A PATH, and it was missing.
          *
          * `plugins-store.pageUrl()` is the one caller: a plugin's own page is a NAVIGATION
          * rather than a request, so the store hands back a URL and the browser opens it.
@@ -1097,7 +1097,7 @@ function createFixtureTransport() {
                 /* ---- Help > Talk to Decent, through the account proxy ------
                  *
                  * BOTH ANSWER TEXT, WHICH IS WHAT THE REAL ROUTE DOES. The handler relays
-                 * the upstream status and body verbatim and the spec types the success
+                 * the upstream status and body verbatim and the document types the success
                  * content `application/octet-stream`; the store therefore reads with
                  * `expect: 'text'` and gets a string. A fixture that answered a parsed
                  * object would be modelling a route this one is not.
@@ -1290,10 +1290,10 @@ function createFixtureTransport() {
                     /* A SERVER THAT WOULD NOTICE A DELETE, so "this skin does not remove
                      * plugins" is a measurement rather than a claim.
                      *
-                     * The Plugins page had a Remove button until 27 August 2026 and its
+                     * The Plugins page had a Remove button and its
                      * confirmation said the plugin could never come back. On the pin's
                      * bundled six that is false — `_copyBundledPlugins()` restores every
-                     * one of them at the next app start, with auto-load set true again —
+                     * one of them at the next app start, with auto-load set true again
                      * so what Remove actually did was wipe the plugin's stored settings
                      * and its SECURE settings, the Visualizer password among them. The
                      * button, the dialog and the store's `remove()` are gone; this counter
@@ -1304,7 +1304,7 @@ function createFixtureTransport() {
                         SERVER.pluginDeletes.push(decodeURIComponent(path.split('/')[2]));
                         return ok({ message: 'removed', id: path.split('/')[2] });
                     }
-                    /* THE MOCK'S OWN ANSWER FOR A MISS: 503 with a body, never 404 —
+                    /* THE MOCK'S OWN ANSWER FOR A MISS: 503 with a body, never 404
                      * 404 is ReaPrime's feature-absent signal (tools/mock_rea.py:63-65). */
                     return fail(503, { error: `fixture has no recording for ${key}` });
             }
@@ -1345,7 +1345,7 @@ const settle = async () => {
     const leaf = screen?.shadowRoot?.getElementById('leaf');
     await leaf?.updateComplete;
     /* The bespoke half settles too, or a capture lands between the primitive rows and
-     * the section §4.4 says the leaf needs. */
+     * the section  says the leaf needs. */
     await screen?.shadowRoot?.getElementById('bespoke')?.updateComplete;
     await new Promise((resolve) => requestAnimationFrame(resolve));
 };
@@ -1398,7 +1398,7 @@ const api = {
      * Change one row THROUGH ITS CONTROL, which is the whole point: the control announces,
      * the leaf writes, the leaf announces, and the screen reacts. Calling `model.set()`
      * directly would write the value and skip everything downstream of it — and one row
-     * (C6's display size) has an effect that lives precisely there, so a fixture that took
+     * (the rule's display size) has an effect that lives precisely there, so a fixture that took
      * the short cut would photograph a preference that never applied.
      *
      * The event is the control's own `change`, in the control's own vocabulary; the only
@@ -1437,13 +1437,13 @@ const api = {
     },
 
 
-    /* ---- the bespoke cluster's levers (wave 5.4) ---------------------------
+    /* ---- the bespoke cluster's levers  ---------------------------
      * Every one of these moves the SERVER and then re-reads through the real store, so a
      * driver never pokes a store's state directly. A fixture that could set a store's
      * value would let a test assert a state the store cannot actually reach. */
 
     /**
-     * Serve, or refuse to serve, the capability array — A3's whole input.
+     * Serve, or refuse to serve, the capability array — the rule's whole input.
      *
      * `null` restores the mock's own behaviour (the read FAILS, `entries` stays null,
      * every gate reads UNKNOWN and the three gated leaves render nothing). An array is
@@ -1470,7 +1470,7 @@ const api = {
     bespokeEl: () => screen?.shadowRoot?.getElementById('bespoke') ?? null,
 
     /* THE PRIMITIVE HALF, for the same reason. A leaf draws BOTH halves — the registry
-     * rows and, for a bespoke leaf, its own section — and since 26 August 2026 several
+     * rows and, for a bespoke leaf, its own section — and several
      * settings moved from the second half to the first (the cup warmer's four, the sleep
      * policy's two). A driver asserting where a control ended up needs to see both. */
     leafEl: () => screen?.shadowRoot?.getElementById('leaf') ?? null,
@@ -1540,7 +1540,7 @@ const api = {
     /**
      * Make one route refuse, or stop it refusing. `METHOD /path`, as the switch spells it.
      *
-     * A REFUSAL IS A STATE THE SURFACE HAS TO DRAW, and until 26 August 2026 this fixture
+     * A REFUSAL IS A STATE THE SURFACE HAS TO DRAW, and this fixture
      * could not produce one — so `writeError` was written by five operations and read by
      * one, and nothing failed. Pass `false` to clear.
      */
@@ -1567,7 +1567,7 @@ const api = {
     /** What the leaf asked the panel for. The half a screenshot cannot show. */
     brightnessSent: () => [...SERVER.brightnessSent],
 
-    /** D7's drill needs A SLOW MOCK: park every PUT until `releaseLed` lets them go. */
+    /** the rule's drill needs A SLOW MOCK: park every PUT until `releaseLed` lets them go. */
     holdLed() { SERVER.ledHeld = true; },
 
     /** Let the parked writes answer, one round at a time. */
@@ -1651,7 +1651,7 @@ const api = {
      * `null` IS "NO FRAME HAS ARRIVED" and is the fixture's default: a settings page opened
      * with no scale paired. It is a different state from a scale reporting zero, and the
      * calibration walk has to draw the first as the absence dash and the second as `0.0 g` —
-     * which is the whole of A7 on the one settings surface that shows a live reading.
+     * which is the whole of on the one settings surface that shows a live reading.
      *
      * `stale` HOLDS THE LAST FRAME AND MARKS THE SOURCE GONE, which is the feed's own STALE
      * and the third state. It is not a fourth kind of absence: the leaf must render it
@@ -1806,7 +1806,7 @@ const api = {
      *
      * THE THREE OUTCOMES ARE THREE DIFFERENT SCREENS — a 201 naming the issue it filed, a
      * 201 naming nothing, and a refusal carrying the server's own reason — and this
-     * fixture could produce only the middle one until 27 August 2026. Which is how the
+     * fixture could produce only the middle one. Which is how the
      * store came to drop the body of its own 201 and to read a refusal's reason out of a
      * field that does not exist on a failure.
      */

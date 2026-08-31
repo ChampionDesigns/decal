@@ -9,7 +9,7 @@ import {
     profileTotals, profileTotalTerms, formatCeilingDuration, TOTALS_SEPARATOR,
 } from '../src/lib/profile-totals.js';
 
-/** A step in the shape ReaPrime serves. VALUES ONLY — no bound is stated here (B2). */
+/** A step in the shape ReaPrime serves. VALUES ONLY — no bound is stated here. */
 const step = (over = {}) => ({
     name: 'Step',
     pump: 'flow',
@@ -104,7 +104,7 @@ describe('the terms are the oracle\'s wording, as source strings and their param
         assert.equal(sentence(morning), '3 steps · max 2:00 · cap 100 mL · peak 6.0 bar');
     });
 
-    test('every term travels as a SOURCE STRING and its parameters, never as prose (D2)', () => {
+    test('every term travels as a STRING and its parameters, never as prose (D2)', () => {
         assert.deepEqual(profileTotalTerms(morning).map((term) => term.text), [
             '{count} steps', 'max {duration}', 'cap {volume} mL', 'peak {pressure} bar',
         ]);

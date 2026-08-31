@@ -1,5 +1,5 @@
 /**
- *.6, the PORT cluster: hist-port-history-viewer, hist-compare-bar, hist-tests-intent, bug H8 IN SITU, and bugs chart-C8 / H7.
+ * The PORT cluster: hist-port-history-viewer, hist-compare-bar, hist-tests-intent.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -71,7 +71,7 @@ const PICK_PAIR = `(async () => {
     await screen.updateComplete;
   };
   await pick('select-a', '${SHOT_A}');
-  /* THE COMPARISON IS ASKED FOR (Ben, 24 Aug 2026). Until it is, B and the alignment bar
+  /* THE COMPARISON IS ASKED FOR. Until it is, B and the alignment bar
      are ABSENT — the screen opens on ONE shot, which is what tapping the Live chart asks
      for. Every assertion below is about the comparison, so the drive opens it first. */
   screen.comparing = true;
@@ -194,7 +194,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(pages.light, 0, 'app-root creates the element and appends nothing');
             assert.deepEqual(pages.mounted,
                 ['history-flow-page', 'history-power-page', 'history-data-page'],
-                'THREE pages since fix run 6, in §4.5s order: Ben reversed D1 for the power '
+                'THREE pages, in the decided order: the carve-out was reversed for the power '
                 + 'page, and the two chart pages belong together with the table after them');
             assert.equal(pages.panels, 3, 'and #32 adopted all three as tab panels');
         });
@@ -272,7 +272,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(state.bar, before.bar,
                     `H8: a ${state.size} control must not size the strip. Slate measured a `
                     + '64px Reset setting the height over a 44px slider beside it '
-                    + '(slate-components.css:151).', 0.51);
+                    + '.', 0.51);
                 near(state.region, before.region,
                     `and the page region must not move either at ${state.size}`, 0.51);
             }
@@ -451,7 +451,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const card = flow.renderRoot.getElementById('plot-top');
                 await card.ready;
                 /* SPY ON THE CALL THE RENDERER RECEIVES. Not a built-and-discarded layout
-                 * object (chart-C8 / H7) — the argument the plot is about to stroke from. */
+                 * object ( / ) — the argument the plot is about to stroke from. */
                 const seen = [];
                 const real = card.setRules.bind(card);
                 card.setRules = (value) => { seen.push(value); return real(value); };

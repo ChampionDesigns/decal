@@ -39,15 +39,15 @@ export const entry = {
     title: 'Menu / popover',
     module: './entries/ui-menu.demo.js',
     notes:
-        'Wave 3 #21. Slate builds this twice — context-menu.css (a fixed, JS-positioned '
+        'Wave 3 #21. The reference skin builds this twice — one a fixed, JS-positioned '
         + 'context menu) and .pe-chip-add-menu (an absolutely positioned popover in the editor) — '
-        + 'and the first is half-overridden by an unscoped block in slate-shell.css that sets '
+        + 'and the first is half-overridden by an unscoped block that sets '
         + 'box-shadow: none, so the app ships a floating menu with no elevation (bug O2). The '
         + 'other filed bug is quieter: a menu taller than the window keeps its top clamped and '
         + 'has no overflow rule, so its LAST items are simply unreachable (O11). Here the '
         + 'elevation is --ui-elev-2, declared once inside a shadow root nothing can reach, and '
         + 'the height is capped to the room beside the anchor with the list scrolling inside it. '
-        + 'Positioning is Slate\'s own arithmetic on the token scale: centred on the anchor, one '
+        + 'Positioning is the reference skin\'s own arithmetic on the token scale: centred on the anchor, one '
         + '--ui-space-2 gap, flip above when below will not hold it, --ui-space-3 of edge '
         + 'padding. No oracle answer exists for any of it — all three of the classes above return '
         + '"0 elements in 0 states", because no captured state has a menu open.',
@@ -82,8 +82,8 @@ export const entry = {
             title: 'Flipped above — no room below',
             notes: 'placement="above" shows what the automatic flip does when the anchor is near '
                 + 'the bottom of the window: the surface sits one gap ABOVE the trigger and the '
-                + 'arrow moves to the bottom edge. Slate computes the same flip '
-                + '(context-menu.js:35) and this keeps its test — prefer below, flip only when '
+                + 'arrow moves to the bottom edge. The reference skin computes the same flip '
+                + ' and this keeps its test — prefer below, flip only when '
                 + 'below cannot hold the menu and above has more room.',
             hostStyle: stage('420px'),
             html: '<div style="position:absolute; inset-block-end: 16px">'
@@ -99,8 +99,8 @@ export const entry = {
                 + 'same token rather than the neutral fill, so the one row you want to be sure '
                 + 'about does not look like every other. Disabled is the base\'s single dial at '
                 + '--ui-opacity-disabled, and the keyboard walk steps over it. The separator is a '
-                + 'seam: a 1px grid gap over --ui-line, not the bordered divider element Slate '
-                + 'draws (context-menu.css:118-122).',
+                + 'seam: a 1px grid gap over --ui-line, not the bordered divider element the reference skin '
+                + 'draws.',
             hostStyle: stage('520px'),
             html: '<ui-menu open label="Profile actions" items="' + WITH_STATES + '">'
                 + '<ui-button slot="trigger">Actions</ui-button>'
@@ -111,7 +111,7 @@ export const entry = {
             title: 'Fourteen rows — bounded and scrollable (O11)',
             notes: 'The bug this component exists to kill, at a stage too short to hold the list. '
                 + 'The cap comes from the room beside the anchor, the list scrolls inside it with '
-                + 'a visible scrollbar, and the last row is reachable by End. Slate clamps the top '
+                + 'a visible scrollbar, and the last row is reachable by End. The reference skin clamps the top '
                 + 'edge, declares no overflow anywhere, and cannot scroll the page — so its last '
                 + 'rows are painted below the window and can never be pressed.',
             hostStyle: stage('420px'),
@@ -136,7 +136,7 @@ export const entry = {
             title: 'The popover half — slotted content, no rows',
             notes: 'With no items the surface carries no role=menu and no rows; whatever is slotted '
                 + 'into it is the popover\'s body. This is the shape #41\'s add-slot popover needs '
-                + '(Slate\'s .pe-chip-add-menu, the second of the two implementations this '
+                + '(the reference skin\'s .pe-chip-add-menu, the second of the two implementations this '
                 + 'component replaces), and it keeps the same anchoring, elevation, clamp and '
                 + 'dismissal contract as the list form.',
             hostStyle: stage('340px'),

@@ -1,61 +1,60 @@
 /* chart-channels.css — the eighteen data-channel colours and the four chart
- * surface colours. CSS is the SINGLE SOURCE for chart colour (A6). There is no
+ * surface colours. CSS is the SINGLE SOURCE for chart colour. There is no
  * second declaration of any of these values anywhere in the tree.
  *
- * SIXTEEN ARE PORTED AND TWO ARE NEW. Slate's palette is sixteen channels and
+ * SIXTEEN ARE PORTED AND TWO ARE NEW. The previous palette is sixteen channels and
  * its chart never drew a running total; gate 6 adds two — cumulative `weight`
- * and cumulative `volume` (Part 6: "where the missing `weight` and `volume`
+ * and cumulative `volume` ("where the missing `weight` and `volume`
  * channels are added"). Those two are the only values in this file with no
  * source to port and no oracle answer, and the rule they were chosen by is
  * stated with them below.
  *
  * WHAT THIS REPLACES. Today all twenty of these values exist ONLY in
- * JavaScript. `installChartPaletteCssVariables()` (chart-palette.js:124-156,
- * verified) walks two frozen objects and writes ~40 properties as INLINE STYLES
+ * JavaScript. `installChartPaletteCssVariables()` walks two frozen objects and writes ~40 properties as INLINE STYLES
  * on <html>, then appends a <style> element to <head> as a theme bridge. Three
  * consequences, all of them defects:
  *   1. No stylesheet can override an inline style on the root element, so a
  *      fork cannot retheme a chart without editing code — which is exactly what
  *      "theming happens in tokens and components, full stop" forbids.
- *   2. `.slate-chart-card { background: var(--slate-chart-well) }`
- *      (slate-components.css:54) has NO fallback: if that chain ever fails the
+ *   2. the old chart-card rule
+ * has NO fallback: if that chain ever fails the
  *      background is invalid-at-computed-value-time and every chart card in the
- *      skin renders transparent (bug O3). Whether it also affects the very
- *      first paint, before app.js:39 runs, was never established.
- *   3. The five --slate-chart-* tokens that DO exist in CSS have zero consumers
+ *      skin renders transparent. Whether it also affects the very
+ *      first paint, before the app script runs, was never established.
+ *   3. The five old chart tokens that DO exist in CSS have zero consumers
  *      and are documentation of JS constants rather than the source of them —
- *      and one has already drifted from the value it documents (bug C4).
- * A6 deletes the mechanism: `installChartPaletteCssVariables` is retired, this
+ *      and one has already drifted from the value it documents.
+ * This file deletes the mechanism: `installChartPaletteCssVariables` is retired, this
  * file is the declaration, and the chart component reads its computed tokens
  * once per build and per theme change (getComputedStyle on its own host) or
  * takes them as properties. uPlot needs numbers; it gets them from CSS, at a
  * cost of one style read per chart build, negligible against a redraw.
  *
- * WHY A SEPARATE FILE from tokens.css: SCOPE Part 2 §2's tree names both, and a
+ * WHY A SEPARATE FILE from tokens.css: the tree names both, and a
  * fork retargeting only the chart edits exactly one file. It is linked from
  * index.html at document level, like tokens.css — NOT adopted into a shadow
  * root, because custom properties inherit through shadow boundaries and these
  * are the values that have to reach every chart in the app.
  *
  * NAMING. Channels are --ui-channel-<name>, in the same lower-kebab spelling
- * chart-palette.js:102-119 already publishes (pressure, target-pressure, flow,
+ * the earlier palette module already publishes (pressure, target-pressure, flow,
  * target-flow, group-temperature, target-group-temperature, weight-flow, power,
  * mix-temperature, target-mix-temperature, resistance, impedance,
  * detector-event, step-boundary, steam-temperature, milk-temperature), so the
  * rename is mechanical. Chart SURFACE is --ui-chart-<part>, kept apart from the
- * channel family exactly as the old code kept --slate-chart-* apart from
- * --slate-data-*: folding one into the other aliases properties that were never
+ * channel family exactly as the old code kept its chart tokens apart from
+ * its data tokens: folding one into the other aliases properties that were never
  * published. The chart's GEOMETRY tokens (--ui-chart-stroke, -tick, -gutter-*,
  * ...) live in tokens.css §3.8; only colour lives here.
  *
  * BOTH THEME BLOCKS, ALWAYS. The eighteen channel values are byte-identical in
- * light and dark today and are still written twice: guard 4 (SCOPE Part 2 §7)
+ * light and dark today and are still written twice: guard 4
  * fails a colour token missing from a theme block, and the duplication is what
- * gives each theme one obvious edit point later — chart-palette.js:3-6 makes
- * that argument itself and it survives the port.
+ * gives each theme one obvious edit point later, an argument the old module
+ * makes itself and one that survives the port.
  *
  * THE PALETTE IS REASONED, NOT PICKED, and the reasoning is the asset. Carried
- * verbatim from chart-palette.js:8-14 and :30-35:
+ * verbatim:
  *   Every channel derives from ONE stated anchor: Pressure #33d17a -> #2ec27e.
  *   That move is L x 0.949, C x 0.880 in OKLCh, and the same two multipliers
  *   are applied to every other channel at its own hue. Channels louder than the
@@ -92,32 +91,29 @@
  *     not read as one family. Nearest neighbour group-temperature at dE 0.105.
  *     Contrast 3.94:1 on the dark well, above the floor steam-temperature
  *     itself sits at (3.29:1).
- * Both are ladder-4 choices — no decision and no oracle answer exist for a
- * channel Slate never drew — and two hex values in this file is the most
+ * Both are ladder-4 choices — no decision and no measurement exist for a
+ * channel that was never drawn — and two hex values in this file is the most
  * reversible form the choice could take.
  *
- * A5 — TWO GREENS, NAMED BY ROLE. --ui-channel-pressure below is the pressure
+ * TWO GREENS, NAMED BY ROLE. --ui-channel-pressure below is the pressure
  * TRACE; --ui-status-ok in tokens.css is ready/success chrome. Different
  * colours today (#2ec27e vs #007540), different jobs, and neither derives from
  * the other: deriving would hold chart legibility hostage to a status hue.
  *
- * ORACLE. Channel colours are drawn on a canvas, which the provenance walk
+ * MEASUREMENT. Channel colours are drawn on a canvas, which the walk
  * cannot see, so most of this file has no corpus answer and is a read-only
- * source read of chart-palette.js. Two exceptions were measured:
- *   ORACLE  state=expanded-charts element=[91] <div class="flex flex-col flex-1
- *           min-w-0 slate-chart-card"> property=background-color
+ * source read of the earlier palette module. Two exceptions were measured:
+ *   MEASURED  state=expanded-charts element=[91] <div class="flex flex-col flex-1
+ *           min-w-0 chart-card"> property=background-color
  *           value=rgb(8, 11, 14) [prov-baseline] / rgb(255, 255, 255)
- *           [prov-light] winning rule=slate-components.css {.slate-chart-card}
+ *           [prov-light]
  *           => the chart WELL, #080b0e dark and #ffffff light, confirming
  *           CHART_SURFACE_DARK.well / CHART_SURFACE_LIGHT.well.
- *   ORACLE  state=editor-review element=[31] <span class="pe-data-number">
+ *   MEASURED  state=editor-review element=[31] <span class="pe-data-number">
  *           property=color value=rgb(46, 194, 126) [both corpora]
- *           winning rule=profile-editor-v3.css {.slate-profile-editor
- *           [data-tone="pressure"] .pe-data-number} authored
- *           `var(--slate-editor-pressure)`
+ *           authored as a private editor property
  *           => #2ec27e, the pressure channel, reached through a PRIVATE editor
- *           namespace that restates the palette (the same class of defect as
- *           bug L12). Its five siblings measured identically: flow
+ *           namespace that restates the palette (the same class of defect). Its five siblings measured identically: flow
  *           rgb(57,123,206) #397bce, target-flow rgb(96,149,213) #6095d5,
  *           target-pressure rgb(93,210,132) #5dd284, target-group-temperature
  *           rgb(221,98,84) #dd6254, weight rgb(139,99,67) #8b6343 — all six
@@ -129,7 +125,7 @@
     /* -- The eighteen data channels: light ------------------------------ */
 
     /* The anchor. Everything else is this colour's L and C multipliers at its
-     * own hue. Not to be confused with --ui-status-ok (A5). */
+     * own hue. Not to be confused with --ui-status-ok. */
     --ui-channel-pressure: #2ec27e;
     --ui-channel-target-pressure: #5dd284;
     --ui-channel-flow: #397bce;
@@ -169,9 +165,9 @@
     --ui-chart-label: #5a656c;
 
     /* -- The TIME RAMP: the P-Q trajectory's colour axis (#11) ----------- *
-     * Ten stops of Viridis (matplotlib), sampled every 1/9 — Slate's own
-     * VIRIDIS_STOPS (derived-channels.js:125-128), ported VALUE FOR VALUE and
-     * moved out of JavaScript, which is the whole of A6 in its smallest form:
+     * Ten stops of Viridis (matplotlib), sampled every 1/9 — the carried
+     * VIRIDIS_STOPS, ported VALUE FOR VALUE and
+     * moved out of JavaScript, which is the whole rule in its smallest form:
      * the ramp used to exist only as a JS constant read by
      * `viridisColor(u)`, so a fork could not retint the one chart in the skin
      * whose colour IS an axis. `history-power.js`'s `rampColour` blends
@@ -190,7 +186,7 @@
      * same reason (guard 4 + one edit point per theme). ONE CONSEQUENCE IS
      * RECORDED RATHER THAN FIXED: stop 9 (#fde725) is a bright yellow, and on
      * the LIGHT well (#ffffff) the last tenth of a shot is the lowest-contrast
-     * part of the path. Slate had the same ramp on the same two wells and
+     * part of the path. The previous skin had the same ramp on the same two wells and
      * never resolved it; it is carried as a deferred question for the bench
      * look rather than settled by a hue this file invented. */
     --ui-timekey-stop-0: #440154;
@@ -239,9 +235,9 @@
     --ui-chart-label: #849199;
 
     /* -- The TIME RAMP: the P-Q trajectory's colour axis (#11) ----------- *
-     * Ten stops of Viridis (matplotlib), sampled every 1/9 — Slate's own
-     * VIRIDIS_STOPS (derived-channels.js:125-128), ported VALUE FOR VALUE and
-     * moved out of JavaScript, which is the whole of A6 in its smallest form:
+     * Ten stops of Viridis (matplotlib), sampled every 1/9 — the carried
+     * VIRIDIS_STOPS, ported VALUE FOR VALUE and
+     * moved out of JavaScript, which is the whole rule in its smallest form:
      * the ramp used to exist only as a JS constant read by
      * `viridisColor(u)`, so a fork could not retint the one chart in the skin
      * whose colour IS an axis. `history-power.js`'s `rampColour` blends

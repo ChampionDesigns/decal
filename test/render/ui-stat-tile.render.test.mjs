@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -42,7 +42,7 @@ const MARKUP = `
 
 <!--
   SOLO TILES, each alone in its own container at the SAME width. A cluster stretches
-  every tile to the tallest of them (slate-live.css:904-908, align-items: stretch, and
+  every tile to the tallest of them (align-items: stretch, and
   it is right), so a height comparison between siblings measures the row and not the
   tile. These four are how the tile's OWN block size is measured.
 -->
@@ -411,7 +411,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `#${id}: the reading escapes its own tile — value ` +
                         `[${m.value.top.toFixed(1)}, ${m.value.bottom.toFixed(1)}] against host ` +
                         `[${m.host.top.toFixed(1)}, ${m.host.bottom.toFixed(1)}]. ` +
-                        'That overhang IS L2: Slate\'s CITE live-ready #slate-live-time [i=97] ' +
+                        'That overhang IS L2: Slate\'s live-ready #slate-live-time [i=97] ' +
                         'rect y=248 h=52 ends at 300 in a cluster ending at 297.',
                     );
 

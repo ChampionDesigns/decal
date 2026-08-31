@@ -25,13 +25,13 @@ export const SHOTS_STATUS = Object.freeze({
 
 const EMPTY_STATE = Object.freeze({
     status: SHOTS_STATUS.IDLE,
-    /** The page as ReaPrime sent it — `items`, never `shots` (CB-21). */
+    /** The page as ReaPrime sent it — `items`, never `shots`. */
     items: Object.freeze([]),
     /** The row model, one entry per item. The list, the picker and the tables read this. */
     rows: Object.freeze([]),
     /** Derivations by shot id — the one walk per record, held so nothing walks twice. */
     derivations: Object.freeze({}),
-    /** `total` is the pager's truth. The echoed `limit` is not (CB-23). */
+    /** `total` is the pager's truth. The echoed `limit` is not. */
     total: null,
     limit: DEFAULT_PAGE_LIMIT,
     offset: 0,

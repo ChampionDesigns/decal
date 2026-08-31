@@ -1,5 +1,5 @@
 /**
- * <live-connection>, B8's states made distinguishable AND answerable.
+ * <live-connection>: the connection states, made distinguishable AND answerable.
  */
 
 import { css, html, nothing } from 'lit';
@@ -75,7 +75,7 @@ export class LiveConnection extends UiElement {
         frame: { attribute: false },
         /** The connection feed's `FEED_STATUS`, which is what separates the three nulls. */
         feedStatus: { type: String, attribute: 'feed-status' },
-        /** The derived surface id, REFLECTED. Appendix 15: state is an attribute. */
+        /** The derived surface id, REFLECTED. State travels as an attribute. */
         surface: { type: String, reflect: true },
         /** Is the picker showing? Reflected so a suite and a screen sheet can read it. */
         picking: { type: Boolean, reflect: true },

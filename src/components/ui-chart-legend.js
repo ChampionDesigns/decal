@@ -29,7 +29,7 @@ export class UiChartLegend extends UiElement {
     static properties = {
         items: { type: Array },
 
-        /** Accessible name for the GROUP, put on the host as `aria-label` (chart-C14). */
+        /** Accessible name for the GROUP, put on the host as `aria-label`. */
         label: { type: String },
 
         values: { type: Object },
@@ -123,7 +123,7 @@ export class UiChartLegend extends UiElement {
     /** Keys currently turned off. A Set, so isolate is one pass. */
     #hidden = new Set();
 
-    /** The last pointer tap, for the 320ms isolate window (uplot-legend.js:31-32). */
+    /** The last pointer tap, for the 320ms isolate window. */
     #lastTapAt = 0;
     #lastTapKey = null;
     #lastWasToggle = false;
@@ -298,7 +298,7 @@ export class UiChartLegend extends UiElement {
                 `ui-chart-legend: ${unresolved.length} channel(s) have no colour — ${unresolved.join(', ')}. `
                 + 'The swatch falls back to the chip\'s own ink; every drawn channel needs a token in '
                 + 'styles/chart-channels.css and, if its key is a derivation key, an entry in '
-                + 'SERIES_KEY_CHANNELS (A6).',
+                + 'SERIES_KEY_CHANNELS.',
             );
         }
     }

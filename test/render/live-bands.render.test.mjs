@@ -1,5 +1,5 @@
 /**
- * The Live bands in a real engine, at both Gate A sizes.
+ * The Live bands in a real engine, at both the render harness sizes.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -837,7 +837,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('L24: a focus ring on the bands is not clipped by the box it sits in',
             () => mounted(async (page) => {
                 await configure(page, { targets: TARGETS, favourites: FAVOURITES, favourite: 'p1' });
-                /* #37's bank, for the reason the L23 test above records. */
+                /* #37's bank, for the reason the test above records. */
                 await assertFocusUnclipped(page, `${S} >>> ui-preset-bank >>> ui-bank >>> button`);
                 await assertFocusUnclipped(page, `${stepper('dose')} >>> button`);
                 await assertFocusUnclipped(page, `${S} >>> ui-favourites-bank >>> ui-bank >>> button`);
@@ -923,7 +923,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 ? ['live-rail block', ...(geometry.name === 'floor' ? ['live-rail inline'] : [])]
                 : [];
             assert.deepEqual(overflowing, expected,
-                'slate-live.css:1126-1131: "a scroll affordance on a wall tablet is worse than the crowding it fixes"');
+                '"a scroll affordance on a wall tablet is worse than the crowding it fixes"');
         }));
 
         test('the only truncation in the foot band is the design floor\'s recorded pair', () => mounted(async (page) => {
@@ -1016,7 +1016,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.ok(Math.abs(row.label.width + gap + row.band.width - row.row.width) < 0.51,
                             `${mode}/${row.key}: name + gutter + well is not the row`);
 
-                        /* L22 HOLDS, and it is the cap that pays for the name: the well gives
+                        /* HOLDS, and it is the cap that pays for the name: the well gives
                          * its caps' slack down to --ui-hit-min and never past it. */
                         assert.ok(row.cap >= hitMin - 0.51,
                             `${mode}/${row.key}: a ${row.cap}px cap is under --ui-hit-min`);
@@ -1068,7 +1068,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         assert.ok(Math.abs(row.height - want) < 0.51,
                             `a rail row ("${row.label ?? row.tag}") is ${row.height} against `
                             + `${want} — the rail's row heights are DQ-0-B's `
-                            + 'measurement and are pinned exactly; a row that moved is a finding for Ben');
+                            + 'measurement and are pinned exactly; a row that moved is a finding');
                         continue;
                     }
                     const low = expectedFor(row) + inset;
@@ -1169,7 +1169,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
                 for (const label of ['Group', 'Steam', 'Tank']) {
                     assert.notEqual(g[label].ink, muted,
-                        `${label} went muted mid-shot, which Ben overrode on 29 Aug 2026`);
+                        `${label} went muted mid-shot, which was overridden`);
                 }
 
                 for (const row of running) {
@@ -1313,7 +1313,7 @@ describe(`the rail at the reference geometry (${DESKTOP.width}x${DESKTOP.height}
                 assert.ok(Math.abs(row.label.width - labelW) < 0.51,
                     `${row.key}: the name column is ${row.label.width}, not --ui-stepper-label-w ${labelW}`);
                 assert.ok(Math.abs(labelW - 88) < 0.51,
-                    `--ui-stepper-label-w is ${labelW}; Slate's label column is 88 (CITE live-ready `
+                    `--ui-stepper-label-w is ${labelW}; Slate's label column is 88 (live-ready `
                     + '#grind-label [i=18], #dose-label [i=23], #drink-label [i=30], #brew-label [i=41], '
                     + '#flush-label [i=67], both .slate-continuation-label spans — all 88px)');
                 assert.ok(Math.abs(row.cap - cap) < 0.51,

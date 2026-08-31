@@ -1,5 +1,5 @@
 /**
- * Gate A's standard geometries, in one place so no suite invents its own.
+ * the render harness's standard geometries, in one place so no suite invents its own.
  */
 
 /** The bench tablet: 1281×801 at dpr 1.5. Everything renders here unless told otherwise. */
@@ -37,7 +37,7 @@ export const C1 = Object.freeze({
 
 export const CAPTURE_MATRIX = Object.freeze([BENCH, DESKTOP, FLOOR]);
 
-/** The two Gate A geometries every rendering suite is expected to cover. */
+/** The two the render harness geometries every rendering suite is expected to cover. */
 export const GATE_A_GEOMETRIES = Object.freeze([BENCH, FLOOR]);
 
 export const GEOMETRIES = Object.freeze({ bench: BENCH, floor: FLOOR, desktop: DESKTOP, c1: C1 });

@@ -65,7 +65,7 @@ test('every notice in every state is sticky, or the battery photographs an empty
             assert.match(
                 tag, /\bduration="0"/,
                 `state ${state.id}: ${tag} has no duration="0" — the default is 2400ms `
-                + '(ui.js:3283) and the capture battery drives three geometries over the '
+                + 'and the capture battery drives three geometries over the '
                 + 'same state, so a clocked notice is gone before the shutter opens',
             );
         }

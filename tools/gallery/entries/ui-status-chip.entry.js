@@ -7,14 +7,14 @@ export const entry = {
     title: 'Status chip / live pulse',
     module: '../../src/components/ui-status-chip.js',
     notes:
-        'Wave 1 #48. Slate wrote this chip TWICE and shipped both: the rule that reaches the '
-        + 'screen is #main-page #machine-status (slate-live.css:903-916, six !important '
+        'Wave 1 #48. The reference skin wrote this chip TWICE and shipped both: the rule that reaches the '
+        + 'screen is #main-page #machine-status (six !important '
         + 'declarations), and the rule that reaches nothing is #main-page .slate-chart-state '
         + '(:1738-1745) — bug L13, "styles a class no element carries". The two do not even '
         + 'agree on the type. Oracle: find --cls slate-chart-state → 0 elements in 0 states '
         + 'across all 49; find --id machine-status → 7 elements in 7 states, one geometry, '
         + '161 x 22. One chip here, not two. Everything a "chip" would decorate with — fill, '
-        + 'border, radius, padding, shadow — measures zero on Slate in both themes, so this '
+        + 'border, radius, padding, shadow — measures zero on the reference skin in both themes, so this '
         + 'is tracked uppercase text at --ui-muted and nothing else.',
     states: [
         {
@@ -30,7 +30,7 @@ export const entry = {
             id: 'disconnected',
             title: 'Disconnected',
             notes: 'The only word the capture battery ever caught: all seven '
-                + '#machine-status records read text "Disconnected". Slate paints it in the '
+                + '#machine-status records read text "Disconnected". The reference skin paints it in the '
                 + 'same muted ink as every other state — the .status-msg-red class on the '
                 + 'element loses to #main-page #machine-status — and so does this.',
             html: '<ui-status-chip>Disconnected</ui-status-chip>',
@@ -40,8 +40,8 @@ export const entry = {
             title: 'Live, pulsing',
             notes: 'The recording pulse. A 10px --ui-status-danger disc at --ui-radius-pill, '
                 + '--ui-space-2 from the words, breathing 1 → .3 over 1.6s ease-in-out. Read '
-                + 'from slate-live.css:1832-1846 read-only: the corpus never captured it, '
-                + 'because live-pulling was itself captured Disconnected. Slate\'s stated '
+                + 'from the old sheet read-only: the corpus never captured it, '
+                + 'because live-pulling was itself captured Disconnected. The reference skin\'s stated '
                 + 'intent: "LIVE pulses so the difference between a shot happening now and a '
                 + 'plot of one that finished is visible at arm\'s length."',
             html: '<ui-status-chip live>Live</ui-status-chip>',
@@ -60,11 +60,11 @@ export const entry = {
         {
             id: 'narrow-container',
             title: 'In a 120px container',
-            notes: 'The container state. Slate is white-space: nowrap at a frozen '
+            notes: 'The container state. The reference skin is white-space: nowrap at a frozen '
                 + '1920x1200, which below that width is a silent clip — the inherited '
                 + 'default §2.4 exists to remove. Here the words wrap and the dot does not: '
                 + 'the chip may become taller, never wider than what holds it. Responsive '
-                + 'behaviour has no Slate answer (Part 10 §4); the layout spec governs.',
+                + 'behaviour has no the reference skin answer (Part 10 §4); the layout spec governs.',
             hostStyle: { 'inline-size': '120px' },
             html: '<ui-status-chip live>Disconnected</ui-status-chip>',
         },

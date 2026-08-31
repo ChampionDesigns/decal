@@ -29,8 +29,8 @@ describe('the tank unit', () => {
 });
 
 describe('the conversion is forty millilitres to the millimetre', () => {
-    test('Ben\'s figure, and it is NOT Slate\'s table', () => {
-        assert.equal(ML_PER_MM, 40, 'Ben, 26 August 2026: "1mm = 40ml for the water tank"');
+    test('the decided figure, and it is NOT the old table', () => {
+        assert.equal(ML_PER_MM, 40, 'the decision: "1mm = 40ml for the water tank"');
         assert.notEqual(mmToMillilitres(1), 16);
         assert.notEqual(mmToMillilitres(67), 2058, 'Slate\'s table tops out there; this does not');
     });

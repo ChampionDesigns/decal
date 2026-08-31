@@ -31,9 +31,9 @@ export const entry = {
         + '.seam-zone / .seam-line / .seam-strong - two of them Appendix 2\'s '
         + '(--slate-zone-seam, --slate-line) and .seam-strong NOT, which is measured '
         + '(the Live rail edge) and written into the spec\'s own Live skeleton at '
-        + 'LAYOUT_SPEC_DRAFT.md:524-525 - and .seam-cell for a plain '
+        + 'the Live skeleton - and .seam-cell for a plain '
         + 'cell that is not a component. Each rule ships a second time as :host(...) '
-        + 'for the screen component that IS the grid. Slate already contains the '
+        + 'for the screen component that IS the grid. The reference skin already contains the '
         + 'pattern twice - '
         + 'the Live rail edge (gap 1px over --slate-line-strong) and the editor matrix '
         + '(gap 0px 1px over --slate-line) - and spells every other divider as a '
@@ -51,10 +51,10 @@ export const entry = {
                 + 'once by the container. Spec §4.4 accepts in advance that the divider '
                 + 'WILL look different, and register decision C5 (ACCEPTED) settles it '
                 + 'that way: "one 1px grid gap, var(--ui-seam), replacing today\'s 2px '
-                + 'band of two different greys (T19)" (SCOPE.md:2243). OQ-6 is C5\'s old '
-                + 'number and is NOT open (SCOPE.md:1761); what is outstanding is C5\'s '
-                + 'residual - Ben confirming the LOOK on the C1 prototype, collected as '
-                + 'Q3 (SCOPE.md:5142). This state is what he would be looking at.',
+                + 'band of two different greys (T19)". OQ-6 is C5\'s old '
+                + 'number and is NOT open; what is outstanding is C5\'s '
+                + 'residual - confirmation of the LOOK on the C1 prototype, collected as '
+                + 'Q3. This state is what he would be looking at.',
             html:
                 '<div class="seam-grid" style="inline-size: 600px; block-size: 240px;'
                 + ' grid-template-columns: 260px minmax(0, 1fr)">'
@@ -66,7 +66,7 @@ export const entry = {
             id: 'settings-rows',
             title: 'The 43 <hr> elements, deleted',
             notes:
-                'slate-components.css:27 has 55 uses in settings.js, and they are NOT all '
+                'The old sheet has 55 uses of it, and they are NOT all '
                 + 'one shape: 43 are <hr class="border-t slate-hairline w-full"> - elements '
                 + 'in the DOM whose entire job is to be a line - and 12 are <div>, of which '
                 + '5 are content rows carrying border-t/border-b and 7 are ENCLOSURES '
@@ -74,7 +74,7 @@ export const entry = {
                 + '48; the 7 enclosures are a border round a box and stay one, per '
                 + 'CONVENTIONS §13 "What this is not". Five rows here draw four seams with '
                 + 'no elements and no sibling selector, which is also bug T2 retired ("the '
-                + '> * + * half of the rule can never match ... the sub-nav has NO row '
+                + '> * + * half of the rule can never match ... The sub-nav has NO row '
                 + 'separators at all"). Row height 63px and the text are the oracle\'s own: '
                 + 'settings-machine-machine-info [i=52..64], 1150 x 63 - themselves five of '
                 + 'the 12 divs, not <hr>s.',
@@ -94,7 +94,7 @@ export const entry = {
             notes:
                 'Spec Appendix 8, carried over as an idea worth keeping: "Column gap as '
                 + 'the only vertical rule, over a coloured grid background '
-                + '(profile-editor-v3.css:293-296)". CITE editor-steps .pe-grid [i=17] '
+                + '". CITE editor-steps .pe-grid [i=17] '
                 + 'gap = 0px 1px, background-color rgb(58, 72, 82) dark / '
                 + 'rgb(203, 208, 211) light -> --ui-line. .seam-cols is that shape: the '
                 + 'columns are ruled and the rows genuinely touch.',
@@ -118,11 +118,11 @@ export const entry = {
                 + 'move them apart. The THIRD IS NOT: Appendix 2\'s --slate-seam is an '
                 + 'inset shadow between the segments of ONE control (component #3 '
                 + 'ui-bank), which this utility refuses. In its place, --ui-line-strong '
-                + '- the emphasised divider Slate uses for the rail edge, the header '
+                + '- the emphasised divider the reference skin uses for the rail edge, the header '
                 + 'underline and the band top, "the three lines that close a box" - on '
                 + 'the authority of the oracle (CITE live-ready .flex-grow [i=16] '
                 + 'background-color = rgb(82, 97, 107) / rgb(170, 178, 183)) and of the '
-                + 'spec\'s Live skeleton (LAYOUT_SPEC_DRAFT.md:524-525), not of the '
+                + 'spec\'s Live skeleton, not of the '
                 + 'appendix.',
             html:
                 '<div style="display: grid; gap: var(--ui-space-6); inline-size: 520px">'
@@ -145,12 +145,12 @@ export const entry = {
         },
         {
             id: 'rail-edge',
-            title: 'The Live rail edge, as Slate draws it',
+            title: 'The Live rail edge, as the reference skin draws it',
             notes:
-                'CITE live-ready .flex-grow [i=16] gap = 1px <- slate-live.css '
+                'CITE live-ready .flex-grow [i=16] gap = 1px '
                 + '`#main-page > .flex-grow.flex` authored `1px` (FROZEN/hardcoded); '
                 + 'background-color rgb(82, 97, 107) dark / rgb(170, 178, 183) light -> '
-                + '--ui-line-strong. Slate\'s own comment: "THE RAIL\'S RIGHT EDGE: a 1px '
+                + '--ui-line-strong. The reference skin\'s own comment: "THE RAIL\'S RIGHT EDGE: a 1px '
                 + 'grid gap with the enclosing grade showing through it, full height, from '
                 + 'the header\'s underline to the foot of the screen." The rail width here '
                 + 'is --ui-rail-w, so the seam moves with the clamp rather than with three '

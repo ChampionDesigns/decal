@@ -93,8 +93,8 @@ export class UiConfirmDialog extends UiElement {
         return this.renderRoot?.querySelector?.('#dialog') ?? null;
     }
 
-    /** The affirmative action. Public so a screen can `focus()` it — #1 forwards
-     *  focus inward, which is P8's own screen (ui-button.js:130-132). */
+    /** The affirmative action. Public so a screen can `focus()` it; the button forwards
+     *  focus inward itself. */
     get confirmButton() {
         return this.renderRoot?.querySelector?.('#confirm') ?? null;
     }

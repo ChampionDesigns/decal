@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -493,7 +493,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(m.overflowY, 'visible');
         }));
 
-        test('the cap comes from OUTSIDE, and the card scrolls inside it (SCOPE.md:1702)', () => mounted(async (page) => {
+        test('the cap comes from OUTSIDE, and the card scrolls inside it ', () => mounted(async (page) => {
             const box = await page.box('#capped >>> #card');
             near(box.height, 200, 'the card honours the cap set on its host', 1);
             const m = await page.metrics('#capped >>> #card');

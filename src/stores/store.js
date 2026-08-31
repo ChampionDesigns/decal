@@ -63,7 +63,7 @@ export function createStore(initial = null, { label = 'store', logger = null, fr
                 if (next !== null && typeof next === 'object') {
                     throw new Error(
                         `${label}: set() was handed the state object it already holds. `
-                        + 'A fold must RETURN NEW STATE (CARRY_FORWARD.md §6 pattern F) — '
+                        + 'A fold must RETURN NEW STATE — '
                         + 'or return UNCHANGED from update() if there is genuinely nothing to change.',
                     );
                 }

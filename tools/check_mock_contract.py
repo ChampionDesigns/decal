@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Gate B rule 4 — every frame the mock can serve is vouched for by the contract table.
+"""the contract check — every frame the mock can serve is vouched for by the contract table.
 
     python3 tools/check_mock_contract.py            # human output, exit 1 on any violation
     python3 tools/check_mock_contract.py --json     # machine-readable, for the wave GATE agent
     npm run mock-contract
 
-THE FAILURE THIS EXISTS TO KILL (E8): machinery that green-lights against a wrong
-reference. `tools/capture_battery.py` photographs Decal against `mock_rea.py`, and
+THE FAILURE THIS EXISTS TO KILL: machinery that green-lights against a wrong
+reference. The tests run Decal against `mock_rea.py`, and
 mock_rea answers out of `tools/rea-fixtures/` — recorded ReaPrime responses. Nothing
 made those recordings agree with the server the skin will actually meet. A fixture that
 predates a handler change keeps the battery green forever against a ReaPrime that no
-longer exists, and the first evidence is a dead screen on Ben's bench.
+longer exists, and the first evidence is a dead screen on the bench.
 
 So the mock's frames are checked against the SAME table as the client:
 `src/data/CONTRACTS.json`, whose rows are hand-checked against the handler body at the
-pinned commit. Gate D checks the CLIENT against that table. This checks the INSTRUMENT.
+pinned commit. `gate-d` checks the CLIENT against that table. This checks the INSTRUMENT.
 
 WHAT IS AUTHORITY HERE, AND WHAT IS NOT
   * The handler body at the pin is the authority, reached through the table's rows.
@@ -24,9 +24,9 @@ WHAT IS AUTHORITY HERE, AND WHAT IS NOT
   * When a fixture and the table disagree, the handler decides which is stale. Both
     mismatches found on the first run were the fixture's fault, and both are recorded
     with the Dart line that refutes them in
-    `_skinlab/realine-run/waves/0b/mock-contract-mismatches.md`.
+    the mock-contract mismatch record.
 
-WHAT HAPPENS TO A REFUTED FIXTURE — A7, APPLIED TO AN INSTRUMENT
+WHAT HAPPENS TO A REFUTED FIXTURE — APPLIED TO AN INSTRUMENT
   It is NOT deleted, NOT edited, and NOT quietly served anyway behind a note in a file
   nobody reads. It is declared in `tools/mock-fixture-ledger.json` with `disposition:
   "refuse"`, and the mock then answers that route 410 with an explicit body instead of
@@ -61,7 +61,7 @@ BLIND SPOTS, stated so nobody trusts this for them:
     check that a value is the one a real machine would send: the frames are recorded or
     derived from recordings, and where neither exists the channel is SILENT and says so
     (`waterLevels`, `shotSettings` — no fixture in the set records either).
-  * A passing desk check is necessary, not sufficient (the D7 episode). Anything only
+  * A passing desk check is necessary, not sufficient (the episode). Anything only
     the bench can prove goes on the bench list, never asserted here.
 """
 from __future__ import annotations
@@ -93,7 +93,7 @@ BLOCKING = {
     "shape-unparsed", "shape-kind", "keys-missing", "keys-extra", "forbidden-spelling",
     "invariant", "ledger-stale", "ledger-unstamped", "ledger-source",
     "refusal-not-wired", "envelope", "write-frame", "table", "query-fallback",
-    # The socket half (wave 5.1). Same standing as the REST rules: a frame the table does
+    # The socket half. Same standing as the REST rules: a frame the table does
     # not vouch for must fail the build, not be noted at the bottom of a report.
     "socket-unvouched", "socket-shape", "socket-upgrade", "socket-cadence",
     "socket-history", "socket-key-drift",
@@ -112,7 +112,7 @@ def read_pin() -> tuple[str, pathlib.Path]:
     """The pinned ReaPrime commit and worktree, from the ONE place they are written.
 
     `scripts/lib/rea-source.js` owns them. Parsed rather than restated: a second copy of
-    a commit hash is a second thing to forget to re-pin, and Gate D already fails when
+    a commit hash is a second thing to forget to re-pin, and `gate-d` already fails when
     the table drifts off this constant.
     """
     if not PIN_SOURCE.exists():
@@ -132,11 +132,11 @@ def load_table(path: pathlib.Path) -> dict:
         raise CheckError(
             f"no contract table at {path}. This check has exactly one reference and no "
             "fallback: a second table to fall back on is how an instrument passes against "
-            "a server that no longer exists (A7).")
+            "a server that no longer exists.")
     table = json.loads(path.read_text())
     for key in ("pinnedCommit", "rest"):
         if key not in table:
-            raise CheckError(f"{path} has no '{key}' — it is not the Gate D contract table")
+            raise CheckError(f"{path} has no '{key}' — it is not the `gate-d` contract table")
     return table
 
 
@@ -572,7 +572,7 @@ def _keys_deep(value, out: set[str]) -> set[str]:
 def _spelling_findings(table: dict, name: str, body) -> list[dict]:
     """A retired contract bug's spelling, alive inside a served frame.
 
-    Gate D scans the CLIENT for these. Nothing scanned the frames the client is
+    `gate-d` scans the CLIENT for these. Nothing scanned the frames the client is
     developed against — which is where `prewarmEnabled` was still sitting, in the one
     fixture a cup-warmer screen would be built against.
 
@@ -580,9 +580,9 @@ def _spelling_findings(table: dict, name: str, body) -> list[dict]:
     (`\\.shots\\b` is a property access), and running them over a payload's TEXT
     manufactures findings out of data. The proof is in this very fixture set — the
     plugin registry advertises a permission literally named `events.shots`, which a raw
-    text scan reports as CB-21 and which has nothing whatever to do with it. A frame's
+    text scan reports as and which has nothing whatever to do with it. A frame's
     NAMES are its keys; its values are data. Each key is tested bare and dot-prefixed,
-    so a response carrying a `shots` key still fires CB-21 — which is the shape the bug
+    so a response carrying a `shots` key still fires — which is the shape the bug
     is actually about.
     """
     out = []
@@ -857,7 +857,7 @@ def check_query_isolation() -> list[dict]:
     `mock_rea._resolve` fell back from an exact miss to any recording of the same
     endpoint and answered `?limit=5&offset=0&order=desc` with that same 20-row page:
     200, `limit` 20, `offset` 0. A rule that can only ask the question the answer was
-    recorded for is not a check (E8, in miniature, inside the checker).
+    recorded for is not a check ( in miniature, inside the checker).
 
     So this makes the requests the fixture names do NOT cover: for every recording whose
     name embeds a query, the endpoint with the query stripped, and the recorded query
@@ -907,7 +907,7 @@ def check_query_isolation() -> list[dict]:
                                    f"request, so it was served from another recording",
                                    "`mock_rea._resolve` resolves EXACTLY. A query with no "
                                    "recording is a MISS (503) — a different page is a "
-                                   "plausible answer standing where an absence belongs (A7)."))
+                                   "plausible answer standing where an absence belongs."))
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -982,9 +982,9 @@ def check_write_frames(table: dict) -> tuple[list[dict], int]:
 
 
 def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[dict], dict]:
-    """Gate B rule 4, for the ten socket rows — CLOSED, by opening the sockets.
+    """the contract check, for the ten socket rows — CLOSED, by opening the sockets.
 
-    WHAT WAVE 0b LEFT OPEN, in its own words: "Gate B rule 4 is closed for REST and open
+    WHAT WAVE 0b LEFT OPEN, in its own words: "the contract check is closed for REST and open
     for sockets", because `mock_rea` spoke no WebSocket and the socket rows therefore had
     no instrument at all. This is that instrument. It starts the mock, performs ten real
     handshakes, reads what actually comes down each wire, and holds it to
@@ -995,12 +995,12 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
       1. ROW PARITY. Every socket row has a served channel and every served channel has a
          row (`socket-unvouched`). A channel the table does not carry is exactly the
          "instrument invents surface" failure, one layer down from `unvouched-route`.
-      2. KEY DRIFT. Every key the spec names must be read by the CLIENT module that reads
+      2. KEY DRIFT. Every key the contract table names must be read by the CLIENT module that reads
          that channel (`socket-key-drift`). The two documents are independent — the client
-         is held to the table by Gate D, the mock by this — so a rename that reaches one
+         is held to the table by `gate-d`, the mock by this — so a rename that reaches one
          and not the other turns red instead of quietly producing frames nobody reads.
       3. SHAPE, off the wire (`socket-shape`). Keys outside the vouched set, required keys
-         missing, a DEAD name alive on a frame (CB-03's `milkTemperature`, CB-08's
+         missing, a DEAD name alive on a frame ( 's `milkTemperature` 's
          `weightFlow`), a derived channel written null where the row says derived channels
          are OMITTED — all read from the frames the server actually sent, not from the
          function that made them.
@@ -1040,28 +1040,28 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
         out.append(finding("socket-unvouched", extra,
                            "the mock serves a channel with no row in the contract table",
                            "an instrument that invents surface teaches the client a server "
-                           "that does not exist (A7)."))
+                           "that does not exist."))
     for row in table.get("sockets", []):
-        spec = ws_frames.SPECS.get(row["id"])
-        if spec and spec["path"] != row["path"]:
+        contract = ws_frames.SPECS.get(row["id"])
+        if contract and contract["path"] != row["path"]:
             out.append(finding("socket-unvouched", row["id"],
-                               f"the mock serves {spec['path']}, the row says {row['path']}", ""))
+                               f"the mock serves {contract['path']}, the row says {row['path']}", ""))
 
     # -- 2. key drift against the client's own readers ---------------------- #
     specs = ws_frames.SPECS
-    # The canary bends the SPEC the drift rule reads, and only that one: a spec naming a
+    # The canary bends the contract table the drift rule reads, and only that one: a contract naming a
     # key no client reader mentions is exactly the drift this rule exists to see. The
-    # frame checks below still read the real spec, so the canary fires one rule.
+    # frame checks below still read the real contract, so the canary fires one rule.
     drift_specs = {k: dict(v) for k, v in specs.items()}
     if canary == "key-drift":
         drift_specs["machineSnapshot"]["required"] = [
             *drift_specs["machineSnapshot"]["required"], "puckResistanceRenamedUpstream"]
-    for row_id, spec in drift_specs.items():
-        reader = spec.get("reader")
+    for row_id, contract in drift_specs.items():
+        reader = contract.get("reader")
         if reader is None:
             continue
         text = pathlib.Path(reader).read_text()
-        for key in [*spec["required"], *spec["optional"]]:
+        for key in [*contract["required"], *contract["optional"]]:
             # Either spelling the client can use: a quoted key (`readValue(frame, 'x')`,
             # a name table) or a property read (`frame.x`). What it may NOT do is never
             # mention the name at all, which is what a rename looks like from here.
@@ -1131,7 +1131,7 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
 
     try:
         for row_id in ws_frames.UPGRADED_ROWS:
-            spec = specs[row_id]
+            contract = specs[row_id]
             result = results.get(row_id)
             if result is None:
                 out.append(finding("socket-upgrade", row_id, "the probe never finished", ""))
@@ -1144,7 +1144,7 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
                 continue
             frames = [m for _t, m in result["messages"]]
             counts["socketFrames"] += len(frames)
-            source = spec["source"]
+            source = contract["source"]
             counts["socketFramesRecorded" if source.startswith("recorded")
                    else "socketFramesDerived" if source == "derived"
                    else "socketFramesSession"] += len(frames)
@@ -1157,7 +1157,7 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
                 # test/mock-ws.test.mjs, where the close can be waited on.
                 pass
             for frame in frames:
-                out += _socket_frame_findings(row_id, spec, frame)
+                out += _socket_frame_findings(row_id, contract, frame)
             if source == "unsourced" and not frames:
                 counts["socketSilent"] += 1
 
@@ -1215,7 +1215,7 @@ def check_socket_frames(table: dict, canary: str | None = None) -> tuple[list[di
     return out, counts
 
 
-def _socket_frame_findings(row_id: str, spec: dict, frame) -> list[dict]:
+def _socket_frame_findings(row_id: str, contract: dict, frame) -> list[dict]:
     """One frame off the wire against its row. Signals are not frames and are skipped."""
     sys.path.insert(0, str(TOOLS))
     import ws_frames                                                # noqa: PLC0415
@@ -1235,24 +1235,24 @@ def _socket_frame_findings(row_id: str, spec: dict, frame) -> list[dict]:
         return out
 
     keys = set(frame)
-    vouched = set(spec["required"]) | set(spec["optional"])
+    vouched = set(contract["required"]) | set(contract["optional"])
     for key in sorted(keys - vouched):
         out.append(finding("socket-shape", f"{row_id}.{key}",
                            f"the frame carries `{key}`, which the row does not vouch for",
-                           spec["derivation"][:120]))
-    for key in sorted(set(spec["required"]) - keys):
+                           contract["derivation"][:120]))
+    for key in sorted(set(contract["required"]) - keys):
         out.append(finding("socket-shape", f"{row_id}.{key}",
                            f"the frame is missing `{key}`, which the handler writes",
-                           spec["derivation"][:120]))
-    for key in sorted(set(spec["forbidden"]) & keys):
+                           contract["derivation"][:120]))
+    for key in sorted(set(contract["forbidden"]) & keys):
         live, on = ws_frames.LIVE_OF.get(key, (key, "?"))
         out.append(finding("socket-shape", f"{row_id}.{key}",
                            f"the frame carries the DEAD name `{key}`; it lives at `{live}` "
                            f"on the {on} channel now",
                            "a recording that predates a rename is served with the dead key "
                            "DROPPED, never re-labelled and never passed through."))
-    if spec.get("nonNullOptional"):
-        for key in spec["optional"]:
+    if contract.get("nonNullOptional"):
+        for key in contract["optional"]:
             if key in frame and frame[key] is None:
                 out.append(finding("socket-shape", f"{row_id}.{key}",
                                    "a derived channel written null; the row says derived "
@@ -1288,7 +1288,7 @@ def check_coverage(table: dict, ledger: dict, fixtures_dir: pathlib.Path) -> lis
             continue
         fixture = mock_rea._resolve(row["path"], fixtures_dir=fixtures_dir)
         if fixture is None:
-            # `_resolve` is exact (the endpoint fallback is deleted, A7), so a route whose
+            # `_resolve` is exact (the endpoint fallback is deleted ), so a route whose
             # only recording embeds a query misses at the bare path. Name the recordings
             # that DO exist rather than say "no fixture": a reader deciding what to record
             # next needs the difference between nothing at all and one query form.
@@ -1323,7 +1323,7 @@ def run(fixtures_dir: pathlib.Path, table_path: pathlib.Path, ledger_path: pathl
     if table["pinnedCommit"] != pin:
         findings.append(finding("table", table_path.name,
                                 f"pinnedCommit {table['pinnedCommit']} != {pin}",
-                                "Gate D owns this too; re-pin deliberately."))
+                                "`gate-d` owns this too; re-pin deliberately."))
     fixture_findings, stats = check_fixtures(table, ledger, fixtures_dir)
     findings += fixture_findings
     findings += check_ledger(table, ledger, pin, rea_root, source=source)

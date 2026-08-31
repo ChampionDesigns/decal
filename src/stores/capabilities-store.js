@@ -1,5 +1,5 @@
 /**
- * THE CAPABILITY STORE — the single mechanism for machine differences (A3).
+ * THE CAPABILITY STORE — the single mechanism for machine differences.
  */
 
 import { createStore } from './store.js';
@@ -44,14 +44,14 @@ export const CAPABILITY_GAPS = Object.freeze([
     Object.freeze({
         gap: 'profile modes (Power / Lever / HOLD / power exit)',
         item: 'R3',
-        via: 'profileModes() — r3ProfileModeCapabilities, a UI-offer hint; authority is the arm-time 400 (B9)',
+        via: 'profileModes() — r3ProfileModeCapabilities, a UI-offer hint; authority is the arm-time 400',
     }),
     Object.freeze({
         gap: "the profile editor's flow ranges",
-        item: 'R2 (possibly F2 underneath)',
+        item: 'R2',
         via: 'machineLimits() serves the machine\'s own rows behind r2MachineLimits; the'
             + " step-authoring ranges are AUTHORING_RANGES (profile-modes.js), the one table R2's"
-            + ' per-machine answer overwrites — the two are disjoint by field, which is B2',
+            + ' per-machine answer overwrites — the two are disjoint by field',
     }),
     Object.freeze({
         gap: 'the milk-probe steam UI',

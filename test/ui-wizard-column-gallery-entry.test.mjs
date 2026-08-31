@@ -64,7 +64,7 @@ test('one state ships no action at all — the F3 hole, as a state rather than a
     assert.ok(!bare.html.includes('slot="actions"'), 'the state must slot no action');
     for (const state of entry.states) {
         assert.ok(!/reset|default/i.test(state.html),
-            `state ${state.id} puts a reset control on the stage — F3 is blocked on Ben `
+            `state ${state.id} puts a reset control on the stage — reset is blocked `
             + 'and the run does no work of any kind on it');
     }
 });

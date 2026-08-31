@@ -217,7 +217,7 @@ describe('R3 — profile modes are a UI-offer HINT, and fail closed', () => {
     test('the answer says it is a hint, so a caller cannot mistake it for authority', () => {
         const answer = r3ProfileModeCapabilities(machineInfo({ extra: { profileModeCaps: 0x1 } }));
         assert.match(answer.note, /hint only/);
-        assert.match(answer.note, /B9/);
+        assert.match(answer.note, /the arm-time 400 is the authority/);
     });
 });
 

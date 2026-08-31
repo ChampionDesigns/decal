@@ -27,7 +27,7 @@ const WORKFLOW = JSON.parse(readFileSync(
 /** A profile file that passes: every one of the ten keys, and steps as an array. */
 const GOOD_FILE = Object.freeze({
     title: 'From a file',
-    author: 'Ben',
+    author: 'A. Author',
     notes: '',
     beverage_type: 'espresso',
     steps: [{ name: 'a', temperature: 92, seconds: 10, pump: 'pressure', pressure: 6 }],
@@ -247,14 +247,14 @@ describe('a brand-new profile', () => {
             'no steps means no step columns, no action rail, and no way to add one');
     });
 
-    test('opens with exactly ONE step, which is what Ben asked for', () => {
+    test('opens with exactly ONE step, which is what was asked for', () => {
         assert.equal(newProfile().steps.length, 1);
     });
 
     test('that step is the shared blank step, not a second answer', () => {
         const seeded = newProfile({ stepName: 'New step' }).steps[0];
         assert.deepEqual(seeded, newStep({ name: 'New step' }));
-        assert.equal(seeded.pressure, NEW_STEP.pressure, 'Ben\'s 8 bar reaches the editor');
+        assert.equal(seeded.pressure, NEW_STEP.pressure, 'the decided 8 bar reaches the editor');
         assert.equal(seeded.limiter.value, NEW_STEP.limiter.value);
         assert.equal(seeded.temperature, NEW_STEP.temperature);
         assert.equal(seeded.seconds, NEW_STEP.seconds);

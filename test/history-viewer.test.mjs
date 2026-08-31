@@ -399,7 +399,7 @@ describe('the module singleton became an instance', () => {
     });
 });
 
-/* ═════════════════════════════════════ B5 / Q17 — no per-row fetch, ever */
+/* ═════════════════════════════════════ — no per-row fetch, ever */
 
 describe('the fetch-per-row machinery is not built', () => {
     test('opening the viewer costs ONE list request and no record at all', async () => {

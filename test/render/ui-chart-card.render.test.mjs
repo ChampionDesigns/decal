@@ -343,7 +343,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('no @font-face is declared in this component\'s own styles', () => mounted(async (page) => {
-            /* Gate C bans it by build guard; this is the runtime half, read off the sheets
+            /* guard bans it by build guard; this is the runtime half, read off the sheets
              * actually adopted into the card's root — including the vendor sheet. */
             const found = await page.evalFn((s) => {
                 const root = window.__h.need(s).renderRoot;

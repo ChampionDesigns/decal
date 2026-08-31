@@ -1,13 +1,13 @@
 # The generated route layer
 
-Gate 3's answer to the 872 lines of `api.js` that were nothing but a path, a verb and a
-`fetch` (E2's count, `scope/e2-api.md`). Addressing is not knowledge worth hand-copying —
+The answer to 872 lines that were nothing but a path, a verb and a
+`fetch`. Addressing is not knowledge worth hand-copying —
 it is knowledge worth deriving, because a copy has no way to notice when the fact moves.
 
 | file | what it is |
 |---|---|
 | `rea-routes.generated.js` | **generated** — the complete documented surface: 143 REST rows over 101 paths, 13 socket channels. Do not edit. |
-| `rea-routes.js` | hand-written — lookup, spelling, and the five call helpers this wave's stores actually call (each row names its consumer file, and a test reads that file for the call). Everything else in the table is reached with `callRoute`. |
+| `rea-routes.js` | hand-written — lookup, spelling, and the five call helpers the stores actually call (each row names its consumer file, and a test reads that file for the call). Everything else in the table is reached with `callRoute`. |
 | `../../scripts/generate-rea-routes.js` | the generator, with the named exceptions. |
 | `../../scripts/lib/yaml-subset.js` | the YAML reader it stands on — a refusing subset, no npm. |
 | `../../scripts/lib/rea-source.js` | one pin: `REA_ROOT`, `PINNED_COMMIT`, `resolveReaCommit`. |
@@ -19,10 +19,10 @@ and `test/rea-routes-freshness.test.mjs` runs that check.
 
 **The table is complete.** Every path and verb in `assets/api/rest_v1.yml`, every channel in
 `assets/api/websocket_v1.yml`. That is what makes it evidence: a route that is missing is a
-route ReaPrime does not document, and Gate D's coverage half can say so mechanically
+route ReaPrime does not document, and `gate-d`'s coverage half can say so mechanically
 (`findRoute` / `isDocumentedRoute`).
 
-**The helper surface is not.** Exported call helpers exist only where a store in this wave
+**The helper surface is not.** Exported call helpers exist only where a store
 CALLS one, and `HELPER_DEMAND` names both the item and the consumer FILE for each. Five
 helpers over 143 rows. The old skin had the opposite policy and paid for it: six exported
 wrappers with zero call sites, a 34-line socket connector nobody opens, and two wrappers for
@@ -49,21 +49,21 @@ its spelling from the same table. Adding a caller never means adding addressing.
 Retired for want of a caller, each reachable by id through `callRoute`: `sensors`,
 `connectDevice`, `shots`, `latestShot`, `shot`.
 
-## Three rows do not match the spec, deliberately
+## Three rows do not match the document, deliberately
 
-The handler body is the authority — not `rest_v1.yml`, not `doc/Api.md`, not the old skin's
+The handler body is the authority — not `rest_v1.yml`, not any
 JSDoc. Where they disagree at `2b047d02`, the generator applies a **named exception** and
 the table states the handler's truth. Each exception carries its handler evidence, and each
-**hard-fails the generator the moment the spec is fixed**, so it deletes itself instead of
+**hard-fails the generator the moment the document is fixed**, so it deletes itself instead of
 rotting. All three are upstream asks; none is worked around at a call site.
 
-| exception | spec says | handler does | evidence |
+| exception | the document says | the handler does | evidence |
 |---|---|---|---|
 | `shots-orderBy-not-read` | `GET /shots` takes `orderBy` | reads `order` only; `orderBy` occurs in no handler | `shots_handler.dart` `_getShots` ~:73, ~:89 |
 | `plugins-passthrough-any-method` | `/plugins/{id}/{endpoint}` is GET-only | `app.all`, dispatching on `req.method`, body forwarded verbatim | `plugins_handler.dart:90`, `:184` |
 | `sensors-list-key-is-id` | list items are `{name, info}` | emits `{'id': s.deviceId, 'info': …}` | `sensors_handler.dart`, inline `GET /api/v1/sensors` |
 
-The first two are E2's two upstream asks. **The third was found by this wave's own contract
+The first two are upstream asks. **The third was found by this repo's own contract
 check** — which is the argument for contract checking being a build activity rather than an
 audit activity. Sensor discovery derives the estimator's id from that list; a client
 generated faithfully would have read `undefined` and reported "no estimator" on a machine
@@ -80,11 +80,11 @@ the whole truth without emitting speculative rows.
 relative to `/api/v1`, in ReaPrime's own `<param>` syntax, so it matches the strings already
 used in `rea-conditional.js`.
 
-`successMedia` and `json` are what the spec **documents**. A null there means the response
+`successMedia` and `json` are what the document **declares**. A null there means the response
 content is undocumented, not a promise that no body arrives: `PUT /machine/cupWarmer`
 documents "200 Accepted" and the handler returns `{"status":"accepted"}`.
 
-Two absences are real answers and are passed through as such (A7 — never port a fallback):
+Two absences are real answers and are passed through as such — never port a fallback:
 `GET /shots/latest` answers 200 with a body of `null` when no shot has ever been stored, and
 `buildQuery` throws rather than dropping a query key the table does not declare. Sending
 `orderBy` produced exactly nothing and looked like a working sort; here it is an error.
@@ -98,7 +98,7 @@ Two absences are real answers and are passed through as such (A7 — never port 
   served by a parameterised one — `PUT /api/v1/scale/<command>` switches on `tare`,
   `/scale/timer/<command>` on `start|stop|reset`, and skin-assets and the support proxy use
   catch-all path patterns. Pinned in the test, so a change upstream says so.
-* **Neither spec is the authority on machine state.** `rest_v1.yml` lists 20 states,
+* **Neither document is the authority on machine state.** `rest_v1.yml` lists 20 states,
   `websocket_v1.yml` lists 16, they disagree with each other (`steamRinse` vs
   `transportMode`), and neither has `schedIdle` — which `machine.dart` does. That is why the
   enum is generated from the Dart and why the generator **refuses** a `$ref` query parameter
@@ -106,11 +106,11 @@ Two absences are real answers and are passed through as such (A7 — never port 
 
 ## Handoffs
 
-* **Gate D's contract table.** These rows carry path, verb, request body fields and response
+* **`gate-d`'s contract table.** These rows carry path, verb, request body fields and response
   shape. What they do not carry is the handler symbol, the handler file and the checked
   commit — those are the contract table's own columns, and the exception rows already carry
   them for the three routes that needed them. `tools/mock_rea.check_contract` prefers
-  `src/data/rea-contract.json` the moment it exists, and `tools/mock-contract.json` (24
+  a generated contract file the moment it exists, and the mock's own table (24
   routes, provisional, derived from fixtures) is deletable once it does.
 * **`rea-ws-channels.js`** (the connectors builder) hand-writes the ten channels it opens,
   with the message classification the sockets need — knowledge this table does not carry.

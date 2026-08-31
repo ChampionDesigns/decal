@@ -1,6 +1,6 @@
 /**
- * CANARY - deliberately declares an @font-face inside a component (Gate C rule 2;
- * LAYOUT_SPEC_DRAFT.md §6.3 Rule 2). Measured, not assumed: a face declared only in
+ * CANARY - deliberately declares an @font-face inside a component (guard rule 2;
+ * Rule 2). Measured, not assumed: a face declared only in
  * a shadow root never registers - measureText('0123456789.') at 20px gave 105.00
  * (the unknown-family fallback) against 118.50 for the same face declared in the
  * document, with document.fonts.size === 0. Canvas text resolves fonts against the

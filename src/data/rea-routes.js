@@ -35,7 +35,7 @@ export function routeById(id) {
     if (!route) {
         throw new ReaRouteError(
             `no route "${id}" in the generated table. ReaPrime does not document it at `
-            + `${REA_ROUTES_SOURCE.commit.slice(0, 8)}; hand-writing a path at the call site is how the old skin `
+            + `${REA_ROUTES_SOURCE.commit.slice(0, 8)}; hand-writing a path at the call site is how a route drifts `
             + 'shipped a load-cell calibration wizard addressing an endpoint that has never existed in '
             + "ReaPrime's history (see src/data/EXCLUDED.md).",
         );
@@ -173,12 +173,12 @@ export function createReaRoutes(transport) {
 
     return Object.freeze({
         /** The seven-entry capability list, or [] on a machine that is not a Bengle —
-         *  ReaPrime's own answer, never inferred from a model string here (A3). */
+         *  ReaPrime's own answer, never inferred from a model string here. */
         capabilities: () => call('getMachineCapabilities'),
 
         cupWarmer: () => call('getMachineCupWarmer'),
         /** `{temperature?, enabled?}` — at least one, whole °C 0–80. The handler refuses
-         *  anything else with a typed 400; the refusal is the server's to make (B9). */
+         *  anything else with a typed 400; the refusal is the server's to make. */
         setCupWarmer: (body) => call('putMachineCupWarmer', { body }),
 
         cupWarmerPreheat: () => call('getMachineCupWarmerPreheat'),

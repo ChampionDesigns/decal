@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Offline stand-in for ReaPrime, for capture and provenance runs.
+"""Offline stand-in for ReaPrime, for the tests and the gallery.
 
-Ported from `review/tools/mock_rea.py` (Slate's, read-only). Serves recorded GET
+Ported from an earlier review tool, read-only. Serves recorded GET
 fixtures on port 8080 so Decal's screens render with realistic data and no machine
 is involved.
 
@@ -10,37 +10,37 @@ when --record is passed with an explicit host. Every mutating verb
 (POST/PUT/PATCH/DELETE) is answered locally and is NEVER forwarded, so a capture run
 cannot command a machine.
 
-WHAT THE PORT ADDS — Gate B change 4, "the mock is contract-checked" (SCOPE Part 8
-§2): "The battery is only as honest as mock_rea's frames. Its fixtures should be
+WHAT THE PORT ADDS — the contract check: the mock is held to the contract table.
+): "The battery is only as honest as mock_rea's frames. Its fixtures should be
 recorded real ReaPrime responses (review/tools/rea-fixtures/ already holds some), and
 the mock's payload shapes get checked against the same contract table as the client
-(Gate D) — otherwise the battery can pass forever against a server that no longer
+(`gate-d`) — otherwise the battery can pass forever against a server that no longer
 exists." Four mechanisms:
 
   1. `--check-fixtures` verifies every fixture against `tools/FIXTURES.sha256`.
-     FIXTURE PARITY IS A FINAL-REVIEW PRECONDITION (Part 10 §13): the comparison
+     FIXTURE PARITY IS A FINAL-REVIEW PRECONDITION: the comparison
      anchors on text and assumes identical data, so a drifted fixture turns every
      profile title and shot trace into a false difference. Both instruments call
      this before their first shot AND ABORT ON IT — the probe used to call it and
-     shoot anyway, recording the failure in RUN.json after the corpus was written.
+     shoot anyway, recording the failure only after the run was written.
      `--allow-fixture-drift` is the one legitimate override, on both.
   2. `--check-contract` runs `check_mock_contract.py` against `src/data/CONTRACTS.json`
-     — the SAME table Gate D holds the client to, whose rows are read off the handler
+     — the SAME table `gate-d` holds the client to, whose rows are read off the handler
      body at the pinned ReaPrime commit. There is no second table and no fallback: the
-     provisional fixture-derived table this file used to accept (`mock-contract.json`,
-     with `src/data/rea-contract.json` and an env var ahead of it in a three-deep
+     provisional fixture-derived table this file used to accept (a fixture-derived table,
+     with a generated contract file and an env var ahead of it in a three-deep
      candidate chain) is DELETED. A chain of candidate references is precisely how an
-     instrument goes on passing against a reference that moved (A7).
+     instrument goes on passing against a reference that moved.
   3. THE MOCK REFUSES TO SERVE A FRAME THE HANDLER REFUTES. `machine/cupWarmer` still
-     carries the `prewarm*` keys that CB-18/CB-19 retired, and no truer recording of
-     it exists anywhere — Slate's committed blob has the same stale bytes. It is NOT
+     carries the `prewarm*` keys that retired, and no truer recording of
+     it exists anywhere — the committed blob has the same stale bytes. It is NOT
      edited (a fixture edited to pass a check has stopped being a recording) and NOT
      quietly served: `tools/mock-fixture-ledger.json` declares it, and this server
      answers that route **410 with an explicit body**. Absence becomes visible in the
      capture instead of a plausible lie. `check_mock_contract.check_live` starts this
      server and makes the request, so the build fails if the wiring disappears.
      The other two refuted recordings — `shots/latest` and the shots list — were not
-     recordings at all but an uncommitted Slate working-tree edit wave 0a copied, and
+     recordings at all but an uncommitted working-tree edit copied, and
      they have been REPLACED by the committed blobs that ARE recordings of those
      routes (ledger `resolved`, with the git command that reproduces each).
   4. MUTATING VERBS ARE ANSWERED FROM THE TABLE, NOT FROM A CANNED SUCCESS. The
@@ -52,13 +52,13 @@ exists." Four mechanisms:
      mock answers **501** rather than invent one.
 
 The fixtures themselves are the CURRENT working-tree bytes of
-`slate/review/tools/rea-fixtures/`, copied (never edited) and hashed.
+an earlier review tree, copied (never edited) and hashed.
 
 ONE PORTED BUG FIXED: the original's `do_GET` called `.exists()` on `_resolve()`'s
 result, which is `None` on a total miss — so an unrecorded endpoint raised
 AttributeError inside the handler instead of returning the `{}` the record/miss path
-intends. It never fired in the baseline runs because every endpoint Slate touches had
-a fixture; Decal's client will touch endpoints Slate never did.
+intends. It never fired in the baseline runs because every endpoint the previous skin touches had
+a fixture; Decal's client will touch endpoints the previous skin never did.
 
 AND THAT `{}` IS GONE TOO. A miss now answers **503 with an explicit body**, because an
 empty object is a fabricated success: it renders as "the machine has nothing" rather
@@ -66,8 +66,8 @@ than "this instrument has no recording". 503 and not 404 on purpose — 404 is R
 FEATURE-ABSENT signal on the cup warmer, pre-heat, LED strip and scale-calibration
 routes (`_bengleFirmwareGate`), and an instrument must never manufacture that.
 
-IT NOW SPEAKS WebSocket, AND THAT IS WHAT WAVE 0b LEFT OPEN. "Gate B rule 4 is closed for
-REST and open for sockets" (`waves/0b/REPORT.md:255-261`): this file had two verbs and no
+IT NOW SPEAKS WebSocket, AND THAT WAS LEFT OPEN. The contract check was closed for REST and open for
+sockets: this file had two verbs and no
 101, so the ten socket rows of the contract table had no instrument at all and nothing in
 the tree could push a frame at the stores. `tools/ws_frames.py` is the other half — the ten
 channels, their frames, and where every value comes from — and `do_GET` below hands it any
@@ -78,14 +78,14 @@ oversight to tidy up later: `ws__*.json` are recordings of ReaPrime's "Only WebS
 connections are supported." page, `envelope_for` serves a recording as what it is, and
 `check_mock_contract.check_live` asserts it. Upgrade or not is the whole difference.
 
-AND SO IS THE QUERY FALLBACK (A7). `_resolve` used to fall back from an exact miss to
+AND SO IS THE QUERY FALLBACK. `_resolve` used to fall back from an exact miss to
 any recording of the same ENDPOINT, on the argument that a fixture name embeds its query
 so one extra parameter turns a hit into a miss. What it actually did was answer every
 `/api/v1/shots?…` with the one `limit=20` page: `?limit=5&offset=0&order=desc` came back
 200 with 21 items, `limit` 20 and `offset` 0 — four times the rows asked for, at the
-wrong offset, echoing a page size nobody requested. That is the defect class this wave
+wrong offset, echoing a page size nobody requested. That is the defect class this mock
 exists to kill: a plausible answer standing where an absence should be visible, and one
-Gate B rule 4 could not see, because `check_fixtures` derives each request from the query
+the contract check could not see, because `check_fixtures` derives each request from the query
 in the fixture's OWN name and so only ever asked at limit=20. Resolution is EXACT now, a
 query with no recording is a miss (503), and `check_mock_contract.check_query_isolation`
 makes the request to prove it.
@@ -123,7 +123,7 @@ def _key(path: str) -> str:
 def _resolve(path: str, fixtures_dir: pathlib.Path | None = None):
     """The fixture recorded for EXACTLY this path — query string included — or None.
 
-    THE ENDPOINT FALLBACK IS DELETED AND MUST STAY DELETED (A7). The ported version
+    THE ENDPOINT FALLBACK IS DELETED AND MUST STAY DELETED. The ported version
     fell back to `glob(f"{endpoint}~*.json")` on an exact miss, reasoning that the
     endpoint identifies the fixture and the params only rank candidates. A query
     string is not a ranking hint: `limit`, `offset` and `order` ARE the request, and
@@ -184,7 +184,7 @@ def write_hashes() -> int:
 
 
 # --------------------------------------------------------------------------- #
-# Gate B change 4 — the contract check, and what it changes about serving
+# the contract check — the contract check, and what it changes about serving
 # --------------------------------------------------------------------------- #
 #
 # `check_mock_contract` imports this module (it checks what the mock serves), so every
@@ -309,7 +309,7 @@ def envelope_for(fixture: pathlib.Path, ledger_path: pathlib.Path | None = None)
 
 
 def check_contract(verbose: bool = True) -> dict:
-    """Delegate to the Gate B rule 4 checker. One table, no candidates, no fallback."""
+    """Delegate to the the contract check checker. One table, no candidates, no fallback."""
     sys.path.insert(0, str(TOOLS))
     import check_mock_contract as checker                          # noqa: PLC0415
 
@@ -587,7 +587,7 @@ def start_or_reuse(port=8080, record_host=None):
     The audit's probe reused whatever was on 8080 — "another capture session already
     owns it with the same fixtures; reuse rather than fight it, never kill another
     session's run". Correct instinct, unchecked assumption: "the same fixtures" was
-    taken on trust, and fixture parity is precisely the precondition Part 10 §13 says
+    taken on trust, and fixture parity is precisely the precondition says
     silently poisons every comparison after it. So the reuse path now PROVES it, by
     asking the incumbent for one endpoint and comparing the bytes with our own copy.
     """
@@ -608,7 +608,7 @@ def start_or_reuse(port=8080, record_host=None):
     if ours is None or theirs != ours.read_bytes():
         raise SystemExit(f"another server is on {port} serving DIFFERENT data for {probe}. "
                          "Refusing to capture against it — fixture parity is a precondition "
-                         "(SCOPE Part 10 §13), not a preference.")
+                         "(SCOPE, not a preference.")
     print(f"  reusing the mock ReaPrime already on {port} (fixture bytes match)")
     return None
 
@@ -626,7 +626,7 @@ if __name__ == "__main__":
         print("\n  --port N             listen here instead of 8080 (0 = ephemeral)"
               "\n  --record HOST        record GETs from a real ReaPrime (GET only, ever)"
               "\n  --check-fixtures     fixture parity only"
-              "\n  --check-contract     the Gate B rule 4 contract check only"
+              "\n  --check-contract     the the contract check contract check only"
               "\n  --rehash             re-write tools/FIXTURES.sha256"
               "\n\nThe WebSocket half (tools/ws_frames.py, tools/WS_FRAMES.md):"
               "\n  --ws-rate HZ         machine/scale cadence, default 10 (the real one);"
@@ -675,7 +675,7 @@ if __name__ == "__main__":
     port = int(_arg(argv, "--port", 8080))
     httpd = start(port=port, record_host=host, script=script)
     port = httpd.server_address[1]
-    silent = [row for row, spec in ws_frames.SPECS.items() if spec["source"] == "unsourced"]
+    silent = [row for row, contract in ws_frames.SPECS.items() if contract["source"] == "unsourced"]
     print(f"mock ReaPrime on 127.0.0.1:{port} — ctrl-c to stop")
     print(f"  ws: {len(ws_frames.UPGRADED_ROWS)} channels upgrade, machine/scale at "
           f"{script.rate:g} Hz, phases {[e['phase'] for e in script.timeline]}")

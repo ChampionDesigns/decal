@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -178,7 +178,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(
                     after, before,
                     `${dial} moved the grid's own paint — a layout must own no selected look ` +
-                    '(wave-4 notes; DECISIONS.md:244, spec §3.9)',
+                    '(wave-4 notes spec §3.9)',
                 );
             }
         }));

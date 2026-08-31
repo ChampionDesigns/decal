@@ -139,7 +139,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             assert.equal(shape.banks, 1, 'one bank, not a hand-built copy of one (bug L8)');
             assert.equal(shape.mode, 'toolbar',
-                'Slate spells the favourites\' state aria-pressed (slate-live.css:214), and arrowing must not load a profile');
+                'Slate spells the favourites\' state aria-pressed and arrowing must not load a profile');
             assert.equal(shape.role, 'group');
             assert.equal(shape.cells, 5, 'P25: five cells regardless of how many are filled');
             assert.equal(shape.marks, 5, 'every cell carries a #35 mark, filled or not');
@@ -274,7 +274,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const selected = await page.computed(cell(0), compared);
                 const resting = await page.computed(cell(1), compared);
                 assert.deepEqual(selected, resting,
-                    'a property outside the five dials distinguishes selected from resting — that is a private "selected" look, which ITEMS.json #36 forbids by name');
+                    'a property outside the five dials distinguishes selected from resting — that is a private "selected" look, which #36 forbids by name');
                 await page.setToken('--ui-selected-weight', null);
             }));
 
@@ -295,7 +295,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const filled = await page.prop(disc('p2'), 'background-color');
                 const empty = await page.prop(disc('#empty-4'), 'background-color');
                 assert.equal(filled, primary,
-                    'slate-shell.css:1663-1665: "Occupancy is now the difference between an outlined slot and a filled one"');
+                    '"Occupancy is now the difference between an outlined slot and a filled one"');
                 assert.notEqual(filled, face, 'occupancy and selection must not be the same paint');
                 assert.equal(empty, 'rgba(0, 0, 0, 0)', 'an empty slot is outlined, not filled');
             }));

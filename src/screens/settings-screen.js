@@ -262,27 +262,17 @@ export class SettingsScreen extends UiElement {
                 @cancel=${this.#onCancel}
             ></ui-page-header>
 
-            <!-- A REFUSED SAVE IS SAID OUT LOUD, and it has to be: Save leaves the screen
-                 on success, so a write the machine turned down would otherwise carry a
-                 person away from the page with the change still staged and nothing said.
-                 The staged Map survives a failure, so the count is still on the button and
-                 Save can be pressed again. NO BACKTICK IN THIS COMMENT. -->
             ${this._commitRefusal
                 ? html`<p id="commit-refusal" class="ui-caption" role="status"
                     >${t(COMMIT_REFUSAL_TEXT[this._commitRefusal] ?? COMMIT_REFUSAL_TEXT.unknown)}</p>`
                 : nothing}
 
-            <!-- THE PREFERENCE THAT DID NOT STICK. A stored preference writes the moment it
-                 changes, so there is no Save to report through and the control simply
-                 snapped back to its old value with nothing said. NO BACKTICK HERE. -->
             ${this._writeRefusal
                 ? html`<p id="write-refusal" class="ui-caption" role="status"
                     >${t(WRITE_REFUSAL_TEXT[this._writeRefusal] ?? WRITE_REFUSAL_TEXT.unknown)}</p>`
                 : nothing}
 
             <settings-master-detail id="body" nav-level=${this._navLevel}>
-                <!-- THE CRUMB. Rendered always; the body's container query decides
-                     whether it has a box. No JS reads the branch. -->
                 <div slot="crumb" id="crumb-trail">
                     <ui-button
                         id="crumb-up"
@@ -292,20 +282,6 @@ export class SettingsScreen extends UiElement {
                     <span id="crumb-here" class="ui-body">${t(navName(category))}</span>
                 </div>
 
-                <!-- THE FIELD SPANS BOTH NAV COLUMNS, which is Slate's own structure and
-                     Ben's ask of 26 August 2026: "The search field, Box width should
-                     spread over both columns." It was slotted into the nav column, so it
-                     was one column wide and the sub-nav had to carry a blank head track of
-                     the same height just to keep the two lists level. It is the
-                     master-detail's own grid item now. NO BACKTICK IN THIS COMMENT.
-
-                     THE PLACEHOLDER CARRIES SLATE'S THREE DOTS AND THE LABEL DOES NOT.
-                     The type audit of 26 August recorded the pair as "three dots apart",
-                     and it is a tie on the merits: an ellipsis in a placeholder is a
-                     convention meaning "start typing", and it is neither right nor wrong.
-                     A tie goes to Slate - that is the whole charter - so the placeholder
-                     is Slate's string. The accessible NAME stays the plain sentence,
-                     because a name is read aloud and "dot dot dot" is not part of it. -->
                 <ui-search-field
                     id="search"
                     slot="search"
@@ -329,25 +305,6 @@ export class SettingsScreen extends UiElement {
                     id="subnav"
                     @navigate=${this.#onLeafNavigate}
                 >
-                    <!-- THE LEAF'S ONE HEADLINE SCALAR, ON ITS OWN NAV ROW (Slate's S20,
-                         and its own note says why: "Confirming what the machine is set to
-                         cost six taps and six page loads"). The DATA was always here;
-                         Decal slotted a bare label, which is a half with no other half.
-
-                         THE MODEL IS THE SOURCE AND NOT THE MACHINE DOCUMENT, which is the
-                         load-bearing half: navSummary resolves staged-then-machine, so a
-                         row AGREES with an unsaved Save rather than contradicting it. A
-                         summary read straight off the machine would print 220V beside a
-                         control the user has just moved to 110V.
-
-                         NOT D11. D11 is about what a SCREEN tells the commit band - "the
-                         count and nothing else" - and this is a nav row reporting a page it
-                         is not on. Different channel, different question.
-
-                         NULLISH COALESCING RATHER THAN OR: the model answers null for "no scalar", and
-                         an empty string is what #25 already treats as none, so both land on
-                         the same no-element branch without a second rule here.
-                         NO BACKTICK IN THIS COMMENT. -->
                     ${leavesFor(category, this.#machineClass).map((leaf) => html`<ui-subnav-row
                         data-id=${leaf.id}
                         .value=${leaf.id}
@@ -368,13 +325,6 @@ export class SettingsScreen extends UiElement {
                         @leaf-change=${this.#onLeafChange}
                         @leaf-edit=${this.#onLeafEdit}
                     ></settings-leaf>
-                    <!-- THE OTHER HALF OF THE PAIR, and only for the nine (spec 4.4).
-                         NO BACKTICK IN THIS COMMENT: it is inside a tagged template and
-                         one would end it. leafKind is the registry's answer, so a leaf
-                         becomes bespoke by being named in BESPOKE_LEAVES and never by a
-                         branch here; the element above still renders the heading and the
-                         registry rows for all thirty-seven, so T13 stays dead for these
-                         nine too. Both sit in the pane's ONE measure box (T1 / T21). -->
                     ${leafKind(this.#leaf.id) === LEAF_KIND.BESPOKE
                         ? html`<settings-bespoke-leaf
                             id="bespoke"

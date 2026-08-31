@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -356,7 +356,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the glyph is decorative and announced to nobody', () => mounted(PLAIN, async (page) => {
             const hidden = await page.evalFn(() => document.querySelector('ui-search-field')
                 .shadowRoot.querySelector('.well').getAttribute('aria-hidden'));
-            assert.equal(hidden, 'true', 'Slate gets this right (settings.html:20) and it is carried');
+            assert.equal(hidden, 'true', 'the previous skin gets this right and it is carried');
         }));
 
         test('E14: show-label renders a label whose for/id pairing cannot come apart', () => {

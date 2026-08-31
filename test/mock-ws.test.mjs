@@ -84,7 +84,7 @@ function expectedMachineFrame(index) {
 
 const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
-// A script for the channels whose values no recording carries, plus the B8 picker state.
+// A script for the channels whose values no recording carries, plus the picker state.
 const SCRIPT = {
     rate: RATE,
     timeline: [{ phase: 'pre-shot', frames: 4 }, { phase: 'in-shot', frames: 8 },
@@ -157,7 +157,7 @@ test('machine frames ARE the recording, minus the names the handler stopped send
     for (const frame of frames) {
         for (const key of Object.keys(frame)) assert.ok(vouched.has(key), `unvouched key ${key}`);
         for (const key of SNAPSHOT_KEYS) assert.ok(Object.hasOwn(frame, key), `missing ${key}`);
-        // CB-03 and CB-08: deleted from this frame in 633f6f68. The recording predates it.
+        // and: deleted from this frame in 633f6f68. The recording predates it.
         for (const dead of ['weight', 'weightFlow', 'milkTemperature', 'fusedConf', 'vAbs',
             'estFlags', 'detEventCount', 'estLag', 'fusedR1', 'fusedR2', 'fusedC']) {
             assert.ok(!Object.hasOwn(frame, dead), `the frame carries the dead name ${dead}`);

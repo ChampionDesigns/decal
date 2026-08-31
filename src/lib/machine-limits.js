@@ -2,7 +2,7 @@
  * The per-machine limits table the ranges door reads.
  */
 
-/** The two machine classes the steam envelope is decided for (`doc/Skins.md:573`). */
+/** The two machine classes the steam envelope is decided for. */
 export const MACHINE_CLASSES = Object.freeze(['bengle', 'de1']);
 
 const STEAM_FLOOR = 135;
@@ -50,7 +50,7 @@ const BASE_LIMITS = Object.freeze({
     flushFlow: Object.freeze({ min: 2, max: 8, step: 0.1, unit: 'mL/s' }),
 
     brewTemp: Object.freeze({ min: 70, max: 110, step: 0.5, unit: '°C' }),
-    calibrationWeight: Object.freeze({ min: 1, max: 10000, step: 1, unit: 'g' }),
+    calibrationWeight: Object.freeze({ min: 50, max: 2000, step: 1, unit: 'g' }),
     heaterPh1Flow: Object.freeze({ min: 0, max: 10, step: 0.1, unit: 'mL/s' }),
     heaterPh2Flow: Object.freeze({ min: 0, max: 10, step: 0.1, unit: 'mL/s' }),
     heaterIdleTemp: Object.freeze({ min: 0, max: 95, step: 1, unit: '\u00B0C' }),
@@ -143,7 +143,7 @@ export function step(limits, key, value, direction) {
 
 export function bandHint(range, { format = (n) => String(n), unit, zeroMeans } = {}) {
     /* NO RANGE IS NO SENTENCE, not an empty band. A caller with nothing to describe gets
-     * nothing to print, and A7 decides what it draws in that space instead. */
+     * nothing to print, and the caller decides what it draws in that space instead. */
     if (!range) return '';
     const word = unit === undefined ? range.unit : unit;
     const suffix = word ? ` ${word}` : '';

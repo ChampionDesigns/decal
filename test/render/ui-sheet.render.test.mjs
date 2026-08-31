@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -268,7 +268,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(dark['text-transform'], ORACLE.labelTransform);
             assert.equal(dark['font-weight'], ORACLE.labelWeight,
                 'the microcap is Slate\'s own 600 (parity surface 1 reversed the 700 departure: '
-                + 'LAYOUT_SPEC_DRAFT §3.5 cites slate-tokens.css:148-153, which declares four weights)');
+                + 'LAYOUT_SPEC_DRAFT §3.5 cites which declares four weights)');
             near(dark['letter-spacing'], ORACLE.labelTracking,
                 'the microcap tracks Slate\'s .12em (parity surface 0 reversed the .04em departure)');
             assert.equal(dark.color, ORACLE.muted.dark);
@@ -320,7 +320,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(stack['padding-top'], '0px');
             assert.equal(stack['padding-left'], '0px');
             assert.equal(stack['margin-top'], '0px',
-                'slate-shell.css:2231 margin-top: var(--slate-space-7) is #18s inset now');
+                'margin-top: var(--slate-space-7) is #18s inset now');
         }));
 
         test('wave law: no dial reaches anything this component paints', () => mounted(async (page) => {

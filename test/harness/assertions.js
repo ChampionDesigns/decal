@@ -1,5 +1,5 @@
 /**
- * Gate A's four standing assertions, as helpers every component suite reuses.
+ * the render harness's four standing assertions, as helpers every component suite reuses.
  */
 
 import assert from 'node:assert/strict';

@@ -84,7 +84,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and the widget-shaped wording is gone from the menu entirely');
 
                 /* THE REST OF THE MENU IS UNTOUCHED, which is the half a rename can
-                 * break by accident: D13 changed one string and not the shape. */
+                 * break by accident: changed one string and not the shape. */
                 assert.deepEqual(menu.items, ['edit', 'replace', '---', 'clear'],
                     'the filled menu still offers Edit, Replace with, and the clear');
             }));

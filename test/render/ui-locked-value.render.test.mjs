@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -213,15 +213,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'border-top-width', 'border-top-style', 'border-top-left-radius',
                 'font-size', 'font-weight', 'letter-spacing', 'text-align', 'min-height',
             ]);
-            assert.equal(c['border-top-width'], ORACLE.edgeWidth, 'CITE [i=58] 1px');
+            assert.equal(c['border-top-width'], ORACLE.edgeWidth, '[i=58] 1px');
             assert.equal(c['border-top-style'], ORACLE.edgeStyle,
-                'SOURCE profile-editor-v3.css:646 — dashed is the whole signal that this cell is locked');
-            assert.equal(c['border-top-left-radius'], ORACLE.radius, 'CITE [i=33] 6px');
-            assert.equal(c['font-size'], ORACLE.fontSize, 'CITE [i=169] 16px = --slate-text-note');
-            assert.equal(c['font-weight'], ORACLE.fontWeight, 'CITE [i=33] 400');
-            assert.equal(c['letter-spacing'], ORACLE.tracking, 'CITE editor-steps .pe-stepper [i=33] normal');
-            assert.equal(c['text-align'], 'center', 'SOURCE profile-editor-v3.css:654');
-            assert.equal(c['min-height'], `${ORACLE.controlH}px`, 'CITE [i=169] 64px = --slate-control-height');
+                'dashed is the whole signal that this cell is locked');
+            assert.equal(c['border-top-left-radius'], ORACLE.radius, '[i=33] 6px');
+            assert.equal(c['font-size'], ORACLE.fontSize, '[i=169] 16px = --slate-text-note');
+            assert.equal(c['font-weight'], ORACLE.fontWeight, '[i=33] 400');
+            assert.equal(c['letter-spacing'], ORACLE.tracking, 'editor-steps .pe-stepper [i=33] normal');
+            assert.equal(c['text-align'], 'center');
+            assert.equal(c['min-height'], `${ORACLE.controlH}px`, '[i=169] 64px = --slate-control-height');
         }));
 
         test('the edge is dashed on all four sides, and it is one hairline', () => mounted(async (page) => {
@@ -306,7 +306,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(c['padding-right'], step);
             assert.notEqual(c['padding-left'], ORACLE.slatePadding,
                 'the off-scale 14px came back');
-            assert.equal(c['padding-top'], '0px', 'SOURCE profile-editor-v3.css:645 — 0 on the block axis');
+            assert.equal(c['padding-top'], '0px', '0 on the block axis');
             assert.equal(c['padding-bottom'], '0px');
         }));
 

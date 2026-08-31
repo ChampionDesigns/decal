@@ -40,7 +40,7 @@ class UiStepper extends UiElement {
         labelHidden: { type: Boolean, attribute: 'label-hidden', reflect: true },
 
         /**
-         * `regular` | `compact` - C3's named density. Reflected so the attribute
+         * `regular` | `compact` - the named density. Reflected so the attribute
          * selector below is the same state a test and a screen both read.
          */
         density: { type: String, reflect: true },
@@ -294,7 +294,7 @@ class UiStepper extends UiElement {
         this.increaseLabel = 'Increase';
     }
 
-    /** A stated limit is a finite number; anything else is "not stated" (B2). */
+    /** A stated limit is a finite number; anything else is "not stated". */
     static #limit(v) {
         const n = Number(v);
         return v === null || v === undefined || v === '' || !Number.isFinite(n) ? null : n;

@@ -19,10 +19,10 @@ export const PROBE_OPTIONS = Object.freeze([
 
 export const HELD_TARGET_TEXT = 'Holds previous target';
 
-/** The per-cell accessible-name template (D2, E14). `{label}` is already translated. */
+/** The per-cell accessible-name template. `{label}` is already translated. */
 export const CELL_NAME_KEY = '{label}, step {n}';
 
-/** The step-name field's accessible-name template (D2, E7). */
+/** The step-name field's accessible-name template. */
 export const STEP_NAME_KEY = 'Step {n} name';
 
 /** The head cell's ordinal line. An existing key whose own note names this screen. */
@@ -120,7 +120,7 @@ export const STEP_MATRIX_ROW_KEYS = Object.freeze(STEP_MATRIX_ROWS.map((row) => 
 const ROW_BY_KEY = new Map(STEP_MATRIX_ROWS.map((row) => [row.key, row]));
 
 /**
- * One row by id. THERE IS NO FALLBACK (A7): an unknown row is a programming error, and
+ * One row by id. THERE IS NO FALLBACK: an unknown row is a programming error, and
  * a module that answered with a plausible row would put the caller's typo on screen.
  */
 export function matrixRow(key) {
@@ -180,7 +180,7 @@ const TARGET_CHANNEL = Object.freeze({ flow: 'flow', pressure: 'pressure' });
 
 /**
  * The channel this cell's number speaks for, or `null` for the plain ink.
- * A step whose pump the table does not know answers `null` rather than guessing (A7).
+ * A step whose pump the table does not know answers `null` rather than guessing.
  */
 export function matrixChannel(row, step) {
     if (!row) return null;

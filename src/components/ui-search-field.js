@@ -97,9 +97,6 @@ export class UiSearchField extends UiElement {
             >
                 <span class="well" slot="lead" aria-hidden="true">
                     <slot name="icon">
-                        <!-- Slate's own path, carried verbatim from settings.html:20.
-                             aria-hidden on the WELL, so a consumer's replacement glyph
-                             is decorative too without having to remember. -->
                         <svg class="glyph" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2"
                              stroke-linecap="round" stroke-linejoin="round">

@@ -22,8 +22,8 @@ export const entry = {
                 + 'role="tablist"> [i=7] rect 430x82 with #editor-tab-0 [i=8] 143x80 — the '
                 + 'implementation Appendix 10 keeps verbatim. The 82 is --ui-control-lg '
                 + '(styles/tokens.css:65-69 cites this very element); the width is '
-                + 'fit-content, so the stage is 900px wide and the tablist is not. Slate\'s '
-                + 'rect is a frozen 1920x1200 capture, quoted as what Slate does, never as '
+                + 'fit-content, so the stage is 900px wide and the tablist is not. The reference skin\'s '
+                + 'rect is a frozen 1920x1200 capture, quoted as what the reference skin does, never as '
                 + 'a responsive target.',
             hostStyle: { 'inline-size': '900px' },
             html: `<ui-tab-bar label="Profile editor" value="Steps"
@@ -60,7 +60,7 @@ export const entry = {
             notes:
                 'Panels slotted with data-tab are adopted: role=tabpanel, a name taken '
                 + 'from the tab\'s own label, tabindex=0 because a panel is a scroll '
-                + 'region, and hidden + inert on every panel but one. Slate\'s Live tabs '
+                + 'region, and hidden + inert on every panel but one. The reference skin\'s Live tabs '
                 + 'have no panels and no aria-controls at all (L23). No aria-controls '
                 + 'here either, and deliberately: an IDREF cannot cross a shadow boundary, '
                 + 'so the panel is named rather than pointed at.',
@@ -84,7 +84,7 @@ export const entry = {
             title: 'stretch — the full-bleed bank, without writing 720',
             notes:
                 'ORACLE expanded-charts .slate-bank.slate-expanded-tabs [i=163] 720x82 and '
-                + 'history-viewer .slate-bank.slate-hv-tabs [i=168] 720x82: Slate pins both '
+                + 'history-viewer .slate-bank.slate-hv-tabs [i=168] 720x82: the reference skin pins both '
                 + 'at a literal 720. `stretch` says "fill the container" and the container '
                 + 'says how wide that is, so the same look survives a header that is not '
                 + '1920 wide.',
@@ -116,7 +116,7 @@ export const entry = {
                 + 'resting ink, with the LED and glow at their shipped zero. If ANY part of '
                 + '"selected" were painted by a rule in this component rather than by the '
                 + 'four dials, this is the screenshot where it would still be visible. '
-                + 'Slate had six selected looks across thirteen selection surfaces; this '
+                + 'the reference skin had six selected looks across thirteen selection surfaces; this '
                 + 'state is what "one, and it is re-themable to nothing" looks like.',
             hostStyle: { 'inline-size': '900px' },
             html: `<ui-tab-bar label="Profile editor" value="Settings"
@@ -148,7 +148,7 @@ export const entry = {
             notes:
                 'A tab that is not available yet (the editor\'s Review before a first '
                 + 'step exists). #3 dims the cell and skips it on the arrow path AND the '
-                + 'Home/End path; Slate never disables a tab, so this is new behaviour '
+                + 'Home/End path; the reference skin never disables a tab, so this is new behaviour '
                 + 'rather than a carried-over one, and it is stated once, in the bank.',
             hostStyle: { 'inline-size': '900px' },
             html: `<ui-tab-bar label="Profile editor" value="steps"

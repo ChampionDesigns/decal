@@ -26,8 +26,8 @@ export const entry = {
     title: 'Favourites bank',
     module: './entries/ui-favourites-bank.demo.js',
     notes:
-        'Component #36, the Live header\'s profile-shortcut bank (SCOPE Part 4 Wave 4 '
-        + 'row 36; spec §5.2 #36, slate-live.css:114-238). One <ui-bank> (#3) is the '
+        'Component #36, the Live header\'s profile-shortcut bank (Wave 4 '
+        + 'row 36; spec §5.2 #36). One <ui-bank> (#3) is the '
         + 'row - ground, hairline, radius, seam, roving tabindex, and THE selection '
         + 'treatment; one <ui-favourite-slot> (#35) per cell is the mark, carrying '
         + 'OCCUPANCY. Two bugs die structurally. L7: "three overlapping '
@@ -46,7 +46,7 @@ export const entry = {
                 'Three occupied favourites and two empty slots, the first one current. '
                 + 'CITE find --id fav-profile-btn-0..4 (live-ready): five cells at '
                 + '264.094 / 180 / 234 / 180 / 180 in a 1040px box, and the last two '
-                + 'record no text at all - quoted as what Slate does, never as the '
+                + 'record no text at all - quoted as what the reference skin does, never as the '
                 + 'target, because that geometry IS bug L7. Here the cells are equal '
                 + 'because ui-bank\'s items are flex: 1 1 0 and nothing else has an '
                 + 'opinion. CITE live-ready #profile-fav-nav [i=2] background-color = '
@@ -59,8 +59,8 @@ export const entry = {
             id: 'beside-the-tabs',
             title: 'The defect that started the audit',
             notes:
-                'Ben\'s original report was that the selection bank looked different on '
-                + 'Live than on Settings. Slate answers with four coexisting selection '
+                'the owner\'s original report was that the selection bank looked different on '
+                + 'Live than on Settings. The reference skin answers with four coexisting selection '
                 + 'implementations; the favourites bank is one of them, and re-skinning '
                 + 'selection "changes the tabs and leaves the favourites alone" (L8). '
                 + 'These two rows are the same component underneath - one ui-bank, one '
@@ -79,17 +79,17 @@ export const entry = {
             id: 'dials-radian',
             title: 'The same rules, two values moved',
             notes:
-                'Slate ships --ui-selected-led at 0px and --ui-selected-glow at 0% '
+                'The reference skin ships --ui-selected-led at 0px and --ui-selected-glow at 0% '
                 + '(styles/tokens.css:819-822); Radian moves those two. Neither this '
                 + 'component\'s CSS nor ui-bank\'s changes - which is the whole claim of '
                 + 'spec §3.9, "four values, zero rule changes", and it only holds '
-                + 'because there is ONE selection treatment. Slate\'s own favourites '
+                + 'because there is ONE selection treatment. The reference skin\'s own favourites '
                 + 'strip could not do this: its selected cell is a color-mix face, a '
                 + 'font-weight of 500 and an ::after LED strip, all !important, none of '
-                + 'them a dial (slate-live.css:214-243).',
+                + 'them a dial.',
             html:
                 '<div style="display:grid; gap:var(--ui-space-5)">'
-                + row('label="Slate dials" value="p1"')
+                + row('label="the reference skin dials" value="p1"')
                 + '<div style="--ui-selected-led:var(--ui-toggle-led); --ui-selected-glow:55%">'
                 + row('label="Radian dials" value="p1"')
                 + '</div></div>',
@@ -98,7 +98,7 @@ export const entry = {
             id: 'full',
             title: 'Five occupied, and the names give way first',
             notes:
-                'P25 in Slate: "the favourites strip rendered five cells regardless, so '
+                'P25 in the reference skin: "the favourites strip rendered five cells regardless, so '
                 + 'empty slots drew a full border and read as failed-to-load, and the '
                 + 'active tab wrapped to two lines." Here a name never wraps: the mark '
                 + 'is fixed at --ui-hit-min and the name track is flex: 0 1 auto with '
@@ -127,11 +127,11 @@ export const entry = {
             title: 'Disabled, and the empty slots that always were',
             notes:
                 'The whole row dims once through --ui-opacity-disabled (.38, one dial '
-                + 'against Slate\'s three live values) and every press is refused. Note '
+                + 'against the reference skin\'s three live values) and every press is refused. Note '
                 + 'that the two empty slots are disabled even in the live row above: an '
                 + 'empty favourite holds no profile, so the roving tab stop skips it '
                 + 'and a press cannot load what is not there. Occupancy is DATA here - '
-                + 'Slate spells it `:empty, :not(:has(*)):blank`, and `:blank` is '
+                + 'the reference skin spells it `:empty, :not(:has(*)):blank`, and `:blank` is '
                 + 'implemented in no shipping engine, so one invalid selector '
                 + 'invalidates the list and the valid half dies with it (bug L6).',
             html: row('label="Favourite profiles" value="p1" disabled'),

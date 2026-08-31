@@ -197,7 +197,7 @@ export class UiExitSentence extends UiElement {
     }
 
     /**
-     * THE C8 SEAM, reachable from the element for convenience — it delegates and
+     * THE SEAM, reachable from the element for convenience — it delegates and
      * owns nothing. The function is the seam; this is a shortcut for a consumer
      * that already has the element in hand.
      */

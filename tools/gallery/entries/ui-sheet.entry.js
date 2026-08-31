@@ -7,29 +7,29 @@ export const entry = {
     title: 'Sheet body',
     module: './entries/ui-sheet.demo.js',
     notes:
-        'Component #20 (SCOPE.md:1615): the labelled field stack a #18 dialog wears as '
+        'Component #20: the labelled field stack a #18 dialog wears as '
         + 'its body — the settings schedule editor. It owns two rhythms and nothing '
         + 'else: 28px (--ui-space-6) between fields, 12px (--ui-space-3) inside one, '
-        + 'read from slate-shell.css:2205-2222 and corroborated six times in the '
+        + 'read from the old sheet and corroborated six times in the '
         + 'capture at the DaisyUI closed scale of 0.9. The card, the title and the '
         + 'footer are #18 and #16; the label is #13\'s microcap role; the controls are '
         + 'whatever the consumer slots in. A labelled field is a real aria group named '
         + 'by its own label — an IDREF cannot cross the slot, so the group and the '
         + 'label are both in the shadow root and the control is a flat-tree descendant '
-        + 'of the group. Slate\'s three labels name nothing at all.',
+        + 'of the group. The reference skin\'s three labels name nothing at all.',
     states: [
         {
             id: 'schedule-editor',
             title: 'The whole thing — sheet body inside a #18 dialog',
             notes:
-                'Slate\'s #add-schedule-modal (settings.js:2608), rebuilt as composition. '
+                'The reference skin\'s #add-schedule-modal, rebuilt as composition. '
                 + 'ORACLE settings-machine-sleep---wake-schedules div.modal-box.slate-sheet-box '
                 + '[i=73] rect 612x564 closed at 0.9 scale; layout/settings.md V3 proves the '
                 + 'open card is 680 wide. The dialog is asked for exactly that with '
                 + '--_ui-dialog-inline: 680px — which is INSIDE #18\'s one container query '
-                + '(§4.6\'s surviving breakpoint, numpad-modal.css:411 max-width: 720px), so '
+                + '(§4.6\'s surviving breakpoint, max-width: 720px), so '
                 + 'the cell inset is --ui-space-4 and the body measure is 644, against '
-                + 'Slate\'s 600 under a 40px sheet-only padding. One dialog, one inset. '
+                + 'the reference skin\'s 600 under a 40px sheet-only padding. One dialog, one inset. '
                 + 'The Days of Week row is a #3 bank: single-select as #3 ships today, and '
                 + 'the seven-day MULTI-select is #3\'s contract to add (findings-digest '
                 + '"compose instead of copy", .slate-day-toggle -> .slate-bank-item), not '
@@ -87,9 +87,9 @@ export const entry = {
             id: 'inline-cluster',
             title: 'The one horizontal arrangement',
             notes:
-                'SOURCE slate-shell.css:2218-2222 .slate-sheet-duration { display: flex; '
+                'The old duration row: display: flex; '
                 + 'align-items: center; gap: var(--slate-space-3) }, measured 11px between '
-                + '[i=94] and [i=95] at 0.9 scale. The 120px field width is NOT here: Slate '
+                + '[i=94] and [i=95] at 0.9 scale. The 120px field width is NOT here: the reference skin '
                 + 'sets it one selector deeper (:2224, layout/settings.md row 70), and that '
                 + 'is a declaration about a control, which now owns its own size. One '
                 + 'number, one owner.',
@@ -137,7 +137,7 @@ export const entry = {
                 'The component reads its own container and never the viewport (§2.1 Rule '
                 + '1); there is no width query anywhere in it, so the only thing a narrow '
                 + 'container changes is the wrap. The gaps at 320px are the gaps at 644px. '
-                + 'Slate\'s sheet cannot do this: slate-shell.css:2194 sizes the card with '
+                + 'the reference skin\'s sheet cannot do this: it sizes the card with '
                 + 'min(92vw, 680px) — "FLUID but vw != canvas" (layout/settings.md row 67) '
                 + '— and its duration row has no wrap at all.',
             hostStyle: { 'inline-size': '320px' },

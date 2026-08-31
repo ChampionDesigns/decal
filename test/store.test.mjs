@@ -42,7 +42,7 @@ describe('pattern F: in-place mutation is made loud', () => {
     test('set() handed the same object throws, and names the pattern', () => {
         const store = createStore({ events: [] });
         const current = store.get();
-        assert.throws(() => store.set(current), /pattern F/);
+        assert.throws(() => store.set(current), /RETURN NEW STATE/);
     });
 
     test('state objects are frozen, so a fold that mutates throws where it mutates', () => {
@@ -201,7 +201,7 @@ describe('pattern C: no module-scope mutable state anywhere in src/', () => {
                 if (/^(let|var)\s/.test(line)) offenders.push(`${file.slice(REPO.length)}:${i + 1}`);
             });
         }
-        assert.deepEqual(offenders, [], 'a module-scope let is a singleton with no owner (CARRY_FORWARD.md §6 pattern C)');
+        assert.deepEqual(offenders, [], 'a module-scope let is a singleton with no owner pattern C)');
     });
 });
 
@@ -257,7 +257,7 @@ describe('pattern A: the store layer starts nothing on its own clock', () => {
             }
         }
         assert.deepEqual(offenders, [],
-            'a store that starts its own timer outlives whatever wanted it (CARRY_FORWARD.md §6 pattern A)');
+            'a store that starts its own timer outlives whatever wanted it pattern A)');
 
         const expected = [];
         for (const [name, lines] of DECLARED_SCHEDULERS) {

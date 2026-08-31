@@ -1,5 +1,5 @@
 /**
- *.5, item one-ranges-table (B2/B3).
+ *.5, item one-ranges-table.
  */
 
 import { test, describe } from 'node:test';
@@ -45,9 +45,9 @@ describe('B2 — every editor field resolves to exactly one table entry', () => 
     const requests = enumerateEditorRangeRequests();
 
     test('the enumeration covers every declared field, and every request resolves', () => {
-        assert.equal(EDITOR_RANGE_FIELDS.length, 13, 'the editor has thirteen ranged fields');
+        assert.equal(EDITOR_RANGE_FIELDS.length, 14, 'the editor has fourteen ranged fields');
         assert.equal(new Set(requests.map((r) => r.field)).size, EDITOR_RANGE_FIELD_IDS.length);
-        assert.equal(requests.length, 21, 'thirteen fields, four pump modes and three exit types');
+        assert.equal(requests.length, 22, 'fourteen fields, four pump modes and three exit types');
         for (const { field, ctx } of requests) {
             assert.ok(door.rangeFor(field, ctx), `${field} resolved nothing`);
         }
@@ -113,17 +113,18 @@ describe('a field with no entry is refused, never defaulted', () => {
         });
     }
 
-    test('tankTemperature refuses even though the machine row now exists', () => {
+    test('tankTemperature reads the machine\'s own tankTemp row, not a literal', () => {
         assert.ok(LIMIT_KEYS.includes('tankTemp'), 'the settings page needs the machine row');
         assert.ok(Object.hasOwn(BENGLE, 'tankTemp'));
-        assert.ok(!door.has('tankTemperature'), 'the PROFILE field is still unranged');
-        assert.throws(() => door.rangeFor('tankTemperature'), /has no range ON PURPOSE/);
+        assert.ok(door.has('tankTemperature'), 'the profile field is ranged now');
+        assert.deepEqual(door.rangeFor('tankTemperature'), BENGLE.tankTemp,
+            'the editor reads the machine row itself, never a second table');
     });
 
     test('a mode-dependent field without a pump refuses rather than picking one', () => {
         assert.throws(() => door.rangeFor('stepTarget'), /mode-dependent/);
         assert.throws(() => door.rangeFor('stepLimiter'), /mode-dependent/);
-        // A7: an unrecognised mode is refused, never read as flow.
+        //: an unrecognised mode is refused, never read as flow.
         assert.throws(() => door.rangeFor('stepTarget', { pump: 'auger' }), /not a pump mode/);
     });
 
@@ -133,7 +134,7 @@ describe('a field with no entry is refused, never defaulted', () => {
 
     test('the door itself refuses to exist without an injected machine table', () => {
         assert.throws(() => createEditorRanges(), /must be injected/);
-        assert.throws(() => createEditorRanges({}), /second table B2 forbids/);
+        assert.throws(() => createEditorRanges({}), /second table, which is forbidden/);
     });
 
     test('an absent machine row is an absence, not a stand-in', () => {
@@ -305,7 +306,6 @@ describe('the R2 door is the only way in, and the gap is declared', () => {
 
     test('R2 has not landed and the module says so as data', () => {
         assert.equal(R2_INTERIM.landed, false);
-        assert.equal(R2_INTERIM.decision, 'B2');
         assert.equal(R2_INTERIM.upstream, 'R2');
         assert.equal(R2_INTERIM.checkedCommit, '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3');
         assert.match(R2_INTERIM.note, /interim single table pending R2/);

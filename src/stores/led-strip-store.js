@@ -1,5 +1,5 @@
 /**
- * The LED strip, and D7's decided write pattern.
+ * The LED strip, and its write pattern.
  */
 
 import { callRoute } from '../data/rea-routes.js';
@@ -186,7 +186,7 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
             return ledColour16ToHex8(strip[zone][bank]);
         },
 
-        /** Instrumentation for the D7 drill. Numbers, not behaviour. */
+        /** Instrumentation for the write drill. Numbers, not behaviour. */
         counters: () => Object.freeze({ intents, sent, peakInFlight, dropped: intents - sent }),
 
         /**

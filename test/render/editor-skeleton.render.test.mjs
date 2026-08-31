@@ -23,7 +23,7 @@ const authored = async (page) => JSON.parse(await page.eval(
     + "import('/src/screens/editor-screen.js')"
     + ']).then(function (m) { return JSON.stringify({'
     + ' trackMin: m[0].EDITOR_FIELD_TRACK_MIN_PX,'
-    + ' settings2up: m[0].EDITOR_SETTINGS_COLLAPSE_2UP_PX,'
+    + ' colInset: m[0].EDITOR_SETTINGS_COLUMN_INSET_PX,'
     + ' settings1up: m[0].EDITOR_SETTINGS_COLLAPSE_1UP_PX,'
     + ' review: m[1].EDITOR_REVIEW_COLLAPSE_PX,'
     + ' tabs: m[2].EDITOR_TABS.map(function (t) { return t.value; }),'
@@ -204,7 +204,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
 
                 /* AND THE PARENT, NOT THE CANVAS, IS WHAT IT READS. A height keyed on an
-                 * ancestor SELECTOR — E9's actual defect — cannot follow a parent whose
+                 * ancestor SELECTOR — the rule's actual defect — cannot follow a parent whose
                  * box the canvas does not explain. */
                 await page.setGeometry(geometry);
                 await page.settle(3);
@@ -231,7 +231,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const bar = await page.box(EDITOR.tabs);
                 near(centre.width, bar.width, 'the centre track is the tablist\'s own width');
                 assert.notEqual(Math.round(centre.width), 430,
-                    'and never Slate\'s 430px literal (profile-editor-v3.css:98)');
+                    'and never Slate\'s 430px literal ');
 
                 near(px(await page.prop(EDITOR.tabs, 'inline-size')), centre.width,
                     'fit-content: the bar is exactly its tabs', 0.01);
@@ -274,7 +274,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
                 assert.equal(clean, 'Save', 'zero changes: Save, with no count beside it');
                 assert.equal(await page.count(EDITOR.cancel), 1,
-                    'and Cancel beside it — Slate\'s pair, on Ben\'s ruling');
+                    'and Cancel beside it — the decided pair');
 
                 await page.evalFn((s) => { window.__h.need(s).changeCount = 3; }, EDITOR.screen);
                 await page.settle(4);
@@ -408,7 +408,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 /* The hidden ones are hidden AND inert — ui-tab-bar writes both, so a
                  * screen rule that outranks [hidden] cannot leave a focusable ghost
-                 * (bug P13's mechanism). */
+                 * (bug the rule's mechanism). */
                 for (const panel of [EDITOR.steps, EDITOR.settings]) {
                     assert.equal(
                         await page.evalFn((s) => window.__h.need(s).hasAttribute('inert'), panel),
@@ -423,9 +423,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
             }));
 
-        test('the settings collapse is this panel\'s own container, swept, flipping once each',
+        test('the settings collapse is this panel\'s own container, swept, flipping once',
             () => mounted(async (page) => {
-                const { settings2up, settings1up } = await authored(page);
+                const { settings1up } = await authored(page);
                 await selectPanel(page, 'settings');
 
                 assert.equal(await page.prop(EDITOR.settings, 'container-type'), 'inline-size',
@@ -436,16 +436,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const { flips } = await sweepCollapse(page, {
                     selector: EDITOR.settingsGrid,
-                    from: settings2up + 40,
+                    from: settings1up + 40,
                     to: settings1up - 40,
                 });
-                assert.equal(flips.length, 2, `two collapses, not ${flips.length} flips`);
-                assert.deepEqual(flips.map((f) => f.n), [2, 1], 'three columns, then two, then one');
+                assert.equal(flips.length, 1, `one collapse, not ${flips.length} flips`);
+                assert.deepEqual(flips.map((f) => f.n), [1], 'two columns, then one');
 
                 for (const [w, n, why] of [
-                    [settings2up, 3, '< is exclusive, so the threshold belongs to 3-up'],
-                    [settings2up - 1, 2, 'and one below it is 2-up'],
-                    [settings1up, 2, 'likewise at the second threshold'],
+                    [settings1up, 2, '< is exclusive, so the threshold belongs to 2-up'],
                     [settings1up - 1, 1, 'and one below it is 1-up'],
                 ]) {
                     await setEditorWidth(page, `${w}px`);
@@ -458,29 +456,30 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the settings query reads THIS PANEL\'S box, not the stage it sits in',
             () => mounted(async (page) => {
-                const { settings2up, settings1up } = await authored(page);
+                const { settings1up } = await authored(page);
                 await selectPanel(page, 'settings');
                 await assertReadsOwnBox(page, {
                     label: 'settings',
                     panel: EDITOR.settings,
                     grid: EDITOR.settingsGrid,
-                    branchFor: (w) => (w < settings1up ? 1 : w < settings2up ? 2 : 3),
-                    widths: [settings2up - 1, settings1up - 1],
+                    branchFor: (w) => (w < settings1up ? 1 : 2),
+                    widths: [settings1up, settings1up - 1],
                 });
             }));
 
         test('at the threshold the narrowest track is exactly the stated minimum',
             () => mounted(async (page) => {
-                const { settings2up, trackMin } = await authored(page);
+                const { settings1up, trackMin, colInset } = await authored(page);
                 await selectPanel(page, 'settings');
                 await page.evalFn((s) => window.__h.qAll(s).forEach((el) => el.remove()), '.row');
-                await setEditorWidth(page, `${settings2up}px`);
+                await setEditorWidth(page, `${settings1up}px`);
 
                 const used = tracks(await page.prop(EDITOR.settingsGrid, 'grid-template-columns'));
-                assert.equal(used.length, 3, 'the 3-up branch');
-                near(px(used[0]), trackMin, 'track 1 is one stepper band');
-                near(px(used[1]), trackMin, 'track 2 likewise');
-                near(px(used[2]), trackMin * 2, 'and the 2fr track is two of them');
+                /* The tracks are equal, so both are sized by the column that pays for
+                   the divider between them. */
+                assert.equal(used.length, 2, 'the 2-up branch');
+                near(px(used[0]), trackMin + colInset, 'track 1 is one settings row plus the inset');
+                near(px(used[1]), trackMin + colInset, 'track 2 likewise — the tracks are equal');
             }));
 
         test('the settings panel scrolls, has a floor, and shows a scrollbar',
@@ -595,7 +594,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(3);
 
                 /* (a) The panel host is NOT a scroller. This is the element the old code
-                 *     wrote scrollTop to — "so the fix labelled E2 does nothing". */
+                 *     wrote scrollTop to — "so the fix labelled does nothing". */
                 const host = await page.metrics(EDITOR.review);
                 assert.ok(host.scrollHeight <= host.clientHeight + 0.5,
                     'the panel host has nothing to scroll — writing scrollTop here is E6');
@@ -638,7 +637,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${host} carries a width media rule — Part 2 §5 rule 1 forbids one`);
                 }
                 const settings = await sheetOf(page, EDITOR.settings);
-                assert.equal(settings.containers.length, 2, 'the settings panel: two collapses');
+                assert.equal(settings.containers.length, 1, 'the settings panel: one collapse');
                 const review = await sheetOf(page, EDITOR.review);
                 assert.equal(review.containers.length, 1, 'the review panel: one');
             }));
@@ -787,7 +786,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 /* The saved record is the new baseline, so the count is spent. */
                 assert.equal(await page.evalFn((sel) => window.__h.need(sel).textContent.trim(), EDITOR.save),
                     'Save', 'nothing is unsaved after a save: the COUNT is gone, and the '
-                    + 'word at zero is "Save" (Ben, 25 Aug 2026 — Slate\'s pair on both '
+                    + 'word at zero is "Save" (the decided pair on both '
                     + 'committing screens)');
             }));
 

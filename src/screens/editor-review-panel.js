@@ -24,7 +24,7 @@ export class EditorReviewPanel extends UiElement {
     static styles = [typeRoles, css`
         :host {
             display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr);
             block-size: 100%;
             min-block-size: 0;
             min-inline-size: 0;
@@ -35,7 +35,6 @@ export class EditorReviewPanel extends UiElement {
         }
 
         ::slotted(*) {
-            margin: var(--ui-space-6) var(--ui-space-6) 0;
             min-inline-size: 0;
         }
 
@@ -43,11 +42,14 @@ export class EditorReviewPanel extends UiElement {
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: minmax(0, 1fr);
-            gap: var(--ui-space-4);
+            gap: var(--ui-space-7);
             padding: var(--ui-space-6);
             block-size: 100%;
             min-block-size: 0;
             min-inline-size: 0;
+
+            /* The screen paints a seam ground and expects every region to cover it. */
+            background-color: var(--ui-fascia);
         }
 
         /* THE SCROLL REGIONS. One per column, and the class the overflow is declared on
@@ -61,6 +63,11 @@ export class EditorReviewPanel extends UiElement {
             overflow-y: auto;
         }
 
+        .column + .column {
+            border-inline-start: var(--ui-hairline) solid var(--ui-line);
+            padding-inline-start: var(--ui-space-7);
+        }
+
         /* ONE PROSE BLOCK: a heading line over its sentences, at the gap the floor
          * token is written from. */
         .block {
@@ -68,6 +75,10 @@ export class EditorReviewPanel extends UiElement {
             flex-direction: column;
             gap: var(--ui-space-2);
             min-inline-size: 0;
+        }
+
+        .block:not(:first-child) > [data-role="heading"] {
+            margin-block-start: var(--ui-space-4);
         }
 
         .line {
@@ -126,8 +137,12 @@ export class EditorReviewPanel extends UiElement {
             ? this.columns
             : EMPTY_COLUMNS;
 
+        /* A column may claim the chart; if none does it goes in the last, because a slot
+           that renders nowhere is a chart that silently disappears. */
+        const claimed = columns.findIndex((column) => column?.chart === true);
+        const chartColumn = claimed >= 0 ? claimed : columns.length - 1;
+
         return html`
-            <slot name="chart"></slot>
             <div id="panel" part="panel">
                 ${columns.map((column, index) => html`
                     <div
@@ -135,7 +150,10 @@ export class EditorReviewPanel extends UiElement {
                         part="column"
                         data-column=${column?.id ?? String(index)}
                         @scroll=${this.#onScroll}
-                    >${(column?.blocks ?? []).map((block, i) => this.#block(block, i))}</div>
+                    >
+                        ${index === chartColumn ? html`<slot name="chart"></slot>` : ''}
+                        ${(column?.blocks ?? []).map((block, i) => this.#block(block, i))}
+                    </div>
                 `)}
             </div>
         `;
@@ -146,7 +164,7 @@ export class EditorReviewPanel extends UiElement {
         return html`
             <div class="block" data-block=${block?.id ?? String(index)}>
                 ${block?.heading
-                    ? html`<p class="line ui-caption" data-role="heading">${block.heading}</p>`
+                    ? html`<p class="line ui-heading" data-role="heading">${block.heading}</p>`
                     : ''}
                 ${(block?.lines ?? []).map((line, i) => html`
                     <p class="line ui-body" data-line=${i}>${this.#line(line)}</p>
@@ -164,7 +182,7 @@ export class EditorReviewPanel extends UiElement {
                     >${seg[1]}</span>`;
                 case 'num':
                     /* value AND step AND unit AND bounds, all off the segment. The
-                     * bounds are carried, never re-typed and never defaulted: B2's one
+                     * bounds are carried, never re-typed and never defaulted: the one
                      * table is upstream and this is a courier. */
                     return html`<span
                         class="seg-num"

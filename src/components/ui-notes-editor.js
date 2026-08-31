@@ -131,7 +131,7 @@ export class UiNotesEditor extends UiElement {
         }
 
         /* The optional subject row. Absent means absent: a zero-height grid row
-         * still eats a gap, which is the "one leaf sits 12px lower" family (T13). */
+         * still eats a gap, and the row below it then sits 12px lower. */
         #subject-row {
             display: block;
         }
@@ -433,7 +433,7 @@ export class UiNotesEditor extends UiElement {
     get toolbarLabelText() { return this.toolbarLabel || this.i18n.t('Formatting'); }
 
     get placeholderText() {
-        /* notes-modal.js:199 — the same prompt, with the same ellipsis character. */
+        /* The same prompt, with the same ellipsis character. */
         return this.placeholder || this.i18n.t('Write your notes here…');
     }
 
@@ -481,9 +481,8 @@ export class UiNotesEditor extends UiElement {
         cm.on('update', this.#syncPressedState);
         this.#syncPressedState();
 
-        /* C11: "The overlays have no ResizeObserver at all." CodeMirror caches its
-         * own metrics, so a dialog that changes size leaves the caret in the wrong
-         * place until something calls refresh(). */
+        /* CodeMirror caches its own metrics, so a dialog that changes size leaves the
+         * caret in the wrong place until something calls refresh(). */
         this.#resizeObserver = new ResizeObserver(() => this.refresh());
         this.#resizeObserver.observe(this);
 
@@ -501,7 +500,7 @@ export class UiNotesEditor extends UiElement {
                 + 'Measured without it: .CodeMirror-scroll computes overflow: visible '
                 + 'instead of scroll and .CodeMirror-cursor becomes a 600x20 STATIC '
                 + 'block instead of a 1x24 absolute caret — an editor that looks '
-                + 'right in a screenshot and cannot be used (CONVENTIONS §8).',
+                + 'right in a screenshot and cannot be used.',
             );
         }
         return true;
@@ -567,8 +566,7 @@ export class UiNotesEditor extends UiElement {
     };
 
     /** The editing surface's accessible name. CodeMirror's real input is a hidden
-     *  textarea with no name of its own — the same shape of hole as O9's unnamed
-     *  backspace, one component over. */
+     *  textarea with no name of its own. */
     #applyEditorLabel() {
         const input = this.#mde?.codemirror?.getInputField?.();
         if (input) input.setAttribute('aria-label', this.labelText);
@@ -672,16 +670,6 @@ export class UiNotesEditor extends UiElement {
             <div id="frame" class=${classes}>
                 <div id="subject-row"><slot name="subject" @slotchange=${this.#onSubjectSlotChange}></slot></div>
                 <div id="editor"></div>
-                <!-- WHY THE DIALOG DID NOT CLOSE (F-007). The house refusal idiom, the
-                     same shape editor-screen.js renders for a refused rename and
-                     settings-screen.js for its two: a caption paragraph with
-                     role=status, at the work it is about.
-                     IT IS ALWAYS IN THE DOM, unlike those two, and that is deliberate
-                     rather than a departure: a live region a screen reader has been
-                     watching since first paint announces a change to its text, while
-                     one that is INSERTED carrying its message is a new node and may
-                     announce nothing at all. The row collapses to zero when empty, so
-                     the layout cost is the same as a conditional render. -->
                 <p id="refusal" class="refusal" role="status"
                     >${this._refused ? this.guardRefusalText : ''}</p>
             </div>`;

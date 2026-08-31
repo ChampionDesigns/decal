@@ -106,7 +106,7 @@ export class UiEmptyState extends UiElement {
         }
 
         /* An absent part is not rendered at all - it does not contribute a gap row,
-         * and the disc cannot become P21's grey block pretending to be art. */
+         * and the disc never becomes a grey block pretending to be art. */
         .is-empty {
             display: none;
         }

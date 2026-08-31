@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -370,7 +370,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const filled = await page.computed(SLOT('fill'), ['background-color', 'color', 'border-top-color']);
                 assertColourEqual(filled['background-color'], ORACLE[theme].filled.face, 'filled slot face');
                 assertColourEqual(filled.color, ORACLE[theme].filled.ink, 'filled slot ink');
-                // The 72%/steel mix, reproduced to the corpus's six decimals.
+                // The 72%/steel mix, reproduced to the measurement's six decimals.
                 assertColourEqual(filled['border-top-color'], ORACLE[theme].filled.edge, 'filled slot rim');
             }));
         }

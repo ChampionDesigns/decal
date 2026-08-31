@@ -1,5 +1,5 @@
 /**
- * Gate B rule 4, inside npm test.
+ * the contract check, inside npm test.
  */
 
 import { test } from 'node:test';

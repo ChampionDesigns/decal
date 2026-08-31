@@ -51,7 +51,7 @@ import { FIELD_DOORS, DOORS } from '../src/stores/machine-fields-port.js';
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(`../${rel}`, import.meta.url)), 'utf8');
 
-/** The three files this cluster owns, plus the sheet C6 had to split. */
+/** The three files this cluster owns, plus the sheet had to split. */
 const LEAF_FILES = [
     'src/lib/settings-leaves.js',
     'src/lib/density.js',
@@ -116,7 +116,7 @@ describe('the registry accounts for every leaf exactly once', () => {
         assert.equal(leafIds.size, 32, 'the nav model holds 32 leaves');
 
         assert.equal(Object.keys(BESPOKE_LEAVES).length, 20,
-            'LAYOUT_SPEC §4.4 measured nine; the firmware leaf is the tenth (Ben, 24 Aug 2026) '
+            'the spec measured nine; the firmware leaf is the tenth '
             + 'and ten more landed the same day on "lets fix all the settings pages then now" — '
             + 'every one of them a door with nobody walking through it, not one needing a route '
             + 'the generated table did not already carry; the twenty-first reversed the F3/Q1 '
@@ -151,7 +151,7 @@ describe('the registry accounts for every leaf exactly once', () => {
         assert.equal(silent.length, 0, '16 classified primitive, and all but the wake-lock pair draw');
         for (const id of silent) {
             if (id === 'calibration-default-load-settings') {
-                /* F3/Q1's leaf: zero rows AND zero note, by the screen law. */
+                /* F3/the rule's leaf: zero rows AND zero note, by the screen law. */
                 assert.equal(pendingForLeaf(id).length, 0, `${id} must hold no declared row`);
                 assert.equal(noteForLeaf(id), null, `${id} must hold no note`);
                 continue;
@@ -187,7 +187,7 @@ describe('the registry accounts for every leaf exactly once', () => {
     test('row ids are unique, so a second implementation of one row cannot exist (T7)', () => {
         const ids = SETTINGS_ROWS.map((row) => row.id);
         assert.equal(new Set(ids).size, ids.length, 'duplicate row id');
-        // T7's other half: "a second, live Fan implementation". One fan row, one leaf.
+        // the rule's other half: "a second, live Fan implementation". One fan row, one leaf.
         const fan = SETTINGS_ROWS.filter((row) => row.limit === 'fanThreshold');
         assert.equal(fan.length, 1, 'the fan threshold has exactly one row');
     });
@@ -376,7 +376,7 @@ describe('B7: one store per setting, and the leaf never picks one', () => {
     });
 
     test('every PANEL_SETTINGS entry is named by a row, and every panel row by an entry', () => {
-        /* T7's law, applied to a seam rather than to an archetype: a branch nothing
+        /* the rule's law, applied to a seam rather than to an archetype: a branch nothing
          * dispatches to is the same defect as a row with no branch behind it. */
         const declared = new Set(SETTINGS_ROWS.filter((row) => row.panel).map((row) => row.panel));
         assert.deepEqual([...declared].sort(), [...PANEL_SETTING_NAMES].sort());
@@ -450,7 +450,7 @@ describe('B2 / R2: no second ranges table, and no leaf-local number', () => {
     test('a row with no limits row is unbounded and prints no hint', () => {
         const { model } = harness();
         const hotWater = rowById(model, 'machine-hot-water', 'machine-hot-water-flow');
-        assert.equal(hotWater.hint, '2–8 mL/s', 'the band Ben decided, composed from the table');
+        assert.equal(hotWater.hint, '2–8 mL/s', 'the decided band, composed from the table');
         assert.equal(hotWater.bounds.bounded, true);
 
         const purge = rowById(model, 'machine-steam', 'machine-steam-purge');
@@ -1037,7 +1037,7 @@ describe('C6: density and type scale replace the canvas transform', () => {
     test('nothing in this cluster multiplies a canvas', () => {
         for (const file of LEAF_FILES) {
             assert.doesNotMatch(CODE[file], /transform|scale\(|zoom/i,
-                `${file} carries the mechanism C6 retires (settings.js:2765-2769)`);
+                `${file}carries the mechanism C6 retires `);
         }
     });
 
@@ -1115,7 +1115,7 @@ describe('the Flow Multiplier page is gated per ROW, not per page', () => {
         ]);
     });
 
-    test('the machine\'s own flow calibration is DE1-only, on Ben\'s hardware fact', () => {
+    test('the machine\'s own flow calibration is DE1-only, on a hardware fact', () => {
         const row = byId('calibration-flow-multiplier-factor');
         assert.deepEqual([...row.machines], ['de1']);
         assert.equal(row.field, 'flowMultiplier');

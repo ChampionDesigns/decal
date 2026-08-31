@@ -52,8 +52,8 @@ export class UiFavouriteSlot extends UiElement {
             display: inline-grid;
             place-items: center;
 
-            /* THE BOX IS THE TOKEN. No min-inline-size, no min-block-size: P4 is a
-             * dimension with two owners, and this is the only rule that owns it. */
+            /* THE BOX IS THE TOKEN. No min-inline-size, no min-block-size: the
+             * size would then have two owners, and this is the rule that owns it. */
             inline-size: var(--_ui-fav-slot-size, var(--ui-hit-min));
             block-size: var(--_ui-fav-slot-size, var(--ui-hit-min));
             padding: 0;

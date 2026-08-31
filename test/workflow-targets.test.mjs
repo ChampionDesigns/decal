@@ -111,7 +111,7 @@ describe('grind — the rail row the workflow does carry', () => {
 
     test('ABSENT IS ABSENT: a machine that was never told a grind has no key at all', () => {
         /* `WorkflowContext.toJson` omits it when null, so this is the common case and not
-         * an edge one. The row renders the dash; A7 unchanged. */
+         * an edge one. The row renders the dash unchanged. */
         assert.equal('grind' in targetsFrom({ context: { targetDoseWeight: 18 } }), false);
         assert.equal('grind' in targetsFrom({ context: { grinderSetting: null } }), false);
         assert.equal('grind' in targetsFrom({ context: { grinderSetting: '' } }), false);
@@ -119,7 +119,7 @@ describe('grind — the rail row the workflow does carry', () => {
     });
 
     test('it is WRITTEN as a two-decimal string, which is the old app\'s own spelling', () => {
-        /* `ui.js:210-215` writes parseFloat(v).toFixed(2). Two skins writing "8.5" and
+        /* writes parseFloat(v).toFixed(2). Two skins writing "8.5" and
          * "8.50" into one field would each read the other\'s value as a different number
          * the moment a toFixed moved. */
         assert.deepEqual(patchFor({ context: {} }, 'grind', 8.5),

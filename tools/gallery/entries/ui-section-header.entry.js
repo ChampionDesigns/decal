@@ -16,7 +16,7 @@ export const entry = {
     module: '../../src/components/ui-section-header.js',
     notes:
         'Component #27, the sticky caption over a list group (spec §5.2 row 27, '
-        + 'slate-shell.css:2044-2049). A --ui-section-head-h band on --ui-fascia, '
+        + 'the old rule). A --ui-section-head-h band on --ui-fascia, '
         + 'bottom-anchored, with the caption and the count both on the shared '
         + '.ui-microcap type role. It sticks to the top of its scrollport at '
         + '--ui-z-sticky with an opaque ground, so the rows pass under it. It draws NO '
@@ -28,7 +28,7 @@ export const entry = {
             id: 'resting',
             title: 'Resting, with a count',
             notes:
-                'Slate\'s band exactly: 60px on --ui-fascia, 24px inset, 8px of bottom '
+                'The reference skin\'s band exactly: 60px on --ui-fascia, 24px inset, 8px of bottom '
                 + 'padding under a flex-end alignment - "the labels are deliberately '
                 + 'bottom-anchored above their divider, so they are NOT centred". The '
                 + 'count is the same microcap role as the caption, so there is no second '
@@ -49,7 +49,7 @@ export const entry = {
             title: 'In a scrolling list, at rest',
             notes:
                 'The shape wave 3 #34 consumes. Two groups in a 240px port. The seam '
-                + 'between rows belongs to the LIST, not to the caption - Slate drew a '
+                + 'between rows belongs to the LIST, not to the caption - the reference skin drew a '
                 + '1px border on the second header only, from its own `> * + *` rule.',
             html:
                 '<div style="' + LIST_STYLE + '">'
@@ -65,7 +65,7 @@ export const entry = {
             notes:
                 'The host is narrow at an unchanged viewport. The caption ellipsises and '
                 + 'the count keeps its whole box - the caption gives first, always. A '
-                + 'departure from Slate, which never meets a narrow container because its '
+                + 'departure from the reference skin, which never meets a narrow container because its '
                 + 'geometry is frozen at 1920x1200; the band is one line at every width.',
             hostStyle: { 'inline-size': '260px' },
             html: '<ui-section-header count="128">A section caption far too long to fit in this band</ui-section-header>',

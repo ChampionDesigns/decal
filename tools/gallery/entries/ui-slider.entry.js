@@ -7,7 +7,7 @@ export const entry = {
     title: 'Slider',
     module: '../../src/components/ui-slider.js',
     notes:
-        'The primitive Slate never had (DECISIONS.md:251) — one thumb spec for both '
+        'The primitive the reference skin never had — one thumb spec for both '
         + 'engines (bug T22), a 48px hit box around an 8px track through the shared '
         + 'hit-area utility, and the fill in --ui-steel over --ui-line, which is what '
         + 'the oracle measures in both themes.',
@@ -21,7 +21,7 @@ export const entry = {
             id: 'rating',
             title: 'Rating, 1–5',
             notes:
-                'Live\'s rating slider, as a primitive: 147x32 in Slate, 48px tall here '
+                'Live\'s rating slider, as a primitive: 147x32 in the reference skin, 48px tall here '
                 + 'because 32px is bug-adjacent (CONVENTIONS §5, spec §2.3 case 2).',
             hostStyle: { 'inline-size': '340px' },
             html: '<ui-slider min="1" max="5" step="1" value="4" label="Rating" value-text="4 of 5"></ui-slider>',
@@ -32,7 +32,7 @@ export const entry = {
             notes:
                 'The History align slider\'s fill, which runs from the MIDPOINT so a '
                 + 'slider sitting at 0.0 s reads as centred rather than as 60% of '
-                + 'something (slate-live.css:2350-2356). One property, not a second gradient.',
+                + 'something. One property, not a second gradient.',
             hostStyle: { 'inline-size': '520px' },
             html: '<ui-slider min="-5" max="5" step=".1" origin="0" value="-1.8" label="Align B" value-text="-1.8 s"></ui-slider>',
         },
@@ -57,8 +57,8 @@ export const entry = {
             id: 'flex-row',
             title: 'In a flex row, beside a label',
             notes:
-                'The shape both of Slate\'s own consumers have (slate-live.css:1551 and '
-                + ':2348 each state their own flex), and the one that used to render 0px '
+                'The shape both of the reference skin\'s own consumers have (each '
+                + 'states its own flex), and the one that used to render 0px '
                 + 'wide: container-type: inline-size gives the host a zero max-content '
                 + 'size, so an unsized slider in a flex row vanished while still eating a '
                 + '48px line. The host opts out (CONVENTIONS §2); the row states flex: 1.',

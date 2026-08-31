@@ -37,15 +37,15 @@ export const DENSITY_ROW = 'display-display-size-density';
 export const LEAF_KIND = Object.freeze({ PRIMITIVE: 'primitive', BESPOKE: 'bespoke' });
 
 export const BESPOKE_LEAVES = Object.freeze({
-    'machine-machine-info': 'definition card (§4.4) — a read-only fact table, no controls',
-    'machine-sleep-wake-schedules': 'schedule editor (§4.4 "sleep/wake")',
-    'display-skin': '2-up cards (§4.4 "skin (2-up cards)")',
-    'display-screen-saver': 'the screen-saver image set (Ben, 26 Aug 2026 — reverses D10)',
-    'updates-skin-app': 'update list (§4.4 "skin/app (update list)") — #17 progress track lives here',
-    'units-language-select-language': 'auto-fill tile grid (§4.4 "select-language (tile grid)")',
-    'calibration-load-cells': 'wizard column + step chips (§4.4 "load-cells (wizard)") — D9',
-    'accessories-lighting': 'two-column (§4.4, added by the verifier) — D7 LED live preview',
-    'updates-firmware-update': 'catalog + install (Ben, 24 Aug 2026 — reverses D4) — a Latest button over `recommendedArtifactId`, a file picker, and the flash progress',
+    'machine-machine-info': 'definition card — a read-only fact table, no controls',
+    'machine-sleep-wake-schedules': 'schedule editor',
+    'display-skin': '2-up cards',
+    'display-screen-saver': 'the screen-saver image set',
+    'updates-skin-app': 'update list — the progress track lives here',
+    'units-language-select-language': 'auto-fill tile grid',
+    'calibration-load-cells': 'wizard column + step chips',
+    'accessories-lighting': 'two-column, with the LED live preview',
+    'updates-firmware-update': 'catalog + install — a Latest button over `recommendedArtifactId`, a file picker, and the flash progress',
 
     'maintenance-machine-descaling': 'an irreversible action behind a confirmation, over `PUT /machine/state/descaling` — the preparation list is the surface, not a control',
     'maintenance-transport-mode': 'as descaling, over `PUT /machine/state/airPurge`',
@@ -54,10 +54,10 @@ export const BESPOKE_LEAVES = Object.freeze({
     'help-talk-to-decent': 'the account status, and behind a linked account a message thread and a compose box over `GET /account/proxy/support/api/<endpoint>`',
     'help-send-feedback': 'the feedback form: a type bank, a description, two switches and one POST',
     'accessories-usb-charger': 'the charging STATUS block and the two night-mode times — a minute-of-day is a clock face (#22), which is a dialog body and not a row control',
-    'connection-machine': 'the remembered device list and its actions (Ben, 26 Aug 2026)',
+    'connection-machine': 'the remembered device list and its actions',
     'connection-scale': 'the same device list, plus the scan and the manual WiFi endpoints',
     'help-keyboard-shortcuts': 'the binding table with a key-capture field — rebinding needs a keystroke, which no archetype reads',
-    'calibration-default-load-settings': 'one irreversible-looking button and the list of what it actually moves (Ben, 24 Aug 2026 — reverses F3/Q1)',
+    'calibration-default-load-settings': 'one irreversible-looking button and the list of what it actually moves',
 });
 
 export const LEAF_ACTIONS = Object.freeze({

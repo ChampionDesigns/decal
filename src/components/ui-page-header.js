@@ -17,9 +17,9 @@ export class UiPageHeader extends UiElement {
         heading: { type: String },
         /** 'flanks' (default) | 'centre'. */
         layout: { type: String, reflect: true },
-        /** Render the D11 commit cluster in the trail region. */
+        /** Render the commit cluster in the trail region. */
         commit: { type: Boolean, reflect: true },
-        /** Unsaved changes. A NUMBER in; the sentence is this component's (D11). */
+        /** Unsaved changes. A NUMBER in; the sentence is this component's. */
         changeCount: { type: Number, attribute: 'change-count' },
         banner: { type: Boolean, reflect: true },
     };
@@ -83,7 +83,7 @@ export class UiPageHeader extends UiElement {
     willUpdate(changed) {
         if (changed.has('layout')) {
             const raw = String(this.layout ?? '').trim().toLowerCase();
-            // "center" is the same word; accept it and answer in the spec's spelling.
+            // "center" is the same word; accept it and answer in this component's spelling.
             const spelt = raw === 'center' ? 'centre' : raw;
             const next = PAGE_HEADER_LAYOUTS.includes(spelt) ? spelt : 'flanks';
             if (next !== this.layout) this.layout = next;
@@ -112,7 +112,7 @@ export class UiPageHeader extends UiElement {
     #onCommit = () => this.#emit('commit');
     #onCancel = () => this.#emit('cancel');
 
-    /** The commit cluster. No slot, no label property: D11's wording has no per-screen
+    /** The commit cluster. No slot, no label property: the wording has no per-screen
      *  surface, and that absence is the decision. */
     #renderCommit() {
         const dirty = this.#count > 0;

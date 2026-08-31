@@ -1,5 +1,5 @@
 /**
- * The ephemeral static server the Gate A harness mounts against.
+ * The ephemeral static server the render harness harness mounts against.
  */
 
 import http from 'node:http';

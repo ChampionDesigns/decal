@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Gate C.
+ * The authored-CSS guards.
  */
 
 import fsp from 'node:fs/promises';
@@ -17,7 +17,7 @@ export const colourLiteralGuard = {
     id: 'colour-literal',
     severity: 'error',
     title: 'no raw colour literal in authored component CSS',
-    why: 'SCOPE Part 8 §2 Gate C (A8). A fork retargets the template by editing the '
+    why: 'Gate C (A8). A fork retargets the template by editing the '
         + 'token files and rewriting no rule; a literal in a component is a colour the '
         + 'token file does not control.',
     exempt: TOKEN_SHEETS,
@@ -45,13 +45,13 @@ export const fontFaceGuard = {
     id: 'font-face',
     severity: 'error',
     title: 'no @font-face in component styles',
-    why: 'SCOPE Part 8 §3 Rule 2, measured not assumed: a face declared only in a shadow '
+    why: 'Measured, not assumed: a face declared only in a shadow '
         + "root never registers — measureText('0123456789.') at 20px gives 105.00 (the "
         + 'unknown-family fallback) against 118.50 for the same face declared in the '
         + 'document, with document.fonts.size === 0. Canvas resolves ctx.font against the '
         + "DOCUMENT's registry, so this silently mis-measures every chart axis.",
     exempt: ['styles/document.css'],
-    exemptWhy: 'the ONE place a face may be declared (SCOPE Part 2 §2, §7)',
+    exemptWhy: 'the ONE place a face may be declared',
     check(blocks) {
         const out = [];
         for (const block of blocks) {
@@ -74,8 +74,8 @@ export const importantGuard = {
     id: 'important',
     severity: 'error',
     title: 'zero !important in component styles',
-    why: 'LAYOUT_SPEC_DRAFT.md §2.1 Rule 3. slate-shell.css carries 268 and '
-        + 'slate-components.css 96, every one of them because some other sheet could reach '
+    why: 'The reference skin shell sheet carries 268 and '
+        + '96 in the old sheet, every one of them because some other sheet could reach '
         + 'the same element. Nothing can reach into a shadow root, so an !important here '
         + "can only be beating the component's own base rules — which is what :where() in "
         + 'base.js removes the need for.',
@@ -149,9 +149,9 @@ export const viewportUnitGuard = {
         + 'written in 1200. `--ui-live-foot-share: 18dvh` was 144 units where the design says '
         + '216, which is a phase row, silently, on the one screen that matters. A share of the '
         + 'app comes from --ui-app-h / --ui-app-w or from a container query; a component reads '
-        + 'its own container and never the viewport (LAYOUT_SPEC_DRAFT §2.1 Rule 1) — the fit '
+        + 'its own container and never the viewport — the fit '
         + 'is that rule reaching the last two declarations that broke it.',
-    exempt: ['tools/gallery/index.html', 'tools/screens/index.html'],
+    exempt: ['tools/gallery/index.html'],
     exemptWhy: 'the two instrument host pages, whose stage IS the viewport — they are what '
         + 'app-root is mounted INTO for a capture, so a viewport unit there is the ground '
         + 'being stated rather than the app reading it',

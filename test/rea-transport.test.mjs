@@ -182,7 +182,7 @@ describe('expect: text — a verbatim relay is read as what it is', () => {
         assert.strictEqual(result.data, '');
     });
 
-    /* IT IS NOT A FALLBACK PATH (A7). A failed status is still the typed HTTP failure with
+    /* IT IS NOT A FALLBACK PATH. A failed status is still the typed HTTP failure with
      * the problem body on it — reading as text changes what a SUCCESS carries and nothing
      * else. */
     test('a 403 is still a typed refusal, with the server’s own body', async () => {
@@ -296,7 +296,7 @@ describe('the data layer cannot reach a screen', () => {
             for (const specifier of imports) {
                 assert.ok(
                     !/components|screens|stores|\bui\b/.test(specifier),
-                    `${file} imports ${specifier} — api.js:1 imported ui.js and ui.js imported twenty names back`,
+                    `${file} imports ${specifier}imported and imported twenty names back`,
                 );
             }
             const code = source.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');

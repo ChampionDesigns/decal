@@ -2,7 +2,7 @@
  * live-selector-carry-fixture — the Live rail's favourite hold-menu and the selector it
  * sends you to, on ONE real boot, driven end to end.
  *
- * Built for the 29 August 2026 fix campaign, cluster L: findings **F-027** (the "Clear
+ * Built for the fix campaign, cluster L: findings **F-027** (the "Clear
  * button" that did nothing), **F-025 / F-001** (the held slot never carried into the
  * selector) and **F-022 / F-026** (the two preset banks' hold menus). All four are faults
  * of the JOIN between two screens and a store, so a fixture that mounts one screen with a
@@ -113,7 +113,7 @@ let workflow = WORKFLOW;
  *
  * The NEWEST carries an `espressoNotes` annotation and no rating; the older carries
  * neither. That pair is what the notes sheet's two faces need (F-029) and what a rating
- * write needs a clean slate for (F-023). The shape is
+ * write needs a clean the previous skin for (F-023). The shape is
  * `ShotRecord.toJsonWithoutMeasurements`: id, timestamp, workflow, annotations, and the
  * legacy `shotNotes` shadow the handler keeps in step with the annotation.
  */
@@ -170,7 +170,7 @@ const scriptedFetch = async (input, init = {}) => {
     if (override) return json(override.body, override.status);
 
     /* The KV store, kept here so a write can be READ BACK — which is what every
-     * "still so after a reload" proof in the audit actually asks for. */
+     * "still so after a reload" proof in an earlier run actually asks for. */
     const kvMatch = /^\/api\/v1\/store\/decal\/(.+)$/.exec(url.pathname);
     if (kvMatch) {
         const name = decodeURIComponent(kvMatch[1]);
@@ -226,7 +226,7 @@ const scriptedFetch = async (input, init = {}) => {
         }
     }
 
-    /* A7: an absence is an absence. Nothing here invents a route. */
+    /* : an absence is an absence. Nothing here invents a route. */
     return json({ error: 'no recording' }, 503);
 };
 
@@ -328,7 +328,7 @@ const api = {
         return {
             open: menu.open,
             items: (menu.items || []).map((item) => (item.separator ? '---' : item.id)),
-            /* THE WORDS, NOT ONLY THE IDS (round 2, decisions D13/D15). An id is what the
+            /* THE WORDS, NOT ONLY THE IDS (round 2, decisions). An id is what the
              * screen routes on and a label is what a person reads; the two renames of 29
              * August changed only the second, so a suite that reads ids alone cannot see
              * them at all. `holdPreset` below has reported both since it was written. */
@@ -353,7 +353,7 @@ const api = {
     /**
      * PUT THE MACHINE IN A STATE, down the road the dimming owner actually reads.
      *
-     * Added 30 August 2026 for F-038. The one thing the fix needs a fixture to do that
+     * Added for F-038. The one thing the fix needs a fixture to do that
      * this one could not: `<live-screen>`'s `dim` attribute is written by `LiveWiring`
      * from `liveDim(dimStateFor(machineState, machineFeedStatus))`, so the honest way to
      * stage a live shot is to put a frame on the MACHINE FEED and let the controller
@@ -661,7 +661,7 @@ const api = {
         if (!sheet) return { open: false };
         const body = sheet.querySelector('[slot="body"]');
         const empty = body.querySelector('#notes-empty');
-        /* THE EDITOR IS THE BODY NOW (D14). Its `text` getter is the live document —
+        /* THE EDITOR IS THE BODY NOW. Its `text` getter is the live document
          * `value` is only the seed — so the sheet's note is read off the component
          * rather than off a paragraph the screen used to print. */
         const editor = body.querySelector('#notes-editor');
@@ -717,7 +717,7 @@ const api = {
         return !!screen.shadowRoot.getElementById('notes-sheet');
     },
 
-    /** What the notes BUTTON on the panel prints (D14: it and the sheet must agree). */
+    /** What the notes BUTTON on the panel prints (: it and the sheet must agree). */
     notesFace() {
         const control = screen.shadowRoot.querySelector('ui-rating-control');
         const button = control?.shadowRoot.getElementById('notes');

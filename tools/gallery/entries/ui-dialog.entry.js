@@ -13,7 +13,7 @@ export const entry = {
         {
             id: 'confirm',
             title: 'Confirm — the smallest shape',
-            notes: 'DECISIONS.md:251 names the confirm dialog as a primitive that never existed. '
+            notes: 'The confirm dialog is a primitive that never existed. '
                 + 'Header, one line of body, two buttons: three grid tracks and two seams.',
             html: `
 <ui-dialog id="d" open heading="Delete profile">
@@ -76,7 +76,7 @@ export const entry = {
             id: 'narrow-card',
             title: 'Narrow card — the 720px container query',
             notes: 'The dialog is asked for 560px, so its own container query fires and every cell '
-                + 'inset drops --ui-space-5 → --ui-space-4 (SOURCE numpad-modal.css:416). The '
+                + 'inset drops --ui-space-5 → --ui-space-4. The '
                 + 'VIEWPORT is untouched: this is the component reading its own box, spec §2.1 Rule 1.',
             hostStyle: { '--_ui-dialog-inline': '560px' },
             html: `

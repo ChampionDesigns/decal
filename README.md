@@ -12,7 +12,7 @@ skin directory as static files, so what is in the tree is what runs.
 Install it on a machine by pointing ReaPrime at a zip of this tree:
 
 ```
-POST /api/v1/webui/skins/install/url   {"url": "<url of the zip>"}
+POST /api/v1/webui/skins/install/url {"url": "<url of the zip>"}
 ```
 
 ## Layout
@@ -33,18 +33,29 @@ POST /api/v1/webui/skins/install/url   {"url": "<url of the zip>"}
 ## Checks
 
 ```
-npm run guards        # authored-CSS rules
-npm run a8            # tests must not assert on source text
-npm run gate-d        # route coverage against the pinned ReaPrime
+npm run guards # authored-CSS rules
+npm run a8 # tests must not assert on source text
+npm run gate-d # route coverage against the pinned ReaPrime
 npm run mock-contract # the mock answers what the fixtures record
-npm run gate-wire     # every custom event has both an emitter and a listener
-python3 tools/selfcheck.py
-npm test              # the suite
+npm run gate-wire # every custom event has both an emitter and a listener
+npm run private-scan # no keys, home paths or absent-document citations
+npm run prose-scan # every comment is about the code, not about the work
+npm test # the suite
 ```
 
 `npm test` passes `--test-concurrency=4`. That cap is load-bearing: each render test
 drives its own headless Chrome, and without it the suite becomes its own load source
 and fails at random.
+
+### The ReaPrime source
+
+`gate-d` and `mock-contract` re-verify the route table against ReaPrime's own
+Dart handlers, and about 440 tests read the same source. Point `REA_ROOT` at a ReaPrime
+checkout at the pinned commit (`scripts/lib/rea-source.js` names it); the default is
+`../reaprime`.
+
+Without a checkout the suites skip and the three gates fail, saying which. The other three
+gates and the rest of the suite need nothing.
 
 ## Licence
 

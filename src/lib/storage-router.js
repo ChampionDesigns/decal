@@ -1,5 +1,5 @@
 /**
- * The storage router (B7) — the ONE owner of every persisted key in Decal.
+ * The storage router — the ONE owner of every persisted key in Decal.
  */
 
 import {
@@ -57,7 +57,7 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
         if (!row) {
             throw new StorageRouterError(
                 ERROR_CODES.UNKNOWN_KEY,
-                `storage: no route for '${key}' — every persisted key needs a row in storage-routes.js (B7: one owner per setting)`,
+                `storage: no route for '${key}' — every persisted key needs a row in storage-routes.js (one owner per setting)`,
                 { key },
             );
         }

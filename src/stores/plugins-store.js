@@ -41,6 +41,12 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         return store.get();
     };
 
+    function start() {
+        publish({ status: PLUGINS_STATUS.LOADING });
+        inFlight = readList().finally(() => { inFlight = null; });
+        return inFlight;
+    }
+
     async function readList() {
         const result = await callRoute(transport, 'getPlugins');
         if (!result.ok || !Array.isArray(result.data)) {
@@ -77,16 +83,20 @@ export function createPluginsStore({ transport, logger = null } = {}) {
             }));
         },
 
+        /**
+         * Ensure the listing is loaded. A listing already READY is the answer; an
+         * UNAVAILABLE one is not, so a machine that failed once is asked again.
+         */
         load() {
             if (inFlight) return inFlight;
-            publish({ status: PLUGINS_STATUS.LOADING });
-            inFlight = readList().finally(() => { inFlight = null; });
-            return inFlight;
+            if (store.get().status === PLUGINS_STATUS.READY) return Promise.resolve(store.get());
+            return start();
         },
 
+        /** Read the listing again, whatever is held. */
         refresh() {
             inFlight = null;
-            return this.load();
+            return start();
         },
 
         async loadSettings(id) {

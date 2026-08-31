@@ -178,7 +178,7 @@ export class UiTimePicker extends UiElement {
         this.disabled = false;
         this.clockFormat = DEFAULT_CLOCK_FORMAT;
 
-        /** D2: no string table — the labels go through src/lib/i18n.js. */
+        /** No string table — the labels go through src/lib/i18n.js. */
         this.i18n = new I18nController(this);
     }
 
@@ -391,11 +391,6 @@ export class UiTimePicker extends UiElement {
                 </div>
             </div>
 
-            <!-- O9's shape, one dialog body along: the numpad's "display is updated
-                 by innerHTML with no aria-live" (§7.7). The readout here is two
-                 button labels, and a button whose text changes announces nothing, so
-                 the whole time is stated once, politely, in the one visually-hidden
-                 treatment (CONVENTIONS §5a). -->
             <p
                 class="a11y"
                 id="live"

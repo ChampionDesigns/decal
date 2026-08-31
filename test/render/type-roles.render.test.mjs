@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -325,7 +325,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await browser.withPage({ geometry }, async (page) => {
                 await page.mount(MARKUP, FIXTURE);
 
-                /* Built the way a driver outside the component layer builds one —
+                /* Built the way a driver outside the component layer builds one
                  * createElement plus a class name, which is verbatim what
                  * test/fixtures/editor-shell-fixture.js does. */
                 await page.evalFn(() => {

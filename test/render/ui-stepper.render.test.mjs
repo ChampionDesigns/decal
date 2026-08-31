@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -202,7 +202,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + '116 of the corpus\'s 144 caps render empty text because the mark is an SVG');
                 assert.ok(cap.hasSvg, `#${cap.id} has no <svg> in it at all`);
                 assert.equal(cap.display, 'block',
-                    `#${cap.id}'s glyph is display:${cap.display} — slate-components.css:582 sets block`);
+                    `#${cap.id}'s glyph is display:${cap.display}sets block`);
                 assert.ok(Math.abs(cap.width - icon) < 0.51,
                     `#${cap.id}'s glyph is ${cap.width}px wide against --ui-icon ${icon} `
                     + '(Slate sizes it var(--slate-space-5) = 24px)');
@@ -254,7 +254,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     expectMove: false,
                 });
                 assert.equal(drilled.after, '14px',
-                    'and it does NOT follow --ui-text-md — that is the whole of Ben\'s choice');
+                    'and it does NOT follow --ui-text-md — that is the whole of the choice');
 
                 const tracked = await page.computed('#s >>> #unit', ['letter-spacing', 'font-size']);
                 assert.ok(Math.abs(parseFloat(tracked['letter-spacing'])
@@ -453,7 +453,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             await page.evalFn(async () => {
                 const el = document.querySelector('#s');
-                el.max = 160;               // a DE1 rather than a Bengle (B3)
+                el.max = 160;               // a DE1 rather than a Bengle 
                 await el.updateComplete;
             });
             assert.equal(await hint(), 'Range 135 to 160 °C', 'the label cannot claim a stale range');

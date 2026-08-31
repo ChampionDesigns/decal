@@ -147,15 +147,6 @@ export class UiListRow extends UiElement {
                     : nothing}
             </div>
             <slot name="favourite" @slotchange=${this.#onContentChange}></slot>
-            <!-- ROW ACTIONS, AND THE ROW BRINGS NONE OF ITS OWN.
-                 A screen that wants them brings a control that already knows how to
-                 position itself - a menu anchored to its own trigger - and slots it
-                 here. That is the arrangement every screen in this skin actually uses,
-                 and it is why the row's own built-in affordance was deleted on 30
-                 August 2026: see THE AMPUTATION in the header.
-                 WHATEVER IS SLOTTED HERE MAY BE NAMED. It does not reach the row's own
-                 accessible name - see #composeRowLabel, which is what made naming the
-                 selector's menu trigger possible at all. -->
             <slot name="actions"></slot>
         `;
     }

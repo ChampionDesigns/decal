@@ -24,11 +24,11 @@ export const entry = {
     notes:
         'Component #29: the label block (heading + optional range hint + optional live '
         + 'reading + optional caption) with one control slot on the right. This ONE '
-        + 'primitive covers ~30 of Settings\' 37 leaves (spec §4.4). Slate has the same '
-        + 'anatomy - slate-shell.css:1293-1296, min-height 64 / padding-block 12 / gap 24 '
+        + 'primitive covers ~30 of Settings\' 37 leaves (spec §4.4). The reference skin has the same '
+        + 'anatomy - min-height 64 / padding-block 12 / gap 24 '
         + '- but attaches it to a CLASS SHAPE, and line 1292\'s explicit opt-in '
         + '[data-settings-row] is used by exactly zero elements. The Brightness leaf then '
-        + 'wraps its page title in that shape (settings.js:2391) and its header lands 12px '
+        + 'wraps its page title in that shape and its header lands 12px '
         + 'lower than the other 36 (T13, measured y=193 against y=181). Here a row is a '
         + 'TAG, so the shape means nothing - see the t13 state.',
     states: [
@@ -39,7 +39,7 @@ export const entry = {
                 'The commonest of the ~30 leaves. Heading is the .ui-heading type role '
                 + '(20px / 500 / --ui-text, measured on .slate-heading), caption is '
                 + '.ui-caption (16px / 400 / --ui-muted, measured on .slate-caption), and '
-                + 'the 4px between them is Slate\'s own gap-[4px]. The row floors at '
+                + 'the 4px between them is the reference skin\'s own gap-[4px]. The row floors at '
                 + '--ui-control-h (64px) with --ui-space-3 above and below.',
             html: `${LEAF_OPEN}
                 <ui-settings-row heading="Enable cup warmer"
@@ -53,7 +53,7 @@ export const entry = {
             notes:
                 'Six rows in a 1px grid gap over --ui-line. The divider is the GAP, so N '
                 + 'rows give N-1 seams with no sibling selector and no <hr> elements - '
-                + 'Slate ships 43 of those plus 5 rows drawing their own border-top '
+                + 'the reference skin ships 43 of those plus 5 rows drawing their own border-top '
                 + '(CONVENTIONS §13). Every row here is the same component, which is what '
                 + '"one padding, one gap vocabulary" means (SCOPE L2293).',
             html: `${LEAF_OPEN}
@@ -89,7 +89,7 @@ export const entry = {
                 + 'imports none of them: it owns the label block and the space, and the '
                 + 'control track is flex: none so a control holds its stated size '
                 + '(T9/T10). The first four take their accessible name from their ROW, '
-                + 'which is the cross-root replacement for Slate\'s aria-labelledby (T15: '
+                + 'which is the cross-root replacement for the reference skin\'s aria-labelledby (T15: '
                 + '"four of twenty switches have no accessible name"). The Start button '
                 + 'does NOT: a control with visible text keeps it, or it would be operable '
                 + 'by voice only under a phrase that does not appear on it.',
@@ -121,7 +121,7 @@ export const entry = {
                 + 'Its type is the one thing the row declares itself, because 18px at '
                 + 'weight 500 is not one of the six roles (measured on '
                 + '#cupWarmerCurrentTemp). Spec §4.4 puts the reading in the LABEL BLOCK; '
-                + 'Slate puts it on the right, where the control goes.',
+                + 'the reference skin puts it on the right, where the control goes.',
             html: `${LEAF_OPEN}
                 <ui-settings-row heading="Current temperature"
                                  caption="Live temperature of the cup-warming plate"
@@ -137,7 +137,7 @@ export const entry = {
             id: 't13',
             title: 'T13 — the 12px, live and unreachable',
             notes:
-                'The rule that CAUSES T13 is live in this state: slate-shell.css:1290-1297 '
+                'The rule that CAUSES T13 is live in this state: '
                 + 'verbatim, matching on the class shape. The DASHED box is '
                 + 'settings.js:2391 reproduced byte-for-byte - a leaf title wrapped in the '
                 + 'row primitive\'s four classes - and it is displaced by exactly the 12px '

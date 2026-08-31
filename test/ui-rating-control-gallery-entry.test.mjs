@@ -55,7 +55,7 @@ test('the unrated state carries no score at all', () => {
     assert.doesNotMatch(state.html, /\sscore=/, 'an unrated state that states a score is not unrated');
 });
 
-/** Gate C scans tools/; an inline style here may carry lengths and nothing else. */
+/** guard scans tools/; an inline style here may carry lengths and nothing else. */
 test('no inline style in the entry carries a colour or an !important', () => {
     for (const state of entry.states) {
         const styles = [...state.html.matchAll(/style="([^"]*)"/g)].map((m) => m[1]);

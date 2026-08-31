@@ -34,7 +34,7 @@ const MARKUP = `
     confirm-label="Reset"></ui-confirm-dialog>
 </div>`;
 
-/** The affirmative half of the pair — P8's mirror. */
+/** The affirmative half of the pair — the rule's mirror. */
 const AFFIRMATIVE = `
 <div id="page" style="padding: 60px">
   <ui-button id="invoker">Send</ui-button>
@@ -262,7 +262,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(
                 await page.prop(QUESTION, 'font-size'),
                 await page.resolveValue('var(--ui-text-xl)', 'font-size'),
-                'ORACLE profile-selector .font-bold [i=192] font-size = 28px <- app.css `.text-\\[28px\\]` '
+                'ORACLE profile-selector .font-bold [i=192] font-size = 28px <- `.text-\\[28px\\]` '
                 + 'authored `28px` !important=no (FROZEN/hardcoded)',
             );
             await assertTokenDrill(page, {
@@ -278,7 +278,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(
                 await page.prop(QUESTION, 'color'),
                 await page.resolveValue('var(--ui-text)', 'color'),
-                'ORACLE profile-selector .font-bold [i=192] color = rgb(244, 247, 248) <- slate-shell.css '
+                'ORACLE profile-selector .font-bold [i=192] color = rgb(244, 247, 248) <- '
                 + '`#subpage-host .modal-box :is(h2, h3)` authored `var(--slate-text)` (token-driven)',
             );
             await assertTokenDrill(page, {
@@ -318,7 +318,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.prop(CONFIRM, 'color'),
                 await page.resolveValue('var(--ui-status-danger)', 'color'),
                 'ORACLE profile-selector #reset-profile-confirm [i=194] background-color = rgb(248, 113, 113) '
-                + '<- app.css `.bg-red-400` authored `rgb(248 113 113/var(--tw-bg-opacity,1))` '
+                + '<- `.bg-red-400` authored `rgb(248 113 113/var(--tw-bg-opacity,1))` '
                 + '(FROZEN/hardcoded) — a raw Tailwind literal in a skin that already had --slate-danger',
             );
             await assertTokenDrill(page, {
@@ -391,7 +391,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
 
             assert.deepEqual(after, before,
-                'DECISIONS.md:244 / spec §3.9: the four dials are the ONLY selection treatment, and a '
+                '/ spec §3.9: the four dials are the ONLY selection treatment, and a '
                 + 'confirm has no selection — so all four must be inert here, not "probably unused"');
         }));
 
@@ -476,7 +476,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const narrowPad = await page.prop(CELL_BODY, 'padding-top');
             assert.equal(narrowPad, await page.resolveValue('var(--ui-space-4)', 'padding-top'),
                 'a 500px card is under the 720px container query, so the cell inset is --ui-space-4 '
-                + '(SOURCE numpad-modal.css:416) — the shell\'s rule applying, deliberately not fought');
+                + 'the shell\'s rule applying, deliberately not fought');
 
             await page.setStyle('#c', { '--_ui-confirm-inline': '760px' });
             await page.settle(2);

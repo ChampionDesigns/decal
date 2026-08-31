@@ -74,7 +74,7 @@ export const SERIES_KEYS = Object.freeze([
 
 const QUANTITY_KEYS = Object.freeze(DUPLICATED_QUANTITIES.map((row) => row.quantity));
 
-/** Every quantity still undecided, so the B6 choice is made from evidence and then held. */
+/** Every quantity still undecided, so the choice is made from evidence and then held. */
 function anyUndecided(held) {
     return QUANTITY_KEYS.some((quantity) => held[quantity] === SOURCE.NONE);
 }
@@ -260,7 +260,7 @@ export function createShotDerivationVisitor({ record = null } = {}) {
             const machine = addressed.machine;
             if (!isPouring(machine.state, machine.substate)) return;
             if (position.seconds === null) {
-                // No readable stamp: not plottable, and never given a made-up one (B4).
+                // No readable stamp: not plottable, and never given a made-up one.
                 counts.unplaceable += 1;
                 return;
             }

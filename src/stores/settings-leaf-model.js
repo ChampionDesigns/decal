@@ -473,7 +473,7 @@ export function createSettingsLeafModel({
         /** Fires on every staged change, every write and every load. One subscription. */
         subscribe: (listener) => beacon.subscribe(listener),
 
-        /** D11's number, and nothing else crosses that boundary. */
+        /** The number, and nothing else crosses that boundary. */
         get changeCount() { return staged.size; },
 
         /** True once the machine document has been read (or has failed to read). */
@@ -514,7 +514,7 @@ export function createSettingsLeafModel({
             return null;
         },
 
-        /** The one-sentence note for a leaf whose emptiness is a decision (D4). */
+        /** The one-sentence note for a leaf whose emptiness is a decision. */
         note: (leafId) => noteForLeaf(leafId),
 
         pending: (leafId) => pendingForLeaf(leafId),

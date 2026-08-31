@@ -2,7 +2,7 @@
  * probe-screen — a second screen, so a ROUTE SWAP can be measured.
  *
  * The shell's job is to swap which screen component is mounted; proving it needs two
- * screens, and wave 5.1 builds exactly one (`live-screen`, and even that is a
+ * screens, and   builds exactly one (`live-screen`, and even that is a
  * placeholder — later screens are out of scope by the wave's own constraint). So the
  * second one lives here, in the test tree, where it costs the shipping tree nothing.
  *

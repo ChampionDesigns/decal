@@ -32,7 +32,7 @@ describe('the decisions table answers for the keys it claims to answer for', () 
         }
     });
 
-    test("the two experimental flags read ON, which is the second half of Ben's sentence", () => {
+    test("the two experimental flags read ON, which is the second half of the decision", () => {
         assert.equal(defaultFor('experimentalFusedChannels'), true);
         assert.equal(defaultFor('experimentalCollapseDetection'), true);
     });

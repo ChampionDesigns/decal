@@ -25,8 +25,8 @@ export class UiCardGrid extends UiElement {
             --_ui-card-grid-gap: var(--ui-space-3);
         }
 
-        /* THE GRID. Every declaration is either a token, a fraction or Appendix 14's
-         * floor; there is no viewport unit, no @media, and no colour of any kind. */
+        /* THE GRID. Every declaration is a token, a fraction or the column floor; there is
+         * no viewport unit, no @media, and no colour of any kind. */
         .grid {
             display: grid;
 

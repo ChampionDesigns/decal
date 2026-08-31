@@ -1,6 +1,6 @@
 /* CANARY — a raw colour literal in a plain .css file that is NOT a token sheet.
  *
- * Added by Wave 0a item #4. The four canaries handed forward from item #2 all hide
+ * Added item #4. The four canaries handed forward from item #2 all hide
  * their violation inside a `css` tagged template, which is where authored CSS lives
  * in this tree — but "the token sheet is the single exempted home" is a rule about
  * .css files too, and a guard could pass every template canary while quietly

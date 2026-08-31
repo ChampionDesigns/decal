@@ -6,25 +6,25 @@
 <title>Decal gallery</title>
 <link rel="icon" href="data:,">
 
-<!-- SCAFFOLDING, NOT SHIPPING SURFACE (Wave 0a item #4). The gallery mounts
-     components in their states so a human can look at them and the Gate B capture
-     battery has something to photograph. Waves 1–4 add entries to entries.js; this
+<!-- SCAFFOLDING, NOT SHIPPING SURFACE. The gallery mounts
+     components in their states so a human can look at them and the the contract check capture
+     battery has something to photograph. add entries to entries.js; this
      document does not change.
 
      It is a SEPARATE document from index.html on purpose — the app is "one document"
-     and a route change swaps which screen is mounted inside <app-root> (Part 2 §2).
+     and a route change swaps which screen is mounted inside <app-root>.
      The gallery is a tool, so it lives under tools/ with its own tiny page rather
      than as a route in the app.
 
      The importmap is the same mechanism as index.html's, with ../../ paths because
      this page is two levels down. It must stay in step with index.html's — SAME KEYS,
-     re-rooted values — and `test/tools-port.test.mjs` now asserts exactly that,
+     re-rooted values — and `test/gallery-registry.test.mjs` asserts exactly that,
      because keeping it in step by hand failed the first time it mattered: the "src/"
      prefix was missing here, so `import { UiElement } from 'src/components/base.js'`
      — the bare form CONVENTIONS.md documents four times, which resolves in the app
-     and in the Gate A harness — THREW in the gallery. Gate B takes its whole subject
-     list from this page, so the first Wave 1 component written as instructed would
-     have passed Gate A and been unphotographable by Gate B. (The Gate A harness does
+     and in the the render harness harness — THREW in the gallery. the contract check takes its whole subject
+     list from this page, so the first component written as instructed would
+     have passed the render harness and been unphotographable by the contract check. (The the render harness harness does
      not have this problem — it parses index.html's importmap at serve time.) -->
 <script type="importmap">
 {
@@ -46,7 +46,7 @@
 <link rel="stylesheet" href="../../styles/document.css">
 
 <style>
-    /* The gallery's own chrome. Written entirely in --ui-* tokens, and Gate C now
+    /* The gallery's own chrome. Written entirely in --ui-* tokens, and the CSS guards now
        reads this block: a tool whose chrome drifts from the palette is a tool that
        lies about what it is showing. (tools/ was outside the scan roots until the
        scanner learned to read <style> elements — "passes because it is clean" and

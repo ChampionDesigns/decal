@@ -25,12 +25,12 @@ const PAD = Object.freeze([
     Object.freeze({ id: '9', kind: 'digit', glyph: '9' }),
     Object.freeze({ id: 'decimal', kind: 'decimal', glyph: '.' }),
     Object.freeze({ id: '0', kind: 'digit', glyph: '0' }),
-    /* U+232B ERASE TO THE LEFT. The glyph reads as nothing to a screen reader, which
-     * is half of O9; the name is on the button, which is the pressable. */
+    /* U+232B ERASE TO THE LEFT. The glyph reads as nothing to a screen reader, so the
+     * name goes on the button, which is the pressable. */
     Object.freeze({ id: 'backspace', kind: 'backspace', glyph: '⌫' }),
 ]);
 
-/** Up to four recent values, two rows of two — `numpad-modal.js:356-358`. */
+/** Up to four recent values, two rows of two. */
 const PREVIOUS_SHOWN = 4;
 
 /** The empty buffer. Backspacing past the last character lands here, not on ''. */
@@ -49,7 +49,7 @@ export class UiNumericKeypad extends UiElement {
         /** Reflected: the gallery declares an open keypad in static markup, and a
          *  screen styles around one. Mirrored from the shell in #onOpenChange. */
         open: { type: Boolean, reflect: true },
-        /** The field name. #18's `heading` and its accessible name — see O10. */
+        /** The field name. It is the dialog's heading and its accessible name. */
         heading: { type: String },
         /** A key of the port's table (`LIMIT_KEYS`). No row → unavailable. */
         limitKey: { type: String, attribute: 'limit-key' },
@@ -69,7 +69,7 @@ export class UiNumericKeypad extends UiElement {
         /** The entry buffer. Internal — a screen reads `value` on confirm. */
         _buffer: { state: true },
         /** True until the first keypress, so the first digit REPLACES rather than
-         *  appends (`numpad-modal.js:296-299`). Internal. */
+         *  appends. Internal. */
         _fresh: { state: true },
     };
 
@@ -218,7 +218,7 @@ export class UiNumericKeypad extends UiElement {
             inline-size: 100%;
         }
 
-        /* THE UNAVAILABLE STATE — A7's absence, rendered as absence. No pad, no
+        /* THE UNAVAILABLE STATE — absence, rendered as absence. No pad, no
          * invented ceiling, and the reason is on screen rather than in a console. */
         .unavailable {
             display: grid;
@@ -398,7 +398,7 @@ export class UiNumericKeypad extends UiElement {
     }
 
     /** Backspacing past the last character lands on the empty buffer, never on a
-     *  blank readout — `numpad-modal.js:320-329`. */
+     *  blank readout. */
     #backspace() {
         this._fresh = false;
         const next = this._buffer.slice(0, -1);
@@ -407,7 +407,7 @@ export class UiNumericKeypad extends UiElement {
     }
 
     /** A recent value is a press and a confirm in one gesture, which is what made
-     *  the strip worth having — `numpad-modal.js:331-338`. */
+     *  the strip worth having. */
     useprevious(raw) {
         this._buffer = String(raw);
         this._fresh = false;

@@ -12,7 +12,7 @@ export const entry = {
     states: [
         {
             id: 'destructive',
-            title: 'Destructive — Slate\'s own confirm, rebuilt',
+            title: 'Destructive — the reference skin\'s own confirm, rebuilt',
             notes: 'ORACLE profile-selector .modal-box [i=191] "Reset profile? KEEP Reset". '
                 + 'The destructive fill was app.css .bg-red-400 (rgb(248, 113, 113), '
                 + 'FROZEN/hardcoded); here it is #1\'s danger variant, from --ui-status-danger.',

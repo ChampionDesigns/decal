@@ -28,7 +28,7 @@ const LIT = `<ui-colour-swatch-row id="lit" label="LED colour presets" value="#f
 const NONE = `<ui-colour-swatch-row id="none" label="LED colour presets" value="#1b9e5a"
     swatches='${PALETTE}'></ui-colour-swatch-row>`;
 
-/* No colour has arrived at all — the absence case. No fallback, no computed default (A7). */
+/* No colour has arrived at all — the absence case. No fallback, no computed default. */
 const ABSENT = `<ui-colour-swatch-row id="absent" label="LED colour presets"
     swatches='${PALETTE}'></ui-colour-swatch-row>`;
 

@@ -106,7 +106,7 @@ describe('C5: one gap, one ink, no separator element', () => {
     });
 
     test('the seam is never given a width of its own', () => {
-        // T19 is two hairlines of two greys. One gap has one width and it is the token's.
+        // the rule is two hairlines of two greys. One gap has one width and it is the token's.
         for (const file of SCREEN_FILES) {
             assert.doesNotMatch(CODE[file], /gap:\s*\d/, `${file} writes a gap in pixels`);
         }
@@ -116,7 +116,7 @@ describe('C5: one gap, one ink, no separator element', () => {
 describe('T16: no scrollable region in this cluster hides its scrollbar', () => {
     test('no scrollbar-width, no scrollbar-color, no ::-webkit-scrollbar', () => {
         for (const file of SCREEN_FILES) {
-            assert.doesNotMatch(CODE[file], /scrollbar-width/, `${file}: slate-shell.css:456's defect`);
+            assert.doesNotMatch(CODE[file], /scrollbar-width/, `${file}'s defect`);
             assert.doesNotMatch(CODE[file], /scrollbar-color/, file);
             assert.doesNotMatch(CODE[file], /::-webkit-scrollbar/, file);
         }

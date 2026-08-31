@@ -28,7 +28,7 @@ const FLOW = `<ui-preset-bank id="flow" label="Steam flow presets" value="0.9"
 const STEAM = `<ui-preset-bank id="steam" label="Steam temperature presets" value="145"
     presets='[135,145,155,165]'></ui-preset-bank>`;
 
-/* A row with no value at all — the absence case. No fallback, no computed default (A7):
+/* A row with no value at all — the absence case. No fallback, no computed default:
  * an absent reading highlights nothing. */
 const ABSENT = `<ui-preset-bank id="absent" label="Flush volume presets"
     presets='[20,30,40,60]'></ui-preset-bank>`;
@@ -417,7 +417,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(events[0].detail.value, 50, 'the intent carries the preset NUMBER');
                 assert.equal(typeof events[0].detail.value, 'number',
                     'a number, never the rendered label — reading numbers back out of printed strings is '
-                    + 'the worst coupling the audit found (chart.js:1664-1678)');
+                    + 'the worst coupling the audit found ');
                 assert.equal(events[0].detail.index, 3);
                 assert.equal(events[0].detail.label, '50');
             }));
@@ -501,7 +501,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(2);
             const cells = await page.eval(CELLS('flow'));
             assert.deepEqual(cells.map((c) => c.pressed), ['false', 'true', 'false', 'false'],
-                'a value that PRINTS as 0.8 is 0.8 — steam-mode.js:60, "matching is at the tile\'s '
+                'a value that PRINTS as 0.8 is 0.8 — "matching is at the tile\'s '
                 + '0.1 ml/s display precision"');
         }));
 

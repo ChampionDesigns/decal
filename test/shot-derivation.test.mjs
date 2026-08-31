@@ -135,7 +135,7 @@ describe('a record that is not a shot is REFUSED, and says why', () => {
     });
 });
 
-describe('the trace ends where the pump does (Ben, 25 August 2026)', () => {
+describe('the trace ends where the pump does', () => {
     const withTail = [
         sample(0, { substate: 'preinfusion', pressure: 1, flow: 1, weight: 0, frame: 0, volume: 0 }),
         sample(1000, { substate: 'pouring', pressure: 6, flow: 2, weight: 10, frame: 1, volume: 10 }),
@@ -463,7 +463,7 @@ describe('THE ONE DERIVATION: the buffer path and the record path agree', () => 
         assert.deepEqual(live.stepMarks, stored.stepMarks);
     });
 
-    test('the two paths report their SOURCE decision differently, and that is the point', () => {
+    test('the two paths report their decision differently, and that is the point', () => {
         const buffer = createShotBuffer({
             chooseSources: ({ sample }) => chooseSources(readStoredMeasurement(sample)),
         });

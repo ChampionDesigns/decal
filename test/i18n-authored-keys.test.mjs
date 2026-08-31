@@ -16,7 +16,7 @@ const REFUSALS = Object.freeze([
         key: 'A profile needs a name.',
         where: 'editor-screen.js #onRenameConfirm — Save pressed on an empty or '
             + 'whitespace-only title; the dialog stays open and renders this at the field '
-            + '(audit F-050, authored under Ben\'s D17)',
+            + '(authored under the display decision)',
     },
     {
         key: 'The library could not be changed. Try again.',

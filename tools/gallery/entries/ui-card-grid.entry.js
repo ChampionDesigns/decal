@@ -7,13 +7,13 @@ export const entry = {
     title: 'Card grid',
     module: './entries/ui-card-grid.demo.js',
     notes:
-        'Component #51 (SCOPE.md:1643, "2-up card layout (skin picker, update list), '
-        + 'small, #8"). Slate builds this twice in one screen and the two disagree: the '
+        'Component #51 ("2-up card layout (skin picker, update list), '
+        + 'small, #8"). The reference skin builds this twice in one screen and the two disagree: the '
         + 'skin picker measures a 14px gap around 593px cards, the USB-charger tiles a '
         + '12px gap around 594px - bug T20 ("fourteen distinct gap literals pass through '
         + 'the shell\'s rhythm rules untouched") and T14. Here there is one gap, '
         + '--ui-space-3, on both axes and in both column modes, and no per-instance gap '
-        + 'on the API, so two uses cannot disagree; spec §3.3 snaps Slate\'s 14 to 12, '
+        + 'on the API, so two uses cannot disagree; spec §3.3 snaps the reference skin\'s 14 to 12, '
         + 'which lands the cells on 594px at a 1200px leaf - the charger grid\'s measured '
         + 'width to the pixel. The tracks are '
         + 'repeat(auto-fill, minmax(max(min(100%, 280px), (100% - gap) / 2), 1fr)): two '
@@ -51,7 +51,7 @@ export const entry = {
             notes:
                 'One cell wraps to three lines and its neighbour to one. The cells '
                 + 'stretch to the row band, so a card is never shorter than the row it '
-                + 'sits in. Slate\'s ten skin cards are all 96px tall only because their '
+                + 'sits in. The reference skin\'s ten skin cards are all 96px tall only because their '
                 + 'content happens to be uniform.',
             hostStyle: { 'inline-size': '900px' },
             html:
@@ -60,7 +60,7 @@ export const entry = {
                 + '<ui-card>Streamline.js (Bengle) v0.1.85 - installed, and this one '
                 + 'carries the long provenance caption that wraps onto a second and a '
                 + 'third line at this container width</ui-card>'
-                + '<ui-card>Slate v0.1.18 - active</ui-card>'
+                + '<ui-card>the reference skin v0.1.18 - active</ui-card>'
                 + '<ui-card>Radian v0.1.0 - installed</ui-card>'
                 + '</ui-card-grid>',
         },
@@ -101,10 +101,10 @@ export const entry = {
             id: 'update-list',
             title: 'Update list, columns="1"',
             notes:
-                'The row\'s second use (LAYOUT_SPEC_DRAFT.md:922, "skin picker (2-up), '
+                'The row\'s second use ("skin picker (2-up), '
                 + 'update list"): one full-width column, the same gap token, the same '
                 + 'flow. One component means the stack and the grid cannot drift apart '
-                + 'the way Slate\'s two card grids did.',
+                + 'the way the reference skin\'s two card grids did.',
             hostStyle: { 'inline-size': '900px' },
             html:
                 '<ui-card-grid columns="1" label="Available updates">'

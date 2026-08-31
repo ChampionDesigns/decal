@@ -287,7 +287,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.prop(RATE_NUM, 'color'),
                 await page.resolveToken('--ui-text'));
 
-            /* AND THE DASH IS THE DASH, not a zero. A7: an absence is an absence. */
+            /* AND THE DASH IS THE DASH, not a zero. an absence is an absence. */
             assert.equal(await textOf(page, '#unrated >>> #rate .num'), '—',
                 'a shot nobody has rated shows the em dash, never 0');
 
@@ -465,7 +465,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('an absent score announces a SENTENCE and hides the dash', () => mounted(async (page) => {
             /* ui-stat-tile owns this; the assertion is here because #46 is the row that
-             * decides an unrated shot is an ABSENCE rather than a zero (A7,
+             * decides an unrated shot is an ABSENCE rather than a zero (
              * reading.js:12-15). */
             /* TWO PLACES SHOW THE ABSENCE NOW, and both have to be honest about it: the
              * dash on the resting button, and the tile inside the sheet. */

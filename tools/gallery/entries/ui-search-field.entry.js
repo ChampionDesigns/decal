@@ -7,10 +7,10 @@ export const entry = {
     title: 'Search field',
     module: '../../src/components/ui-search-field.js',
     notes:
-        'Wave 2 #30, composed from Wave 1 #6. What to look at is the ICON WELL: Slate '
+        'Wave 2 #30, composed from Wave 1 #6. What to look at is the ICON WELL: the reference skin '
         + 'positions the glyph absolutely over a frozen `padding-left: 52px` (18 + 20 + 14, '
         + 'undocumented - CITE settings-machine-steam #settings-search [i=7] padding-left = '
-        + '52px <- slate-shell.css `#subpage-host #settings-search` authored `52px` '
+        + '52px, authored as `52px` on the old search field '
         + 'FROZEN/hardcoded). Here the glyph is a box in the field\'s own flex line and the '
         + 'well is --ui-space-4 + --ui-icon + --ui-space-3 = 54px, added up by the layout '
         + 'engine. Retarget any of those three tokens and the entry moves; the 52 could not. '
@@ -20,9 +20,8 @@ export const entry = {
             id: 'resting',
             title: 'Resting, with a placeholder',
             notes:
-                'The Slate original, value-for-value: --ui-control-h tall, --ui-key on '
-                + '--ui-line, --ui-radius corners, and the glyph at --ui-text (settings.html:20 '
-                + 'text-[var(--text-primary)], slate-tokens.css:236 -> --slate-text).',
+                'The the reference skin original, value-for-value: --ui-control-h tall, --ui-key on '
+                + '--ui-line, --ui-radius corners, and the glyph at --ui-text.',
             hostStyle: { 'inline-size': '600px' },
             html: '<ui-search-field placeholder="Search settings..." aria-label="Search settings"></ui-search-field>',
         },

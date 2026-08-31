@@ -29,8 +29,7 @@ export const entry = {
     module: '../../src/components/ui-page-header.js',
     notes:
         'Component #31, the 118px screen band (spec §5.2 row 31). One implementation '
-        + 'replacing three - slate-shell.css:134-141, slate-live.css:94-102 and '
-        + 'profile-editor-v3.css:95-104 - which is what retires P17, the 2px inset '
+        + 'replacing three old rules, which is what retires P17, the 2px inset '
         + 'disagreement: the inset is var(--ui-space-6) = 28px, declared once on a class '
         + 'inside the shadow root, so there is no per-screen surface to disagree from. '
         + 'The band height is --ui-band-h and the 18px above and below the controls is '
@@ -47,7 +46,7 @@ export const entry = {
             notes:
                 'D11 in one photograph: Cancel plus "Save (3)", the save carrying the '
                 + 'primary fill because there is something to affirm. The count is a '
-                + 'property; the sentence is the component\'s. Slate reached the same '
+                + 'property; the sentence is the component\'s. The reference skin reached the same '
                 + 'shape by hand at settings.js:271-281 and then discarded its own '
                 + 'module\'s label to rebuild it locally, which is the defect D11 closes.',
             html: '<ui-page-header heading="Settings" commit change-count="3"></ui-page-header>',
@@ -57,7 +56,7 @@ export const entry = {
             title: 'Settings, nothing to save',
             notes:
                 'The same header at zero: "Close" alone, no Cancel, no primary fill. '
-                + 'Slate\'s own S10 note is the authority - "Save was full-primary on '
+                + 'the reference skin\'s own S10 note is the authority - "Save was full-primary on '
                 + 'untouched pages, so the affirmative treatment said nothing about '
                 + 'whether there was anything to affirm". The oracle corroborates it by '
                 + 'what is missing: CITE settings-display-skin #save-settings-btn [i=4] '
@@ -71,8 +70,8 @@ export const entry = {
             title: 'Profile editor - flanks layout, tablist in the centre',
             notes:
                 'The default layout, minmax(0,1fr) auto minmax(0,1fr): the centre track '
-                + 'is the tablist\'s own width and the flanks overflow rather than shove '
-                + '(LAYOUT_SPEC_DRAFT.md:632-633, Appendix 7). Slate writes 430px there; '
+                + 'is the tablist\'s own width and the flanks overflow rather than shove. '
+                + 'The reference skin writes 430px there; '
                 + 'a px literal three times over is the same defect as the 430px rail '
                 + 'written three times. The selected tab is painted BY THIS FIXTURE, not '
                 + 'by the band - see the file header.',
@@ -115,11 +114,11 @@ export const entry = {
             id: 'three-screens',
             title: 'P17 - three configurations, one inset',
             notes:
-                'The bug, made inexpressible. Slate\'s three sheets each write their own '
+                'The bug, made inexpressible. The reference skin\'s three sheets each write their own '
                 + 'inset and two of them disagree with the History Viewer header by 2px '
                 + '(CITE settings-display-skin #subpage-header [i=2] padding-left = 30px, '
                 + 'FROZEN/hardcoded; CITE editor-steps .slate-editor-header [i=2] '
-                + 'padding-left = 30px, FROZEN/hardcoded; against slate-live.css:2210 '
+                + 'padding-left = 30px, FROZEN/hardcoded; against the old rule '
                 + 'padding: 0 var(--slate-space-6)). Here the left edges of all three '
                 + 'titles and the right edges of all three action clusters line up '
                 + 'exactly, because there is one .band and one var(--ui-space-6). Moving '
@@ -147,7 +146,7 @@ export const entry = {
             id: 'screen-grid',
             title: 'Departure 2 - the underline is the screen grid\'s gap',
             notes:
-                'Slate\'s three bands each draw their own bottom edge (CITE editor-steps '
+                'The reference skin\'s three bands each draw their own bottom edge (CITE editor-steps '
                 + '.slate-editor-header [i=2] box-shadow = rgb(82, 97, 107) 0px -1px 0px '
                 + '0px inset, token-driven, light rgb(170, 178, 183)). This one draws '
                 + 'none: CONVENTIONS §13 names the header underline as the seam '
@@ -173,7 +172,7 @@ export const entry = {
                 + 'only honest way to show that. The title ellipsises; the commit cluster '
                 + 'never gives a pixel - flex: 0 0 auto on the actions, min-inline-size: 0 '
                 + 'on the title, which is Appendix 7\'s "flanks overflow, never shove" made '
-                + 'mechanical. Slate has no answer here at all: its geometry is frozen at '
+                + 'mechanical. The reference skin has no answer here at all: its geometry is frozen at '
                 + '1920 and the oracle is disqualified on responsive behaviour, so the '
                 + 'layout spec governs.',
             hostStyle: { 'inline-size': '520px' },

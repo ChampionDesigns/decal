@@ -8,7 +8,7 @@ export const entry = {
     module: '../../src/components/ui-select.js',
     notes:
         'Item #7. A native select, styled: the caret is two gradients derived from two '
-        + 'numbers (Slate writes six, twice), and the host is flex: none so a stated width '
+        + 'numbers (the reference skin writes six, twice), and the host is flex: none so a stated width '
         + 'is HELD — bug T9, where one screen renders 250px and 217px for the same '
         + 'authored width.',
     states: [
@@ -27,7 +27,7 @@ export const entry = {
             title: 'T9 — a stated width in a squeezing row',
             notes:
                 'Two selects, one row, both stating 260px, with a label that will not give '
-                + 'up pixels. Slate renders 250 and 217 here (oracle: '
+                + 'up pixels. The reference skin renders 250 and 217 here (oracle: '
                 + 'settings-extensions-decent-app-settings, elements 48 and 51). Both of '
                 + 'these are 260.',
             html: `

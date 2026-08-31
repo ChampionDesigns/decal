@@ -29,7 +29,7 @@ export const entry = {
     module: './entries/ui-chart-legend.demo.js',
     notes:
         'Component #10, the key for a plot and a control in the same object (spec §5.1 '
-        + '#10; slate-components.css:832-873). Each swatch is an SVG line carrying the '
+        + '#10). Each swatch is an SVG line carrying the '
         + 'series\' OWN stroke: --ui-chart-stroke for a measured channel, '
         + '--ui-chart-stroke-minor for a target or a derived one, and the plot\'s own '
         + 'dash table for the pattern - spec §6.2\'s fix for a swatch that draws 3px '
@@ -53,7 +53,7 @@ export const entry = {
             title: 'One series turned off',
             notes:
                 'The exceptional state, and the only one that is painted: ground removed, '
-                + 'ink to --ui-muted, swatch at .35 (slate-components.css:857-862 - "A '
+                + 'ink to --ui-muted, swatch at .35 ("A '
                 + 'hidden series stays readable - it is a control you can turn back on, '
                 + 'not a thing that has gone away"). The border and the 44px box stay, so '
                 + 'the row does not reflow when a chip goes off. NOT the four selection '
@@ -69,7 +69,7 @@ export const entry = {
             notes:
                 'What a double tap leaves behind, and the reason the gesture exists: the '
                 + 'expanded charts overlay six lines in the 0-4 band and the only way to '
-                + 'read one of them is to put the others away (uplot-legend.js:5-8). Four '
+                + 'read one of them is to put the others away. Four '
                 + 'chips off, one on.',
             html: `<ui-chart-legend label="Chart key" items='${json(
                 LIVE.map((item, i) => (i === 0 ? item : { ...item, off: true })),
@@ -120,9 +120,9 @@ export const entry = {
             notes:
                 'The layout contract, assembled (bug chart-C10). The card reserves the '
                 + 'legend\'s row whether or not it is filled, so no plot is ever measured '
-                + 'against a box a legend is about to take - Slate inserts its 78px legend '
+                + 'against a box a legend is about to take - the reference skin inserts its 78px legend '
                 + 'host as the plot\'s PRECEDING sibling after createPlot has measured '
-                + '(chart-components.js:73-121). One chip row costs 52px here: 44 of chip '
+                + '. One chip row costs 52px here: 44 of chip '
                 + 'plus the card\'s own 8px below it. The plot is empty because no shot '
                 + 'has been handed to it; ui-chart-card\'s entry owns the picture with a '
                 + 'recorded shot in it.',

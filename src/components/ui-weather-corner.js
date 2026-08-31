@@ -164,12 +164,12 @@ export class UiWeatherCorner extends UiElement {
             line-height: 1.4;
         }
         .half .chance {
-            font-size: var(--ui-text-lg);
+            font-size: var(--ui-text-2xl);
             font-variant-numeric: tabular-nums;
             line-height: 1.15;
         }
         .half .amount {
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-lg);
             color: var(--ui-text-2);
             font-variant-numeric: tabular-nums;
             line-height: 1.3;

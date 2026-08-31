@@ -98,7 +98,7 @@ export function authoringRangesFor(machineClass) {
         throw new Error(
             `profile-modes: unknown machine class "${machineClass}". The classes are `
             + `${MACHINE_CLASSES.join(', ')} and null (not known yet); the answer comes from `
-            + 'capabilities.machineClass(), never from a model name (A3).',
+            + 'capabilities.machineClass(), never from a model name.',
         );
     }
     return AUTHORING_RANGES_BY_MACHINE_CLASS[machineClass];
@@ -120,7 +120,7 @@ export function authoringRange(name, machineClass = MACHINE_CLASS_NOT_STATED) {
             + `${MACHINE_CLASSES.join(', ')} or null as the second argument; null means `
             + '"not known yet" and answers with the narrower band. The class comes from '
             + 'capabilities.machineClass() (adapters-r.js machineClassFromServedSet), never '
-            + 'from a model name (A3).',
+            + 'from a model name.',
         );
     }
     const range = authoringRangesFor(stated ? machineClass : null)[name];
@@ -177,7 +177,7 @@ export function getModeConfig(pump) {
         throw new Error(
             `profile-modes: "${pump}" is not a pump mode (${PUMP_MODE_CYCLE.join(', ')}). `
             + 'Foreign JSON is coerced by normalizeImportedStep at the import boundary; '
-            + 'A7 forbids reading an unrecognised mode as flow here.',
+            + 'Reading an unrecognised mode as flow is forbidden here.',
         );
     }
     return cfg;
@@ -437,7 +437,7 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
     if (!temperature || !Number.isFinite(temperature.min) || !Number.isFinite(temperature.max)) {
         throw new Error(
             'profile-modes: reviewStepSpec needs { machineRanges: { temperature } } — the brew '
-            + 'temperature is a MACHINE limit (machine-limits.js `brewTemp`), and B2 allows '
+            + 'temperature is a MACHINE limit (machine-limits.js `brewTemp`), and the one table allows '
             + 'exactly one table per field, so this module declares no range for it.',
         );
     }

@@ -8,7 +8,7 @@ const STAGE = { position: 'relative', 'inline-size': '640px', 'block-size': '300
 const NARROW = { ...STAGE, 'inline-size': '320px', 'block-size': '200px' };
 
 /**
- * The panel the blank covers. Token colours only — `tools/` is inside Gate C's scan
+ * The panel the blank covers. Token colours only — `tools/` is inside the CSS guards's scan
  * roots, so an inline `#fff` here fails the colour-literal guard exactly as it would in
  * a component.
  */
@@ -21,13 +21,13 @@ export const entry = {
     title: 'Screensaver',
     module: '../../src/components/ui-screensaver.js',
     notes:
-        'Wave 4 #57, the Live compound that blanks the screen. D10: fully black, and the '
+        ' #57, the Live compound that blanks the screen.: fully black, and the '
         + 'skin is the SINGLE owner of blanking — enforced by a module-level owner slot, '
         + 'so a second viewport-anchored instance is refused rather than allowed to be a '
         + 'second blanker. All of the logic is the screensaver-policy.js port, whose value '
         + 'is that its derivations return paint instructions and are structurally '
         + 'incapable of asking for a machine command; this element inherits that by '
-        + 'emitting ui-screensaver-wake and never calling a route. Q13 — the wake-edge '
+        + 'emitting ui-screensaver-wake and never calling a route. — the wake-edge '
         + 'brightness race — is decided here: the skin drives the DIM and stands back on '
         + 'the RESTORE, so ReaPrime\'s own awake-with-brightness-0 restore is the single '
         + 'restore path and the old brightnessBeforeDim ?? rememberedBrightness ?? 100 '
@@ -40,7 +40,7 @@ export const entry = {
             notes: 'The whole component. --ui-blackout, the one token that is the same '
                 + 'value in both themes because a blanked screen does not follow the '
                 + 'theme. The panel behind it is completely covered — this is the picture '
-                + 'D10 describes, and there is no grey dim child and no image: Slate\'s '
+                + ' describes, and there is no grey dim child and no image: Slate\'s '
                 + 'rgba(40,40,40,0.55) overlay and its screensaverImages list are both '
                 + 'retired. display-action reads "dim": the panel half of the blank left '
                 + 'with the overlay half, from the same branch.',
@@ -68,7 +68,7 @@ export const entry = {
                 + 'and the screen stays lit. Slate case-folded and coerced here, which is '
                 + 'a fallback whose failure mode was blanking the screen on a name '
                 + 'ReaPrime never sent; the comparison is now exact against the generated '
-                + 'name (A7).',
+                + 'name.',
             hostStyle: STAGE,
             html: PANEL + '<ui-screensaver anchor="container" machine-state="Sleeping">'
                 + '</ui-screensaver>',
@@ -89,7 +89,7 @@ export const entry = {
             id: 'disabled',
             title: 'screensaverEnabled off — one feature, one switch',
             notes: 'The machine IS asleep; the user has turned the screensaver off. No '
-                + 'overlay and no dim: under D10 the black box and the panel dim are one '
+                + 'overlay and no dim: under the black box and the panel dim are one '
                 + 'decision, so the skin can never leave a dimmed panel with no overlay '
                 + 'on it — a black screen the user cannot press. Black-vs-dimmed is no '
                 + 'longer a setting (blackScreenSaver is retired); on-vs-off still is.',
@@ -102,7 +102,7 @@ export const entry = {
             title: 'In a 320×200 panel',
             notes: 'The container state. The blank fills the box it is anchored to and '
                 + 'never reads the viewport — there is no @media (width…) at any level in '
-                + 'the component (CONVENTIONS §2), because a blank that covers the screen '
+                + 'the component (CONVENTIONS), because a blank that covers the screen '
                 + 'needs no breakpoint. Responsive behaviour has no Slate answer anyway '
                 + '(98.4% of its geometry is frozen); LAYOUT_SPEC_DRAFT governs.',
             hostStyle: NARROW,

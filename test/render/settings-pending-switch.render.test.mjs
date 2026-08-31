@@ -1,5 +1,5 @@
 /**
- * D08: a switch that has not been read does not say "off".
+ *: a switch that has not been read does not say "off".
  */
 
 import { test, describe, before, after } from 'node:test';

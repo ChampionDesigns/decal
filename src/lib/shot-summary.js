@@ -12,7 +12,7 @@ export const CELL_SOURCE = Object.freeze({
     RECORD: 'record',
     /** `ShotAnnotations`. Served on the list payload, when the shot carries one. */
     ANNOTATION: 'annotation',
-    /** Gate 6's scalars. Needs the measurements array, so needs the one walk. */
+    /** The derived scalars. Needs the measurements array, so needs the one walk. */
     DERIVATION: 'derivation',
 });
 
@@ -96,7 +96,7 @@ export function shotOptionLabel(shot, { dash = DEFAULT_DASH, separator = '  ·  
     return bits.join(separator);
 }
 
-/** The profile's title, or `null`. Never a string this module chose — D2 (see the header). */
+/** The profile's title, or `null`. Never a string this module chose. */
 export function shotTitle(shot) {
     const title = shot && shot.workflow && shot.workflow.profile
         ? shot.workflow.profile.title : null;

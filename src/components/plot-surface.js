@@ -98,7 +98,7 @@ export class PlotSurfaceElement extends UiElement {
     /** The `createPlot` handle, or `null` before the first build. */
     get plotHandle() { return this.#plot; }
 
-    /** The tokens the current plot was built from (A6). Frozen. */
+    /** The tokens the current plot was built from. Frozen. */
     get chartTokens() { return this.#tokens; }
 
     get sheetAdopted() { return Boolean(this.#sheet) && hasAdoptedSheet(this.renderRoot, this.#sheet); }
@@ -173,7 +173,7 @@ export class PlotSurfaceElement extends UiElement {
             if (!adopted && !this.plotStyleSheetOptional) {
                 throw new Error(
                     'plot-surface: uPlot.min.css did not reach this shadow root, so the plot '
-                    + 'was not built (Part 8 §3 Rule 1). An unsheeted chart paints a '
+                    + 'was not built. An unsheeted chart paints a '
                     + 'pixel-identical canvas that lays out at its attribute size — 450px past '
                     + 'its card at the bench dpr — so it cannot be allowed to mount silently. '
                     + 'A subclass that means to run without the sheet declares '

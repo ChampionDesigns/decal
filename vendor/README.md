@@ -1,7 +1,7 @@
 # vendor/
 
-Pinned third-party code. **Vendored means pinned, licensed, and re-derivable**
-(SCOPE Part 2 §2): every file sits beside its licence, and the table below records
+Pinned third-party code. **Vendored means pinned, licensed, and re-derivable**:
+every file sits beside its licence, and the table below records
 exactly where each byte came from so a reader can re-derive it.
 
 **One file is a FORK and is edited on purpose**: `reconnecting-websocket.js` carries
@@ -50,7 +50,7 @@ component that needs one adds `vendor/lit-directives.js` and one importmap line;
 nothing here has to change.
 
 **`uPlot.esm.js`** - the **ESM** build, not the global-installing `uPlot.min.js` the
-current skin loads with a bare `<script>` (`CARRY_FORWARD.md` Gate 5). Byte-identical
+current skin loads with a bare `<script>`. Byte-identical
 to `uplot@1.6.32`'s `dist/uPlot.esm.js` on npm (verified by sha256 against the
 tarball).
 
@@ -73,8 +73,7 @@ that side effect. The notes editor (component #55) keeps it.
 
 **`reconnecting-websocket.js`** - copied out of the current skin's `src/modules/`,
 which is where it should never have been: it is third-party code with local edits,
-filed as if it were app code (A11; `CARRY_FORWARD.md` UNCLEAR #4 records the
-misfiling). It arrived here in wave 0a byte-identical to the skin's copy
+filed as if it were app code (A11). It arrived here byte-identical to the skin's copy
 (`b61355bf4e8717b01eb7324f76c4b8b52fc3d8e0158a8c7708732e903fa4e786`), and **wave 0b
 made the three mechanical changes that were owed** — they are edits to vendored code,
 so they are listed here rather than left to be rediscovered by diff:
@@ -104,7 +103,7 @@ changes above and nothing more.
 
 ### Measured, not assumed: what each specifier does today
 
-Run `realine-run/waves/0a/verify_repo_layout.py` to reproduce. Loading `index.html`
+Run the repo-layout check to reproduce. Loading `index.html`
 in headless Chrome at 1281x801 @ dsf 1.5 and at the 1000x600 floor and dynamically
 importing every importmap specifier gives:
 
@@ -151,7 +150,7 @@ Line numbers are deliberately not quoted here any more (they moved with the 0b
 conversion, and would move again): **grep `LOCAL PATCH`**.
 
 If this module is ever swapped for a maintained library, **re-apply both behaviours
-as tests first** (`CARRY_FORWARD.md` UNCLEAR #4). Those tests now exist and are
+as tests first**. Those tests now exist and are
 executable: `test/reconnecting-websocket.test.mjs` fails against stock upstream on both
 patches, drives everything through an injected fake socket, and additionally asserts
 that the code (comments stripped) contains no `document.`/`window.` — so a future
@@ -174,8 +173,8 @@ distributing this tree under MIT, and with ReaPrime's GPL-3.0 (see below):
   attribution, which the per-file licences here satisfy.
 - **BSD-3-Clause** - Lit. Permissive; the third clause forbids using the copyright
   holder's name to endorse, which nothing here does.
-- **MPL-2.0** - iro. **SCOPE Part 2 §2 says "all MIT/BSD-3/OFL"; that is wrong about
-  iro, which is Mozilla Public License 2.0.** It is still fine, and the reason is
+- **MPL-2.0** - iro. **Not MIT/BSD-3/OFL like the rest: iro is Mozilla Public
+  License 2.0.** It is still fine, and the reason is
   worth writing down rather than re-deriving: MPL-2.0 is *file-scoped* copyleft.
   §3.3 explicitly permits distributing the covered file as part of a Larger Work
   under different terms, provided the covered file itself stays under MPL-2.0 and
@@ -196,6 +195,5 @@ combined work with ReaPrime - is fine: MIT code may be distributed inside a GPL-
 work. In practice the coupling is looser than that. Decal is served as static files
 over HTTP and talks to ReaPrime over REST and WebSocket only; it links nothing, and
 ships in its own release archive installed through ReaPrime's install-by-URL route.
-This is the E3 check that SCOPE Part 8 Risk 11 / Part 9 M15 records as owed, and
-its verdict is **clear on both halves: the vendored set is compatible, and so is
+This is the E3 check, and its verdict is **clear on both halves: the vendored set is compatible, and so is
 ReaPrime's own licence.**

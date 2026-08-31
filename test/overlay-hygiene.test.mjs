@@ -1,5 +1,5 @@
 /**
- *.2, ITEMS rows overlay-style-hygiene and the static half of screensaver-d10.
+ *.2 rows overlay-style-hygiene and the static half of screensaver-d10.
  */
 
 import { test, describe } from 'node:test';

@@ -1,12 +1,12 @@
 # src/components/
 
-One Lit component per file - `ui-stepper.js`, `ui-bank.js`, `x-dialog.js`,
-`chart-card.js` ... the 57-component inventory of `LAYOUT_SPEC_DRAFT.md` §5.
+One Lit component per file - `ui-stepper.js`, `ui-bank.js`, `ui-dialog.js`,
+`ui-chart-card.js`, and the rest of the library.
 
-Every component is a Lit element with Shadow DOM (DECISIONS.md, "Stack"), reads its
-own container and never the viewport (`LAYOUT_SPEC_DRAFT.md` §2.1 Rule 1), and is
-themed only through custom properties crossing the shadow boundary (A6). A component
-never declares an `@font-face` - that is `styles/document.css` alone (C9, Part 2 §7).
+Every component is a Lit element with Shadow DOM, reads its own container and never
+the viewport, and is
+themed only through custom properties crossing the shadow boundary. A component
+never declares an `@font-face` - that is `styles/document.css` alone.
 
 **Start with [`CONVENTIONS.md`](CONVENTIONS.md).** It is the one file to read before
 building a component: the base class, the one focus ring, the four selection dials,

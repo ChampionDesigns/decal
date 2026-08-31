@@ -27,10 +27,9 @@ import { createStore } from './store.js';
 import { ARM_STATUS } from './profile-arm-store.js';
 
 export const D6_PURGE_IS_LANDED = Object.freeze({
-    decision: 'D6',
     half: 'purge deleted profiles',
     landed: '25 August 2026',
-    why: 'Ben: "yes build it behind a confirm that says plainly it cannot be undone."',
+    why: 'Behind a confirm that says plainly it cannot be undone.',
     routeId: 'deleteProfilesByIdPurge',
 });
 
@@ -101,7 +100,7 @@ const EMPTY_STATE = Object.freeze({
     listable: Object.freeze([]),
     /** The records the library is hiding — what the Hidden toggle shows. */
     hidden: Object.freeze([]),
-    /** Hidden AND isDefault: D6's offer list. */
+    /** Hidden AND isDefault: the restore offer list. */
     restorable: Object.freeze([]),
     /** The row the user is looking at. */
     selectedId: null,
@@ -109,7 +108,7 @@ const EMPTY_STATE = Object.freeze({
     loaded: EMPTY_LOADED,
     /** `{0..4: id|null}` plus whether a person has ever chosen (rule 5). */
     favourites: Object.freeze({ assignments: Object.freeze({}), seeded: false }),
-    /** The arm-time refusal, as `profileRefusal` reads it. B9's surface reads this. */
+    /** The arm-time refusal, as `profileRefusal` reads it. */
     refusal: null,
     /** A non-400 arm fault. Never a refusal. */
     armError: null,
@@ -136,7 +135,7 @@ export function matchProfiles(records, query) {
     });
 }
 
-/** The bundle filename D6 restores from, or null if this record was not bundled. */
+/** The bundle filename a restore reads, or null if this record was not bundled. */
 export function restoreFilenameOf(record) {
     const metadata = profileMetadataOf(record);
     const filename = metadata && typeof metadata.filename === 'string' ? metadata.filename : '';

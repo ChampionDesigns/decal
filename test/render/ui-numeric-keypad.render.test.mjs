@@ -38,7 +38,7 @@ const MARKUP = `
   <ui-numeric-keypad id="np" heading="Dose in" limit-key="dose" unit="g" value="18"></ui-numeric-keypad>
 </div>`;
 
-/** A keypad nested over a plain #18 instance — Appendix 13's Escape case. */
+/** A keypad nested over a plain #18 instance — the appendix's Escape case. */
 const NESTED = `
 <div id="page" style="padding: 40px">
   <ui-dialog id="under" open heading="Edit step">
@@ -308,7 +308,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('A7: no row means no keypad — nothing is invented', () => mounted(async (page) => {
             /* `known === false`: the machine class has not arrived, so the table has no
-             * steam row at all. A fallback ceiling here is the thing A7 forbids. */
+             * steam row at all. A fallback ceiling here is the thing the rule forbids. */
             await arm(page, { limits: UNKNOWN, limitKey: 'steamTemp', value: '' });
 
             assert.equal(await page.exists(PAD), false, 'no bounds, no pad');

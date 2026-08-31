@@ -79,7 +79,7 @@ export function readShotStateFrame(frame) {
         event: event.value,
         eventKnown: event.known,
         /** ReaPrime's own stamp. The plot axis reads this; the store's arrival stamp does
-         *  not replace it (B4 — see time-axis.js). */
+         *  not replace it — see time-axis.js. */
         timestamp: readValue(frame, 'timestamp'),
         /** Null on the idle frame published at cleanup, a uuid during a shot. */
         shotId: readValue(frame, 'shotId'),

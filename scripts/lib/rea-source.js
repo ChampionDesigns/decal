@@ -4,10 +4,16 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** The pinned reference worktree. Override for a differently-placed checkout. */
-export const REA_ROOT = process.env.REA_ROOT || '/home/ben/bengle/_port/worktrees/rea-reanchor-v3';
+/** The ReaPrime checkout the contract is generated from. Set REA_ROOT to point at one. */
+export const REA_ROOT = process.env.REA_ROOT || '../reaprime';
 
 export const PINNED_COMMIT = '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3';
+
+/**
+ * Whether REA_ROOT resolves to a checkout. The suites that read Dart source are a
+ * maintainer's freshness check; without a checkout they skip rather than fail.
+ */
+export const REA_SOURCE_PRESENT = existsSync(join(REA_ROOT, 'pubspec.yaml'));
 
 export class ReaSourceError extends Error {
     constructor(message) {

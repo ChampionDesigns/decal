@@ -73,14 +73,14 @@ export const WS_CHANNELS = Object.freeze({
         carries: '{currentLevel, refillLevel} in MILLIMETRES',
         commands: null,
         note: 'mm->mL is skin-side (the 68-entry tank table has no ReaPrime counterpart). '
-            + 'waterTank.js could not port until this module existed (SCOPE Part 6, gate 3).',
+            + 'waterTank.js could not port until this module existed.',
     }),
     devices: Object.freeze({
         key: 'devices',
         path: '/ws/v1/devices',
         handlerFile: 'lib/src/services/webserver/devices_handler.dart',
         handlerSymbol: 'DevicesHandler._handleDevicesSocket',
-        carries: 'devices[], scanning, charging?, connectionStatus{} — B8, read it through '
+        carries: 'devices[], scanning, charging?, connectionStatus{} — read it through '
             + 'rea-devices.js',
         commands: Object.freeze(['scan', 'connect', 'disconnect']),
         commandResults: true,
@@ -105,10 +105,10 @@ export const WS_CHANNELS = Object.freeze({
             return null;
         },
         note: 'setBrightness takes an INT 0..100 and the handler drops anything else with a '
-            + 'log line and no reply — validate before sending. D10 gives the skin ownership '
-            + 'of blanking; WHICH side backs off on the wake edge is Q13, open, and belongs '
+            + 'log line and no reply — validate before sending. The skin owns blanking; '
+            + 'which side backs off on the wake edge is still open, and belongs '
             + 'to the screensaver component. This layer carries the command and holds no '
-            + 'brightness policy of its own (SCOPE Part 3 §1: the policy tangled into the '
+            + 'brightness policy of its own (the policy tangled into the '
             + 'old connectors is untangled here).',
     }),
     update: Object.freeze({

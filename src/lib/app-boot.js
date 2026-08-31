@@ -81,7 +81,7 @@ export function createAppBoot({
     });
     const api = createReaRoutes(transport);
     const sockets = createReaSockets({ createSocket, socketBaseUrl: reaSocketBase(location), logger });
-    /* The B8 answer path and the connection feed are the SAME socket, not two:
+    /* The answer path and the connection feed are the SAME socket, not two:
      * `createLiveStores` attaches the connection feed to `devicesLink.channel` when a
      * link is injected (`live-stores.js:212-214`). */
     const devices = createDevicesLink({ sockets, transport, logger });
@@ -349,9 +349,9 @@ export function createAppBoot({
         proxyToken,
         cupWarmer,
         appSettings,
-        /** The B7 storage router. One per app; screens take it, never build one. */
+        /** The storage router. One per app; screens take it, never build one. */
         storage,
-        /** The B7 settings store, over that router. One per app, for the same reason —
+        /** The settings store, over that router. One per app, for the same reason —
          *  and the screensaver is the second reader that proves it had to be. */
         settings,
         routes: routeTable,
@@ -368,6 +368,13 @@ export function createAppBoot({
             live.attachAll();
             weather.attach();
             watchConnection();
+
+            /* The plugin listing is read at launch rather than by whichever screen
+               happens to want it first. Started, not awaited: the store records its own
+               failure and an absent listing draws nothing. */
+            if (plugins && typeof plugins.load === 'function') {
+                Promise.resolve(plugins.load()).catch(() => {});
+            }
 
             patch({ step: BOOT_STEP.CAPABILITIES });
             askCapabilities();

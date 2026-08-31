@@ -116,11 +116,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'background-color', 'border-top-color', 'color', 'border-top-width',
             ]);
             assert.equal(got['background-color'], await page.resolveToken('--ui-key', 'background-color'),
-                'CITE history-viewer .slate-hv-pick-tag [i=166] background-color: dark rgb(26, 33, 39) '
-                + '/ light rgb(248, 249, 249) <- slate-live.css `.slate-hv-pick-tag`');
+                'history-viewer .slate-hv-pick-tag [i=166] background-color: dark rgb(26, 33, 39) '
+                + '/ light rgb(248, 249, 249) <- `.slate-hv-pick-tag`');
             assert.equal(got['border-top-color'], await page.resolveToken('--ui-line-strong', 'border-top-color'),
-                'CITE history-viewer .slate-hv-pick-tag [i=166] border-top-color: dark rgb(82, 97, 107) '
-                + '/ light rgb(170, 178, 183) <- slate-live.css `.slate-hv-pick-tag` — and Slate\'s own '
+                'history-viewer .slate-hv-pick-tag [i=166] border-top-color: dark rgb(82, 97, 107) '
+                + '/ light rgb(170, 178, 183) <- `.slate-hv-pick-tag` — and Slate\'s own '
                 + 'comment: "The hairline is load-bearing, not trim"');
             assert.equal(got.color, await page.resolveToken('--ui-text', 'color'),
                 'ORACLE same element color: dark rgb(244, 247, 248) / light rgb(23, 26, 28) → --ui-text');
@@ -134,8 +134,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'background-color', 'border-top-color', 'color',
             ]);
             assert.equal(got['background-color'], 'rgba(0, 0, 0, 0)',
-                'CITE history-shotdata .hv-pick-btn [i=260] background-color = rgba(0, 0, 0, 0) '
-                + '<- slate-live.css `.hv-pick-btn` authored `transparent` !important=no (FROZEN/hardcoded)');
+                'history-shotdata .hv-pick-btn [i=260] background-color = rgba(0, 0, 0, 0) '
+                + '<- `.hv-pick-btn` authored `transparent` !important=no (FROZEN/hardcoded)');
             assert.equal(got['border-top-color'], await page.resolveToken('--ui-line', 'border-top-color'),
                 'ORACLE .hv-pick-btn [i=260] border-top-color: dark rgb(58, 72, 82) '
                 + '/ light rgb(203, 208, 211) → --ui-line');
@@ -149,12 +149,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'background-color', 'border-top-color', 'color',
             ]);
             assert.equal(band['background-color'], await page.resolveToken('--ui-key', 'background-color'),
-                'CITE history-viewer .slate-hv-pick-tag [i=166] background-color: dark '
+                'history-viewer .slate-hv-pick-tag [i=166] background-color: dark '
                 + 'rgb(26, 33, 39) — the History band\'s B disc is a TAG that is pressable, '
                 + 'and a tag is filled');
             assert.equal(band['border-top-color'],
                 await page.resolveToken('--ui-line-strong', 'border-top-color'),
-                'CITE history-viewer .slate-hv-pick-tag [i=166] border-top-color: dark rgb(82, 97, 107)');
+                'history-viewer .slate-hv-pick-tag [i=166] border-top-color: dark rgb(82, 97, 107)');
             assert.equal(band.color, await page.resolveToken('--ui-text', 'color'),
                 'ORACLE same element color: dark rgb(244, 247, 248) → --ui-text, not --ui-muted');
             const tag = await page.evalFn(() => document.getElementById('band-b')
@@ -173,10 +173,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const got = await page.computed(disc(host), ['font-size', 'font-weight', 'font-family']);
                 assert.equal(got['font-size'], await page.resolveValue('var(--ui-text-2xs)', 'font-size'),
                     'ORACLE font-size = 14px on all 48. Slate\'s --slate-text-sm IS 14px '
-                    + '(slate-tokens.css:129); the rewrite\'s scale calls that step --ui-text-2xs');
+                    + 'the rewrite\'s scale calls that step --ui-text-2xs');
                 assert.equal(got['font-weight'], await page.resolveValue('var(--ui-weight-semibold)', 'font-weight'),
                     'ORACLE font-weight = 600, and --ui-weight-semibold IS 600 since parity '
-                    + 'surface 1 restored the two weights slate-tokens.css:148-153 declares. '
+                    + 'surface 1 restored the two weights declares. '
                     + 'Written through --_ui-rest-weight so the fifth dial cannot thin it.');
                 assert.equal(got['font-family'], await page.prop('body', 'font-family'),
                     'the UA sheet gives <button> its own family; `inherit` puts the document\'s back '
@@ -243,8 +243,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `${on} vs ${off}: selection changed ${moved.join(', ')}, which the four dials do not paint.\n`
                     + `  selected ${JSON.stringify(Object.fromEntries(moved.map((p) => [p, selected[p]])))}\n`
                     + `  resting  ${JSON.stringify(Object.fromEntries(moved.map((p) => [p, resting[p]])))}\n`
-                    + '  SCOPE.md:1576-1578 — #45 "may not own a private selected look". Slate changes the\n'
-                    + '  border colour here (slate-live.css:2263, :2514) and that is the fifth painted\n'
+                    + '#45 "may not own a private selected look". Slate changes the\n'
+                    + 'border colour here :2514) and that is the fifth painted\n'
                     + '  property this assertion exists to keep out.',
                 );
                 const dials = await page.computed(disc(on), ['background-color', 'color']);
@@ -324,7 +324,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the pressable disc takes the one focus ring, unclipped', () => mounted(async (page) => {
             const g = await assertFocusUnclipped(page, disc('pick-b'));
             assert.equal(g.outlineOffset, await page.resolveValue('var(--ui-focus-offset)', 'outline-offset'),
-                'the outset offset, as slate-live.css:2520 writes it');
+                'the outset offset, as writes it');
         }));
 
         test('the static tag is not focusable at all', () => mounted(async (page) => {
@@ -360,7 +360,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the static tag says aria-current when it is the picked slot, and nothing when not', () => mounted(async (page) => {
             const read = (sel) => page.evalFn((s) => window.__h.need(s).getAttribute('aria-current'), sel);
             assert.equal(await read(disc('tag-a')), 'true',
-                'slate-live.css:2256-2258 — "A is the shot on the charts, B the one it is measured '
+                '"A is the shot on the charts, B the one it is measured '
                 + 'against", which is what aria-current means');
             assert.equal(await read(disc('tag-b')), null, 'and B is simply not current');
         }));
@@ -409,7 +409,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 return { selected: el.selected, aria: el.renderRoot.getElementById('disc').getAttribute('aria-pressed') };
             });
             assert.deepEqual(state, { selected: false, aria: 'false' },
-                'the disc does NOT self-toggle. slate-live.css:2498-2499 — "Pressed means this row '
+                'the disc does NOT self-toggle. — "Pressed means this row '
                 + 'is that slot" — and assigning slot A to row 5 must clear it from row 3, which a '
                 + 'lone disc cannot know. A self-toggling disc renders two rows as slot A.');
         }));

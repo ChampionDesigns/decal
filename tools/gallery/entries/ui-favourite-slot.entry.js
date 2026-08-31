@@ -8,8 +8,8 @@ export const entry = {
     module: '../../src/components/ui-favourite-slot.js',
     notes:
         'Component #35, the square profile shortcut (SCOPE L1547; spec §5.2 #35, '
-        + 'slate-shell.css:351-355 + :1666-1677). Bug P4 is this row\'s whole job, and '
-        + 'P4 is NOT "the target is too small": Slate\'s slots measure 64x64, which is '
+        + 'two old rules). Bug P4 is this row\'s whole job, and '
+        + 'P4 is NOT "the target is too small": the reference skin\'s slots measure 64x64, which is '
         + 'LARGER than the 48px floor. The defect is a dimension with two owners - '
         + '`width: var(--slate-hit-min)` in one rule and `min-width: 64px` in another '
         + '1300 lines away, a different property, clamping the used value without ever '
@@ -24,11 +24,11 @@ export const entry = {
             notes:
                 'Five slots, the first three occupied. CITE prov_query.py find --cls '
                 + 'ps-fav-slot -> "found 5 element(s) in 1 state(s)", profile-selector, '
-                + 'rects [207,1112,64,64] ... [551,1112,64,64] - quoted as what Slate does, '
+                + 'rects [207,1112,64,64] ... [551,1112,64,64] - quoted as what the reference skin does, '
                 + 'never as the target: that geometry is P4 itself and the corpus banner '
                 + 'says so. Paint is exact in both themes: empty is transparent over '
                 + '--ui-muted ink and a --ui-line-strong hairline; filled is --ui-primary '
-                + 'over --ui-on-primary with Slate\'s own 72%-primary/steel rim. Slate\'s '
+                + 'over --ui-on-primary with the reference skin\'s own 72%-primary/steel rim. The reference skin\'s '
                 + 'comment for the occupancy fix, kept: "The five favourite slots were '
                 + 'pixel-identical whatever they held, so tapping one was a blind '
                 + 'overwrite."',
@@ -66,7 +66,7 @@ export const entry = {
             id: 'dials-radian',
             title: 'The same rules, two values moved',
             notes:
-                'Slate ships --ui-selected-led at 0px and --ui-selected-glow at 0% '
+                'The reference skin ships --ui-selected-led at 0px and --ui-selected-glow at 0% '
                 + '(styles/tokens.css:819-822). Radian moves those two; this component\'s '
                 + 'CSS does not change, which is the entire claim of spec §3.9 - "four '
                 + 'values, zero rule changes", and it only holds because there is ONE '
@@ -92,9 +92,9 @@ export const entry = {
                 'Appendix 5: "Hit area is separate from ink ... Good patterns; make them '
                 + 'ONE utility rather than three copies" - the three being #15 keycap, '
                 + '#23 slider and this. The right-hand disc sets --_ui-fav-slot-size to '
-                + '--ui-control-sm (44px), which is Slate\'s own .ps-fav-badge for the '
+                + '--ui-control-sm (44px), which is the reference skin\'s own .ps-fav-badge for the '
                 + 'list row: "THE SAME disc, one size down ... so the two cannot drift '
-                + 'apart" (slate-shell.css:1685-1694). The 32px one is deliberately below '
+                + 'apart". The 32px one is deliberately below '
                 + 'the floor. All three still accept a 48px press, because the transparent '
                 + '::before holds --ui-hit-min on both axes - a floor the box HAS rather '
                 + 'than one a comment claims. The press boxes are invisible here by '
@@ -115,7 +115,7 @@ export const entry = {
             title: 'One ring, both offsets',
             notes:
                 'The disc is a real button, so it takes the ONE ring from the base '
-                + '(spec §3.6 - Slate ships five treatments and the component layer\'s '
+                + '(spec §3.6 - the reference skin ships five treatments and the component layer\'s '
                 + 'ring reaches four classes). The right-hand pair sits in an '
                 + 'overflow:hidden row and carries focus-ring="inset", which is bug L24\'s '
                 + 'class - "focus rings clipped on all four sides by the components they '
@@ -137,12 +137,12 @@ export const entry = {
             title: 'Disabled, and hidden',
             notes:
                 'Two base behaviours with almost no code here. [disabled] on the host dims '
-                + 'once through --ui-opacity-disabled (.38, one dial against Slate\'s three '
+                + 'once through --ui-opacity-disabled (.38, one dial against the reference skin\'s three '
                 + 'live values) and the native attribute on the inner button refuses the '
                 + 'press; one line stops the dial multiplying by itself (.38 x .38 = .14). '
                 + '[hidden] really hides even though this component sets `display` on '
                 + ':host, because the base rule is (0,2,0) and wins with zero !important - '
-                + 'slate-components.css:230-239\'s bug fixed by specificity instead of by '
+                + 'the old sheet\'s bug fixed by specificity instead of by '
                 + 'force.',
             html:
                 '<div style="display:flex; gap:var(--ui-space-3); align-items:center">'
@@ -161,7 +161,7 @@ export const entry = {
                 'Ergonomics is physical (spec §2.2: "Control heights, touch targets, '
                 + 'hairlines | Fixed token. Never fluid"), so the disc OVERFLOWS its '
                 + 'container rather than shrinking below the floor. The oracle has no vote '
-                + 'here - Slate is frozen at 1920x1200 and never meets a narrow container - '
+                + 'here - the reference skin is frozen at 1920x1200 and never meets a narrow container - '
                 + 'so the layout spec governs, and it says the small window is exactly when '
                 + 'a shrunken target hurts most.',
             hostStyle: { 'inline-size': '36px' },

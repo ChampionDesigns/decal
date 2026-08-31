@@ -2,7 +2,7 @@
  * CONTROL — table-driven registration, both import spellings, and member access.
  *
  * This is `editor-screen.js:673` in miniature: the loop over `Object.values(EDITOR_EDIT)`
- * is exactly the indirection plan §5 says a naive scan calls unheard and cries wolf over.
+ * is exactly the indirection plan  says a naive scan calls unheard and cries wolf over.
  * The table arrives by a RELATIVE import; `STEP_ACTION` arrives through the import map's
  * `src/` prefix (`index.html`), so both resolution paths are exercised here.
  */

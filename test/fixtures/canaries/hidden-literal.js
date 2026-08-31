@@ -1,5 +1,5 @@
 /**
- * CANARY — the guard-blindness canary. Added by Wave 0a item #4.
+ * CANARY — the guard-blindness canary. Added item #4.
  *
  * It carries TWO opposite traps in one file, because the two ways a guard stops
  * covering its target are opposite:
@@ -24,7 +24,7 @@
 
 export let CanaryHiddenLiteral;
 
-/* Prose that must NOT be flagged: the old sheets set `color: #ff0000 !important`
+/* Prose that must NOT be flagged: the previous sheets set `color: #ff0000 !important`
  * and `background: rgb(1, 2, 3)` in 364 places; none of that is authored CSS here. */
 const NOTE_ABOUT_IMPORTANT = 'never write display: flex !important; the base rules are :where()-wrapped';
 const NOTE_ABOUT_COLOUR = 'the old value was #123456, replaced by var(--ui-steel)';

@@ -83,7 +83,7 @@ describe('construction', () => {
         assert.throws(() => createLiveStores({}), /sockets must be injected/);
     });
 
-    test('the seven feeds SCOPE Part 3 §4 names all exist, plus the sensors and the tank', () => {
+    test('the seven named feeds all exist, plus the sensors and the tank', () => {
         const live = createLiveStores({ sockets: fakeSockets() });
         assert.deepEqual(Object.keys(live.feeds).sort(), [
             'connection', 'display', 'estimator', 'machineSnapshot', 'milkProbe', 'scale',

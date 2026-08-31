@@ -1,5 +1,5 @@
 /**
- * A6's reader: CSS is the single source for chart colour, and this is the one place that turns a token into a number uPlot can paint with.
+ * CSS is the single source for chart colour, and this is the one place that turns a token into a number uPlot can paint with.
  */
 
 export const CHANNELS = Object.freeze([
@@ -67,7 +67,7 @@ export function resolveChannels(keys, channels, { strict = true } = {}) {
         throw new Error(
             `chart-tokens: ${unresolved.length} channel(s) have no colour — ${unresolved.join(', ')}. `
             + 'Every drawn channel needs a token in styles/chart-channels.css and, if its key is a '
-            + 'derivation key, an entry in SERIES_KEY_CHANNELS (A6).',
+            + 'derivation key, an entry in SERIES_KEY_CHANNELS.',
         );
     }
     return { resolved, unresolved: Object.freeze(unresolved) };
@@ -78,7 +78,7 @@ export function surfaceToken(part) {
     return `--ui-chart-${part}`;
 }
 
-/** The single family token (C9). A component may USE the family; never declare it. */
+/** The single family token. A component may USE the family; never declare it. */
 export const FONT_FAMILY_TOKEN = '--ui-font-family';
 
 export const GEOMETRY_TOKENS = Object.freeze({
@@ -138,7 +138,7 @@ export function readChartTokens(element, { read, strict = true } = {}) {
         throw new Error(
             `chart-tokens: ${missing.length} token(s) resolved to nothing — ${missing.join(', ')}. `
             + 'styles/tokens.css and styles/chart-channels.css are document-level links '
-            + '(index.html); nothing in a component may restate them (A6).',
+            + '(index.html); nothing in a component may restate them.',
         );
     }
 
@@ -158,13 +158,13 @@ export function readChartTokens(element, { read, strict = true } = {}) {
 
 export function axisFont(sizePx, fontFamily) {
     if (!(sizePx > 0)) throw new TypeError('axisFont: sizePx must be positive');
-    if (!fontFamily) throw new TypeError('axisFont: no family — read --ui-font-family (C9)');
+    if (!fontFamily) throw new TypeError('axisFont: no family — read --ui-font-family');
     return `${sizePx}px ${fontFamily}`;
 }
 
 export function primaryFamily(fontFamily) {
     const list = String(fontFamily ?? '').trim();
-    if (!list) throw new TypeError('primaryFamily: no family — read --ui-font-family (C9)');
+    if (!list) throw new TypeError('primaryFamily: no family — read --ui-font-family');
     let quote = null;
     for (let i = 0; i < list.length; i += 1) {
         const ch = list[i];

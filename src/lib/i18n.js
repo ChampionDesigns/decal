@@ -1,5 +1,5 @@
 /**
- * Translation as a reactive value each component reads (D2).
+ * Translation as a reactive value each component reads.
  */
 
 export const DEFAULT_LANGUAGE = 'en';

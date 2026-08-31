@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -213,14 +213,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'border-top-left-radius', 'padding-left', 'font-size', 'font-weight',
                 'border-top-width', 'box-shadow', 'letter-spacing', 'text-transform',
             ]);
-            assert.equal(c['border-top-left-radius'], ORACLE.radius, 'CITE [i=20] 6px');
-            assert.equal(c['padding-left'], ORACLE.padding, 'CITE [i=20] 8px');
-            assert.equal(c['font-size'], ORACLE.fontSize, 'CITE [i=20] 14px');
-            assert.equal(c['font-weight'], ORACLE.weightDefault, 'CITE [i=20] 500');
-            assert.equal(c['border-top-width'], ORACLE.edge, 'CITE [i=20] 0px — a badge has no edge');
-            assert.equal(c['box-shadow'], ORACLE.shadow, 'CITE [i=20] none');
-            assert.equal(c['letter-spacing'], 'normal', 'CITE [i=20] normal — tracking is the ACTIVE state only');
-            assert.equal(c['text-transform'], 'none', 'CITE [i=20] none');
+            assert.equal(c['border-top-left-radius'], ORACLE.radius, '[i=20] 6px');
+            assert.equal(c['padding-left'], ORACLE.padding, '[i=20] 8px');
+            assert.equal(c['font-size'], ORACLE.fontSize, '[i=20] 14px');
+            assert.equal(c['font-weight'], ORACLE.weightDefault, '[i=20] 500');
+            assert.equal(c['border-top-width'], ORACLE.edge, '[i=20] 0px — a badge has no edge');
+            assert.equal(c['box-shadow'], ORACLE.shadow, '[i=20] none');
+            assert.equal(c['letter-spacing'], 'normal', '[i=20] normal — tracking is the ACTIVE state only');
+            assert.equal(c['text-transform'], 'none', '[i=20] none');
         }));
 
         test('the attention wash is Slate\'s own colour arithmetic', () => mounted(async (page) => {
@@ -305,7 +305,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and it comes back — the size was read from the container, not remembered');
         }));
 
-        test('[hidden] beats display, with zero !important (slate-components.css:230-239)', () => mounted(async (page) => {
+        test('[hidden] beats display, with zero !important ', () => mounted(async (page) => {
             assert.equal(await page.prop('#gone', 'display'), 'none');
             assert.equal((await page.box('#gone')).width, 0, 'hidden means no box, not a sized one');
             assert.equal(await page.prop('#clamped', 'display'), 'inline-grid',

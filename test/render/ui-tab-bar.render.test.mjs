@@ -772,7 +772,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and the paint followed too, from the dial');
             }));
 
-        test('ArrowLeft wraps modulo, exactly as profile_editor.js:3592 does', () => mounted(async (page) => {
+        test('ArrowLeft wraps modulo, exactly as does', () => mounted(async (page) => {
             await page.focusVisible(tab('charts', 0));
             await page.press('ArrowLeft');
             await page.settle(3);

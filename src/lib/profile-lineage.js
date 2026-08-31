@@ -31,7 +31,7 @@ export function parentRecordOf(record, records) {
 
 /** The three save shapes, named so a call site cannot mean one and send another. */
 export const SAVE_INTENT = Object.freeze({
-    /** POST /profiles with parentId. Keeps the previous record. B11's path. */
+    /** POST /profiles with parentId. Keeps the previous record. */
     NEW_VERSION: 'new-version',
     /** PUT /profiles/{id} carrying `profile`. Replaces; a hash change DELETES the old. */
     IN_PLACE: 'in-place',
@@ -125,9 +125,9 @@ export function versionNoteFacts(saved, opts = {}) {
     return Object.freeze({
         ...kept,
         saysOldVersionKept: kept.kept === VERSION_KEPT.LINKED || kept.kept === VERSION_KEPT.RESTORED,
-        /** Where the other versions are found. The SELECTOR owns the entry point (Q7). */
+        /** Where the other versions are found. The SELECTOR owns the entry point. */
         entryPoint: Object.freeze({
-            owner: 'selector detail-pane overflow menu (Q7, wave 5.3)',
+            owner: 'selector detail-pane overflow menu',
             route: 'getProfilesByIdLineage',
             store: 'src/stores/profile-library-store.js versionsOf()',
             note: 'the editor states the fact; it does not open a second versions surface',

@@ -234,7 +234,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 `every arrival became a sample: ${w.samples} samples for ${w.frames} frames`);
 
             /* THE CEILING. A redraw per arrival is the most the loop may do; anything more
-             * is work nothing asked for (chart-C9's "dead weight on the 15 Hz path"). */
+             * is work nothing asked for ("dead weight on the 15 Hz path"). */
             assert.ok(w.derivations <= w.frames,
                 `derivations (${w.derivations}) must never exceed arrivals (${w.frames})`);
             assert.ok(w.paints <= w.derivations + 1,
@@ -309,7 +309,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + `vs derived ${gate6Time}s`);
 
             /* FROZEN: the shot has closed, no frame can land, and the two must agree cell
-             * for cell — the table and the plot read ONE model (chart-C13's cure). */
+             * for cell — the table and the plot read ONE model. */
             assert.equal(frozen.derivationOk, true);
             assert.deepEqual(
                 Object.fromEntries(Object.entries(frozen.rendered).map(([k, v]) => [k, v === frozen.dash ? null : v])),

@@ -15,7 +15,7 @@ import {
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const GEOMETRIES = [
-    { name: "Ben's tablet",  width: 1281, height: 801,  scale: 0.6675, designW: 1919.1, designH: 1200 },
+    { name: "the bench tablet", width: 1281, height: 801,  scale: 0.6675, designW: 1919.1, designH: 1200 },
     { name: 'the 1920 gate', width: 1920, height: 1200, scale: 1,      designW: 1920,   designH: 1200 },
     { name: '16:9 desk',     width: 1920, height: 1080, scale: 0.9,    designW: 2133.3, designH: 1200 },
     { name: '16:9 UHD',      width: 2560, height: 1440, scale: 1.2,    designW: 2133.3, designH: 1200 },

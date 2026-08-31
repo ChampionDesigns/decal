@@ -117,7 +117,7 @@ describe('the machine says which machine it is', () => {
     });
 
     test('a name this build has never seen is unknown, NOT "probably a DE1"', () => {
-        /* A7. A future model, or a rename upstream, must not be silently classed as the
+        /* . A future model, or a rename upstream, must not be silently classed as the
          * machine whose images happen to be the ones ReaPrime bundles. */
         assert.equal(machineClassFromModel('DE2'), null);
         assert.equal(machineClassFromModel('bengle'), null, 'the enum name is capitalised; a case-insensitive match would be a guess');
@@ -130,7 +130,7 @@ describe('the verdict on a picked file', () => {
         assert.equal(checkFirmwareImage(image(BOARD_MARKERS.de1), 'DE1XL').ok, true);
     });
 
-    test('BOTH directions of Ben’s sentence are refused', () => {
+    test('BOTH directions of the sentence are refused', () => {
         const onBengle = checkFirmwareImage(image(BOARD_MARKERS.de1), 'Bengle');
         assert.equal(onBengle.ok, false);
         assert.equal(onBengle.verdict, IMAGE_VERDICT.WRONG_MACHINE);

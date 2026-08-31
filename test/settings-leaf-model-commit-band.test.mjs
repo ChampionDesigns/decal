@@ -278,7 +278,7 @@ describe('F-046 — the read path rounds to the row\'s own step precision', () =
     });
 
     test('a row with NO declared limit is left exactly as the machine served it', async () => {
-        /* B2: no step, no stated precision, and a number this file picked would be the
+        /* : no step, no stated precision, and a number this file picked would be the
          * second limits table by another route. */
         const { model } = await advanced({});
         const unbounded = model.allRows('machine-advanced')

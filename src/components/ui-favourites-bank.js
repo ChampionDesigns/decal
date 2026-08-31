@@ -50,7 +50,7 @@ export class UiFavouritesBank extends UiElement {
     static properties = {
         favourites: { type: Array },
 
-        /** How many cells the row shows regardless of how many are filled (P25). */
+        /** How many cells the row shows, regardless of how many are filled. */
         capacity: { type: Number },
 
         /** The current favourite's value. Reflected: it is the state tests read. */

@@ -31,11 +31,11 @@ export const entry = {
             id: 'phase-table',
             title: 'Phase table (Live shot data, History data page)',
             notes:
-                'Slate\'s own columns and rows (index.html:359-400). The row-label track '
+                'The reference skin\'s own columns and rows (index.html:359-400). The row-label track '
                 + 'is max-content, the three channels are equal fr — "the columns are '
                 + 'equal because the channels are peers; none of them is the headline, '
                 + 'and sizing one larger would be a claim about which matters that the '
-                + 'data does not support" (slate-live.css:1895-1897). The Volume column '
+                + 'data does not support". The Volume column '
                 + 'carries channel ink. The Total row is emphasised — on Live that '
                 + 'emphasis was authored and DEAD, overridden to font-weight 300 for '
                 + 'every cell in the panel.',
@@ -62,7 +62,7 @@ export const entry = {
                 'The second variant: no row-header column, so every track is fr — a '
                 + 'grow: 3 profile column beside five peers. The outcome columns are '
                 + 'right-aligned under right-aligned headers, "so two shots\' figures can '
-                + 'be read down the column instead of hunted for" (slate-live.css:2459). '
+                + 'be read down the column instead of hunted for". '
                 + 'The last column is a control column: the screen slots #45 pick discs '
                 + 'into the cells, and they keep their own accessible node inside their '
                 + 'row and take the one focus ring at the inset offset the scroll frame '
@@ -89,7 +89,7 @@ export const entry = {
                 'The host is narrow at an unchanged viewport. The tracks shrink to their '
                 + 'ch minimums and then stop, and the frame scrolls in the inline axis '
                 + 'rather than letting a column collapse to nothing. A departure from '
-                + 'Slate, which never meets a narrow container because its geometry is '
+                + 'the reference skin, which never meets a narrow container because its geometry is '
                 + 'frozen at 1920x1200; the floor is the tracks themselves, which is why '
                 + 'there is no fourth hand-derived pixel constant.',
             hostStyle: { 'inline-size': '280px' },
@@ -101,8 +101,8 @@ export const entry = {
             notes:
                 'A table with no rows is still a table with columns, so the header and '
                 + 'its rule stay and the space below is a slot — the home for #38\'s '
-                + 'empty state. Slate switches its grid to display: block for the same '
-                + 'reason (slate-live.css:1905).',
+                + 'empty state. The reference skin switches its grid to display: block for the same '
+                + 'reason.',
             hostStyle: { 'inline-size': '760px' },
             html: '<ui-data-grid-empty>'
                 + '<ui-empty-state slot="empty" heading="No shots stored yet"'

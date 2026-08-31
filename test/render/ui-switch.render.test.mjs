@@ -34,7 +34,7 @@ const near = (got, want, what, tol = 0.51) => assert.ok(
     `${what}: expected ${want}, got ${got}`,
 );
 
-/** The knob's offset from its host's left edge — the whole of T17 in one number. */
+/** The knob's offset from its host's left edge — the whole of in one number. */
 async function knobDx(page, host) {
     const h = await page.box(host);
     const k = await page.box(`${host} >>> .knob`);
@@ -168,7 +168,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             ]);
             assert.equal(track['background-color'], await page.resolveToken('--ui-key', 'background-color'),
                 'ORACLE settings-connection-scale .slate-switch track background-color=rgb(26, 33, 39) '
-                + 'winning rule=slate-components.css {.slate-switch input[type="checkbox"] + div} authored `var(--slate-key)`');
+                + 'winning rule= {.slate-switch input[type="checkbox"] + div} authored `var(--slate-key)`');
             assert.equal(track['border-top-color'], await page.resolveToken('--ui-line', 'border-top-color'),
                 'ORACLE same element border-top-color=rgb(58, 72, 82) authored `var(--slate-line)`');
             near(parseFloat(track['border-top-width']),
@@ -183,7 +183,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the OFF knob is --ui-line-strong at --ui-radius-sm', () => mounted(async (page) => {
             const knob = await page.computed('#off >>> .knob', ['background-color', 'border-top-left-radius']);
             assert.equal(knob['background-color'], await page.resolveToken('--ui-line-strong', 'background-color'),
-                'ORACLE knob background-color=rgb(82, 97, 107) winning rule=slate-components.css '
+                'ORACLE knob background-color=rgb(82, 97, 107) winning rule= '
                 + '{.slate-switch input[type="checkbox"] + div + div} authored `var(--slate-line-strong)`');
             assert.equal(knob['border-top-left-radius'],
                 await page.resolveValue('var(--ui-radius-sm)', 'border-top-left-radius'),
@@ -195,7 +195,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.prop('#on >>> .track', 'background-color'),
                 await page.resolveToken('--ui-primary', 'background-color'),
                 'ORACLE settings-display-wake-lock[47] background-color=rgb(23, 59, 77) winning rule='
-                + 'slate-components.css {.slate-switch input[type="checkbox"]:checked + div} authored `var(--slate-primary)`',
+                + '{.slate-switch input[type="checkbox"]:checked + div} authored `var(--slate-primary)`',
             );
             assert.equal(
                 await page.prop('#on >>> .knob', 'background-color'),
@@ -626,7 +626,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(a[part][corner], pillRadius,
                         `the pill's ${part} ${corner} is not --ui-radius-pill`);
                     assert.notEqual(a[part][corner], '2617.374px',
-                        `main.css:424's machine-generated radius reached the ${part}`);
+                        `'s machine-generated radius reached the ${part}`);
                 }
             }
         }));

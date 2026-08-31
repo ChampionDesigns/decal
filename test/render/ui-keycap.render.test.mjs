@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -250,11 +250,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const rest = await page.computed(CAP('plain'), ['border-top-width', 'border-bottom-width']);
             assert.equal(
                 roundPx(rest['border-top-width']), ORACLE.borderWidth,
-                'CITE #kb-current-espresso [i=43] border-top-width = 1px',
+                '#kb-current-espresso [i=43] border-top-width = 1px',
             );
             assert.equal(
                 roundPx(rest['border-bottom-width']), ORACLE.skirt,
-                'Slate writes border-bottom-width: 3px (slate-components.css:783); Decal ' +
+                'Slate writes border-bottom-width: 3px Decal ' +
                 'derives it as calc(3 * var(--ui-border-w)) and it must still render 3px.',
             );
             assert.ok(

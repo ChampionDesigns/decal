@@ -1,5 +1,5 @@
 /**
- * The cluster in a real engine, at Gate A's two.
+ * The cluster in a real engine, at the render harness's two.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -206,7 +206,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             return picture(page);
         };
 
-        /* ── B8 · the states are distinguishable, on screen ──────────────── */
+        /* ── · the states are distinguishable, on screen ──────────────── */
 
         test('every connection state draws a different picture', () => mounted(async (page) => {
             const keys = ['idle', 'scanning', 'connectingMachine', 'connectingScale', 'error', 'machinePicker'];
@@ -221,7 +221,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(shot.headline && shot.headline.length > 0, `${key} has no headline`);
             }
 
-            // And the three the spec names by hand are three, not one.
+            // And the three named by hand are three, not one.
             assert.equal(seen.size, keys.length);
         }));
 
@@ -296,7 +296,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(withAdapterOff.surface, 'ready',
                     'a Bluetooth adapter error outranked phase: ready over a live machine');
                 assert.equal(withAdapterOff.visible, false,
-                    'the banner Ben could not get rid of is still on screen');
+                    'the banner nobody could get rid of is still on screen');
                 assert.equal(withAdapterOff.headline, null, 'and it drew no headline at all');
             }));
 
@@ -351,7 +351,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'a malformed frame must not read as "the machine went away"');
         }));
 
-        /* ── B8 · the park is ANSWERABLE ─────────────────────────────────── */
+        /* ── · the park is ANSWERABLE ─────────────────────────────────── */
 
         test('the park opens a real dialog over the found machines, and the choice is SENT', () =>
             mounted(async (page) => {
@@ -377,7 +377,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the choice never reached the devices link — the park is rendered, not answered');
             }));
 
-        /* ── B8 · the choice is one a person can actually make (cross-4) ─── */
+        /* ── · the choice is one a person can actually make (cross-4) ─── */
 
         test('two machines with ONE name are two different choices, and the id is what differs', () =>
             mounted(async (page) => {
@@ -467,7 +467,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ── Appendix 15 · the banner interrupts only when it should (c-gates-chart-6) ── */
+        /* ── the appendix · the banner interrupts only when it should (c-gates-chart-6) ── */
 
         test('an ordinary boot does not interrupt a screen reader four times', () =>
             mounted(async (page) => {
@@ -499,7 +499,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the role is stuck at the value the first render gave it');
         }));
 
-        /* ── B9 · the refusal surface ────────────────────────────────────── */
+        /* ── · the refusal surface ────────────────────────────────────── */
 
         /** Arm a profile against a scripted answer, then let the screen paint. */
         const armWith = async (page, answer) => {
@@ -596,7 +596,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.match(shown.headline, /has not been given this profile/,
                     'and it must not claim the choice failed: the document HAS been written');
                 assert.match(shown.message, /No machine is connected/,
-                    'the WHY is the thing Ben could not see anywhere');
+                    'the WHY is the thing nobody could see anywhere');
             }));
 
         test('with a machine connected the same failure reads as a retry, not an absence', () =>
@@ -611,7 +611,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.match(shown.message, /sent it again/);
             }));
 
-        /* ── A3 / L1 · the GHC strip ─────────────────────────────────────── */
+        /* ── · the GHC strip ─────────────────────────────────────── */
 
         test('unknown capability renders NO strip — fail-closed, and it is not a polarity choice', () =>
             mounted(async (page) => {
@@ -680,7 +680,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        /* ── L11 · ONE dimming owner ─────────────────────────────────────── */
+        /* ── · ONE dimming owner ─────────────────────────────────────── */
 
         /** Every rail track, with what it is painted and whether anyone wrote inline. */
         const railTracks = (page) => page.evalFn(() => {
@@ -733,7 +733,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.notEqual(track.pointerEvents, 'none', 'the abort target stopped answering');
                 }
 
-                // THE MECHANISM OF L11, banned: nobody wrote a style attribute.
+                // THE MECHANISM OF banned: nobody wrote a style attribute.
                 for (const track of running) {
                     assert.equal(track.inline, null, `${track.row} carries an inline style — "Inline wins"`);
                 }

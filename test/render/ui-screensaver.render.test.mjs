@@ -31,7 +31,7 @@ const IMAGE = `${PANEL}
 const DISABLED = `${PANEL}
 <ui-screensaver id="s1" machine-state="sleeping" enabled="false" brightness-supported></ui-screensaver>`;
 
-/** Two of them — the D10 owner test. Both are viewport-anchored, both see a sleep. */
+/** Two of them — the owner test. Both are viewport-anchored, both see a sleep. */
 const TWO = `${PANEL}
 <ui-screensaver id="s1" machine-state="sleeping" brightness-supported></ui-screensaver>
 <ui-screensaver id="s2" machine-state="sleeping" brightness-supported></ui-screensaver>`;
@@ -690,7 +690,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 });
 
-                assert.equal(result.table.type, 'image', 'the premise: Ben decided Image');
+                assert.equal(result.table.type, 'image', 'the premise: Image is the decided default');
                 assert.equal(result.sync.clock, false, 'Image is not Clock');
                 assert.notEqual(result.sync.image, '',
                     'the saver paints the bundled picture — before this fix it painted a '
@@ -701,7 +701,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(result.sync.enabled, result.table.enabled,
                     'the switch\'s default, from the table');
                 assert.equal(result.sync.language, result.table.language,
-                    'the clock is spelled in Ben\'s language, not in the empty string — '
+                    'the clock is spelled in the decided language, not in the empty string — '
                     + '\'\' is not a locale, it is Intl\'s door to the BROWSER\'s');
                 assert.equal(result.sync.clockFormat, result.table.clockFormat,
                     'and in his 12-hour, which wall-clock.js already read from this table');

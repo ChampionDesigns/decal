@@ -50,7 +50,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await L(page, 'pressSave()'), true);
 
                 assert.equal(await L(page, "settledScreen('selector-screen')"), 'selector-screen',
-                    'Save closed the editor by itself — Ben, 27 August 2026: "pressing save '
+                    'Save closed the editor by itself — "pressing save '
                     + 'should close and arm, I shouldn\'t need to press save twice"');
 
                 assert.equal(await L(page, 'notices()'), null,
@@ -70,7 +70,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const library = await L(page, 'library()');
                 assert.equal(library.selectedId, created[0].id,
                     'the saved record is the one the app is working on — this is the '
-                    + 'assertion Ben\'s bug fails: it stayed on the parent');
+                    + 'assertion the reported bug fails: it stayed on the parent');
 
                 assert.equal(await L(page, 'pressEdit()'), 'editor-screen');
                 const reopened = await L(page, 'editor()');
@@ -163,13 +163,13 @@ describe('every save arms the machine with what was saved', () => {
             assert.equal(created.length, 1, 'one press, one record');
             assert.equal(created[0].parentId, heldId,
                 'B11/DQ-629: the save is a CHILD of the held record — a chain off what the '
-                + 'machine was holding, which is what Ben\'s tablet was failing to produce');
+                + 'machine was holding, which is what the tablet was failing to produce');
             assert.equal(created[0].temperatures[0], wanted, 'the edit reached the server');
 
             assert.deepEqual(await L(page, 'armCalls()'),
                 [{ title: created[0].title, temperatures: created[0].temperatures }],
                 'the machine was handed the SAVED record\'s content, exactly once — '
-                + 'Ben\'s ruling: after you save an edit to the armed profile, the machine '
+                + 'the ruling: after you save an edit to the armed profile, the machine '
                 + 'should be armed with the new version');
 
             assert.deepEqual(await L(page, 'workflowWrites()'),
@@ -314,7 +314,7 @@ describe('a Save that cannot tell writes the draft rather than dropping it', () 
             await seatUntellable(page);
             await page.settle(6);
 
-            /* THE LABEL IS STILL THE CLEAN ONE, and that is deliberate: B10's rule about a
+            /* THE LABEL IS STILL THE CLEAN ONE, and that is deliberate: the rule's rule about a
              * label survives untouched — nobody can say what N is, so no N is shown. */
             const label = await page.evalFn(
                 (s) => (window.__h.q(s)?.textContent ?? '').trim(), EDITOR.save,
@@ -334,7 +334,7 @@ describe('a Save that cannot tell writes the draft rather than dropping it', () 
 
             assert.equal(await page.evalFn(() => window.__left), 0,
                 'a save that did not land must NOT close — the draft exists nowhere else, '
-                + 'and Ben\'s "Save should close" (27 August 2026) is about a save that '
+                + 'and "Save should close" is about a save that '
                 + 'succeeded, not about one that was refused');
         }));
 
@@ -394,7 +394,7 @@ describe('a Save that cannot tell writes the draft rather than dropping it', () 
             assert.equal(await page.evalFn(() => window.__left), 0,
                 'and it did not silently navigate away either');
 
-            /* B10: save, then report what happened — and "nothing happened" is something
+            /* : save, then report what happened — and "nothing happened" is something
              * that happened. This is the ending the branch did not have. */
             const notices = await page.evalFn((sel) => [...window.__h.need(sel).children]
                 .map((n) => ({ tone: n.getAttribute('tone'), text: n.textContent.trim() })), EDITOR.notice);

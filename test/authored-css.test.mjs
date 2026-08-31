@@ -1,5 +1,5 @@
 /**
- * The scanner underneath Gate C, tested on strings.
+ * The scanner underneath guard, tested on strings.
  */
 
 import { test, describe } from 'node:test';

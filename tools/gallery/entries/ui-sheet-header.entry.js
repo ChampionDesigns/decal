@@ -8,7 +8,7 @@ export const entry = {
     module: './entries/ui-sheet-header.demo.js',
     notes:
         'Component #16 (spec §5.1 #16): the title-and-cluster row every dialog and '
-        + 'sheet wears. Slate\'s version is "the library\'s one real win in the overlay '
+        + 'sheet wears. The reference skin\'s version is "the library\'s one real win in the overlay '
         + 'group" and leaked twice — all three consumers re-declare the title type and '
         + 'the time picker\'s is 20px/800 against the component\'s 28px/500 '
         + '(layout/overlays.md A10), and `.slate-sheet-actions` means a header cluster '
@@ -23,7 +23,7 @@ export const entry = {
             id: 'title-and-actions',
             title: 'Title and a two-button cluster (the numpad / notes shape)',
             notes:
-                'numpad-modal.js:176-180 and notes-modal.js:52-72 both build exactly '
+                'The numpad and the notes modal both build exactly '
                 + 'this: title on the left, Cancel and Confirm on the right. ORACLE '
                 + 'settings-machine-sleep---wake-schedules .slate-heading [i=74] '
                 + 'font-size 28px (--ui-text-xl) / font-weight 500 (--ui-weight-medium) '
@@ -31,7 +31,7 @@ export const entry = {
                 + '(--ui-tracking-cap x 28px). Gap to the cluster 24px (--ui-space-5), '
                 + 'inside the cluster 12px (--ui-space-3), bottom inset 18px '
                 + '(--ui-space-4), row floor 64px (--ui-control-h) — all four read from '
-                + 'slate-components.css:664-695, which the provenance corpus has no '
+                + 'the old sheet, which the provenance corpus has no '
                 + 'record of at all.',
             hostStyle: { 'inline-size': '680px' },
             html:
@@ -55,7 +55,7 @@ export const entry = {
             id: 'icon-way-out',
             title: 'The way out as an icon button',
             notes:
-                'Slate\'s own comment on the original: "A sheet\'s header: its title, '
+                'The reference skin\'s own comment on the original: "A sheet\'s header: its title, '
                 + 'and the way out." The three modal closes in the corpus carry '
                 + 'aria-label="" and text "x", so their accessible name IS the glyph; '
                 + '#2 takes the name from `label` instead, and the hit floor and the '
@@ -98,7 +98,7 @@ export const entry = {
             id: 'in-a-sheet',
             title: 'In a sheet — the rule is the parent\'s seam, not a border',
             notes:
-                'DEPARTURE 1, and the contract wave 3\'s #18 implements. Slate ends '
+                'DEPARTURE 1, and the contract wave 3\'s #18 implements. The reference skin ends '
                 + '.slate-sheet-header with `border-bottom: var(--slate-hairline) solid '
                 + 'var(--slate-line)`; CONVENTIONS §13 gives that line to the seam '
                 + 'utility — ".seam-strong | the emphasised divider: rail edge, header '
@@ -126,7 +126,7 @@ export const entry = {
             id: 'long-title',
             title: 'A title longer than the row — the way out is never squeezed off',
             notes:
-                'Carried from slate-components.css:676-687: min-width 0 + nowrap + '
+                'Carried from the old sheet: min-width 0 + nowrap + '
                 + 'overflow hidden + text-overflow ellipsis on the title, flex-shrink 0 '
                 + 'on the cluster. The ellipsis is paint only — the whole string stays '
                 + 'in the accessibility tree, so a screen reader still reads the title '
@@ -158,15 +158,15 @@ export const entry = {
         },
         {
             id: 'o13-under-the-shell-rules',
-            title: 'O13 + O1 + A10: under the three rules that break Slate\'s header',
+            title: 'O13 + O1 + A10: under the three rules that break the reference skin\'s header',
             notes:
                 'The stage carries the exact declarations that make the three defects, '
-                + 'aimed at every name they use in Slate — the shell\'s footer rule '
+                + 'aimed at every name they use in the reference skin — the shell\'s footer rule '
                 + '(justify-content: flex-end; margin-top: 40px; gap: 18px) that turns '
-                + 'a header cluster into a footer (O13, slate-shell.css:2227-2232), the '
+                + 'a header cluster into a footer (O13), the '
                 + 'shell\'s notes-header rule (height: 118px; padding: 0) that kills the '
-                + 'shared inset (O1, slate-shell.css:961-965), and the time picker\'s '
-                + '20px/800 title (A10, time-picker-modal.css:74-75). None of them can '
+                + 'shared inset (O1), and the time picker\'s '
+                + '20px/800 title (A10). None of them can '
                 + 'name anything inside the root, so this state must be '
                 + 'pixel-identical to `title-and-actions` apart from the host box the '
                 + 'height rule legitimately owns.',

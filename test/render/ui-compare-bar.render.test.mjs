@@ -287,7 +287,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(seen.map((s) => s.valueText), want,
                     'one formatAlignmentOffset call feeds both — they cannot drift');
                 assert.equal(seen[0].readout, '0.0 s',
-                    'the zero form is Slate\'s own: CITE history-viewer '
+                    'the zero form is Slate\'s own: history-viewer '
                     + '.slate-compare-offset [i=174] text "Align B 0.0 s"');
             }));
 
@@ -347,19 +347,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         page.prop(CAPTION, 'font-size'),
                         page.prop(READOUT, 'font-size'),
                     ]);
-                assert.equal(gap, '24px', 'CITE #hv-align-bar [i=172] gap = 24px');
-                assert.equal(padInline, '24px', 'CITE #hv-align-bar [i=172] padding-left = 24px');
-                assert.equal(padBlock, '12px', 'slate-live.css:2292 var(--slate-space-3)');
-                assert.equal(radius, '6px', 'CITE #hv-align-bar [i=172] radius = 6px');
+                assert.equal(gap, '24px', '#hv-align-bar [i=172] gap = 24px');
+                assert.equal(padInline, '24px', '#hv-align-bar [i=172] padding-left = 24px');
+                assert.equal(padBlock, '12px', 'var(--slate-space-3)');
+                assert.equal(radius, '6px', '#hv-align-bar [i=172] radius = 6px');
                 assert.equal(ground, await page.resolveToken('--ui-fascia', 'background-color'));
                 assert.equal(ink, await page.resolveToken('--ui-text', 'color'));
-                assert.equal(captionSize, '15px', 'CITE [i=175] font-size = 15px (--ui-text-sm)');
-                assert.equal(readSize, '17px', 'CITE [i=177] font-size = 17px (--ui-text-base)');
+                assert.equal(captionSize, '15px', '[i=175] font-size = 15px (--ui-text-sm)');
+                assert.equal(readSize, '17px', '[i=177] font-size = 17px (--ui-text-base)');
                 assert.equal(await page.prop(CAPTION, 'text-transform'), 'uppercase',
-                    'CITE [i=175] text-transform = uppercase');
+                    '[i=175] text-transform = uppercase');
                 near(
                     parseFloat(await page.prop(READOUT, 'min-width')), 84,
-                    'CITE #hv-align-value [i=177] width = 84px', 0.51,
+                    '#hv-align-value [i=177] width = 84px', 0.51,
                 );
             }));
 

@@ -176,6 +176,10 @@
     --ui-editor-field-min-h: calc(var(--ui-control-h) + var(--ui-text-note) * 1.5 + var(--ui-space-2));
     --ui-editor-review-min-h: calc(var(--ui-text-note) * 1.5 + var(--ui-text-base) * 1.5 + var(--ui-space-2));
 
+    /* A ceiling, not a floor: the review chart grows to this and no further, and stops
+       at the chart card's own minimum in a column too short for it. */
+    --ui-editor-preview-max-h: 500px;
+
     --ui-editor-matrix-min-h: calc(
         2 * var(--ui-control-h) + var(--ui-text-note) * 1.5
         + var(--ui-space-2) + 4 * var(--ui-space-3));
@@ -228,8 +232,8 @@
 
     --ui-selected-face: var(--ui-steel);
     --ui-selected-ink: var(--ui-on-steel);
-    --ui-selected-led: 0px;      /* Radian: var(--ui-toggle-led) */
-    --ui-selected-glow: 0%;      /* Radian: ~55% of the channel colour */
+    --ui-selected-led: 0px;      /* the sibling skin: var(--ui-toggle-led) */
+    --ui-selected-glow: 0%;      /* the sibling skin: ~55% of the channel colour */
 }
 
 [data-theme="dark"] {
@@ -269,7 +273,7 @@
     --ui-tint-heat: #e99167;
 
     --ui-scrim: rgb(0 0 0 / .56);
-    /* D10's blank, same value in both themes on purpose — see the light block. */
+    /* The blank, same value in both themes on purpose — see the light block. */
     --ui-blackout: #000000;
     /* The same pair, and the same value, in the dark theme — see the light block. */
     --ui-blackout-ink: #f4f7f8;

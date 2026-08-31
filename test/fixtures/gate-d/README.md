@@ -1,7 +1,7 @@
-# Gate D canaries
+# gate-d canaries
 
 Every guard ships with a canary: a fixture that violates the rule on purpose, and a test
-asserting the guard fails on it (SCOPE Part 8 §2). All three of this project's previous
+asserting the guard fails on it. All three of this project's previous
 guard failures were guards that silently stopped covering their target — a canary turns
 that decay from invisible into a red build.
 

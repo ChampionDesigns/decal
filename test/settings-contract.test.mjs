@@ -25,7 +25,7 @@ const kv = readReaFile(KV_HANDLER).text;
 const de1 = readReaFile(DE1_HANDLER).text;
 const generated = REST_ROUTE_BY_ID;
 
-/** The rows this wave is responsible for, by id. */
+/** The rows this repo is responsible for, by id. */
 const SETTINGS_ROUTE_IDS = [
     'getStoreByNamespace',
     'getStoreByNamespaceByKey',

@@ -1,6 +1,6 @@
 /**
  * history-route-fixture — the rendering subject for the OVERLAY→ROUTE conversion
- * (wave 5.6, `hist-route-conversion`, and H9's surviving half).
+ * (`hist-route-conversion`, and H9's surviving half).
  *
  * IT DRIVES THE REAL SHELL WITH THE REAL ROUTE TABLE. `test/fixtures/app-shell-fixture.js`
  * adds a `probe` row so a swap can be measured against a screen that does nothing; this
@@ -54,7 +54,7 @@ window.removeEventListener = function counted(type, ...rest) {
  * languages, beside `fixtureKey` below, and the one that gives the power page a subject.
  *
  * THE DATA TRUTH, at pin 2b047d02 (`lib/src/models/device/machine.dart:64-140`, read-only):
- * the three derived channels are "computed on read from the raw pressure and flow fields —
+ * the three derived channels are "computed on read from the raw pressure and flow fields
  * never stored — so already-recorded history shots gain these channels with zero migration
  * (fromJson does not read them; toJson recomputes them)". A recorded shot therefore DOES
  * carry them: `ShotsHandler._getShot` answers `jsonOk(shot.toJson())`, which maps every
@@ -76,9 +76,9 @@ window.removeEventListener = function counted(type, ...rest) {
  * omit-don't-null rule. `tools/mock_rea.py` does the same thing on the same route, and
  * `tools/mock-fixture-ledger.json` declares both.
  *
- * IT IS NOT A DERIVATION IN THE SKIN (A7). This is an INSTRUMENT standing in for a server;
+ * IT IS NOT A DERIVATION IN THE SKIN. This is an INSTRUMENT standing in for a server;
  * nothing under `src/` computes any of the three, and `shot-derivation.js` reads them
- * through the B6 source choice like any other channel.
+ * through the source choice like any other channel.
  */
 function upgradeRecordedShot(record) {
     if (!record || !Array.isArray(record.measurements)) return record;
@@ -185,7 +185,7 @@ function deepAll(from = document, acc = []) {
  * The nearest id at or above an element, crossing shadow hosts.
  *
  * WHY THIS AND NOT `activeElement.id`: focus goes INWARD. `<ui-button>` forwards
- * `focus()` to the native button in its own shadow root (CONVENTIONS §11 — the host
+ * `focus()` to the native button in its own shadow root (CONVENTIONS  — the host
  * carries no `delegatesFocus`), so the deep active element is a `<button>` with no id
  * and the AFFORDANCE that holds the caret is its host. The invoker contract is written
  * about the affordance, so that is what this reports.
@@ -203,7 +203,7 @@ function invokerOf(el) {
 }
 
 /**
- * Everything between an element and the document that would make it unreachable —
+ * Everything between an element and the document that would make it unreachable
  * `inert`, `aria-hidden="true"` or `hidden`, on the element or on anything containing
  * it, through every shadow host. Empty is the only correct answer for a screen.
  */
@@ -316,7 +316,7 @@ globalThis.__history = {
     async stage({ shotOptions = [], shotA = null, shotB = null, page = null, offset = null } = {}) {
         const screen = root?.shadowRoot?.querySelector('history-screen');
         if (!screen) throw new Error('stage: no <history-screen> is mounted');
-        /* `shotOptions`, never `shots`: Gate D retires `/\.shots\b/` tree-wide (CB-21). */
+        /* `shotOptions`, never `shots`: gate-d retires `/\.shots\b/` tree-wide. */
         screen.shotOptions = shotOptions;
         if (shotA !== null) screen.shotA = shotA;
         if (shotB !== null) screen.shotB = shotB;
@@ -336,12 +336,12 @@ globalThis.__history = {
     },
 
     /**
-     * MOUNT THE THREE REAL PAGES AND ARM THEM (wave 5.6's pages cluster, plus fix run 6's
+     * MOUNT THE THREE REAL PAGES AND ARM THEM (  pages cluster, plus fix run 6's
      * power page).
      *
      * The skeleton is a mount REGION and the pages are its content, so a frame of this
      * screen with an empty region is a frame of half the screen. This is the other half:
-     * the two page elements arrive as light-DOM children exactly as §4.5 draws them —
+     * the two page elements arrive as light-DOM children exactly as  draws them
      * with no `slot` or `data-page` written here, because each page fills those in for
      * itself and a fixture that wrote them would be testing the fixture.
      *
@@ -353,7 +353,7 @@ globalThis.__history = {
      *
      * The list rows come from the recorded `/shots` page, through `shotRows()`. Every one
      * of the twenty dashes its duration, peak pressure and average flow, because no
-     * fixture carries an `actualYield` and no fixture is downloaded to find one (B5/Q17).
+     * fixture carries an `actualYield` and no fixture is downloaded to find one.
      */
     async stagePages({ page = 'flow', offset = 0 } = {}) {
         const screen = root?.shadowRoot?.querySelector('history-screen');
@@ -384,12 +384,12 @@ globalThis.__history = {
         /* THE POWER PAGE TAKES THE SAME TWO DERIVATIONS AND THE SAME OFFSET. One walk,
          * three surfaces — the derivation's own contract, and the reason the derived
          * channels need no second read: `deriveFromRecord` already emits `resistance`,
-         * `impedance` and `power` as SERIES_KEYS, read through the B6 source choice. */
+         * `impedance` and `power` as SERIES_KEYS, read through the source choice. */
         const power = document.createElement('history-power-page');
         power.derivationA = a;
         power.derivationB = b;
         /* THE OFFSET ARRIVES WITH THE PAGE, not after it. On this page a non-zero
-         * alignment is what makes Q16's correspondence marks say anything: staged at zero
+         * alignment is what makes the rule's correspondence marks say anything: staged at zero
          * and set afterwards, the first frame photographs the feature switched off. */
         power.offset = offset;
         flow.offset = offset;

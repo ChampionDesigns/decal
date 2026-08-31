@@ -189,7 +189,7 @@ describe('the rail stands: Slate\'s nine rows, in every state', () => {
         const next = stepFor(BENGLE, 'grind');
         assert.equal(typeof next, 'function', 'there is something to step inside');
         /* The old app's own two steps: a whole number steps by 1, a fractional one by
-         * 0.1 (`ui.js:93,:2152`). Grinders are marked both ways. */
+         * 0.1. Grinders are marked both ways. */
         assert.equal(next(8, 1), 9);
         assert.equal(next(8.5, 1), 8.6);
         assert.equal(next(0, -1), 0, 'and the floor holds');
@@ -236,7 +236,7 @@ describe('L25: the steam and hot-water mode toggles are visible controls again',
             const water = stopModeRow(MACHINE_STATE.HOT_WATER, { offers: { stopAtWeight: answer } });
             assert.equal(steam.items[1].disabled, true, `milk was offered on ${answer}`);
             assert.equal(water.items[1].disabled, true, `weight was offered on ${answer}`);
-            // Disabled, never removed: L25 is a bug about an invisible control.
+            // Disabled, never removed: the rule is a bug about an invisible control.
             assert.equal(steam.items.length, 2);
             assert.equal(water.items.length, 2);
         }
@@ -323,7 +323,7 @@ describe('the rail and the settings bank read ONE source per stop mode', () => {
     test('the two surfaces differ in exactly TWO places, and neither is the source', async () => {
         assert.equal(waterStopFrom(undefined), null, 'the rail: an unserved field is an absence');
         assert.equal(await bankValue({}, 'machine-water-stop', 'machine-hot-water'), 'weight',
-            'the bank: Ben\'s decided fallback, shown as selected');
+            'the bank: the decided fallback, shown as selected');
         assert.equal(steamStopFrom({}), null);
         assert.equal(await bankValue({}, 'machine-steam-stop', 'machine-steam'), 'time',
             'the bank: a decided steam duration of 60 makes the fallback a timed stop');
@@ -343,7 +343,7 @@ describe('the rail and the settings bank read ONE source per stop mode', () => {
         assert.deepEqual(steam.derivedFrom.map((entry) => entry.field), ['milkStopTemp', 'steamDuration'],
             'the bank derives the steam stop from two fields, in that order');
         assert.equal(steam.whenNone, 'off', 'and both at zero is Off, which is a state');
-        /* The rail's own derivation, exercised through the two fields the registry names —
+        /* The rail's own derivation, exercised through the two fields the registry names
          * one at a time, so a rail reading only one of them cannot pass. */
         for (const [index, { field, is }] of steam.derivedFrom.entries()) {
             const only = { milkStopTemp: 0, steamDuration: 0, [field]: 7 };
@@ -392,7 +392,7 @@ describe('the rail and the settings bank read ONE source per stop mode', () => {
     test('arming a stop writes the number the settings model would restore', () => {
         assert.equal(armValueFor('steamDuration', 90, BENGLE), 90, 'what the machine holds wins');
         assert.equal(armValueFor('steamDuration', 0, BENGLE), machineFallbackFor('steamDuration'),
-            "zero is not a value to come back to — Ben's decided duration is");
+            "zero is not a value to come back to — the decided duration is");
         assert.equal(machineFallbackFor('milkStopTemp'), undefined,
             'A7: nobody ever decided a milk temperature, and inventing one here would be the defect');
         assert.ok(hasLimit(BENGLE, 'milkStopTemp'));

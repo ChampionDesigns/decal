@@ -200,7 +200,7 @@ describe('workflowApplyBody — what a profile load puts on the workflow', () =>
     });
 
     test('a record that remembers nothing falls to the profile\'s own yield and 18 g', () => {
-        /* The old app's own floor (`profileManager.js:524`): ReaPrime's Profile model has
+        /* The old app's own floor: ReaPrime's Profile model has
          * no dose field at all, so there is nothing else to fall to. */
         assert.deepEqual(workflowApplyBody(record(null)).context, {
             targetDoseWeight: DEFAULT_DOSE_G, targetYield: 36, grinderSetting: null,

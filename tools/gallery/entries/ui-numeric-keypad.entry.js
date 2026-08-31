@@ -10,7 +10,7 @@ export const entry = {
         'Component #53, the BODY of a #18 instance — the shell owns modality, Escape and '
         + 'the scroll region (spec Appendix 13). Every bound on screen comes from the ONE '
         + 'limits table behind R2 (B2); the steam states are B3\'s corrected row, floor 135 '
-        + 'with a machine-dependent ceiling, against Slate\'s 130 which sat in the dead band '
+        + 'with a machine-dependent ceiling, against the reference skin\'s 130 which sat in the dead band '
         + 'where the heater is off. Key faces are #15 unchanged; the pressable is a real '
         + 'button, and the backspace one has a name (O9).',
     states: [
@@ -20,8 +20,8 @@ export const entry = {
             notes:
                 'The pad is 3 x 4 with a --ui-space-3 gutter, which is the oracle\'s own '
                 + 'geometry (rects [1000,416,107,88] [1119,416,...] [1000,516,...]); the key '
-                + 'WIDTH is a 1fr share, exactly as numpad-modal.css:302 has it. The decimal '
-                + 'key is disabled because the table declares step 1 for dose — Slate accepted '
+                + 'WIDTH is a 1fr share, exactly as the old modal has it. The decimal '
+                + 'key is disabled because the table declares step 1 for dose — the reference skin accepted '
                 + '18.5 here and let it be rounded downstream.',
             html: '<ui-numeric-keypad-dose id="np" open></ui-numeric-keypad-dose>',
         },
@@ -40,7 +40,7 @@ export const entry = {
             notes:
                 'B3 on screen. The hint is the port\'s own sentence, hole included, because '
                 + 'the range has a HOLE: zero means the steam heater is off and the next valid '
-                + 'value is the bottom of the working band. Slate\'s table said 130–170 and its '
+                + 'value is the bottom of the working band. The reference skin\'s table said 130–170 and its '
                 + 'clamp would happily leave you at 130, where the heater is off.',
             html: '<ui-numeric-keypad-steam-bengle id="np" open></ui-numeric-keypad-steam-bengle>',
         },
@@ -76,10 +76,10 @@ export const entry = {
             id: 'stacked',
             title: 'The carried breakpoint, as a container query',
             notes:
-                'spec §4.6: Slate\'s one real breakpoint is correct and is carried "as a '
+                'spec §4.6: the reference skin\'s one real breakpoint is correct and is carried "as a '
                 + 'container query on the dialog\'s own box". hostStyle narrows the card '
                 + 'through --_ui-numpad-inline rather than the viewport, so the entry column '
-                + 'and the pad stack and the seam becomes a row rule. Neither of Slate\'s '
+                + 'and the pad stack and the seam becomes a row rule. Neither of the reference skin\'s '
                 + 'window queries fires on the bench tablet, so this layout has never been '
                 + 'seen on the target hardware.',
             hostStyle: { '--_ui-numpad-inline': '520px' },

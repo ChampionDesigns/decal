@@ -15,7 +15,7 @@ const VALIDITY_FLAGS = [
 ];
 
 class UiTextField extends UiElement {
-    /** DECISIONS.md:196 - "forms need `formAssociated`". This is that. */
+    /** Forms need `formAssociated`. This is that. */
     static formAssociated = true;
 
     static properties = {
@@ -32,6 +32,11 @@ class UiTextField extends UiElement {
         placeholder: { type: String },
         label: { type: String },
         hideLabel: { type: Boolean, attribute: 'hide-label' },
+        /** Render a textarea instead of an input. `type` and `pattern` do not apply. */
+        multiline: { type: Boolean, reflect: true },
+        /** Visible lines when `multiline`. */
+        rows: { type: Number },
+
         align: { type: String, reflect: true },
         disabled: { type: Boolean, reflect: true },
         readonly: { type: Boolean, reflect: true },
@@ -98,6 +103,17 @@ class UiTextField extends UiElement {
                 text-align: start;
             }
 
+            :host([multiline]) .field {
+                align-items: stretch;
+                block-size: auto;
+                padding-block: var(--ui-space-3);
+            }
+
+            :host([multiline]) .input {
+                resize: none;
+                line-height: 1.5;
+            }
+
             .input::placeholder {
                 color: var(--ui-muted);
                 opacity: 1;
@@ -142,6 +158,8 @@ class UiTextField extends UiElement {
         this.placeholder = '';
         this.label = '';
         this.hideLabel = false;
+        this.multiline = false;
+        this.rows = 4;
         this.disabled = false;
         this.readonly = false;
         this.required = false;
@@ -170,24 +188,42 @@ class UiTextField extends UiElement {
                 : nothing}
             <div id="field" class="field" @click=${this.#onFieldClick}>
                 <slot name="lead"></slot>
-                <input
-                    id="control"
-                    class="input"
-                    type=${this.#inputType}
-                    .value=${this.value ?? ''}
-                    name=${this.name || nothing}
-                    placeholder=${this.placeholder || nothing}
-                    autocomplete=${this.autocomplete || nothing}
-                    inputmode=${this.inputmode || nothing}
-                    pattern=${this.pattern || nothing}
-                    maxlength=${Number.isFinite(this.maxlength) ? this.maxlength : nothing}
-                    aria-label=${showLabel ? nothing : (this.label || nothing)}
-                    aria-invalid=${this.invalid ? 'true' : nothing}
-                    ?disabled=${this.disabled}
-                    ?readonly=${this.readonly}
-                    ?required=${this.required}
-                    @input=${this.#onInput}
-                    @change=${this.#onChange}>
+                ${this.multiline
+                    ? html`<textarea
+                        id="control"
+                        class="input"
+                        rows=${Number.isFinite(this.rows) ? this.rows : 4}
+                        .value=${this.value ?? ''}
+                        name=${this.name || nothing}
+                        placeholder=${this.placeholder || nothing}
+                        autocomplete=${this.autocomplete || nothing}
+                        inputmode=${this.inputmode || nothing}
+                        maxlength=${Number.isFinite(this.maxlength) ? this.maxlength : nothing}
+                        aria-label=${showLabel ? nothing : (this.label || nothing)}
+                        aria-invalid=${this.invalid ? 'true' : nothing}
+                        ?disabled=${this.disabled}
+                        ?readonly=${this.readonly}
+                        ?required=${this.required}
+                        @input=${this.#onInput}
+                        @change=${this.#onChange}></textarea>`
+                    : html`<input
+                        id="control"
+                        class="input"
+                        type=${this.#inputType}
+                        .value=${this.value ?? ''}
+                        name=${this.name || nothing}
+                        placeholder=${this.placeholder || nothing}
+                        autocomplete=${this.autocomplete || nothing}
+                        inputmode=${this.inputmode || nothing}
+                        pattern=${this.pattern || nothing}
+                        maxlength=${Number.isFinite(this.maxlength) ? this.maxlength : nothing}
+                        aria-label=${showLabel ? nothing : (this.label || nothing)}
+                        aria-invalid=${this.invalid ? 'true' : nothing}
+                        ?disabled=${this.disabled}
+                        ?readonly=${this.readonly}
+                        ?required=${this.required}
+                        @input=${this.#onInput}
+                        @change=${this.#onChange}>`}
                 <slot name="trail"></slot>
             </div>
         `;

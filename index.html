@@ -7,10 +7,10 @@
      four decisions, not one.
 
      WHAT THIS USED TO SAY, and it was honest at the time: "whether pinch-zoom is
-     reachable in the tablet WebView is unmeasured (SCOPE Part 2 §8 item 3), so this
+     reachable in the tablet WebView is unmeasured, so this
      deliberately does NOT say user-scalable=no: adding a restriction later is one
      attribute, removing one users have come to rely on is not." The measurement is
-     in. It came from Ben, 27 August 2026, verbatim:
+     in. It came from verbatim:
 
          "after going into the editor and other pages, the page zoom good odd and I
           zoom in a lot and have to drage the view around to see the rest of the page
@@ -38,7 +38,7 @@
      WebView is configured `supportZoom: false, builtInZoomControls: false`
      (reaprime/lib/src/skin_feature/skin_view.dart, `_createSettings()`), so pinch and
      double-tap zoom are BOTH off at the WebView level, below anything this document
-     can say. Ben cannot have pinched in — and, decisively, he cannot pinch out
+     can say. a person cannot have pinched in — and, decisively, he cannot pinch out
      either, which is the "no way to zoom out" in his sentence, stated as a
      configuration rather than as a guess.
 
@@ -72,7 +72,7 @@
      other than 1, and with the old one it holds it. A canary page carrying the old
      meta is what keeps that a measurement rather than a hope.
 
-     SO THIS IS A FIX THAT NOBODY HAS WATCHED WORK ON THE GLASS. If Ben still ends up
+     SO THIS IS A FIX THAT NOBODY HAS WATCHED WORK ON THE GLASS. If a person still ends up
      zoomed after it ships, the next lever is not here — it is the host's
      `InAppWebViewSettings` in `reaprime/lib/src/skin_feature/skin_view.dart`, a
      different repo, where the autozoom would have to be turned off directly.
@@ -93,7 +93,7 @@
 
        interactive-widget=overlays-content   unchanged, and load-bearing: it asks the
            WebView not to resize the layout viewport when the on-screen keyboard
-           opens. Ben's 25 August report ("when the keyboard appears the whole screen
+           opens. the 25 August report ("when the keyboard appears the whole screen
            gets smaller") is the evidence that his WebView does it anyway, which is
            why `app-fit.js` carries a keyboard rule as well.
 
@@ -116,11 +116,10 @@
           when it is reachable.
 
        3. THE MAGNIFIER IS NOT BEING REMOVED, it is being pointed at the control that
-          reflows. Settings > Display > Display size (`src/lib/density.js`, C6) has
+          reflows. Settings > Display > Display size (`src/lib/density.js`) has
           four steps to "Largest" — it drives `--ui-density-base` and `--ui-type-scale`
           so the layout re-flows at the larger rhythm instead of being photographed and
-          stretched, it survives a reload, and it has a way back. C6's own note says
-          why it exists: "the people who turned it up did so because text was too
+          stretched, it survives a reload, and it has a way back. The reason it exists: "the people who turned it up did so because text was too
           small; that need survives the canvas." That is the accessible answer, and it
           is the one this line points at.
 
@@ -131,17 +130,17 @@
 <title>Decal</title>
 <!-- Empty data URL, not a missing file: without an explicit icon the browser
      requests /favicon.ico from the served root and logs a 404 on every page load,
-     which would be a permanent false positive in every Gate A rendering test.
+     which would be a permanent false positive in every rendering test.
      Replace with the template's icon when there is one. -->
 <link rel="icon" href="data:,">
 
 <!-- Module resolution. No bundler: the tree is served as-is by ReaPrime and the
-     importmap is the whole mechanism (SCOPE Part 2 §7; proven in this WebView by
+     importmap is the whole mechanism (proven in this WebView by
      the current skin's own importmap at index.html:8-13).
      lit, uplot and iro are ESM. easymde is still a UMD build and installs a global
      when imported. reconnecting-websocket was UMD too and threw on import (top-level
-     `this` is undefined in a module); wave 0b converted it to `export default` and made
-     it DOM-free, keeping both local patches (A11). Measured, all of them, and the five
+     `this` is undefined in a module); it was converted to `export default` and made
+     it DOM-free, keeping both local patches. Measured, all of them, and the five
      changes to that one fork are listed: vendor/README.md. -->
 <script type="importmap">
 {
@@ -156,21 +155,19 @@
 }
 </script>
 
-<!-- Pre-paint theme stamp. One of the two inline scripts no module contains
-     (CARRY_FORWARD §1); re-created deliberately, with the two corrections
-     SCOPE Part 2 §6 designs in:
-       1. it goes through the app's storage prefix (A10 - `decal.`, renamed with
+<!-- Pre-paint theme stamp. One of the two inline scripts no module contains.
+     Re-created deliberately, with two corrections:
+       1. it goes through the app's storage prefix (`decal.`, renamed with
           the id, no migration). The prefix is inlined ON PURPOSE: nothing can be
           imported before first paint. It is the ONE hand-written copy of the
-          prefix in the tree and the storage router (B7) owns the other end -
-          keep them in step or the theme silently desyncs (CARRY_FORWARD,
-          storage-keys.js entry).
+          prefix in the tree and the storage router owns the other end -
+          keep them in step or the theme silently desyncs.
        2. it never writes on first run, so "no stored choice" stays distinguishable
           from a deliberate one. The current skin persists 'dark' on first paint and
           can never tell the two apart again (bug S11).
        3. AND THE OTHER HALF OF S11: the `prefers-color-scheme` branch is LIVE, not
-          commented out (`LAYOUT_SPEC_DRAFT.md` §7.1 S11; SCOPE.md:1992 names the bug
-          "theme boot ignoring prefers-color-scheme"). Precedence, in one order, in
+          commented out. The bug is theme boot ignoring `prefers-color-scheme`.
+          Precedence, in one order, in
           two places that must not disagree - here and in src/lib/theme.js's
           resolveTheme():  stored choice -> prefers-color-scheme -> 'dark'.
           It only ever READS the preference; a panel that says nothing, an engine with
@@ -237,7 +234,7 @@
 })();
 </script>
 
-<!-- The only global CSS in the project (SCOPE Part 2 §2). uPlot.min.css is
+<!-- The only global CSS in the project. uPlot.min.css is
      deliberately NOT here: it is adopted inside the chart component's shadow root,
      where it is load-bearing for hit-testing (§7 Rule 1). -->
 <link rel="stylesheet" href="styles/tokens.css">
@@ -248,7 +245,7 @@
 </head>
 <body>
 <!-- One document. A route change swaps which screen component is mounted in here;
-     there are no HTML fragments and no innerHTML-injected pages (bugs P2, P1, S10). -->
+     there are no HTML fragments and no innerHTML-injected pages. -->
 <app-root></app-root>
 </body>
 </html>

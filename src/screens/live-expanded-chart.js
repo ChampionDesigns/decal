@@ -259,11 +259,6 @@ export class LiveExpandedChart extends UiElement {
                             .derivation=${derivation}
                             @plot-activate=${this.#close}
                         >
-                            <!-- BOUND, because an unbound legend is a row of chips that
-                                 light and do nothing - the defect Ben found on the History
-                                 page the same day. The id resolves because a slotted
-                                 element belongs to the tree it was AUTHORED in, which is
-                                 this shadow root. -->
                             <ui-chart-legend
                                 slot="legend"
                                 chart="plot-${plot.id}"

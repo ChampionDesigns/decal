@@ -8,13 +8,13 @@ export const entry = {
     module: '../../src/components/ui-empty-state.js',
     notes:
         'Component #38 (spec §5.2 #38): the "nothing here" block for lists and panes. '
-        + 'Slate authors it centred and renders it LEFT-ALIGNED at four call sites '
-        + '(bug T11, slate-shell.css:1304-1306, 1326-1328, 1244-1250, plus '
+        + 'the reference skin authors it centred and renders it LEFT-ALIGNED at four call sites '
+        + '(bug T11, plus '
         + '.slate-caption text-align: left) - here the centring is declared inside the '
         + 'shadow root where no screen sheet can reach it. Two shapes: the plain block '
         + 'the four settings call sites use, and the dashed well the one measured state '
         + '(settings-help-talk-to-decent) draws. The 64px disc is not painted at all '
-        + 'without a glyph, which is what slate-shell.css:1605-1612 needs a loud '
+        + 'without a glyph, which is what the old rule needs a loud '
         + 'override to achieve (P21).',
     states: [
         {
@@ -22,7 +22,7 @@ export const entry = {
             title: 'Plain block (the four settings call sites)',
             notes:
                 'settings.js:6851 / :8251 / :8424 / :8443 all render exactly this one '
-                + 'line. Inset --ui-space-6 (Slate p-8 = 32px, spec §3.3 snaps 32 to 28); '
+                + 'line. Inset --ui-space-6 (the reference skin p-8 = 32px, spec §3.3 snaps 32 to 28); '
                 + 'heading --ui-text-md / --ui-weight-medium / --ui-text, the oracle\'s '
                 + 'measured 18px / 500.',
             hostStyle: { 'inline-size': '620px' },
@@ -66,7 +66,7 @@ export const entry = {
             id: 'no-glyph',
             title: 'No glyph - and no grey disc (P21)',
             notes:
-                'slate-shell.css:1605-1612 exists because a failed mask URL left "a '
+                'The old rule exists because a failed mask URL left "a '
                 + 'featureless grey rounded square ... a grey block pretending to be '
                 + 'art". With the disc rendered only when its slot is filled, the block '
                 + 'cannot exist, and the loud override that suppresses it is not needed.',
@@ -78,11 +78,11 @@ export const entry = {
         },
         {
             id: 'left-pressure',
-            title: 'T11: under the three shell rules that left-align Slate',
+            title: 'T11: under the three shell rules that left-align the reference skin',
             notes:
                 'The stage sets text-align: left and align-items: flex-start on the host '
                 + 'and on every descendant it can name - the shape of '
-                + 'slate-shell.css:1304-1306, 1326-1328 and 1244-1250, which turn Slate\'s '
+                + 'three old rules, which turn the reference skin\'s '
                 + 'four authored-centred call sites left-aligned. Nothing outside can name '
                 + '.empty inside the root, and text-align is DECLARED there rather than '
                 + 'inherited, so the block is still centred.',

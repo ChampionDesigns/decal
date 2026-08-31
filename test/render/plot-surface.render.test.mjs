@@ -602,7 +602,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(got.sheetAdopted, false);
                 assert.equal(got.hasPlot, false, 'and nothing may paint — the canvas would be pixel-identical');
                 assert.equal(got.buildCount, 0);
-                assert.match(got.mountError, /Rule 1/,
+                assert.match(got.mountError, /did not reach this shadow root/,
                     `the reason must be readable rather than inferred from sheetAdopted: ${got.mountError}`);
                 assert.equal(await page.count('#u >>> canvas'), 0, 'no canvas at all');
                 assert.deepEqual(page.pageErrors, [],

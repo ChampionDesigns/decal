@@ -47,7 +47,7 @@ describe('a refused keypad open reaches the person (F-008)', () => {
     }));
 
     test('a field the door refuses ON PURPOSE raises a notice', () => staged(async (page) => {
-        const opened = await openField(page, 'tankTemperature');
+        const opened = await openField(page, 'targetVolumeCountStart');
         assert.equal(opened, false, 'the door refuses, so nothing opens');
         await page.settle(4);
 
@@ -59,7 +59,7 @@ describe('a refused keypad open reaches the person (F-008)', () => {
         assert.equal(said.length, 1, 'exactly one notice, for exactly one refusal');
         assert.equal(said[0].tone, 'warn', 'a refusal is not a failure and not an ok');
         assert.ok(said[0].text.length > 0, 'and it says something');
-        assert.match(said[0].text, /tankTemperature/,
+        assert.match(said[0].text, /targetVolumeCountStart/,
             'the door\'s own sentence is printed verbatim — the same rule #announce '
             + 'applies to the server\'s refusals');
         assert.deepEqual(page.pageErrors, []);
@@ -77,13 +77,13 @@ describe('a refused keypad open reaches the person (F-008)', () => {
 
     test('the wire still leaves the region, so nothing above it lost a report',
         () => staged(async (page) => {
-            await openField(page, 'tankTemperature');
+            await openField(page, 'targetVolumeCountStart');
             await page.settle(4);
             const refusals = await eventsNamed(page, 'numpad-refused');
             assert.equal(refusals.length, 1,
                 'the screen listens without stopping — a composition root above it still '
                 + 'receives the event exactly as it did before');
-            assert.equal(refusals[0].field, 'tankTemperature');
+            assert.equal(refusals[0].field, 'targetVolumeCountStart');
             assert.ok(typeof refusals[0].reason === 'string' && refusals[0].reason.length > 0);
         }));
 

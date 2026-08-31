@@ -1,7 +1,7 @@
 // A fake IndexedDB — enough of the real one to execute the shot mirror under node:test.
 //
-// SCOPE Part 6, "Untested today and must not stay that way in this wave's reach": the
-// `idb.js` successor needs an executing test with a fake IndexedDB. The old module had none,
+// the notes, "Untested today and must not stay that way in this repo's reach": the
+// successor needs an executing test with a fake IndexedDB. The old module had none,
 // which is how a version bump shipped that dropped a store on every upgrade and how a
 // blocked open could hang boot with nothing in the console.
 //

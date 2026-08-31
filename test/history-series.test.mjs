@@ -203,7 +203,7 @@ describe('the records', () => {
         assert.equal(a.scalars.durationSeconds.toFixed(2), '3.26');
         assert.equal(b.scalars.durationSeconds.toFixed(2), '8.54');
         /* AND NEITHER CARRIES A YIELD, which is why every Out cell on the data page is a
-         * dash and no shot is downloaded to find one (B5 / Q17). */
+         * dash and no shot is downloaded to find one. */
         assert.equal(a.scalars.yield, null);
         assert.equal(b.scalars.yield, null);
     });

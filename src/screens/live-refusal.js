@@ -11,7 +11,7 @@ import 'src/components/ui-alert-banner.js';
 import 'src/components/ui-icon-button.js';
 
 /** The dismiss glyph. `currentColor` so it follows the button's ink through both themes;
- *  no colour is written here, and the accessible name is the button's `label` (D2). */
+ *  no colour is written here, and the accessible name is the button's `label`. */
 const DISMISS_GLYPH = svg`<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"
     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
     ><path d="M6 6l12 12M18 6L6 18"/></svg>`;
@@ -23,7 +23,7 @@ export class LiveRefusal extends UiElement {
          * Straight from `profileRefusal()`; nothing here reshapes it.
          */
         refusal: { attribute: false },
-        /** `refusal.kind`, reflected. State travels as an attribute (Appendix 15). */
+        /** `refusal.kind`, reflected. State travels as an attribute. */
         kind: { type: String, reflect: true },
     };
 

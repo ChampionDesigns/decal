@@ -124,7 +124,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const offered = band.length - occupied;
                     assert.equal(a.interactive.length, 2 * occupied + offered,
                         'the shadow tree carries controls that are not on screen — that is the ' +
-                        'hidden control set C8 removed (profile-editor-v3.css:695-698). Saw ' +
+                        'hidden control set C8 removed. Saw ' +
                         JSON.stringify(a.interactive));
                 }));
 
@@ -259,8 +259,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const note = await page.box('ui-exit-sentence >>> #note-condition');
                 assert.ok(note.top >= row.bottom - 0.6,
                     'the note must sit UNDER its chip, never inside it — ' +
-                    '"a child that wraps to a second line tears the card\'s layout apart" ' +
-                    '(profile_editor.js:1764-1767)');
+                    '"a child that wraps to a second line tears the card\'s layout apart"');
             }, DEAD_STEP));
 
             test('the note stays inside the host, at the band width and narrower',

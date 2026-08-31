@@ -1,6 +1,6 @@
 /**
  * CANARY - deliberately re-declares public --ui-* colour tokens inside a component
- * (guard 4; bug L12, where the Live screen re-declares the public palette three
+ * (guard 4; bug where the Live screen re-declares the public palette three
  * times under private names). The names are public, the values are local: every
  * consumer downstream now reads a colour the token file does not control, and a
  * fork retargeting the template changes nothing here.

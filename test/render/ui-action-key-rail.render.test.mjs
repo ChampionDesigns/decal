@@ -97,7 +97,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         railOwnsNoButton: root.querySelector('button') === null,
                     };
                 });
-                assert.equal(found.count, 5, 'C7: the five footer buttons (SCOPE.md:2327)');
+                assert.equal(found.count, 5, 'C7: the five footer buttons ');
                 assert.deepEqual(found.tags, Array(5).fill('ui-button'),
                     'the press control is #1, composed, never re-implemented');
                 assert.deepEqual(found.actions, ACTIONS);
@@ -520,7 +520,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(m.overflowX, 'hidden', 'the clip is deliberate — square keys, round slab');
                 near(m.scrollWidth, m.clientWidth, 'nothing is cut horizontally');
                 near(m.scrollHeight, m.clientHeight, 'nothing is cut vertically');
-                /* The fifth key is inside the clip, not behind it — E1's actual symptom
+                /* The fifth key is inside the clip, not behind it — the rule's actual symptom
                  * was a row you could not see. */
                 const rail = await page.box('#rail >>> .rail');
                 const lastKey = await page.box(key('move-right'));
@@ -636,7 +636,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(aria.role, 'group');
                 assert.equal(aria.name, 'Step actions');
                 assert.deepEqual(aria.keys.map((k) => k.onControl), ACTIONS.map((a) => NAMES[a]),
-                    'Slate names these already (profile_editor.js:2119-2123) — carried, and '
+                    'Slate names these already — carried, and '
                     + 'the counterexample two rows over is E14, "32 grid +/- buttons share '
                     + 'two aria-labels, both UNTRANSLATED"');
                 assert.deepEqual(aria.keys.map((k) => k.onHost), Array(5).fill(null));
@@ -668,15 +668,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 async (page) => {
                     assert.equal(await page.prop('#rail >>> .rail', 'background-color'),
                         await page.resolveValue('var(--ui-line)', 'color'),
-                        'CITE .pe-action-cell [i=210] background-color dark rgb(58, 72, 82) '
+                        '.pe-action-cell [i=210] background-color dark rgb(58, 72, 82) '
                         + '/ light rgb(203, 208, 211)');
                     assert.equal(await faceColour(page, 'delete'),
                         await page.resolveValue('var(--ui-fascia)', 'color'),
-                        'CITE .pe-action-btn [i=213] background-color dark rgb(14, 19, 23) '
+                        '.pe-action-btn [i=213] background-color dark rgb(14, 19, 23) '
                         + '/ light rgb(242, 243, 243)');
                     assert.equal(await page.prop(glyph('insert-after'), 'color'),
                         await page.resolveValue('var(--ui-steel)', 'color'),
-                        'CITE .pe-action-btn [i=213] color <- `.pe-act-add` authored '
+                        '.pe-action-btn [i=213] color <- `.pe-act-add` authored '
                         + 'var(--slate-steel)');
                 },
                 MID,

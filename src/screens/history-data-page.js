@@ -158,8 +158,6 @@ export class HistoryDataPage extends UiElement {
             ${this.#renderPhaseTable('b', 'B', this.shotB, this.derivationB, t('Shot B'),
                 (this.shotB && refusal?.heading) || t('No comparison shot'))}
 
-            <!-- THE SHOT LIST. #34 again, with no row-header-label — "a shot list simply
-                 omits it" — so every one of its eight tracks is fr. -->
             <ui-data-grid
                 id="shot-list"
                 label=${t('Recorded shots')}

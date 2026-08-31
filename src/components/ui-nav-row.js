@@ -49,8 +49,7 @@ export class UiNavRow extends UiElement {
                 font-weight: var(--ui-weight-regular);
                 line-height: inherit;
 
-                /* settings.html:30 text-left, read read-only - outside the corpus's
-                 * appearance surface. A UA button centres its label. */
+                /* A UA button centres its label; a nav row starts it. */
                 text-align: start;
 
                 cursor: pointer;

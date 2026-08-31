@@ -56,8 +56,8 @@ test('Sleep is a machine command, not a route', () => {
 });
 
 test('an event that is not an intent is not one', () => {
-    /* `target-change` already has an owner in live-wiring.js (P-1's fix) and
-     * `stop-request` is the machine's. Two owners of one event is L11's shape. */
+    /* `target-change` already has an owner in live-wiring.js and
+     * `stop-request` is the machine's. Two owners of one event is 's shape. */
     for (const type of ['target-change', 'stop-request', 'warmer-toggle', 'click']) {
         assert.equal(intentFor(type, { action: 'Settings', value: 'x' }), null,
             `${type} was treated as a shell intent — it has an owner already`);

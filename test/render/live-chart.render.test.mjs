@@ -85,7 +85,7 @@ const GROW = (to) => `(async () => {
     return { inShot: card.derivation.counts.inShot, yMax: card.yMax, xRange: card.xRange };
 })()`;
 
-/** Drill pixels currently on the canvas — the A6 instrument, counted rather than seen. */
+/** Drill pixels currently on the canvas — the instrument, counted rather than seen. */
 const countDrill = (page, selector = CANVAS) => page.evalFn((s) => {
     const canvas = window.__h.need(s);
     const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
@@ -316,7 +316,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `every Live channel has a token in styles/chart-channels.css (A6): ${name}`);
                 assert.equal(tokens.channels[name].trim(), declared,
                     'and the card READ it off this host\'s computed style rather than carrying a copy '
-                    + '— which is the whole of A6, and the reverse of chart-palette.js injecting a '
+                    + 'which is the whole of A6, and the reverse of injecting a '
                     + '<style> into <head> from JavaScript');
             }
             for (const part of ['well', 'grid', 'axis', 'label']) {

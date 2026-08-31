@@ -4,8 +4,8 @@
   "wave": "5.6",
   "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
   "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — the one place the pin is written; scripts/gate-d.js asserts this field equals it and that every row's checkedCommit does too.",
-  "reaRoot": "/home/ben/bengle/_port/worktrees/rea-reanchor-v3",
-  "authority": "The handler body AS WRITTEN at the pinned commit. Not rest_v1.yml, not doc/Api.md, not the old skin's JSDoc. Where the spec and the handler disagree the handler wins; see rea-routes.generated.js REA_ROUTE_EXCEPTIONS.",
+  "reaRoot": "${REA_ROOT}",
+  "authority": "The handler body AS WRITTEN at the pinned commit. Not rest_v1.yml, not the previous skin's JSDoc. Where the document and the handler disagree the handler wins; see rea-routes.generated.js REA_ROUTE_EXCEPTIONS.",
   "statusMeanings": {
     "consumed": "the client addresses this route today — a caller exists in src/",
     "declared": "the client declares knowledge of this route (conditional registry, cache register, socket table) without calling it yet",
@@ -14,21 +14,21 @@
   "rowRule": "A row exists for exactly one of the three reasons above and says which. A row is never added because a route might be useful — inventing surface is how a table stops being evidence.",
   "absentRoutes": [
     {
-      "wanted": "R2 — a machine limits endpoint (from B2, resolving B3)",
-      "wantedBy": "wave 5.5, item one-ranges-table. Every numeric input in the profile editor, plus the numpad hints and the settings fields, take their bounds from it once it exists.",
+      "wanted": "R2 — a machine limits endpoint (from, resolving )",
+      "wantedBy": "item one-ranges-table. Every numeric input in the profile editor, plus the numpad hints and the settings fields, take their bounds from it once it exists.",
       "servedAt": null,
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "basis": "mechanical sweep of lib/src/services/webserver at the pin, RE-COUNTED 21 Aug: 140 app.get|put|post|delete('/api/v1/…') registrations — 58 GET, 44 POST, 22 PUT, 16 DELETE over 99 distinct paths (141 counting the one OPTIONS; 13 more on /ws/v1) — ZERO whose path matches limit / range / bound / envelope / constraint. The recorded 149 reproduced at no counting scope: the flat glob (31 files) and the recursive one (46) both give 140. Only the sweep number was wrong; R2's absence re-verified TRUE on its own.",
-      "interim": "B2's decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
-      "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint (Part 10 §9) and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (Part 10 §7's ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
+      "interim": "'s decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
+      "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint (the notes ) and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (the notes 's ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
     },
     {
       "wanted": "R5 — per-shot outcome scalars on the shot SUMMARY: duration, peak pressure, average flow (and average pressure, peak flow after first drop, time to first drop)",
-      "wantedBy": "wave 5.6, items hist-shot-list-derivation / hist-b5-scalars-q17. The History list wants to print '28 s' in a row cell without downloading the shot the row names.",
+      "wantedBy": "items hist-shot-list-derivation / hist-b5-scalars-q17. The History list wants to print '28 s' in a row cell without downloading the shot the row names.",
       "servedAt": null,
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "basis": "NOT A MISSING ROUTE — A MISSING FIELD, verified by reading both serializers at the pin rather than by sweeping paths. `ShotRecord.toJsonWithoutMeasurements` (lib/src/models/data/shot_record.dart:49-59) emits exactly id, timestamp, workflow, annotations, stopReason and the two legacy aliases shotNotes/metadata; `ShotRecord.toJson` (:36-47) adds only `measurements`. Neither carries duration in any spelling, and `ShotAnnotations` (shot_annotations.dart:5-14) models six fields plus a free `extras` map with not one computed metric among them. The shots list maps every row through toJsonWithoutMeasurements (shots_handler.dart:131), so the gap is on the payload as well as in the model. CORRECTION THIS WAVE'S CHECK MAKES TO ITS OWN SCOPING NOTE: `annotations.actualYield` and `annotations.enjoyment` DO ride on the list payload when the shot carries them — they are annotations, not computed metrics — so the R5 gap is duration, peak pressure and average flow, and yield is only dashed because no fixture on the capture mock records one.",
-      "interim": "B5, decided: the scalars are computed IN THE SKIN from gate 6's single walk (src/lib/shot-derivation.js `scalars`, twelve keys, each null when absent), for the shots that have actually been downloaded because they are on the chart. Every other row shows a DASH. Q17 (DECISIONS.md, 16 Aug) settled the open half: the list does NOT download a ~221 KB record to fill a list cell, so `fillMissingOutcomes` and the whole fetch-per-row machinery are not built and there is no code path to them.",
+      "interim": "decided: the scalars are computed IN THE SKIN from the data layer's single walk (src/lib/shot-derivation.js `scalars`, twelve keys, each null when absent), for the shots that have actually been downloaded because they are on the chart. Every other row shows a DASH. (the previous skin's module, 16 Aug) settled the open half: the list does NOT download a ~221 KB record to fill a list cell, so `fillMissingOutcomes` and the whole fetch-per-row machinery are not built and there is no code path to them.",
       "policy": "NO STUB, NO SENTINEL, NO FETCH. The absence is the recorded finding. The reading shape is src/lib/shot-summary.js SUMMARY_SCALAR_KEYS: each scalar names the summary field that carries it, or null for 'nothing serves this yet'. R5 lands as a STRING in that table — one field per scalar — and the dash fills in with nothing to delete, because nothing was built. Pinned by test/shot-summary.test.mjs (the dash truth table, and the per-row fetch count asserted at exactly 0) and declared on the wave manifest."
     }
   ],
@@ -41,7 +41,7 @@
         "postStoreByNamespaceByKey",
         "deleteStoreByNamespaceByKey"
       ],
-      "why": "Gate 2's storage backend predates the transport and composes `${base}/store/${ns}/${key}` against an injected fetch. It encodes both segments, so it is correct, but it does not go through rea-transport.js — recorded by Gate 3 CORE as a converge-later item. Until it converges, its four paths cannot be found by the literal scan, so it is declared here.",
+      "why": "the data layer's storage backend predates the transport and composes `${base}/store/${ns}/${key}` against an injected fetch. It encodes both segments, so it is correct, but it does not go through rea-transport.js — recorded by the data layer CORE as a converge-later item. Until it converges, its four paths cannot be found by the literal scan, so it is declared here.",
       "convergeTo": "callRoute(transport, 'getStoreByNamespaceByKey', {params}) once the KV backend takes the transport; the KV list route is one of the six conditional ones and would then win a 304 it does not ask for today."
     },
     {
@@ -81,7 +81,7 @@
       "gates": [
         {
           "kind": "body-or-query",
-          "meaning": "`_extractHost` reads the request body FIRST and falls back to `?host=`, so both spellings reach the handler — but the spec declares only the query parameter on DELETE",
+          "meaning": "`_extractHost` reads the request body FIRST and falls back to `?host=`, so both spellings reach the handler — but the document declares only the query parameter on DELETE",
           "action": "send the query. A DELETE body is the one place a fetch stack or an intermediary may drop what it was given, and `buildQuery` checks the query spelling against the contract"
         }
       ],
@@ -160,7 +160,7 @@
       ],
       "retires": [],
       "notes": [
-        "F3/Q1 excluded this route on 'no work of any kind on reset-to-default'. Reversed 24 Aug 2026: the rule was written when the seven values were mostly invisible in this skin, and on that day every one of them became a control on a page."
+        "The reset decision excluded this route on 'no work of any kind on reset-to-default'.: the rule was written when the seven values were mostly invisible in this skin, and on that day every one of them became a control on a page."
       ]
     },
     {
@@ -235,7 +235,7 @@
         {
           "kind": "delete-is-not-deletion",
           "meaning": "DELETE here is a SOFT delete and its effect depends on the record: ProfileController.delete (profile_controller.dart:247-264) sets Visibility.hidden on an isDefault record and Visibility.deleted on a user one. Nothing is removed — the only route that removes a record is deleteProfilesByIdPurge, which v1 does not call.",
-          "action": "Call it 'Hide', which is the old skin's own word for the same control (profile_selector.js:624 doHide), and never 'Delete'. The record stays; a bundled one comes back through postProfilesRestoreByFilename. The LISTING is what hides it: `?includeHidden=true` returns it and profile-rules.js filters visibility client-side, so the answer to 'did it work' is the re-read, never the 200."
+          "action": "Call it 'Hide', which is the previous skin's own word for the same control (the previous skin's module doHide), and never 'Delete'. The record stays; a bundled one comes back through postProfilesRestoreByFilename. The LISTING is what hides it: `?includeHidden=true` returns it and profile-rules.js filters visibility client-side, so the answer to 'did it work' is the re-read, never the 200."
         },
         {
           "kind": "a-404-is-an-answer",
@@ -245,7 +245,7 @@
       ],
       "retires": [],
       "notes": [
-        "ADDED IN WAVE 5.8 because the app could not hide a profile at all. The whole loop around this route was already built — the listing filters hidden records, `restorable` lists the bundled ones that are hidden, and postProfilesRestoreByFilename brings them back — and the one missing piece was the action that hides. The old skin has it in the profile context menu (profile_selector.js:624, label 'Hide')."
+        "because the app could not hide a profile at all. The whole loop around this route was already built — the listing filters hidden records, `restorable` lists the bundled ones that are hidden, and postProfilesRestoreByFilename brings them back — and the one missing piece was the action that hides. The old skin has it in the profile context menu (the previous skin's module label 'Hide')."
       ]
     },
     {
@@ -266,13 +266,13 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (Ben, 27 August 2026)"
+        "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (the owner, )"
       ],
       "gates": [
         {
           "kind": "no-404-here-a-missing-id-is-400",
           "meaning": "ProfileController.setVisibility throws ArgumentError('Profile not found: $id') when storage has no such record (profile_controller.dart:283-285), and _handleSetVisibility catches ArgumentError as a 400 (profile_handler.dart:197-198). There is no jsonNotFound in this handler at all — unlike _handleDelete, whose ArgumentError clause answers 404 for the same condition. The two neighbouring routes disagree about the status for one condition.",
-          "action": "Never write a 404 branch for this route — nothing can take it (A7). A 400 here means EITHER an unknown id OR one of the two refusals below, and the status alone cannot separate them, so do not word a 400 as 'not found'. Treat a failed visibility change as advisory: the save it follows has already succeeded and the record is safe either way."
+          "action": "Never write a 404 branch for this route — nothing can take it. A 400 here means EITHER an unknown id OR one of the two refusals below, and the status alone cannot separate them, so do not word a 400 as 'not found'. Treat a failed visibility change as advisory: the save it follows has already succeeded and the record is safe either way."
         },
         {
           "kind": "a-default-cannot-be-deleted-only-hidden",
@@ -292,9 +292,9 @@
       ],
       "retires": [],
       "notes": [
-        "ADOPTED 27 AUGUST 2026, having been in the generated route table and called by nothing since the table was generated. Ben: \"After each save there should still only be one profie, but we should be able to go back to a previous version\". A content save was already POST /profiles with parentId — a real version chain, correctly written — and nothing ever hid the record it superseded, so both stayed visible and the list grew by one on every save. This route is the missing move.",
+        "having been in the generated route table and called by nothing since the table was generated. the owner: \"After each save there should still only be one profie, but we should be able to go back to a previous version\". A content save was already POST /profiles with parentId — a real version chain, correctly written — and nothing ever hid the record it superseded, so both stayed visible and the list grew by one on every save. This route is the missing move.",
         "IT IS NOT A DELETE AND MUST NOT BE WORDED AS ONE. Hiding a superseded version takes it off the LIST; getProfilesByIdLineage still returns it, the editor's Previous versions dialog still shows it, and restoring it is a save like any other. Nothing in this build removes a profile record except deleteProfilesByIdPurge.",
-        "WHY THE SAVE PATH NEVER SENDS 'hidden' FOR AN isDefault RECORD: D6's restore-to-factory offer list is `hidden AND isDefault` (profile-rules.js restorableProfiles), which means 'bundled profiles you removed'. Hiding a bundled parent because the user derived from it would put a factory profile in that list without the user having removed anything. The full argument is in src/lib/profile-lineage.js."
+        "WHY THE SAVE PATH NEVER SENDS 'hidden' FOR AN isDefault RECORD: 's restore-to-factory offer list is `hidden AND isDefault` (profile-rules.js restorableProfiles), which means 'bundled profiles you removed'. Hiding a bundled parent because the user derived from it would put a factory profile in that list without the user having removed anything. The full argument is in src/lib/profile-lineage.js."
       ]
     },
     {
@@ -321,14 +321,14 @@
         {
           "kind": "d6-second-half-deferred",
           "meaning": "this is the ONLY route that actually removes a profile record — DELETE /profiles/<id> is a soft delete (Visibility.deleted / .hidden), which is why the listing has to filter client-side",
-          "action": "v1 does not call it. D6 ships restore-to-factory and defers the purge (Part 1 deferred table, 'Purging deleted profiles | D6 (second half)'). src/stores/profile-library-store.js names it in D6_PURGE_IS_DEFERRED so the boundary is greppable, and test/profile-library-store.test.mjs asserts no call site exists."
+          "action": "v1 does not call it. ships restore-to-factory and defers the purge (the notes deferred table, 'Purging deleted profiles | (second half)'). src/stores/profile-library-store.js names it in D6_PURGE_IS_DEFERRED so the boundary is greppable, and test/profile-library-store.test.mjs asserts no call site exists."
         }
       ],
       "retires": [],
       "notes": [
         "Rowed because tonight's tests assert something about it: that nothing in src/ calls it. The row is the boundary, not an intention to use the route."
       ],
-      "action": "D6's second half, landed 25 Aug 2026 on Ben's decision (\"build it behind a confirm that says plainly it cannot be undone\"). src/stores/profile-library-store.js purge() is the caller and D6_PURGE_IS_LANDED records the crossing. It is the only route that actually removes a profile record, which is what the confirm in front of it says."
+      "action": "'s second half on the owner's decision (\"build it behind a confirm that says plainly it cannot be undone\"). src/stores/profile-library-store.js purge() is the caller and D6_PURGE_IS_LANDED records the crossing. It is the only route that actually removes a profile record, which is what the confirm in front of it says."
     },
     {
       "id": "deleteStoreByNamespaceByKey",
@@ -356,7 +356,7 @@
         "CB-11"
       ],
       "notes": [
-        "CB-11: deleting a shot does NOT cascade to its KV rating key — shots_handler._deleteShot touches no store. Whoever builds shot deletion deletes the rating key here in the same change, or it is orphaned for ever."
+        "deleting a shot does NOT cascade to its KV rating key — shots_handler._deleteShot touches no store. Whoever builds shot deletion deletes the rating key here in the same change, or it is orphaned for ever."
       ]
     },
     {
@@ -393,8 +393,8 @@
       "gates": [
         {
           "kind": "verbatim-relay",
-          "meaning": "the handler relays the upstream status and body UNCHANGED and the spec types the success body application/octet-stream, format: binary — so there is no documented response shape and no promise of JSON. Two upstream endpoints are addressed and neither is JSON this client can assume: `email` answers a bare token ('0' means refused, compared as a STRING by ReaPrime's own emailSerialMismatch), and `emails` answers JSON that is sometimes malformed.",
-          "action": "read the body as text (`expect: 'text'` on the transport) and let the caller decide what it means. decent-support-store.js repairs the one malformed shape Slate documents and reports anything else as UNREADABLE rather than as an empty thread."
+          "meaning": "the handler relays the upstream status and body UNCHANGED and the document types the success body application/octet-stream, format: binary — so there is no documented response shape and no promise of JSON. Two upstream endpoints are addressed and neither is JSON this client can assume: `email` answers a bare token ('0' means refused, compared as a STRING by ReaPrime's own emailSerialMismatch), and `emails` answers JSON that is sometimes malformed.",
+          "action": "read the body as text (`expect: 'text'` on the transport) and let the caller decide what it means. decent-support-store.js repairs the one malformed shape the previous skin documents and reports anything else as UNREADABLE rather than as an empty thread."
         },
         {
           "kind": "read-scope-only",
@@ -415,8 +415,8 @@
       "retires": [],
       "notes": [
         "THE ROUTE THE 'no sign-in route' BLOCKER WAS HIDING. help-talk-to-decent stood as a read-only status for three days on the reasoning that the web API has no sign-in route. True — and an argument against a sign-in FORM, which nobody wanted. Sending a support message needs an ALREADY authenticated request, which is what this proxy forwards, with the account's credentials attached server-side by DecentProxyService.",
-        "TWO UPSTREAM ENDPOINTS, UNEQUALLY EVIDENCED. `support/api/email?subject&body` is corroborated inside ReaPrime — DecentAccountService.emailSerialMismatch builds exactly that URL with exactly those names. `support/api/emails` is NOT: no Dart file names it, and the only evidence it exists is Slate's own talkDecentFetchEmails. The proxy allows it because the allowlist is a PREFIX ('support/api/'), not a list of endpoints. That asymmetry is why the thread reports its own failure rather than rendering an empty conversation.",
-        "NO `since`. Slate passes it and keeps the thread in IndexedDB to compute it. This client asks for the whole thread every time — no second copy, no retention rule, and no query parameter with no evidence behind it. See the route table's account-proxy-query-passthrough exception, which adds subject and body for that reason and deliberately does not add since."
+        "TWO UPSTREAM ENDPOINTS, UNEQUALLY EVIDENCED. `support/api/email?subject&body` is corroborated inside ReaPrime — DecentAccountService.emailSerialMismatch builds exactly that URL with exactly those names. `support/api/emails` is NOT: no Dart file names it, and the only evidence it exists is the previous skin's own talkDecentFetchEmails. The proxy allows it because the allowlist is a PREFIX ('support/api/'), not a list of endpoints. That asymmetry is why the thread reports its own failure rather than rendering an empty conversation.",
+        "NO `since`. the previous skin passes it and keeps the thread in IndexedDB to compute it. This client asks for the whole thread every time — no second copy, no retention rule, and no query parameter with no evidence behind it. See the route table's account-proxy-query-passthrough exception, which adds subject and body for that reason and deliberately does not add since."
       ],
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
@@ -650,7 +650,7 @@
       ],
       "retires": [],
       "notes": [
-        "ADDED THIS WAVE (5.4, D9). The pair was in rea-routes.generated.js with no contract row because nothing addressed it; this store is the consumer that earns it one.",
+        "ADDED THIS WAVE (5.4). The pair was in rea-routes.generated.js with no contract row because nothing addressed it; this store is the consumer that earns it one.",
         "CORRECTION RECORDED: settings-leaves.js's pending row for `calibration-flow-multiplier` named GET/PUT /api/v1/machine/scaleCalibration as its owner. That is the LOAD-CELL route. The flow multiplier is this pair."
       ]
     },
@@ -674,20 +674,20 @@
       "gates": [
         {
           "kind": "upstream-gap",
-          "meaning": "the seven entries are a fixed list; there is no estimator entry, and no entry for most of the 22 isBengleMachine() gates the old skin carried",
+          "meaning": "the seven entries are a fixed list; there is no estimator entry, and no entry for most of the 22 isBengleMachine() gates the previous skin carried",
           "action": "R3. A gate the list cannot answer goes through the ONE R3-tagged adapter module, never a machine-name sniff and never a local recomputation."
         },
         {
           "kind": "no-machine-is-500-not-503",
           "meaning": "the route body runs inside withDe1 (de1handler.dart:504-516), whose only mapped exception is MachineReplacementTimeoutException. With no machine connected _controller.connectedDe1() throws DeviceNotConnectedException.machine() (de1_controller.dart:328-333), which falls to the generic `catch (e, st)` and returns jsonError — 500, with the Dart exception AND a stack trace in the body. There is no error middleware to reshape it. The pipeline at webserver_service.dart:460-485 is accountProxyCorsMiddleware -> logRequests -> corsHeaders -> (proxyTokenService == null ? identity : proxyAuthMiddleware) — four, not the two this gate named until 21 Aug — and the only one that answers for itself, proxyAuthMiddleware, returns inner(request) untouched for any path not starting /api/v1/account/proxy/ (proxy_auth_middleware.dart:14, :20-22). None of the four reshapes a machine-route 500, so the Dart stack reaches the client.",
-          "action": "A3 fail-closed. 500 maps to UNKNOWN, never to []. capabilities-store.js:279-283 already refuses to turn a 500 into an empty array; wave 5.4 depends on that, because UNKNOWN must hide a surface exactly as ABSENT does."
+          "action": "fail-closed. 500 maps to UNKNOWN, never to []. capabilities-store.js:279-283 already refuses to turn a 500 into an empty array; depends on that, because UNKNOWN must hide a surface exactly as ABSENT does."
         }
       ],
       "retires": [],
       "notes": [
-        "[] is ReaPrime's own answer for a non-Bengle machine, not a failure and not a reason to guess from a model string (A3).",
-        "Wave 5.4: this array is what replaces the old skin's three `bengleOnly` settings leaves (settings.js:549 cupwarmer, :550 ledstrip, :572 calib_loadcell), each gated on isBengleModel(model) = String(model).toLowerCase().includes('bengle') (machine.js:18-20). That module's header says 'no capability endpoint the skin consults' — false at this pin, and the three capability names it needs (cupWarmer, ledStrip, scaleCalibration) are all in the served seven.",
-        "Wave 5.4: the mock has no fixture for this route and answers 503 by design, so against the mock `entries` stays null and every gate reads UNKNOWN. A screen that renders its machine pages anyway is a finding, not a nicety."
+        "[] is ReaPrime's own answer for a non-Bengle machine, not a failure and not a reason to guess from a model string.",
+        "this array is what replaces the previous skin's three `bengleOnly` settings leaves (the previous skin's module cupwarmer,:550 ledstrip,:572 calib_loadcell), each gated on isBengleModel(model) = String(model).toLowerCase().includes('bengle') (the previous skin's module). That module's header says 'no capability endpoint the skin consults' — false at this pin, and the three capability names it needs (cupWarmer, ledStrip, scaleCalibration) are all in the served seven.",
+        "the mock has no fixture for this route and answers 503 by design, so against the mock `entries` stays null and every gate reads UNKNOWN. A screen that renders its machine pages anyway is a finding, not a nicety."
       ]
     },
     {
@@ -719,8 +719,8 @@
         "CB-20"
       ],
       "notes": [
-        "CB-20: `enabled` is served. On/off is READ from it, never inferred from the setpoint.",
-        "CB-19: prewarm state is NOT here. It is GET /machine/cupWarmer/preheat, its own route."
+        "`enabled` is served. On/off is READ from it, never inferred from the setpoint.",
+        "prewarm state is NOT here. It is GET /machine/cupWarmer/preheat, its own route."
       ]
     },
     {
@@ -752,7 +752,7 @@
         "CB-19"
       ],
       "notes": [
-        "This route is the whole of CB-09: the old skin read and wrote pre-warm on /machine/cupWarmer, where it does not live, so the feature was dead in both directions."
+        "This route is the whole of: the previous skin read and wrote pre-warm on /machine/cupWarmer, where it does not live, so the feature was dead in both directions."
       ]
     },
     {
@@ -785,13 +785,13 @@
         },
         {
           "kind": "bundled-not-downloaded",
-          "meaning": "The catalog is ReaPrime's own bundle (`assets/firmware/de1/de1-*.bin` + `assets/firmware/manifest.json`). Nothing fetches from the internet.",
+          "meaning": "The catalog is ReaPrime's own bundle (`assets/firmware/de1/de1-*.bin` and its manifest). Nothing fetches from the internet.",
           "action": "Say 'the newest image this machine already carries', not 'check for updates'. There is no route that would download one."
         }
       ],
       "retires": [],
       "notes": [
-        "ADDED IN WAVE 5.8. D4 removed Decal's firmware surface entirely; Ben reversed it on 24 Aug 2026 — \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\""
+        "An earlier decision removed Decal's firmware surface entirely. It was reversed: the screen must let you pick a file AND offer a 'latest' button that pulls one."
       ]
     },
     {
@@ -809,7 +809,7 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled). Wave 5.1, live-capability-gates-ghc: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
+        "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled)., live-capability-gates-ghc: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
       ],
       "gates": [
         {
@@ -825,8 +825,8 @@
       ],
       "retires": [],
       "notes": [
-        "The capability store does not fetch it (one store, one route) — capabilities-store.applyMachineInfo takes the BODY from whoever owns that feed, and as of wave 5.1 that owner is src/stores/machine-info-store.js. The row was 'recorded' until then because nothing called it; the two fields this wave reads out of it (`GHC`, `extra.profileModeCaps`) and their handling are the gates below.",
-        "Neither adapters-r.js nor capabilities-store.js spells this path in code (test/capabilities-store.test.mjs asserts as much), so Gate D's COVERAGE half cannot see the dependency. That is why the row has to be added by hand — and why its absence was invisible.",
+        "The capability store does not fetch it (one store, one route) — capabilities-store.applyMachineInfo takes the BODY from whoever owns that feed, and as of that owner is src/stores/machine-info-store.js. The row was 'recorded' until then because nothing called it; the two fields this repo reads out of it (`GHC`, `extra.profileModeCaps`) and their handling are the gates below.",
+        "Neither adapters-r.js nor capabilities-store.js spells this path in code (test/capabilities-store.test.mjs asserts as much), so `gate-d`'s COVERAGE half cannot see the dependency. That is why the row has to be added by hand — and why its absence was invisible.",
         "THE 500 BODY IS KEYED `error`, NOT `e`, AND THIS ROW SAID `e` UNTIL 21 AUG. withDe1's generic catch is `jsonError({'error': e.toString(), 'st': st.toString()})` — the Dart catch VARIABLE is named `e` and the JSON key is not (de1handler.dart:513-514). The `{e, st}` spelling on getDevices IS literal (devices_handler.dart:210-211 writes `{'e': ..., 'st': ...}`), which is exactly how the wrong spelling arrived here: two handlers, two shapes, one of them copied. Do not re-unify them. No consumer reads either key today — machine-info-store.js reads the STATUS only — so the cost was entirely to the next caller built from this row, which is what a contract table is for."
       ]
     },
@@ -863,8 +863,8 @@
         "CB-16"
       ],
       "notes": [
-        "D7: these four ledStrip routes EXIST and work. Two passes of static analysis got this wrong in both directions; the real defect was a trailing-edge debounce in the skin and belongs to the LED component, not to this layer.",
-        "Wave 5.4 (D7): adopted. 404 is the feature gate and hides the Lighting leaf's controls; the 503 is hydration and is transient, so the store keeps them as two different statuses and smooths neither into the other."
+        "these four ledStrip routes EXIST and work. Two passes of static analysis got this wrong in both directions; the real defect was a trailing-edge debounce in the skin and belongs to the LED component, not to this layer.",
+        "adopted. 404 is the feature gate and hides the Lighting leaf's controls; the 503 is hydration and is transient, so the store keeps them as two different statuses and smooths neither into the other."
       ]
     },
     {
@@ -895,7 +895,7 @@
         "CB-15"
       ],
       "notes": [
-        "Wave 5.4 (D9): adopted. 404 hides the wizard; the wizard is ALSO gated on the served `scaleCalibration` capability (A3), so an unknown capability hides it before this route is ever called."
+        "adopted. 404 hides the wizard; the wizard is ALSO gated on the served `scaleCalibration` capability, so an unknown capability hides it before this route is ever called."
       ]
     },
     {
@@ -920,7 +920,7 @@
         {
           "kind": "no-etag-no-push",
           "meaning": "plain jsonOk, no jsonOkConditional, no socket carrying these values",
-          "action": "the 60 s TTL cache is the only economy available. Fresh entries only — never answer a failed request from an expired one (A7)."
+          "action": "the 60 s TTL cache is the only economy available. Fresh entries only — never answer a failed request from an expired one."
         }
       ],
       "retires": [],
@@ -980,12 +980,12 @@
         {
           "kind": "installed-is-not-running",
           "meaning": "`availablePlugins` is what is INSTALLED. `loaded` is what is RUNNING, and it is added per entry by this handler — a plugin can be present and not loaded, in which case its endpoints answer 404 'plugin with <id> not loaded'.",
-          "action": "Gate an affordance on `loaded === true`, never on the entry existing. The old skin does the same and says why: a link to a plugin that is not there is a dead affordance (profile_selector.js:1770-1775)."
+          "action": "Gate an affordance on `loaded === true`, never on the entry existing. The old skin does the same and says why: a link to a plugin that is not there is a dead affordance (the previous skin's module)."
         }
       ],
       "retires": [],
       "notes": [
-        "ADDED IN WAVE 5.8 for the profile generator's own gate. Ben asked for the three add-a-profile doors the old skin has; two of them live behind plugins, and this row is how the app finds out whether they are there."
+        "for the profile generator's own gate. the owner asked for the three add-a-profile doors the previous skin has; two of them live behind plugins, and this row is how the app finds out whether they are there."
       ]
     },
     {
@@ -1014,12 +1014,12 @@
         {
           "kind": "addressed-for-its-path",
           "meaning": "This app never FETCHES this route. The profile generator is a plugin UI a person leaves the app for, so what is taken from the table is the path — the row exists because a path is an address whether it is fetched or navigated to.",
-          "action": "Build it with `buildPath`, never by joining strings, and put the transport's own base in front of it. A link pointed at localhost sends the plugin's own upload to a different server than the skin lists from (the old skin's own note, profile_selector.js:1782-1786)."
+          "action": "Build it with `buildPath`, never by joining strings, and put the transport's own base in front of it. A link pointed at localhost sends the plugin's own upload to a different server than the skin lists from (the previous skin's own note, the previous skin's module)."
         }
       ],
       "retires": [],
       "notes": [
-        "ADDED IN WAVE 5.8 with the three add-a-profile doors. It is the same passthrough its POST twin is, and the endpoint it addresses (`ui`) is the plugin's page rather than an API."
+        "with the three add-a-profile doors. It is the same passthrough its POST twin is, and the endpoint it addresses (`ui`) is the plugin's page rather than an API."
       ]
     },
     {
@@ -1113,8 +1113,8 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES",
-        "src/lib/profile-rules.js readProfileListing (callRoute(transport, 'getProfiles', {query:{includeHidden:true}}) — wave 5.3, the five transcribed profileManager.js rules; rule 1 filters the answer)",
-        "src/stores/profile-library-store.js (readProfileListing via profile-rules.js — wave 5.3, the selector's core loop; the ETag/304 count is published in the store's `reads`)"
+        "src/lib/profile-rules.js readProfileListing (callRoute(transport, 'getProfiles', {query:{includeHidden:true}}) —, the five transcribed the previous skin's module rules; rule 1 filters the answer)",
+        "src/stores/profile-library-store.js (readProfileListing via profile-rules.js —, the selector's core loop; the ETag/304 count is published in the store's `reads`)"
       ],
       "gates": [
         {
@@ -1130,13 +1130,13 @@
         {
           "kind": "soft-delete-is-served",
           "meaning": "DELETE never removes a record: ProfileController.delete sets Visibility.deleted on a user profile and Visibility.hidden on an isDefault one (profile_controller.dart:247-264 — :246 is blank at the pin), and includeHidden=true serves both back",
-          "action": "filter `deleted` and `hidden` CLIENT-side or every soft-deleted profile and every superseded editor draft reappears on reload (profileManager.js:136-141, transcribed as rule 1). Keep the hidden bucket: it is what D6 restore-to-factory offers back."
+          "action": "filter `deleted` and `hidden` CLIENT-side or every soft-deleted profile and every superseded editor draft reappears on reload (the previous skin's module transcribed as rule 1). Keep the hidden bucket: it is what restore-to-factory offers back."
         }
       ],
       "retires": [],
       "notes": [
-        "ONE query form is addressed, `includeHidden=true`, and the filter is client-side. Two reasons, both structural: the recorded fixture set answers exactly that path (tools/mock_rea.py _resolve matches path+query and the endpoint fallback is deleted — A7, so a second query form is a 503 naming the path), and one read then serves the list, restore-to-factory and the editor's revert history instead of three.",
-        "MEASURED on tools/rea-fixtures/api__v1__profiles~includeHidden=true.json: 147 records, 78 visible / 69 hidden / 0 deleted. Pinned in test/profile-rules.test.mjs."
+        "ONE query form is addressed, `includeHidden=true`, and the filter is client-side. Two reasons, both structural: the recorded fixture set answers exactly that path (tools/mock_rea.py _resolve matches path+query and the endpoint fallback is deleted —, so a second query form is a 503 naming the path), and one read then serves the list, restore-to-factory and the editor's revert history instead of three.",
+        "MEASURED on the recorded profiles fixture: 147 records, 78 visible / 69 hidden / 0 deleted. Pinned in test/profile-rules.test.mjs."
       ]
     },
     {
@@ -1157,7 +1157,7 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-editor-store.js loadById (wave 5.5, contract-check-editor — the DEEP-LINK open, where the editor has an id and no listing in hand)"
+        "src/stores/profile-editor-store.js loadById (contract-check-editor — the DEEP-LINK open, where the editor has an id and no listing in hand)"
       ],
       "gates": [
         {
@@ -1168,7 +1168,7 @@
         {
           "kind": "whole-record-not-profile",
           "meaning": "`jsonOk(profile.toJson())` where `profile` is the ProfileRecord — the ten keys, with the authored Profile nested under `profile`",
-          "action": "read the draft off `record.profile`; `record` itself is what B11's parentId and the two hashes ride on."
+          "action": "read the draft off `record.profile`; `record` itself is what 's parentId and the two hashes ride on."
         },
         {
           "kind": "no-etag",
@@ -1179,7 +1179,7 @@
       "retires": [],
       "notes": [
         "THE EDITOR PREFERS NOT TO CALL IT. `open(record)` seats a record the caller already holds — the selector has the whole listing from `getProfiles` — and touches no route; re-reading a record somebody just handed over is a request nobody needed. `loadById` exists for the deep link, where `PLANNED_ROUTE_IDS` reserves `editor` and no listing is in hand.",
-        "OFFLINE GAP, recorded rather than fixed by inventing a recording: `tools/mock_rea.py` `_resolve` matches the EXACT path and its endpoint fallback is deleted (A7), so with no `api__v1__profiles~<id>.json` fixture this route answers 503 naming the path against the capture mock. The battery opens the editor through `open(record)`, which is also the app's ordinary path."
+        "OFFLINE GAP, recorded rather than fixed by inventing a recording: `tools/mock_rea.py` `_resolve` matches the EXACT path and its endpoint fallback is deleted, so with no `api__v1__profiles~<id>.json` fixture this route answers 503 naming the path against the capture mock. The battery opens the editor through `open(record)`, which is also the app's ordinary path."
       ]
     },
     {
@@ -1200,13 +1200,13 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-library-store.js versionsOf (wave 5.3, B11's entry point — Q7 puts it in the detail pane's overflow menu)"
+        "src/stores/profile-library-store.js versionsOf ( 's entry point — puts it in the detail pane's overflow menu)"
       ],
       "gates": [
         {
           "kind": "missing-id-is-500-not-404",
           "meaning": "ProfileController.getLineage CHECKS the id FIRST — `_storage.get(id)` returning null throws ArgumentError('Profile not found: $id') (profile_controller.dart:299-303) — and then ALWAYS adds the profile itself (:308), so the list it returns can never be empty. _handleGetLineage (profile_handler.dart:205-219) carries no `on ArgumentError` clause, so that throw falls into the generic catch and answers 500 (:215-217), not 404; the handler's `if (lineage.isEmpty)` 404 at :210-211 is unreachable in every case.",
-          "action": "NONE COMES FROM THE DATA, NOT FROM A STATUS: a lineage of length 1 is 'this profile has no other versions', because the one entry IS the profile. A 500 is a fault and stays a fault — it is also what a deleted or unknown id looks like, and the status alone cannot separate the two, so do not word a 500 here as 'not found' either. NEVER write a 404 branch for this route: nothing can take it, and a fallback for a status the handler cannot produce is the A7 defect. The reachable profile 404 is getProfilesById's."
+          "action": "NONE COMES FROM THE DATA, NOT FROM A STATUS: a lineage of length 1 is 'this profile has no other versions', because the one entry IS the profile. A 500 is a fault and stays a fault — it is also what a deleted or unknown id looks like, and the status alone cannot separate the two, so do not word a 500 here as 'not found' either. NEVER write a 404 branch for this route: nothing can take it, and a fallback for a status the handler cannot produce is the defect. The reachable profile 404 is getProfilesById's."
         },
         {
           "kind": "no-etag",
@@ -1216,10 +1216,10 @@
       ],
       "retires": [],
       "notes": [
-        "B11 (accepted): editing keeps the old version. ReaPrime already stores parentId and content hashes; this route is how the selector makes the previous version findable.",
-        "WAVE 5.5 ADDS NO SECOND CALLER, deliberately. The editor's B11 job is a SENTENCE, and the sentence's inputs — `parentId` plus the two hashes — ride on every ProfileRecord the editor already holds (the record it opened from, and the record a save returns). `profile-lineage.js` reads them and computes nothing. Q7 puts the versions ENTRY POINT on the selector's detail-pane overflow menu and wave 5.3 built it there; a second one in the editor would be the same surface twice with two states to keep in step. `test/editor-save-semantics.test.mjs` asserts the editor store's transport never sees `/lineage`.",
+        "(accepted): editing keeps the old version. ReaPrime already stores parentId and content hashes; this route is how the selector makes the previous version findable.",
+        "WAVE 5.5 ADDS NO SECOND CALLER, deliberately. The editor's job is a SENTENCE, and the sentence's inputs — `parentId` plus the two hashes — ride on every ProfileRecord the editor already holds (the record it opened from, and the record a save returns). `profile-lineage.js` reads them and computes nothing. puts the versions ENTRY POINT on the selector's detail-pane overflow menu and built it there; a second one in the editor would be the same surface twice with two states to keep in step. `test/editor-save-semantics.test.mjs` asserts the editor store's transport never sees `/lineage`.",
         "UPSTREAM ASK, RECORDED RATHER THAN WORKED AROUND (21 Aug): _handleGetLineage should carry `on ArgumentError catch (e) { return jsonNotFound(...); }` the way its siblings do. Four of them already map ArgumentError — _handleDelete (profile_handler.dart:170-171) and _handleRestoreDefault (:275-276) to 404, _handleUpdate (:154-155) and _handlePurge (:293-294) to 400 — and this one maps it to nothing, which is why a missing id reads as a server fault. The skin does NOT pre-check the id to manufacture the 404 upstream owes: that would be a second copy of the server's answer, and it would go stale the day the clause lands. Until then getProfilesById is the only route that can say 'no such profile'.",
-        "THE ROW SAID THE OPPOSITE UNTIL 21 AUG, in both directions: a 404 on an EMPTY lineage (unreachable) and no mention that a missing id is a 500. The consumer transcribed it — profile-library-store.js versionsOf carried a dead 404 -> NONE branch while the real missing-id 500 fell through to FAILED, so the one outcome that could not happen had a sentence and the one that could was logged as a fault. Text entered at 025811b (wave 5.3); retired here."
+        "THE ROW SAID THE OPPOSITE UNTIL 21 AUG, in both directions: a 404 on an EMPTY lineage (unreachable) and no mention that a missing id is a 500. The consumer transcribed it — profile-library-store.js versionsOf carried a dead 404 -> NONE branch while the real missing-id 500 fell through to FAILED, so the one outcome that could not happen had a sentence and the one that could was logged as a fault. Text entered at 025811b; retired here."
       ]
     },
     {
@@ -1243,14 +1243,14 @@
         {
           "kind": "spec-disagrees-with-handler",
           "meaning": "rest_v1.yml documents the item key as `name`; the handler emits `id`",
-          "action": "read `id`. Carried as generator exception sensors-list-key-is-id and going upstream; a spec-faithful client reads undefined and reports 'no estimator' on a machine that has one."
+          "action": "read `id`. Carried as generator exception sensors-list-key-is-id and going upstream; a document-faithful client reads undefined and reports 'no estimator' on a machine that has one."
         }
       ],
       "retires": [
         "CB-07"
       ],
       "notes": [
-        "`info.data` is DESCRIPTIVE. A channel the firmware has not observed is omitted from the frame regardless of what info advertises — validity is key-presence on the frame (Gate 2), never this list.",
+        "`info.data` is DESCRIPTIVE. A channel the firmware has not observed is omitted from the frame regardless of what info advertises — validity is key-presence on the frame (the data layer), never this list.",
         "The only discovery signal: bridge-registered sensors never appear on /ws/v1/devices, so presence is a poll, re-run on socket close (rea-sensors.js)."
       ]
     },
@@ -1317,7 +1317,7 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES + shotsListIsConditional",
-        "src/stores/shots-store.js readPage() — callRoute(transport,'getShots',{query:{limit,offset,order}}) (wave 5.6, hist-shot-list-derivation: the shots reader the retired `shots` helper was waiting for)"
+        "src/stores/shots-store.js readPage() — callRoute(transport,'getShots',{query:{limit,offset,order}}) (hist-shot-list-derivation: the shots reader the retired `shots` helper was waiting for)"
       ],
       "gates": [
         {
@@ -1328,7 +1328,7 @@
         {
           "kind": "silent-clamp-with-lying-echo",
           "meaning": "the query runs at `limit.clamp(1,100)` while the response body echoes the UNCLAMPED `limit` you asked for",
-          "action": "ask for at most 100. Never trust the echoed `limit`; page on `total` and `items.length`. Asking for 200 returns 100 items and reports `limit: 200` (CB-23)."
+          "action": "ask for at most 100. Never trust the echoed `limit`; page on `total` and `items.length`. Asking for 200 returns 100 items and reports `limit: 200`."
         },
         {
           "kind": "shape-switches-on-query",
@@ -1347,8 +1347,8 @@
         "CB-25"
       ],
       "notes": [
-        "CB-21: items, not shots. The old skin's numpad read `response.shots`, so its history chips were empty on every machine ever built, silently.",
-        "CB-25: items are toJsonWithoutMeasurements. Writing them into a store keyed by shot id OVERWRITES a full record with a meta-only one; the IDB mirror must merge, not put (Gate 4).",
+        "items, not shots. The old skin's numpad read `response.shots`, so its history chips were empty on every machine ever built, silently.",
+        "items are toJsonWithoutMeasurements. Writing them into a store keyed by shot id OVERWRITES a full record with a meta-only one; the IDB mirror must merge, not put (the data layer).",
         "`offset` is clamped 0..2^30 and echoed the same way as `limit`.",
         "The rea-routes.js `shots` helper was deleted in w0b's fix pass: it had zero consumers, and a wrapper with no caller is unverified surface. callRoute(transport,'getShots') is the spelling when a shots reader exists.",
         "WAVE 5.6 re-read _getShots at the pin while writing the first caller. Path, verb, query set and paginated response shape unchanged. Two things the row did not say and now does: the order-validation asymmetry above, and that the ids= branch SILENTLY SKIPS an id that does not resolve (`if (shot != null)` :70), so a short array cannot say which id was missing. History therefore takes two getShotsById calls rather than one batch — recorded as reversible, see the store header.",
@@ -1374,25 +1374,25 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS",
-        "src/stores/shots-store.js loadShot(id) — callRoute(transport,'getShotsById',{params:{id}}), memoised by id so one pick is one fetch and one gate-6 walk (wave 5.6, hist-shot-list-derivation)"
+        "src/stores/shots-store.js loadShot(id) — callRoute(transport,'getShotsById',{params:{id}}), memoised by id so one pick is one fetch and one gate-6 walk (hist-shot-list-derivation)"
       ],
       "gates": [
         {
           "kind": "not-conditional",
           "meaning": "plain jsonOk on the one route where a 304 would be worth the most",
-          "action": "this absence is the entire justification for keeping ONE IDB mirror of the latest shot (Part 3 §4)."
+          "action": "this absence is the entire justification for keeping ONE IDB mirror of the latest shot (the notes )."
         },
         {
           "kind": "the-expensive-read-is-the-picked-one",
           "meaning": "~221 KB per record, and the list has no duration or peak on it, so a list that wanted those numbers would call this once PER ROW",
-          "action": "Q17: never per row. shots-store.js calls it only for a shot a person picked, and test/shot-summary.test.mjs asserts the per-row fetch count is exactly 0 while twenty rows paint. ADDED BY WAVE 5.6's contract check."
+          "action": "never per row. shots-store.js calls it only for a shot a person picked, and test/shot-summary.test.mjs asserts the per-row fetch count is exactly 0 while twenty rows paint. ADDED BY WAVE 5.6's contract check."
         }
       ],
       "retires": [
         "CB-01"
       ],
       "notes": [
-        "CB-01: a stored shot recorded before this commit carries NO estimator data in any form — MachineSnapshot.fromJson reads TWELVE named keys (machine.dart:187-209 — the same twelve toJson writes, re-counted 21 Aug; the row and this note both said eleven, the twelve minus `timestamp`) and has no unknown-key bag, so anything else in a legacy blob was dropped the first time ReaPrime read the row. `sensors` absent on a stored shot means the channel is unavailable for that shot, PERMANENTLY. There is no legacy passthrough to fall back to and nothing to recompute.",
+        "a stored shot recorded before this commit carries NO estimator data in any form — MachineSnapshot.fromJson reads TWELVE named keys (machine.dart:187-209 — the same twelve toJson writes, re-counted 21 Aug; the row and this note both said eleven, the twelve minus `timestamp`) and has no unknown-key bag, so anything else in a legacy blob was dropped the first time ReaPrime read the row. `sensors` absent on a stored shot means the channel is unavailable for that shot, PERMANENTLY. There is no legacy passthrough to fall back to and nothing to recompute.",
         "The rea-routes.js `shot` helper was deleted in w0b's fix pass (zero consumers).",
         "WAVE 5.6 re-read _getShot at the pin while writing the first caller: `id = Uri.decodeComponent(id)` (:177) then a null check answering 404 (:181), then jsonOk(shot.toJson()) (:183). Unchanged. buildPath percent-encodes every path parameter, which is what that decode requires."
       ]
@@ -1448,14 +1448,14 @@
         {
           "kind": "null-is-the-answer",
           "meaning": "`jsonOk(shot?.toJsonWithoutMeasurements())` — a 200 carrying null",
-          "action": "null means 'no shot has ever been stored'. It is not a failure and it is never replaced with {} or a stand-in (A7)."
+          "action": "null means 'no shot has ever been stored'. It is not a failure and it is never replaced with {} or a stand-in."
         }
       ],
       "retires": [
         "CB-26"
       ],
       "notes": [
-        "Meta-only and cheap: this is the poll for 'has a new shot landed', after which ONE getShotsById fetches the record (CB-26 replaced a loop that re-listed six times per shot).",
+        "Meta-only and cheap: this is the poll for 'has a new shot landed', after which ONE getShotsById fetches the record ( replaced a loop that re-listed six times per shot).",
         "Plain jsonOk — no ETag.",
         "The rea-routes.js `latestShot` helper was deleted in w0b's fix pass (zero consumers).",
         "WAVE 5.6 re-read _getLatestShot at the pin and DELIBERATELY DID NOT CALL IT. History reads a PAGE with order=desc, so the newest shot is items[0] of a response it already holds; calling this as well would be a second request for a row in hand. The row stays `declared` — a route the client knows about and does not call — rather than being flipped on the strength of a nearby caller. test/history-contract.test.mjs asserts the shots store never reaches it."
@@ -1491,7 +1491,7 @@
         },
         {
           "kind": "upstream-defect-not-worked-around",
-          "meaning": "HiveStoreService.namespaces only reports boxes opened since boot, so an export can omit a namespace that exists on disk (CB-12)",
+          "meaning": "HiveStoreService.namespaces only reports boxes opened since boot, so an export can omit a namespace that exists on disk",
           "action": "ReaPrime-side. Not compensated for here."
         }
       ],
@@ -1523,14 +1523,14 @@
         {
           "kind": "settled-by-this-table",
           "meaning": "THIS ROUTE NEVER RETURNS 404. `jsonOk(await store.get(...))` is unconditional; a missing key is a 200 with null.",
-          "action": "absent == a null body. The `status === 404` branch rea-kv-backend.js inherited from the old client HAS BEEN DELETED (A7 — a fallback for a status the handler cannot produce): get() now throws on any non-ok status and maps a null body to undefined, and the comment standing where the branch was records why. The recorded one-line follow-up is DONE; this gate described the pre-deletion tree as current until 21 Aug. test/gate-d.test.mjs re-asserts that the handler still spells no jsonNotFound, so the day it grows one this gate fails rather than quietly outliving its evidence."
+          "action": "absent == a null body. The `status === 404` branch rea-kv-backend.js inherited from the old client HAS BEEN DELETED ( — a fallback for a status the handler cannot produce): get() now throws on any non-ok status and maps a null body to undefined, and the comment standing where the branch was records why. The recorded one-line follow-up is DONE; this gate described the pre-deletion tree as current until 21 Aug. test/gate-d.test.mjs re-asserts that the handler still spells no jsonNotFound, so the day it grows one this gate fails rather than quietly outliving its evidence."
         }
       ],
       "retires": [
         "CB-31"
       ],
       "notes": [
-        "CB-31: this route is the single home for a setting like the temperature unit. The old skin wrote it to localStorage AND IndexedDB; B7 gives one owner per setting, chosen by scope."
+        "this route is the single home for a setting like the temperature unit. The old skin wrote it to localStorage AND IndexedDB; gives one owner per setting, chosen by scope."
       ]
     },
     {
@@ -1558,14 +1558,14 @@
         },
         {
           "kind": "no-update-verdict-is-served",
-          "meaning": "a record carries `version` and `reaMetadata.lastChecked` (a timestamp) and NOTHING that says a newer version exists; Slate's 'Update available' badge comes from POST /api/v1/webui/skins/update, which is not adopted",
+          "meaning": "a record carries `version` and `reaMetadata.lastChecked` (a timestamp) and NOTHING that says a newer version exists; the previous skin's 'Update available' badge comes from POST /api/v1/webui/skins/update, which is not adopted",
           "action": "do not synthesise a badge. The leaf shows the version it has and says that starting a check is not built."
         }
       ],
       "retires": [],
       "notes": [
         "ADOPTED THIS WAVE (5.4). It was recorded (fixture api__v1__webui__skins.json) and handler-checked but unadopted; writing the consumer is what earns the row.",
-        "The four WRITE routes on this handler — PUT /webui/skins/default, POST /webui/skins/install/*, POST /webui/skins/update, DELETE /webui/skins/{id} — are deliberately NOT adopted. They change which skin the machine serves; that is not in wave 5.4's brief and D8 already owns the one sanctioned way out of the skin."
+        "The four WRITE routes on this handler — PUT /webui/skins/default, POST /webui/skins/install/*, POST /webui/skins/update, DELETE /webui/skins/{id} — are deliberately NOT adopted. They change which skin the machine serves; that is not in 's brief and already owns the one sanctioned way out of the skin."
       ]
     },
     {
@@ -1595,7 +1595,7 @@
       "retires": [],
       "notes": [
         "ADOPTED THIS WAVE (5.4), alongside getWebuiSkins.",
-        "settings-screen.js's D8 note offers this route as the alternative landing place for 'leave this skin'; that remains a deferred question and is not what adopts it here."
+        "settings-screen.js's note offers this route as the alternative landing place for 'leave this skin'; that remains a deferred question and is not what adopts it here."
       ]
     },
     {
@@ -1767,7 +1767,7 @@
       ],
       "retires": [],
       "notes": [
-        "Wave 5.3 gave it its first caller. The selector reads the report to resolve the loaded profile's id (R1) and NEVER reads the top-level `id` — see the ambiguous-identity gate.",
+        "gave it its first caller. The selector reads the report to resolve the loaded profile's id (R1) and NEVER reads the top-level `id` — see the ambiguous-identity gate.",
         "The PUT on the same path invalidates the DE1 settings caches; nothing in this build issues one."
       ]
     },
@@ -1807,7 +1807,7 @@
           "includeLogs": "bool",
           "includeSystemInfo": "bool",
           "timestamp": "string",
-          "$dropped": "screenshots — FeedbackRequest.fromJson never reads it, so it always takes the const [] default (CB-14, ReaPrime-side)"
+          "$dropped": "screenshots — FeedbackRequest.fromJson never reads it, so it always takes the const [] default (ReaPrime-side)"
         }
       },
       "responseShape": "201 FeedbackResult.toJson on success; 503 {error:'Service unavailable', message:'Feedback service is not configured…'}; 400 {error:'Missing required field'}; 500 on submit failure",
@@ -1822,11 +1822,11 @@
         {
           "kind": "503-is-feature-absent",
           "meaning": "the FIRST thing the handler does is `if (!_service.isConfigured) return 503` — a build without --dart-define=GITHUB_FEEDBACK_TOKEN cannot accept feedback at all",
-          "action": "HIDE THE FORM. A 503 here is 'this build has no feedback service', not a transient failure and never a retry. The route is registered, so a reachability check that only asks 'does the route exist' says yes and the form ships dead (CB-10)."
+          "action": "HIDE THE FORM. A 503 here is 'this build has no feedback service', not a transient failure and never a retry. The route is registered, so a reachability check that only asks 'does the route exist' says yes and the form ships dead."
         },
         {
           "kind": "upstream-defect-not-worked-around",
-          "meaning": "screenshots are dropped at fromJson, so the whole screenshot pipeline in FeedbackService is unreachable from any skin (CB-14)",
+          "meaning": "screenshots are dropped at fromJson, so the whole screenshot pipeline in FeedbackService is unreachable from any skin",
           "action": "ReaPrime-side. Do not build a screenshot capture against it."
         }
       ],
@@ -1870,7 +1870,7 @@
       ],
       "retires": [],
       "notes": [
-        "ADDED THIS WAVE (5.4, D9).",
+        "ADDED THIS WAVE (5.4).",
         "NO RANGE IS DECLARED ON EITHER SIDE — no min, no max, no step — so the settings row is UNBOUNDED and machine-limits.js gains no row for it. defaults.dart:120 resets it to 1.0, which is a default and not a bound."
       ]
     },
@@ -1897,7 +1897,7 @@
         {
           "kind": "ndjson-not-json",
           "meaning": "the body is a progress STREAM, not a document. The final frame is {status:'done', progress:1.0}.",
-          "action": "CB-17: read it line by line. Calling response.json() on it throws, which is why a SUCCESSFUL flash reported as a failure in the old skin. Cancelling the read cancels the upload server-side (progressController.onCancel)."
+          "action": "read it line by line. Calling response.json() on it throws, which is why a SUCCESSFUL flash reported as a failure in the previous skin. Cancelling the read cancels the upload server-side (progressController.onCancel)."
         },
         {
           "kind": "the-body-is-not-json",
@@ -1914,8 +1914,8 @@
         "CB-17"
       ],
       "notes": [
-        "Recorded with no caller so the first firmware screen cannot re-import the defect. Nothing in wave 0b flashes anything.",
-        "CONSUMED SINCE WAVE 5.8. The note above said \"Recorded with no caller so the first firmware screen cannot re-import the defect\" — this is that screen. Ben reversed D4 on 24 Aug 2026: \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\" CB-17 is retired by `rea-transport.js`'s `onLine`, which reads the stream a line at a time in the one place every request passes through."
+        "Recorded with no caller so the first firmware screen cannot re-import the defect. Nothing in flashes anything.",
+        "CONSUMED SINCE WAVE 5.8. The note above said \"Recorded with no caller so the first firmware screen cannot re-import the defect\" — this is that screen. the owner: \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\" is retired by `rea-transport.js`'s `onLine`, which reads the stream a line at a time in the one place every request passes through."
       ]
     },
     {
@@ -1939,7 +1939,7 @@
         {
           "kind": "force-is-never-sent",
           "meaning": "`force: true` flashes an artifact the validator called INAPPLICABLE. A wrong MODEL is refused even with force (`modelInvalid` is checked first), but a wrong build is not.",
-          "action": "Do not send it. A control labelled 'Latest' that quietly overrode the eligibility check is the exact shape of the thing D4 refused to build."
+          "action": "Do not send it. A control labelled 'Latest' that quietly overrode the eligibility check is the exact shape of the thing refused to build."
         },
         {
           "kind": "a-422-is-an-answer",
@@ -1949,7 +1949,7 @@
       ],
       "retires": [],
       "notes": [
-        "The 'latest' half of Ben's 24 Aug ask. The artifact id comes from getMachineFirmware's `recommendedArtifactId` and from nowhere else."
+        "The 'latest' half of the owner's 24 Aug ask. The artifact id comes from getMachineFirmware's `recommendedArtifactId` and from nowhere else."
       ]
     },
     {
@@ -1980,7 +1980,7 @@
         "CB-16"
       ],
       "notes": [
-        "Wave 5.4: adopted. The generated table declares a required JSON body; the handler takes `Request _` and reads none. The caller sends {} — satisfying the declared contract costs nothing and does not depend on the handler staying lenient."
+        "adopted. The generated table declares a required JSON body; the handler takes `Request _` and reads none. The caller sends {} — satisfying the declared contract costs nothing and does not depend on the handler staying lenient."
       ]
     },
     {
@@ -2012,7 +2012,7 @@
       ],
       "notes": [
         "Reset RETURNS the new state — the client never has to re-GET to find out what it now is.",
-        "Wave 5.4: adopted. The reply IS the new state, so reset() never re-GETs."
+        "adopted. The reply IS the new state, so reset() never re-GETs."
       ]
     },
     {
@@ -2033,14 +2033,14 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileArmBody + profileRefusal (bodies and refusal reading)",
-        "src/stores/profile-arm-store.js (callRoute(transport, 'postMachineProfile') — wave 5.1, live-refusal-surface: the call the row was waiting for, and B9's v1 half)",
-        "src/stores/profile-library-store.js arm() -> profile-arm-store.arm(profile,{profileId}) (wave 5.3, sel-core-loop confirm + sel-refusal-surfacing: B9's END-TO-END trigger, which had no caller in src/ until this wave)"
+        "src/stores/profile-arm-store.js (callRoute(transport, 'postMachineProfile') —, live-refusal-surface: the call the row was waiting for, and 's v1 half)",
+        "src/stores/profile-library-store.js arm() -> profile-arm-store.arm(profile,{profileId}) (sel-core-loop confirm + sel-refusal-surfacing: 's END-TO-END trigger, which had no caller in src/ until this repo)"
       ],
       "gates": [
         {
           "kind": "arm-time-refusal",
           "meaning": "setProfile is called OUTSIDE runDeviceWrite specifically so a ProfileModeUnsupportedException maps to a clean 400 instead of the catch-all 500; the machine cannot run a Power or Lever step, or a HOLD transition",
-          "action": "B9 — SEND the profile and surface the server's `message` verbatim. Never pre-strip a step to avoid the refusal: a silently altered profile is the worst failure shape in the register, because the shot looks like it followed the profile and did not."
+          "action": "— SEND the profile and surface the server's `message` verbatim. Never pre-strip a step to avoid the refusal: a silently altered profile is the worst failure shape in the register, because the shot looks like it followed the profile and did not."
         },
         {
           "kind": "shape-asymmetry",
@@ -2051,7 +2051,7 @@
       "retires": [],
       "notes": [
         "Any other StateError escaping setProfile stays a 500 by design — a 400 here always means the machine refused, never that ReaPrime broke.",
-        "REACHABILITY IN v1, said on the row itself: the END-TO-END TRIGGER LANDED IN WAVE 5.3. `consumed` was true by the letter before it — profile-arm-store.js calls this route — and nothing under src/ called `arm()`, so the shipping app could not reach it. profile-library-store.js `arm()` now does, in one line (`arm.arm(record.profile, {profileId})`), so picking a profile in the selector and pressing Confirm reaches this route and a typed 400 renders at the point of picking (B9). It is the ONLY caller in src/: the profile BODY belongs to the store that owns the listing, and a second call site would be a second sanitiser (see the shape-asymmetry gate). Pinned by \"B9's trigger\" in test/live-connection-gates.test.mjs, which walks src/ and fails if that caller disappears or a second one appears — the previous spelling enumerated five files by hand and went on passing when the trigger arrived in a sixth. STILL NOT A TRIGGER: <live-screen> dispatches `favourite-select` with no listener and `favourites` is never populated, so B9 is reachable from the selector, not from Live."
+        "REACHABILITY IN v1, said on the row itself: the END-TO-END TRIGGER LANDED IN WAVE 5.3. `consumed` was true by the letter before it — profile-arm-store.js calls this route — and nothing under src/ called `arm()`, so the shipping app could not reach it. profile-library-store.js `arm()` now does, in one line (`arm.arm(record.profile, {profileId})`), so picking a profile in the selector and pressing Confirm reaches this route and a typed 400 renders at the point of picking. It is the ONLY caller in src/: the profile BODY belongs to the store that owns the listing, and a second call site would be a second sanitiser (see the shape-asymmetry gate). Pinned by \" 's trigger\" in test/live-connection-gates.test.mjs, which walks src/ and fails if that caller disappears or a second one appears — the previous spelling enumerated five files by hand and went on passing when the trigger arrived in a sixth. STILL NOT A TRIGGER: <live-screen> dispatches `favourite-select` with no listener and `favourites` is never populated, so is reachable from the selector, not from Live."
       ]
     },
     {
@@ -2187,7 +2187,7 @@
         {
           "kind": "the-status-is-the-plugins",
           "meaning": "This route is a passthrough. Every status above 403 is the PLUGIN's, not ReaPrime's, so the same status means different things behind different plugins.",
-          "action": "Read the status against the PLUGIN's contract, named at the call site. `importShareCode` reads 401 as 'not signed in to Visualizer' and everything else as 'that code did not work' — which is the visualizer plugin's own pair (plugin.js:1364, `error.message.includes('credentials') ? 401 : 400`), not a general rule about this route."
+          "action": "Read the status against the PLUGIN's contract, named at the call site. `importShareCode` reads 401 as 'not signed in to Visualizer' and everything else as 'that code did not work' — which is the visualizer plugin's own pair (the previous skin's module `error.message.includes('credentials') ? 401 : 400`), not a general rule about this route."
         },
         {
           "kind": "a-404-may-mean-not-installed",
@@ -2197,7 +2197,7 @@
       ],
       "retires": [],
       "notes": [
-        "ADDED IN WAVE 5.8. The share-code import is the Visualizer plugin's feature and ReaPrime's own profile routes know nothing about it; this passthrough is where it lives, and the old skin calls the same endpoint with the same body (profile_selector.js handleShareCodeImport)."
+        "The share-code import is the Visualizer plugin's feature and ReaPrime's own profile routes know nothing about it; this passthrough is where it lives, and the previous skin calls the same endpoint with the same body (the previous skin's module handleShareCodeImport)."
       ]
     },
     {
@@ -2357,7 +2357,7 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileCreateBody",
-        "src/stores/profile-editor-store.js saveAsNewVersion (wave 5.5, save-semantics/profile-versions — B11's path: POST with parentId set to the record the editor opened from)"
+        "src/stores/profile-editor-store.js saveAsNewVersion (save-semantics/profile-versions — 's path: POST with parentId set to the record the editor opened from)"
       ],
       "gates": [
         {
@@ -2373,18 +2373,18 @@
         {
           "kind": "content-addressed-idempotent-create",
           "meaning": "`create` computes the record id from the profile, calls `_storage.get(record.id)`, and RETURNS THE EXISTING RECORD when one is stored — without storing anything and WITHOUT applying the `parentId` that was sent. `_handleCreate` answers `jsonCreated` either way",
-          "action": "A 201 DOES NOT MEAN CREATED, and the returned record's parentId may not be the one you sent. B10: report the record, and answer 'was anything stored?' with null rather than reading it off the status code. `editor-commit.js saveReportFrom` returns `stored: null` for exactly this."
+          "action": "A 201 DOES NOT MEAN CREATED, and the returned record's parentId may not be the one you sent.: report the record, and answer 'was anything stored?' with null rather than reading it off the status code. `editor-commit.js saveReportFrom` returns `stored: null` for exactly this."
         },
         {
           "kind": "id-covers-content-only",
           "meaning": "the record id is `ProfileHash.calculateProfileHash`, whose input set is version, beverage_type, steps, tank_temperature, target_weight, target_volume, target_volume_count_start. Title, author and notes are in `metadataHash` instead",
-          "action": "recorded as a FACT about the server, never transcribed into the client — duplicating this split is the B10 defect. The consequence a caller must know: a POST whose only change is a title resolves to the SAME id and therefore to the existing-record branch above, so the new title is not stored. A label edit belongs on putProfilesById. Which of the two a given save is, is R8's to say."
+          "action": "recorded as a FACT about the server, never transcribed into the client — duplicating this split is the defect. The consequence a caller must know: a POST whose only change is a title resolves to the SAME id and therefore to the existing-record branch above, so the new title is not stored. A label edit belongs on putProfilesById. Which of the two a given save is, is R8's to say."
         }
       ],
       "retires": [],
       "notes": [
         "R8 is the open upstream ask here: the server already knows whether an edit was a content change or a label change, and the skin should stop predicting it. `ProfileRecord` carries no outcome field at the pin — the ten keys are id, profile, metadataHash, compoundHash, parentId, visibility, isDefault, createdAt, updatedAt, metadata — so the editor reports the record and names the absence (`outcomeSource: 'absent'`). The reader is injected, so R8's richer body lands as one function with no second code path.",
-        "B11 IS SERVED BY THIS ROUTE AND NOT BY PUT. `create` stores a NEW record whose parentId is the old id and leaves the previous record untouched, which is the whole of 'editing keeps the old version'. `ProfileController.update` does the opposite when the hash moves — see the `hash-change-deletes-the-old-record` gate on putProfilesById."
+        "IS SERVED BY THIS ROUTE AND NOT BY PUT. `create` stores a NEW record whose parentId is the old id and leaves the previous record untouched, which is the whole of 'editing keeps the old version'. `ProfileController.update` does the opposite when the hash moves — see the `hash-change-deletes-the-old-record` gate on putProfilesById."
       ]
     },
     {
@@ -2405,7 +2405,7 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-library-store.js restoreToFactory (wave 5.3, D6 first half)"
+        "src/stores/profile-library-store.js restoreToFactory ( first half)"
       ],
       "gates": [
         {
@@ -2416,7 +2416,7 @@
         {
           "kind": "restore-is-two-branches",
           "meaning": "ProfileController.restoreDefault (profile_controller.dart:390-421) builds ProfileRecord.create from the bundle, then: if a record with that id ALREADY EXISTS it does NOT rewrite it — it stores existing.copyWith(visibility: Visibility.visible) and returns that; only an ABSENT id causes the bundled content to be stored",
-          "action": "D6 offers ONE action because the server has one: un-hide the factory record where it survives, re-create it where it does not. A user's edit of a bundled profile is a DIFFERENT record with a different id and is untouched — the confirm dialog must not say otherwise."
+          "action": "offers ONE action because the server has one: un-hide the factory record where it survives, re-create it where it does not. A user's edit of a bundled profile is a DIFFERENT record with a different id and is untouched — the confirm dialog must not say otherwise."
         },
         {
           "kind": "not-synthesizable-by-the-mock",
@@ -2426,7 +2426,7 @@
       ],
       "retires": [],
       "notes": [
-        "D6's SECOND half — purging deleted profiles — is deferred (Part 1 deferred table) and has no caller; see the deleteProfilesByIdPurge row."
+        "'s SECOND half — purging deleted profiles — is deferred (the notes deferred table) and has no caller; see the deleteProfilesByIdPurge row."
       ]
     },
     {
@@ -2498,7 +2498,7 @@
       "retires": [],
       "notes": [
         "'Opaque passthrough' holds in the read direction only. The write direction has this one hole and it is in the handler, not in us.",
-        "Wave 5.4 re-read this handler at the pin for the settings contract check and confirms path, verb, body and response shape unchanged. Two spec-vs-handler divergences stand and the handler wins: rea-routes.generated.js:2579-2583 declares this route `statuses:['204'], successStatus:'204', json:false`, but the handler returns jsonOk({}) — 200 with a JSON body. The generated GET-by-key and DELETE rows likewise declare a 404 the handler has no path to spell."
+        "re-read this handler at the pin for the settings contract check and confirms path, verb, body and response shape unchanged. Two document-vs-handler divergences stand and the handler wins: rea-routes.generated.js:2579-2583 declares this route `statuses:['204'], successStatus:'204', json:false`, but the handler returns jsonOk({}) — 200 with a JSON body. The generated GET-by-key and DELETE rows likewise declare a 404 the handler has no path to spell."
       ]
     },
     {
@@ -2527,7 +2527,7 @@
         {
           "kind": "outcome-in-status",
           "meaning": "every outcome is a definite HTTP status carrying the same body shape",
-          "action": "read the outcome from the status, never infer a connect result from a later socket state change (B8)."
+          "action": "read the outcome from the status, never infer a connect result from a later socket state change."
         }
       ],
       "retires": [],
@@ -2621,7 +2621,7 @@
         {
           "kind": "implicit-enable",
           "meaning": "when `temperature` is sent and `enabled` is NOT, the handler calls setCupWarmerEnabled(true)",
-          "action": "turning the warmer off is {enabled:false} — never {temperature:0}, which ENABLES the warmer at a 0 C setpoint (CB-27)."
+          "action": "turning the warmer off is {enabled:false} — never {temperature:0}, which ENABLES the warmer at a 0 C setpoint."
         },
         {
           "kind": "404-is-feature-absent",
@@ -2634,8 +2634,8 @@
         "CB-27"
       ],
       "notes": [
-        "CB-18: prewarm fields are REJECTED here — a body carrying only {prewarmEnabled, prewarmLeadMinutes} has neither `temperature` nor `enabled` and is a 400.",
-        "The 400s are the server's to make (B9): send the body and surface the refusal; do not pre-validate a second copy of the range."
+        "prewarm fields are REJECTED here — a body carrying only {prewarmEnabled, prewarmLeadMinutes} has neither `temperature` nor `enabled` and is a 400.",
+        "The 400s are the server's to make: send the body and surface the refusal; do not pre-validate a second copy of the range."
       ]
     },
     {
@@ -2693,13 +2693,13 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/led-strip-store.js preview() — D7's decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
+        "src/stores/led-strip-store.js preview() — 's decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
       ],
       "gates": [
         {
           "kind": "live-not-persisted",
           "meaning": "PUT pushes live and does not write NVM; commit persists; reset reloads NVM",
-          "action": "the live-preview path is this route, at whatever rate the write chain sustains — latest-wins on an idle chain, never a trailing-edge timer (D7)."
+          "action": "the live-preview path is this route, at whatever rate the write chain sustains — latest-wins on an idle chain, never a trailing-edge timer."
         },
         {
           "kind": "404-is-feature-absent",
@@ -2712,7 +2712,7 @@
       ],
       "notes": [
         "POST /machine/ledStrip/preview and .../preview/clear DO NOT EXIST at this commit and are excluded (EXCLUDED.md); adding them is an upstream ask, not skin work.",
-        "Wave 5.4 (D7): adopted. Re-verified at the pin on the day the caller was written — POST /machine/ledStrip/preview and .../preview/clear still do not exist anywhere in lib/ (0 hits against 30 for ledStrip), so Q5 is answered with the existing PUT and zero upstream work."
+        "adopted. Re-verified at the pin on the day the caller was written — POST /machine/ledStrip/preview and.../preview/clear still do not exist anywhere in lib/ (0 hits against 30 for ledStrip), so is answered with the existing PUT and zero upstream work."
       ]
     },
     {
@@ -2751,9 +2751,10 @@
         "CB-15"
       ],
       "notes": [
-        "CB-15, the five-way mismatch and the reason this table exists: the old skin POSTed /machine/scale/calibrate with {command: zero|left|right, grams} and read a flat reply. Wrong path, wrong verb, wrong command vocabulary, wrong body key, wrong response shape — five independent errors in one wizard a user can press, and the path has NEVER existed in ReaPrime's history.",
-        "F3/Q1 (calibration RESET semantics) is blocked on Ben: no work of any kind, and nothing here implies one.",
-        "Wave 5.4 (D9): adopted. The 409's state is absorbed exactly as the 202's is — a refusal describes the machine and moves the wizard. F3/Q1 remains untouched: the three commands sent are abort, zero and latch, which are the three the handler declares."
+        "the five-way mismatch and the reason this table exists: the previous skin POSTed /machine/scale/calibrate with {command: zero|left|right, grams} and read a flat reply. Wrong path, wrong verb, wrong command vocabulary, wrong body key, wrong response shape — five independent errors in one wizard a user can press, and the path has NEVER existed in ReaPrime's history.",
+        "F3/ (calibration RESET semantics) is blocked on the owner: no work of any kind, and nothing here implies one.",
+        "adopted. The 409's state is absorbed exactly as the 202's is — a refusal describes the machine and moves the wizard. F3/ remains untouched: the three commands sent are abort, zero and latch, which are the three the handler declares.",
+        "the handler is not the narrowest check. It accepts 1..10000 g, but the machine rejects anything outside 50..2000 g, so a value this route returns 200 for can still fail. machine-limits.js `calibrationWeight` offers the intersection, 50..2000, and is deliberately narrower than this row. Do not widen it to match this validation."
       ]
     },
     {
@@ -2771,7 +2772,7 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). Ben, 23 Aug 2026: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
+        "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). the owner,: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
       ],
       "gates": [
         {
@@ -2787,7 +2788,7 @@
       ],
       "retires": [],
       "notes": [
-        "The route has been in the generated table since wave 2 with no caller at all: the app could read that the machine was asleep and had no way to wake it, which is why <ui-screensaver> (#57) was written, tested and mounted nowhere.",
+        "The route has been in the generated table since with no caller at all: the app could read that the machine was asleep and had no way to wake it, which is why <ui-screensaver> (#57) was written, tested and mounted nowhere.",
         "ONLY `idle` IS SENT TODAY. Sleeping the machine from the skin, and every other state, is a separate surface; this row is consumed by the wake alone."
       ]
     },
@@ -2827,7 +2828,7 @@
       ],
       "retires": [],
       "notes": [
-        "The low-water alert height in millimetres. Slate's own band is 0-30 in steps of 5 (settings.js:4661-4663), carried in machine-limits.js as waterAlertLevel."
+        "The low-water alert height in millimetres. the previous skin's own band is 0-30 in steps of 5 (the previous skin's module), carried in machine-limits.js as waterAlertLevel."
       ]
     },
     {
@@ -2861,7 +2862,7 @@
         {
           "kind": "presence-is-the-signal",
           "meaning": "`if (json.containsKey('keepAwakeFor'))` — the handler only clears when the key is THERE carrying 0 or null. Omitting it keeps the old value.",
-          "action": "CB-22: send keepAwakeFor EXPLICITLY as 0 (or null) to clear it. A body builder that drops falsy values makes the duration unclearable for ever, which is exactly what the old skin did."
+          "action": "send keepAwakeFor EXPLICITLY as 0 (or null) to clear it. A body builder that drops falsy values makes the duration unclearable for ever, which is exactly what the previous skin did."
         }
       ],
       "retires": [
@@ -2893,7 +2894,7 @@
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileUpdateBody",
-        "src/lib/profile-rules.js createMetadataWriteChain().mutate (callRoute(transport, 'putProfilesById') — wave 5.3, transcribed rule 3: metadata writes serialize through one chain)",
+        "src/lib/profile-rules.js createMetadataWriteChain().mutate (callRoute(transport, 'putProfilesById') —, transcribed rule 3: metadata writes serialize through one chain)",
         "src/stores/profile-editor-store.js saveMetadata (metadata-only, id-stable — the editor's label path) and saveInPlace (carries `profile`; see the hash-change gate)"
       ],
       "gates": [
@@ -2905,7 +2906,7 @@
         {
           "kind": "wholesale-metadata",
           "meaning": "ProfileController.update calls existing.copyWith(metadata: metadata) and ProfileRecord.copyWith ends `metadata: metadata ?? this.metadata` (profile_record.dart) — a supplied map REPLACES the stored one entirely and there is no server-side merge",
-          "action": "serialize read-modify-write through one chain per record (profileManager.js:306-332, transcribed rule 3), or two writers read the same base and the last PUT to resolve silently drops the other's values. `metadata: null` does NOT clear — the Dart `??` keeps the stored map; the spelling for clear is `{}`."
+          "action": "serialize read-modify-write through one chain per record (the previous skin's module transcribed rule 3), or two writers read the same base and the last PUT to resolve silently drops the other's values. `metadata: null` does NOT clear — the Dart `??` keeps the stored map; the spelling for clear is `{}`."
         },
         {
           "kind": "id-stable-on-metadata",
@@ -2920,13 +2921,13 @@
         {
           "kind": "hash-change-deletes-the-old-record",
           "meaning": "`ProfileController.update` compares `updated.id != existing.id` and, when it moved, runs `_storage.delete(existing.id)` and then `_storage.store(updated)`. Its own log line reads 'Profile hash changed from X to Y. This creates a new profile. Consider using parentId for versioning.'",
-          "action": "B11 — A CONTENT EDIT PUSHED THROUGH PUT DOES NOT KEEP THE OLD VERSION; it destroys it, and no lineage entry is created. The path that keeps it is POST /profiles with parentId. `profile-lineage.js versionKeptBy()` answers NOT_LINKED for this case so the editor cannot word a keep it did not get. The id-stable gate above states the same mechanism from the metadata side; this states what it costs."
+          "action": "— A CONTENT EDIT PUSHED THROUGH PUT DOES NOT KEEP THE OLD VERSION; it destroys it, and no lineage entry is created. The path that keeps it is POST /profiles with parentId. `profile-lineage.js versionKeptBy()` answers NOT_LINKED for this case so the editor cannot word a keep it did not get. The id-stable gate above states the same mechanism from the metadata side; this states what it costs."
         }
       ],
       "retires": [],
       "notes": [
-        "The four gates were re-read at the pin while rule 3 was written, not after (DECISIONS.md:144-157). test/profile-rules.test.mjs asserts the handler text for `wholesale-metadata` and `default-content-locked`.",
-        "The fifth gate was read at the same pin during wave 5.5's contract check, in `lib/src/controllers/profile_controller.dart` `update` — the delete/store branch is in the controller, not in the handler, which is why a reader who stops at `_handleUpdate` sees only a 200 and concludes the previous version survives."
+        "The four gates were re-read at the pin while rule 3 was written, not after (the previous skin's module). test/profile-rules.test.mjs asserts the handler text for `wholesale-metadata` and `default-content-locked`.",
+        "The fifth gate was read at the same pin during 's contract check, in `lib/src/controllers/profile_controller.dart` `update` — the delete/store branch is in the controller, not in the handler, which is why a reader who stops at `_handleUpdate` sees only a 200 and concludes the previous version survives."
       ]
     },
     {
@@ -2944,19 +2945,19 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). Ben, 23 Aug 2026: \"with slate, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
+        "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). the owner,: \"with the previous skin, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
       ],
       "gates": [
         {
           "kind": "a-200-is-not-a-tare",
           "meaning": "TWO refusals sit behind this route and only one of them answers. ReaPrime refuses with a 400 carrying type:'block_tare_during_shot' — visible, and reported as a refusal. The FIRMWARE also refuses, silently: doLCTare() returns early while a shot runs, because a mid-pour re-zero moves the mass reference under the running shot and stop-at-weight would over-deliver. The MMR write still succeeds, so a 200 says nothing about whether the scale actually tared.",
-          "action": "Confirm by watching the weight settle near zero, which is what reaprime's own integrated_scale_capability doc advises: 'a tare must be confirmed by watching the weight, not the flag'. On timeout, name the likely cause rather than reporting a bare failure. Slate learned this the same way (f813dea) — it had been toasting 'Scale tared' over a refusal."
+          "action": "Confirm by watching the weight settle near zero, which is what reaprime's own integrated_scale_capability doc advises: 'a tare must be confirmed by watching the weight, not the flag'. On timeout, name the likely cause rather than reporting a bare failure. the previous skin learned this the same way (f813dea) — it had been toasting 'Scale tared' over a refusal."
         }
       ],
       "retires": [],
       "notes": [
-        "The write half of the scale surface. Decal had never called it: the route sits in the generated table and nothing addressed it, so Gate D never asked for a row.",
-        "THE DART REGISTERS `PUT /api/v1/scale/<command>` AND SWITCHES ON THE COMMAND, while the OpenAPI table enumerates the concrete `/scale/tare`. The row carries the concrete path because the generated table is what the client addresses; Gate D's source half resolves the parameterised parent and then requires the handler to name this command — see its own note on the fallback."
+        "The write half of the scale surface. Decal had never called it: the route sits in the generated table and nothing addressed it, so `gate-d` never asked for a row.",
+        "THE DART REGISTERS `PUT /api/v1/scale/<command>` AND SWITCHES ON THE COMMAND, while the OpenAPI table enumerates the concrete `/scale/tare`. The row carries the concrete path because the generated table is what the client addresses; `gate-d`'s source half resolves the parameterised parent and then requires the handler to name this command — see its own note on the fallback."
       ]
     },
     {
@@ -2982,8 +2983,8 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/shots-store.js setEnjoyment(id, value) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{enjoyment}}}) (wave 5.6, hist-b5-scalars-q17)",
-        "src/stores/shots-store.js setNotes(id, text) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{espressoNotes}}}) (fix campaign round 2, Ben's decision D14: the Live shot-notes sheet gained its writing half). Obeys this row's legacy-aliases-rewritten-on-every-put gate: the annotation is written and the top-level shotNotes never is."
+        "src/stores/shots-store.js setEnjoyment(id, value) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{enjoyment}}}) (hist-b5-scalars-q17)",
+        "src/stores/shots-store.js setNotes(id, text) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{espressoNotes}}}) (fix campaign round 2, the owner's decision: the Live shot-notes sheet gained its writing half). Obeys this row's legacy-aliases-rewritten-on-every-put gate: the annotation is written and the top-level shotNotes never is."
       ],
       "gates": [
         {
@@ -3016,9 +3017,9 @@
         "CB-11"
       ],
       "notes": [
-        "ADDED BY WAVE 5.6's contract check. The route had NO ROW at all while three GET rows for the same handler did — the gap the check exists to find, and the same shape as wave 5.4's postMachineShotSettings finding. putShotsById had zero consumers anywhere under src/ or test/ before this wave.",
-        "CB-11 is the neighbouring hazard and is NOT this route's: deleting a shot does not cascade to its KV rating key. `enjoyment` moving to ReaPrime's own column is what makes that bug unreachable for new ratings — a rating on the record is deleted with the record.",
-        "deleteShotsById is registered at :31 and is NOT rowed here: no caller, no declaration, and no handler-body gate attaches to it from this wave. A row for a route nothing addresses would be inventing surface (rowRule)."
+        "ADDED BY WAVE 5.6's contract check. The route had NO ROW at all while three GET rows for the same handler did — the gap the check exists to find, and the same shape as 's postMachineShotSettings finding. putShotsById had zero consumers anywhere under src/ or test/ before this repo.",
+        "is the neighbouring hazard and is NOT this route's: deleting a shot does not cascade to its KV rating key. `enjoyment` moving to ReaPrime's own column is what makes that bug unreachable for new ratings — a rating on the record is deleted with the record.",
+        "deleteShotsById is registered at :31 and is NOT rowed here: no caller, no declaration, and no handler-body gate attaches to it from this repo. A row for a route nothing addresses would be inventing surface (rowRule)."
       ]
     },
     {
@@ -3040,7 +3041,7 @@
       "consumedBy": [
         "src/data/rea-profile.js profileUpdateBody/sanitizeProfileForRea (the arm-by-workflow path)",
         "src/data/rea-de1-settings.js DE1_SETTINGS_INVALIDATING_WRITES — a successful write here invalidates both DE1 settings caches",
-        "src/stores/workflow-store.js setTarget — the Live rail writes one target back through it (DQ-707: the rail’s ten values live on the workflow, not /machine/settings)"
+        "src/stores/workflow-store.js setTarget — the Live rail writes one target back through it (: the rail’s ten values live on the workflow, not /machine/settings)"
       ],
       "gates": [
         {
@@ -3051,12 +3052,12 @@
         {
           "kind": "no-hang",
           "meaning": "ArgumentError and FormatException both answer 400, with a 30 s queue timeout answering 503 behind them",
-          "action": "the old inline sanitizer's fear of a hang on a bad profile is fixed upstream. A workaround for a fixed server bug is a fallback path with a long fuse (A7) and does not come along."
+          "action": "the old inline sanitizer's fear of a hang on a bad profile is fixed upstream. A workaround for a fixed server bug is a fallback path with a long fuse and does not come along."
         }
       ],
       "retires": [],
       "notes": [
-        "The read half is GET /api/v1/workflow (WorkflowHandler._getWorkflow, plain jsonOk of Workflow.toJson) AND IT IS A ROW — `getWorkflow`, status consumed, carrying the ambiguous-identity gate that keeps R1 off the top-level `id`. This note claimed the opposite until 21 Aug: it was written before wave 5.3 gave the read half its first caller and its gate, and the rowRule it invoked is now satisfied by exactly that gate. Read the two rows together; neither is the other's note.",
+        "The read half is GET /api/v1/workflow (WorkflowHandler._getWorkflow, plain jsonOk of Workflow.toJson) AND IT IS A ROW — `getWorkflow`, status consumed, carrying the ambiguous-identity gate that keeps R1 off the top-level `id`. This note claimed the opposite until 21 Aug: it was written before gave the read half its first caller and its gate, and the rowRule it invoked is now satisfied by exactly that gate. Read the two rows together; neither is the other's note.",
         "A WRITE HERE CHANGES FIVE OF THE NINE VALUES GET /machine/settings RETURNS. _applyUpdate calls De1Controller.updateWorkflowSettings, which dispatches _writeFlushSettings (setFlushTimeout/setFlushFlow/setFlushTemperature), _writeSteamSettings (setSteamFlow) and _writeHotWaterSettings (setHotWaterFlow). Missing that is how the 60 s de1SettingsCache would have reproduced the staleness defect reatsettingscache was deleted for.",
         "FIRST REAL CALLER, 21 Aug: the Live rail. `<live-screen>` declared `targets` and nothing ever set them, so every stepper, every preset cell and the keypad’s Confirm rendered DISABLED on any machine — and the one handler that writes `targets` sat behind those very controls. `workflow-store.js` reads the document for the values and writes ONE BLOCK back per press, which is what the $merge body above is for: sending the whole document would make every rail press a rewrite of the profile and both other blocks, so two presses a second apart would each undo the other."
       ]
@@ -3076,13 +3077,13 @@
       "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/app-info-store.js (callRoute(transport, 'getInfo') — the path is read out of the generated table, not spelled). Adopted 27 August 2026: the route had sat in the generated table with NO caller anywhere in src/, while Updates › Skin / App promised an 'App' half it did not have and Send Feedback told the user it appends an app version the skin could not show."
+        "src/stores/app-info-store.js (callRoute(transport, 'getInfo') — the path is read out of the generated table, not spelled). Adopted: the route had sat in the generated table with NO caller anywhere in src/, while Updates › Skin / App promised an 'App' half it did not have and Send Feedback told the user it appends an app version the skin could not show."
       ],
       "gates": [
         {
           "kind": "sentinel-is-absence",
           "meaning": "build_info.dart is nine String.fromEnvironment reads with DEFAULTS: commit, commitShort, branch and buildTime default to the literal string 'unknown', version to '0.0.0-dev' and buildNumber to '0'. _localIp answers '' when there is no WiFi address or the lookup throws. So a PRESENT key is not the same as a READ value.",
-          "action": "app-info-store.readAppInfo maps '' and the literal 'unknown' to null, and the leaf draws the em dash for null (A7). Never print the word 'unknown' as though it were a reading, and never substitute the SKIN's own version for the APP's."
+          "action": "app-info-store.readAppInfo maps '' and the literal 'unknown' to null, and the leaf draws the em dash for null. Never print the word 'unknown' as though it were a reading, and never substitute the SKIN's own version for the APP's."
         },
         {
           "kind": "boolean-default-is-an-answer",
@@ -3112,9 +3113,9 @@
         "CB-08"
       ],
       "notes": [
-        "CB-03: `milkTemperature` was DELETED from this frame (633f6f68). Milk temperature is the milk-probe sensor's own `temperature` on /ws/v1/sensors/<id>/snapshot.",
-        "CB-08: `weightFlow` was deleted from this frame too. The gravimetric source is /ws/v1/scale/snapshot.",
-        "Survives a machine swap — _withDe1Ws re-attaches (ReaPrime 31ea7c1a), which is why socket-slot.js does not port."
+        "`milkTemperature` was DELETED from this frame (633f6f68). Milk temperature is the milk-probe sensor's own `temperature` on /ws/v1/sensors/<id>/snapshot.",
+        "`weightFlow` was deleted from this frame too. The gravimetric source is /ws/v1/scale/snapshot.",
+        "Survives a machine swap — _withDe1Ws re-attaches (ReaPrime 31ea7c1a), which is why the previous skin's module does not port."
       ]
     },
     {
@@ -3172,7 +3173,7 @@
         "CB-28"
       ],
       "notes": [
-        "CB-28: refillLevel is live here. The old skin mirrored it into localStorage and then rejected its own value against a snap list. The write half is POST /api/v1/machine/waterLevels {refillLevel:int}, not tabled as a row because nothing in this wave writes it.",
+        "refillLevel is live here. The old skin mirrored it into localStorage and then rejected its own value against a snap list. The write half is POST /api/v1/machine/waterLevels {refillLevel:int}, not tabled as a row because nothing in this repo writes it.",
         "mm -> mL is skin-side; the 68-entry tank table has no ReaPrime counterpart."
       ]
     },
@@ -3191,7 +3192,7 @@
       ],
       "retires": [],
       "notes": [
-        "B8: while connectionStatus.pendingAmbiguity is set ReaPrime parks in a selection session and suppresses recovery until the ANSWER arrives. Consuming the state without sending the answer is half the contract.",
+        "while connectionStatus.pendingAmbiguity is set ReaPrime parks in a selection session and suppresses recovery until the ANSWER arrives. Consuming the state without sending the answer is half the contract.",
         "Bridge-registered sensors never appear here — that is why sensor presence is a poll (GET /api/v1/sensors)."
       ]
     },
@@ -3244,8 +3245,8 @@
         "CB-07"
       ],
       "notes": [
-        "An unknown id is answered {\"error\":\"not found\"} AND THE SOCKET CLOSES. That close is the re-discovery trigger (CB-07): the id derives from the machine's deviceId, so a machine swap mints a new one and the old id is dead for good.",
-        "CB-03: this is where milk temperature lives, as the probe's own `temperature` key."
+        "An unknown id is answered {\"error\":\"not found\"} AND THE SOCKET CLOSES. That close is the re-discovery trigger: the id derives from the machine's deviceId, so a machine swap mints a new one and the old id is dead for good.",
+        "this is where milk temperature lives, as the probe's own `temperature` key."
       ]
     },
     {
@@ -3267,7 +3268,7 @@
     {
       "bug": "CB-21",
       "pattern": "\\.shots\\b",
-      "why": "the shots list is {items,total,limit,offset}. `response.shots` is undefined on every machine ever built, and the old skin's numpad history chips fell through to an empty array behind a debug-level log.",
+      "why": "the shots list is {items,total,limit,offset}. `response.shots` is undefined on every machine ever built, and the previous skin's numpad history chips fell through to an empty array behind a debug-level log.",
       "truth": "getShots"
     },
     {
@@ -3280,7 +3281,7 @@
       "bug": "CB-15",
       "pattern": "weightGrams|weight_grams",
       "invert": true,
-      "why": "recorded as the CORRECT spelling, not a forbidden one — kept here so the pair reads together. Gate D does not scan for it.",
+      "why": "recorded as the CORRECT spelling, not a forbidden one — kept here so the pair reads together. `gate-d` does not scan for it.",
       "truth": "putMachineScaleCalibration"
     },
     {
@@ -3301,13 +3302,13 @@
       "bug": "CB-05",
       "what": "POST /api/v1/sensors/<id>/execute answers 500 with a Dart stack on a malformed body — `jsonBody['commandId'] as String` throws before the try block",
       "where": "lib/src/services/webserver/sensors_handler.dart",
-      "policy": "upstream, clean upstream-cut branch (A2). Never worked around in the skin."
+      "policy": "upstream, clean upstream-cut branch. Never worked around in the skin."
     },
     {
       "bug": "CB-06",
       "what": "SteamSequencer binds milk temperature to `sensors.entries.first`, i.e. whichever sensor registered first — on a Bengle running the observer that is almost certainly the puck estimator, and milkTemperature comes back null",
       "where": "lib/src/controllers/steam_sequencer.dart _trackFirstSensor",
-      "policy": "upstream. CB-13 is the same defect filed twice."
+      "policy": "upstream. is the same defect filed twice."
     },
     {
       "bug": "CB-12",

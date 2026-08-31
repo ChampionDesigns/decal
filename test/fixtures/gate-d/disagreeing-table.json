@@ -1,5 +1,5 @@
 {
-  "$canary": "AGREEMENT. Two tables about one server must agree. Here the contract row claims POST /shots while the generated table, read from ReaPrime's own spec, says GET.",
+  "$canary": "AGREEMENT. Two tables about one server must agree. Here the contract row claims POST /shots while the generated table, read from ReaPrime's own document, says GET.",
   "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
   "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
   "constructedRouteBuilders": [],

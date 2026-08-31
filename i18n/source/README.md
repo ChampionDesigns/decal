@@ -3,13 +3,13 @@
 The authored string table. `i18n/en.json` (and one file per language after it) is
 GENERATED from here by `scripts/build-i18n.js` and committed, so contributors need no
 toolchain — and because a committed artifact can go stale silently (the old tree's
-`app.css` did exactly that), `test/i18n-freshness.test.js` regenerates and fails on a
+a global stylesheet did exactly that), `test/i18n-freshness.test.js` regenerates and fails on a
 diff. Edit here, then run:
 
     node scripts/build-i18n.js          # write i18n/<lang>.json
     node scripts/build-i18n.js --check  # exit 1 if anything committed is stale
 
-v1 ships English only (D2) — but the *mechanism* ships in v1, because retrofitting it
+v1 ships English only — but the *mechanism* ships in v1, because retrofitting it
 later costs every component. The old skin fetched a 1.5 MB CSV at boot and translated
 by walking the document (`document.querySelectorAll('[data-i18n-key]')`, then
 overwriting `textContent`); a `querySelectorAll` cannot cross a shadow boundary, so
@@ -43,22 +43,22 @@ reactive value each component reads.
 
 ## Where these 534 entries came from
 
-Seeded once, mechanically, from the string surface the Slate app actually asks for:
-every literal `getTranslation()` key and `data-i18n-key` attribute in
-`~/bengle/_skinlab/slate` (read-only). That scan found **543 distinct literal keys
+Seeded once, mechanically, from the string surface the previous skin actually asks
+for: every literal `getTranslation()` key and `data-i18n-key` attribute in it, read
+only. That scan found **543 distinct literal keys
 across 68 files**, and the only subtraction from it is **9 case-variants collapsed**
 onto the spelling they duplicate — 543 − 9 = **534**.
 
 A further **7 keys are built at runtime** from variables (`${...}`) and were never part
 of that 543: a source scan cannot know what they evaluate to, so the extractor drops
 them before counting and lists them separately in its report. They are not missing
-entries — the screens that need them will author them. The extractor and its report are
-run state, not product: `realine-run/waves/0a/i18n-seed/`.
+entries — the screens that need them will author them. The extractor and its report
+are run state, not product.
 
 That is a starting inventory of the app being rewritten, not a specification. Entries
 are deleted as screens land without them and added as screens need them; from here the
-table is authored by hand. The old one-shot scripts do not come across — `wire_i18n.mjs`
+table is authored by hand. The old one-shot scripts do not come across — the wiring script
 codemodded `data-i18n-key` into a file this rewrite deletes, and Lit templates mark
-translatable strings at authoring time, so there is nothing to codemod. `i18n_audit.mjs`'s
+translatable strings at authoring time, so there is nothing to codemod. The audit script's
 *idea* survives as the generator's coverage report ("which strings have no
 translation?") and, later, as a lint over the new marking convention.

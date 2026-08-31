@@ -34,9 +34,9 @@ export const entry = {
                 'The resting state of a comparison. The readout is the port\'s zero form, '
                 + 'quoted from the corpus - "0.0 s", one decimal, a space before the unit, '
                 + 'no sign at zero. Reset is disabled because reset is only ever an undo, '
-                + 'which is also the state Slate was captured in: CITE history-viewer '
+                + 'which is also the state the reference skin was captured in: CITE history-viewer '
                 + '#hv-align-reset [i=178] color = rgb(148, 161, 169) <- '
-                + 'slate-components.css .slate-btn:disabled authored var(--slate-muted).',
+                + 'the old disabled button authored the muted token.',
             html: `<ui-compare-bar has-comparison>${KEY}</ui-compare-bar>`,
         },
         {
@@ -64,7 +64,7 @@ export const entry = {
             title: 'One shot only',
             notes:
                 'Nothing to align against reads as a dimmed bar, not a missing one '
-                + '(slate-live.css:2400-2405). Slate dimmed the key and caption to .45; '
+                + '. The reference skin dimmed the key and caption to .45; '
                 + 'here they take the one disabled dial, --ui-opacity-disabled, and the '
                 + 'two controls dim themselves because they carry the real disabled state.',
             html: `<ui-compare-bar>${KEY}</ui-compare-bar>`,

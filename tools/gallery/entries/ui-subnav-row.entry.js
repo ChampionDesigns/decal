@@ -15,7 +15,7 @@ const CALIBRATION = [
     'Voltage', 'Load cells', 'Flow multiplier', 'Fan', 'Refill kit', 'Default load settings',
 ];
 
-/* SEVEN rows, because seven is the length T2 names: "measured pitch 89 vs 93, 24px out by
+/* SEVEN rows, because seven is the length names: "measured pitch 89 vs 93, 24px out by
  * row 7". Six gaps x 4px of leftover Tailwind space-y-1 margin = the 24px. */
 const SEVEN = ['Cup Warmer', 'Lighting', 'USB Charger', 'Steam', 'Hot Water', 'Flush', 'Advanced'];
 
@@ -29,14 +29,14 @@ export const entry = {
         + 'as one navigation surface: --ui-nav-row (88px, DERIVED from --ui-control-h + '
         + '2 x --ui-space-3, scaled by --ui-density), a 24px inset, 22px --ui-text-nav at '
         + '--ui-weight-regular in --ui-muted, on --ui-fascia. Three defects die here. '
-        + 'T2: Slate\'s sub-nav pitch is 93 against the category column\'s 89 and it renders '
+        + ': Slate\'s sub-nav pitch is 93 against the category column\'s 89 and it renders '
         + 'ZERO separators, both from one `> * + *` selector that can never match a single '
         + '<ul> — here the row\'s outer box IS the pitch (one owner per dimension) and the '
         + 'seam is the COLUMN\'s gap, so neither half has a selector to get wrong. '
-        + 'T3: authored `border-radius: 0 !important` and rendered 6px, because a substring '
+        + ': authored `border-radius: 0 !important` and rendered 6px, because a substring '
         + 'attribute selector 500 lines away matched the Tailwind class in the markup — here '
         + 'the corner is declared once inside a shadow root no document rule can reach. '
-        + 'T5: the current row draws a 4px steel LED the shell spent a `box-shadow: none` '
+        + ': the current row draws a 4px steel LED the shell spent a `box-shadow: none` '
         + 'trying to remove, bypassing the --slate-selected-led dial entirely — this file '
         + 'declares no box-shadow at ANY state, so the only thing that can draw an LED is '
         + '--ui-selected-led. Selection is the four dials and nothing else: no bar, no LED, '
@@ -63,7 +63,7 @@ export const entry = {
                 'Slate\'s Calibration sub-categories — the corpus\' six-row column '
                 + '(settings-calibration-*, rects [261,219,338,89] … [261,684,338,89]), with '
                 + 'the first one current. Six cells give five seams and no sibling selector is '
-                + 'involved, so T2\'s separator half has nothing to fail to match. Slate '
+                + 'involved, so \'s separator half has nothing to fail to match. Slate '
                 + 'renders this column with NO separators at all; every line you see here is '
                 + 'one the running app does not draw.',
             html: column(CALIBRATION.map((name, i) => row(name, i === 0 ? 'current' : ''))),
@@ -79,10 +79,10 @@ export const entry = {
                 + 'rgb(49, 92, 112) (= --ui-selected-face), color = rgb(18, 24, 28) / '
                 + '[prov-light] rgb(248, 252, 253) (= --ui-selected-ink). '
                 + 'DELIBERATELY ABSENT: the 4px inset steel-at-72% LED Slate actually renders '
-                + 'here (T5 — CITE [i=30] box-shadow = rgba(0,0,0,0) 0px -4px 0px 0px inset, '
+                + 'here ( — CITE [i=30] box-shadow = rgba(0,0,0,0) 0px -4px 0px 0px inset, '
                 + 'color(srgb 0.690196 0.768627 0.807843 / 0.72) 0px -4px 0px 0px inset ← '
-                + 'slate-components.css `.slate-nav-selected` !important=yes), the 6px corner '
-                + '(T3), and the jump to weight 500 (CITE [i=30] font-weight = 500 vs [i=32] '
+                + 'the old selected-nav rule, !important=yes), the 6px corner '
+                + ' and the jump to weight 500 (CITE [i=30] font-weight = 500 vs [i=32] '
                 + '400) — the row is the same 400 whether current or not. The state is '
                 + 'aria-current="true" on the button, so the paint and what a screen reader '
                 + 'announces are one attribute and cannot drift.',
@@ -90,9 +90,9 @@ export const entry = {
         },
         {
             id: 'aligned',
-            title: 'T2: seven rows, category beside sub-category',
+            title: ': seven rows, category beside sub-category',
             notes:
-                'T2 verbatim: "the sub-category column does not align with the category '
+                ' verbatim: "the sub-category column does not align with the category '
                 + 'column … measured pitch 89 vs 93, 24px out by row 7". Seven rows is the '
                 + 'length that names the bug — six gaps of leftover 4px Tailwind margin. Both '
                 + 'columns here read the same --ui-nav-row and hold no number of their own, so '
@@ -110,7 +110,7 @@ export const entry = {
             title: 'A sub-category that is not available',
             notes:
                 'The base paints disabled from --ui-opacity-disabled, ONE dial settling '
-                + 'Slate\'s three live values (spec §3.7). The host attribute dims and the real '
+                + 'Slate\'s three live values (contract). The host attribute dims and the real '
                 + 'button carries the native `disabled`, so the press is refused and the row '
                 + 'leaves the tab order — but the dim is applied once, on the host, not '
                 + 'multiplied by a second rule on the control (0.38 x 0.38 = 0.14 is the trap). '
@@ -124,9 +124,9 @@ export const entry = {
             notes:
                 'The label clips with an ellipsis rather than wrapping — a row whose height '
                 + 'depends on its text is a row whose column has no pitch, which is the family '
-                + 'T2 belongs to. A departure from Slate, which never meets a narrow container '
+                + ' belongs to. A departure from Slate, which never meets a narrow container '
                 + 'because its geometry is frozen at 1920x1200 (the oracle is DISQUALIFIED for '
-                + 'responsive behaviour; LAYOUT_SPEC_DRAFT.md governs). The 88px pitch holds, '
+                + 'responsive behaviour; the layout spec governs). The 88px pitch holds, '
                 + 'the row stays one line, and the text node is untouched so the accessible '
                 + 'name stays whole when the ink does not.',
             hostStyle: { 'inline-size': '200px' },

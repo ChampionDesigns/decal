@@ -117,7 +117,7 @@ const FEW = [
     { id: 'duplicate', label: 'Duplicate' },
     { id: 'delete', label: 'Delete', danger: true },
 ];
-/** Forty rows: taller than either standard geometry, which is O11's whole point. */
+/** Forty rows: taller than either standard geometry, which is 's whole point. */
 const MANY = Array.from({ length: 40 }, (_, i) => ({ id: `row-${i}`, label: `Row ${i + 1}` }));
 
 /**
@@ -216,7 +216,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `${name}: the surface top is ${box.top}, above the edge padding`);
                 assert.ok(box.bottom <= geometry.height - edge + 0.51,
                     `${name}: the surface bottom is ${box.bottom} in a ${geometry.height}px window — `
-                    + 'Slate clamps `top` only (context-menu.js:44) and lets the other three edges run off');
+                    + 'Slate clamps `top` only and lets the other three edges run off');
                 assert.ok(box.width > 0 && box.height > 0, `${name}: the surface has no box`);
             }
             /* A clamp that pinned every position to the same place would pass all four

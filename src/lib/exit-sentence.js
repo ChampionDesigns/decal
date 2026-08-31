@@ -93,7 +93,7 @@ function occupiedCondition(step, type) {
         value: Number(exit.value) || 0,
         unit: range.unit,
         range,
-        /* O5: "falls below" floors at one increment so the dead value cannot be
+        /* "falls below" floors at one increment so the dead value cannot be
          * dialled in at all; "rises past" keeps its zero (exit-validity.js:38-43). */
         min: exitValueMin(condition, range.step),
         max: range.max,
@@ -137,7 +137,7 @@ function offeredSlot(slot, choices) {
         subject: spec ? spec.subject : 'Condition',
         /* A condition's legal choices depend on the pump and on a capability bit,
          * so its slot offers a MENU; a scalar slot seeds directly
-         * (`profile_editor.js:1916-1919`). */
+         */
         choices: slot === 'condition' ? Object.freeze([...choices]) : Object.freeze([]),
     });
 }
@@ -214,7 +214,7 @@ export function rangeForSlot(slot, type = null) {
     return spec ? authoringRange(spec.range) : null;
 }
 
-/** Every range name this module can reach, for the B2 cross-check in the suite. */
+/** Every range name this module can reach, for the cross-check in the suite. */
 export const EXIT_RANGE_NAMES = Object.freeze([
     'exitPressure', 'exitFlow', 'exitPower', 'volume', 'weight',
 ]);

@@ -1113,7 +1113,7 @@ export class SettingsBespokeLeaf extends UiElement {
         }
     }
 
-    /** A3, fail-closed on ABSENT and on UNKNOWN alike. No capability store at all is UNKNOWN. */
+    /** Fail-closed on ABSENT and on UNKNOWN alike. No capability store at all is UNKNOWN. */
     #allowed(capability) {
         return this.deps?.allowed?.(capability) === true;
     }
@@ -1356,10 +1356,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 ?checked=${schedule.enabled === true}
                 @change=${(event) => this.#onScheduleEnabled(schedule.id, event)}
             ></ui-switch>
-            <!-- DELETE IS DESTRUCTIVE AND LOOKS IT (Ben, 26 Aug 2026: "delete in red as
-                 slate has it"). It was a ghost button — grey text with no fill — beside a
-                 switch, on a row a tap anywhere else opens for editing. Nothing marked
-                 the one control that removes the schedule. -->
             <ui-button
                 slot="favourite"
                 variant="danger"
@@ -1600,12 +1596,6 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`<section class="group" id="updates">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Installed skins')}</h3>
-                <!-- IT DOWNLOADS AND INSTALLS, AND THE BUTTON SAYS SO. Slate's says
-                     "Check for updates"; read at the pin, _handleUpdateSkins calls
-                     updateAllSkins, which downloads the remote-bundled skins and
-                     re-installs every user skin whose source names a newer release. A
-                     button whose word is milder than its effect is the one thing a
-                     settings page must not have. -->
                 <ui-button
                     id="skins-update"
                     variant="primary"
@@ -1614,11 +1604,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 >${t(updating ? 'Updating' : 'Update all skins')}</ui-button>
             </div>
             <p class="ui-caption prose">${t('Downloads and installs the newest version of every skin that came from a source. Switch skins in Display › Skin.')}</p>
-            <!-- WHAT THE PRESS ACTUALLY DID, which is the answer Slate's badge only
-                 GUESSES at. The versions before the run and after it are both in this
-                 store's hands, so the sentence is a report and not a forecast. It is
-                 drawn only after a run has finished: telling somebody who has pressed
-                 nothing that everything is current would be an assertion nobody checked. -->
             ${ran
                 ? html`<p id="updates-outcome" class="ui-caption prose"
                     >${moved.size === 0
@@ -1632,31 +1617,11 @@ export class SettingsBespokeLeaf extends UiElement {
                     >${t('The machine could not finish the update. Nothing was changed.')}</p>`
                 : nothing}
 
-            <!-- THE COUNT SURVIVED; THE TRACK UNDER IT DID NOT (Ben, 27 August 2026).
-                 THE HISTORY, because the reversal is the interesting part. The bar was
-                 unlabelled and was read as a disk gauge, so Ben asked on 26 August for it
-                 to "say what it is: the tablet's memory and how full it is". THAT CANNOT
-                 BE BUILT — nothing ReaPrime serves reports the tablet's storage; every
-                 handler under the webserver services directory was read and the only
-                 "store"
-                 routes are the key-value namespace, so there is no route to call. The bar
-                 was relabelled instead, to the one real quantity in reach: how many
-                 installed skins the machine has ever checked for a newer version.
-                 AND THAT MADE IT A DUPLICATE. Relabelled, it said in a bar exactly what
-                 the line above it says in words, so the same number appeared twice — and
-                 it fills solid and stays solid the moment "Update all skins" is pressed
-                 once, so from then on it distinguishes nothing at all. A control whose
-                 output never varies is the defect class this fork exists to remove.
-                 Ben took the recommendation: drop the track, keep the labelled count.
-                 NOTHING IS LOST — the words carry the whole reading. NO BACKTICK HERE. -->
             <div class="fact-head">
                 <span class="ui-caption">${t('Skins the machine has checked for a newer version')}</span>
                 <span class="ui-caption ui-numeric">${checkedText}</span>
             </div>
 
-            <!-- ONE GRID, AND THE NAME AND VERSION STACK. Slate puts both at the same left
-                 edge so the list reads as one column; Decal had the name far left and
-                 the version far right with 700px of empty card between them. -->
             <div class="plugins" id="update-list">
                 ${skins.map((skin) => this.#skinRow(skin, state, moved.get(skin.id) ?? null))}
             </div>
@@ -1677,10 +1642,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 <span class="skin-meta">
                     <span class="ui-caption ui-numeric">${skinVersionText(skin.version)}</span>
                     <span class="ui-microcap">${when}</span>
-                    <!-- THE ONE THAT MOVED. #12's attention variant, built for exactly
-                         this sentence and until now drawn nowhere — and it names the
-                         version this machine actually installed rather than one a
-                         third-party host said existed. -->
                     ${updated && skinVersionText(updated.to) !== ''
                         ? html`<ui-badge class="skin-updated" variant="attention"
                             >${t('Updated to {version}', { version: skinVersionText(updated.to) })}</ui-badge>`
@@ -1689,12 +1650,6 @@ export class SettingsBespokeLeaf extends UiElement {
             </span>
             <span></span>
             <span class="device-actions">
-                <!-- WHERE SKINS ARE REMOVED, which is Ben's own question
-                     ("where do skins get added and removed?"). The ACTIVE skin is
-                     never offered: removing the folder being served leaves the
-                     tablet with a web UI that cannot be reloaded, and the handler
-                     does not refuse it. Bundled skins are not offered either —
-                     the machine reinstalls them. -->
                 ${skin.id === state?.defaultId || skin.bundled
                     ? nothing
                     : html`<ui-button
@@ -1730,10 +1685,6 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`<section class="group" id="app-info">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Decaid')}</h3>
-                <!-- CHECK, WHICH IS THE ONLY THING THAT MOVES latestVersion OFF NULL
-                     short of waiting for the twelve-hour timer. It rides the socket the
-                     update FEED is already attached to — see live-stores.checkAppUpdate —
-                     so there is no second connection and no second reconnect clock. -->
                 <ui-button
                     id="app-check"
                     ?disabled=${busy || !this.deps?.appUpdate}
@@ -1803,21 +1754,11 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>`
                 : nothing}
 
-            <!-- WHY THERE IS NO BUTTON ON THIS PLATFORM, said rather than left to be
-                 discovered. The served installable flag is ReaPrime's own
-                 (_isAndroid AND hasUpdate), so an iPad or a desktop gets the link and no
-                 control that would answer with an error. NO BACKTICK IN THIS COMMENT. -->
             ${available && !installable
                 ? html`<p id="app-install-elsewhere" class="ui-caption prose"
                     >${t('This build cannot install updates itself. Open the release page to get the new version.')}</p>`
                 : nothing}
 
-            <!-- RELEASE NOTES AS A LINK, NEVER AS A PARAGRAPH — see the section header for
-                 Slate's defect. The anchor is drawn only when a release is actually
-                 KNOWN: releaseNotes and latestVersion both come from ReaPrime's one
-                 _availableUpdate, so notes without a version cannot happen, and with no
-                 update the served URL is the releases INDEX rather than a set of notes.
-                 NO BACKTICK IN THIS COMMENT. -->
             ${latest !== null && releaseUrl !== null
                 ? html`<a
                     id="app-release-notes"
@@ -1828,22 +1769,12 @@ export class SettingsBespokeLeaf extends UiElement {
                 >${t('Release notes')}</a>`
                 : nothing}
 
-            <!-- THE MACHINE'S OWN WORDS FOR WHY A CHECK OR AN INSTALL FAILED, verbatim.
-                 THE CLOSING TAG IS ON ITS OWN LINE and that is not a formatting whim: an
-                 interpolated backtick template that contains a slash and no newline is
-                 what Gate D's constructed-path scan is FOR, and a closing tag carries a
-                 slash. Every paragraph in this file is written this way for that reason. -->
             ${error
                 ? html`<p id="app-update-error" class="ui-caption prose"
                     >${error}</p
                 >`
                 : nothing}
 
-            <!-- AND WHY THE PRESS ITSELF WENT NOWHERE, which is a different sentence from
-                 the one above it: that one is the SERVER's word for why a check failed,
-                 this one is why no check was ever made. Audit F-035 - the command rides
-                 the update socket and its refusal was discarded, so the button did
-                 nothing and said nothing. NO BACKTICK IN THIS COMMENT. -->
             ${this._updateRefusal
                 ? html`<p id="app-check-refusal" class="ui-caption prose"
                     >${t('The update check could not be sent: {reason}', { reason: this._updateRefusal })}</p
@@ -1954,10 +1885,6 @@ export class SettingsBespokeLeaf extends UiElement {
                       ></ui-stepper>`
                     : nothing}</div>
 
-                <!-- WHAT THE SCALE READS, ON EVERY STEP THAT PUTS SOMETHING ON IT. The
-                     check's three-fact block is the richer version of the same line and
-                     owns stage 5; the other three weigh-adjacent steps get the one fact.
-                     NO BACKTICK IN THIS COMMENT: one would end the template. -->
                 ${stage === 5 ? this.#calCheck() : this.#calLive(stage)}
 
                 <p id="status" class="ui-caption" role="status">${this.#walkStatus(state)}</p>
@@ -1968,12 +1895,6 @@ export class SettingsBespokeLeaf extends UiElement {
                         variant=${button.variant}
                         @click=${() => this.#walkPress(button)}
                     >${t(button.label)}</ui-button>
-                    <!-- THE ESCAPE (Ben, 26 Aug 2026: "restore a way to start over"). A
-                         half-finished run leaves the machine with one cell latched and the
-                         other not, and before this the only way out was to finish or to
-                         leave the page — which leaves it half-latched anyway. Offered from
-                         the moment the walk starts and never on the intro, where there is
-                         nothing to start over from. -->
                     ${stage > 1
                         ? html`<ui-button
                             id="cal-restart"
@@ -2170,15 +2091,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     </div>
                 </div>
 
-                <!-- THE PRESETS SIT WITH THE COLOUR GRID (Ben, 26 August 2026: "make it
-                     the same as Slate"). Slate's left column is Zone, State, the grid and
-                     the presets; the right is the wheel and its slider. Decal had the
-                     presets under the wheel, so the two ways of choosing a colour were
-                     stacked and the left column ended early.
-
-                     SIXTEEN IN TWO FULL ROWS OF EIGHT. A wrapping row cannot promise a
-                     complete last row — the same palette is 8+8 at one width and 6+6+4 at
-                     another — so the count is stated and #52 lays it out as a grid. -->
                 <div class="group">
                     <h3 class="ui-heading">${t('Presets')}</h3>
                     <ui-colour-swatch-row
@@ -2203,17 +2115,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     ></ui-switch>
                 </div>
 
-                <!-- THE WHEEL (Ben, 24 Aug 2026: "LED colour wheel is missing from the
-                     settings"). Six presets answer six questions out of sixteen million,
-                     which on a control whose whole subject is colour is not a control.
-                     The old skin has the same wheel, from the same vendored library.
-                     TWO EVENTS, TWO MEANINGS: colour-input many times per drag drives the
-                     live preview, and colour-change once at the lift is what the machine
-                     keeps — which is the pair the store already expects. -->
-                <!-- WHAT IS BEING EDITED, ABOVE THE WHEEL, which is where Slate puts it
-                     and is the only place it is useful: a wheel with no subject named
-                     above it is a wheel you have to remember the subject of. It was below
-                     the presets, two controls further down. -->
                 <div class="group">
                     <p id="led-editing" class="ui-caption prose">
                         ${t('Editing')}
@@ -2222,26 +2123,6 @@ export class SettingsBespokeLeaf extends UiElement {
                         <strong>${t(LED_BANK_ITEMS.find((b) => b.value === this._ledBank)?.label ?? '')}</strong>
                         <span class="ui-numeric">${current}</span>
                     </p>
-                    <!-- 440 DESIGN UNITS, WHICH IS SLATE'S RENDERED DIAMETER (26 Aug 2026).
-                         BOTH SKINS CONFIGURE iro AT 300 — slate settings.js:3993 sets its
-                         width config to that, and DEFAULT_WHEEL_SIZE here is the same
-                         number — so the 1.5x the audit measured
-                         is not a configuration difference — it is the SCALE COMPENSATION.
-                         Slate counter-scales the picker by 1/S so it paints at 300 SCREEN
-                         pixels whatever the geometry; this skin's host counter-zooms so the
-                         wheel paints at exactly the size a design-unit sibling does, which
-                         at the bench tablet's S of about 0.667 is roughly 200 physical
-                         pixels against Slate's 300.
-
-                         THIS SKIN'S ARCHITECTURE IS THE RIGHT ONE and is not what changes: a
-                         wheel exempt from the app's scaling would be the only element in the
-                         skin that is. What changes is the ASKED-FOR SIZE, because the target
-                         is genuinely small for hue picking and the reason for tolerating it
-                         has expired — "Decal spends the saved space on the presets column"
-                         was true while the presets sat under the wheel, and on 26 August Ben
-                         moved them into the left column with the colour grid. The right
-                         column is Power, the editing line, the wheel, the slider, the helper
-                         and the buttons, at roughly 584 units wide. There is room. -->
                     <ui-colour-wheel
                         id="led-wheel"
                         size="440"
@@ -2250,32 +2131,10 @@ export class SettingsBespokeLeaf extends UiElement {
                         @colour-input=${this.#onWheel}
                         @colour-change=${this.#onWheel}
                     ></ui-colour-wheel>
-                    <!-- SLATE'S OWN SENTENCE, which says what the two halves of the picker
-                         do; Decal's said only what the preview does. Both facts matter,
-                         so both are here. -->
                     <p id="led-preview-note" class="ui-caption prose"
                         >${t('The wheel picks the colour and the slider sets its brightness. Colours change on the machine as you pick them, and the asleep colours only show while the machine is asleep.')}</p>
                 </div>
 
-                <!-- THE TWO BUTTONS THAT USED TO BE HERE ARE GONE (26 August 2026), and
-                     the pair they duplicated is the header's.
-
-                     THE TRAP THEY LEFT BEHIND. This leaf carries no registry rows, so the
-                     screen's change count was always zero on it and the header's primary
-                     Save took its not-dirty branch: it CLOSED the page without writing
-                     anything. Meanwhile every drag and every preset press had already gone
-                     to the machine as a live PUT, which pushes and does not persist — only
-                     the commit route writes NVM. So a person picked colours, pressed the big
-                     Save at the top right, and lost them at the next power cycle, while the
-                     button that would actually have kept them sat further down the page
-                     saying "Keep these colours".
-
-                     ONE COMMIT GESTURE PER SCREEN is the model this screen already states,
-                     and an uncommitted preview is a pending change like any other: the
-                     header counts it, Save commits it, and Cancel calls reset — which is
-                     "reload NVM", which is precisely what Cancel means everywhere else. Two
-                     save affordances on one screen was the finding; this is the half that
-                     had to go. -->
             </div>
         </div>`;
     }
@@ -2343,10 +2202,6 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`<section class="group" id="firmware">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Machine firmware')}</h3>
-                <!-- CHECK FOR UPDATE. It re-reads the catalog, which is the ONLY place
-                     updateAvailable comes from: the server judges eligibility and this
-                     asks it again. There is no separate check route and none is invented.
-                     NO BACKTICK IN THIS COMMENT. -->
                 <ui-button
                     id="firmware-check"
                     ?disabled=${busy || checking}
@@ -2367,10 +2222,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     <dt class="ui-body">${t('Images carried')}</dt>
                     <dd class="ui-body ui-numeric">${String((catalog.artifacts ?? []).length)}</dd>
                 </div>
-                <!-- WHICH OF THEM THIS MACHINE WOULD GET. "Images carried 2" answered how
-                     MANY and never which, so the one number a person needs before pressing
-                     an irreversible button was the one number missing. The dash here is a
-                     machine with nothing applicable to offer, which is a real answer. -->
                 <div class="fact" data-term="newest">
                     <dt class="ui-body">${t('Newest carried')}</dt>
                     <dd class="ui-body ui-numeric">${targetName ?? MACHINE_INFO_DASH}</dd>
@@ -2381,27 +2232,11 @@ export class SettingsBespokeLeaf extends UiElement {
 
             ${this.#firmwareProgress(flash)}
 
-            <!-- THE WARNING COMES BEFORE THE CONTROL, AND IT IS NOT A GREY CAPTION.
-                 It was an ordinary caption paragraph sitting AFTER both buttons: no
-                 tint, no bar, caption weight, in the place a reader reaches once the
-                 decision is made. Its whole job is to stop somebody starting an hour-long
-                 write and then walking away, and that is decided BEFORE the tap.
-                 SLATE'S OWN RECIPE, CARRIED (slate-shell.css .slate-caution): a 3px danger
-                 rule down the leading edge over a 10 percent danger wash, at note size and
-                 medium weight. Every token it needs already existed here.
-                 NOT ui-alert-banner, which is the Live screen's strip and carries a 52px
-                 display headline — it would swamp a settings page.
-                 THE DURATION IS BEN'S HOUR, not Slate's "several minutes", and it is the
-                 same string the confirmation uses: one duration, stated twice, must be the
-                 same number. NO BACKTICK IN THIS COMMENT. -->
             <p id="firmware-note" class="caution"
                 >${t(FIRMWARE_DURATION)} ${t(FIRMWARE_POWER)} ${t(FIRMWARE_INTERRUPTION)}</p
             >
 
             <div class="device-actions">
-                <!-- UPDATE TO LATEST, SHOWN ONLY WHEN THERE IS ONE (Ben, 26 Aug 2026).
-                     It was drawn always and disabled, which is a dead affordance on a page
-                     whose whole subject is whether there is anything to do. -->
                 ${catalog.recommendedArtifactId
                     ? html`<ui-button
                         id="firmware-latest"
@@ -2414,17 +2249,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     >`
                     : nothing}
 
-                <!-- A FILE, which is the half D4 refused and Ben asked for back.
-
-                     THE FILTER NO LONGER NAMES ONE EXTENSION, and that is the same defect
-                     the shape check had: it was ".bin" only, and the DE1 firmware Decent
-                     actually ships is bootfwupdate.dat — the filename in ReaPrime's own
-                     manifest provenance for both bundled artifacts. A picker filtered to
-                     .bin HIDES the genuine article from the person looking for it, and a
-                     file that cannot be seen cannot be chosen, so the filter was refusing
-                     correct firmware more quietly than the check was. Both spellings are
-                     offered now, and the BOARD MARKER decides — a filename was never
-                     evidence of anything. NO BACKTICK IN THIS COMMENT. -->
                 <ui-file-button
                     id="firmware-file"
                     accept=".bin,.dat,application/octet-stream"
@@ -2442,23 +2266,12 @@ export class SettingsBespokeLeaf extends UiElement {
                 >` : nothing}
             </div>
 
-            <!-- A REFUSED FILE, AND WHY. This is a CAUTION rather than a caption since
-                 27 August 2026: the commonest reason to land here is now holding firmware
-                 for the other machine, and a person who has just been stopped from doing
-                 the one irreversible thing on this page should not have to notice grey
-                 text to find that out. NO BACKTICK IN THIS COMMENT. -->
             ${this._flashRejected
                 ? html`<p id="firmware-rejected" class="caution"
                     >${this.#firmwareRefusal(this._flashRejected)}</p
                 >`
                 : nothing}
 
-            <!-- VALIDATE, THEN CONFIRM (Ben, 26 August 2026: "once a firmware is loaded,
-                 check it is valid, then offer an UPDATE FW button behind a confirmation
-                 that explains it can take up to an hour and asks the user to confirm").
-                 The validation is #firmwareLooksValid and happens BEFORE this opens, so
-                 a file that is obviously not an image never reaches a confirmation that
-                 would make it look considered. -->
             <ui-confirm-dialog
                 id="firmware-confirm"
                 .open=${Boolean(pending)}
@@ -2719,10 +2532,6 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`
             <section class="group" id="plugin-list">
                 <h3 class="ui-heading">${t('Installed plugins')}</h3>
-                <!-- ONE GRID OVER EVERY ROW, so the switch and the Open button land on
-                     the same edges however long a plugin's name is. Rows are separated by
-                     space and not by rules (Ben, 26 Aug 2026: "remove the horizontal lines
-                     between rows"). -->
                 <div class="plugins">
                     ${state.plugins.map((plugin) => this.#pluginRow(plugin))}
                 </div>
@@ -2853,9 +2662,6 @@ export class SettingsBespokeLeaf extends UiElement {
 
         return html`
             <section class="group" id="plugin-state">
-                <!-- NO HEADING WHEN THE SURFACE ALREADY NAMES THE PLUGIN. The Visualizer
-                     leaf is a page and needs one; the gear's dialog carries the name in
-                     its own title, and repeating it read as "Settings / Settings". -->
                 ${title ? html`<h3
                     class="ui-heading"
                 >${t(title)}</h3>` : nothing}
@@ -3003,15 +2809,6 @@ export class SettingsBespokeLeaf extends UiElement {
                             >${t(step)}</li
                         >`)}
                     </ol>
-                    <!-- THE ADDRESS IS A LINK, WHICH IS THE WHOLE POINT OF A PAGE CALLED
-                         TALK TO DECENT. Slate prints it as caption grey inside a
-                         paragraph, so on a touch screen it is a string of text nobody can
-                         tap; the audit flagged that as a defect worth fixing on the way
-                         across and the copy came over without the fix. This skin already
-                         owns the pattern — the maintenance procedures render a real
-                         anchor with the same class and the same rel. The FORUM stays
-                         plain text until somebody confirms its URL: a link to a guessed
-                         address is worse than a name. -->
                     <p class="ui-caption prose"
                         >${t('No account? You can still reach a human at')}
                         <a
@@ -3138,12 +2935,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 : html`<div class="form-row" data-control="switch">
                     <div class="sw-label">
                         <span class="ui-heading">${t('Attach machine details')}</span>
-                        <!-- WHAT IS ACTUALLY APPENDED, NAMED. The feedback form on this
-                             page learned the same lesson the hard way: the one sentence a
-                             careful reader reads is the one saying what leaves the tablet,
-                             so it has to be true of THIS build rather than copied. These
-                             are the fields the machine and app documents actually carry,
-                             and only the ones that have arrived are sent. -->
                         <span class="ui-caption">${t('Adds the model, firmware version, serial number and app version to the end of your message.')}</span>
                     </div>
                     <ui-switch
@@ -3263,11 +3054,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     .value=${draft.type}
                     @change=${(event) => this.#onFeedbackField('type', event.detail?.value)}
                 ></ui-bank>
-                <!-- SLATE PUTS A SENTENCE UNDER EACH CATEGORY and it is what tells a
-                     reader which one their message is: with labels alone, "Question" and
-                     "Other" are indistinguishable until you have written it. Slate draws
-                     three tiles each carrying its own; this draws the SELECTED one's,
-                     which says the same thing in the space a bank leaves. -->
                 <span id="feedback-type-hint" class="ui-caption"
                     >${t(FEEDBACK_TYPES.find((entry) => entry.value === draft.type)?.hint ?? '')}</span>
             </div>
@@ -3299,17 +3085,7 @@ export class SettingsBespokeLeaf extends UiElement {
             </div>
             <div class="form-row" data-control="switch">
                 <div class="sw-label">
-                    <!-- SLATE'S HELPER, which names what is actually attached. Decal had
-                         the switch and no sentence, so "system information" could have
-                         meant anything. -->
                     <span class="ui-heading">${t('Attach system information')}</span>
-                    <!-- WHAT IS ACTUALLY ATTACHED, WHICH IS NOT WHAT SLATE SAYS.
-                         _collectSystemInfo writes the app version and build number, the
-                         commit, the branch, the platform, the OS version and the Dart
-                         version. There is NO MACHINE FIRMWARE in it anywhere. This is the
-                         one sentence on the page a privacy-conscious reader actually
-                         reads, so it is the one sentence that has to be true; Slate's was
-                         not, and Decal inherited it unchecked. -->
                     <span class="ui-caption">${t('Appends the app version, build and platform to the report.')}</span>
                 </div>
                 <ui-switch
@@ -3319,41 +3095,14 @@ export class SettingsBespokeLeaf extends UiElement {
                 ></ui-switch>
             </div>
 
-            <!-- WHAT IS NOT HERE, AND WHY. Slate offers a Contact Email and a Title field
-                 and neither reaches the machine: FeedbackRequest.fromJson, at
-                 feedback_request.dart:62-73, reads description, type, includeLogs,
-                 includeSystemInfo, screenshots and timestamp, and nothing else. Two boxes
-                 whose contents are dropped on the way out is the finished-half defect with
-                 a placeholder on it. NO BACKTICK IN THIS COMMENT. -->
             <p class="ui-caption prose"
                 >${t('Screenshots are not sent — ReaPrime does not read them from this route.')}</p>
-            <!-- WHERE IT GOES, AND WHY THERE IS NO REPLY BOX. _createGitHubIssue opens a
-                 PUBLIC issue on decentespresso/decaid, so there is no channel back to this
-                 tablet by construction — Slate manufactures one by XOR-obfuscating the
-                 user's email into the issue body with a hard-coded key, which publishes
-                 their address, lightly scrambled, in a place they cannot see. Not
-                 collecting it is right; what was missing is the sentence saying so, and
-                 the one honest reply route the app has. NO BACKTICK IN THIS COMMENT. -->
             <p id="feedback-destination" class="ui-caption prose"
                 >${t('Feedback is filed as an issue on ReaPrime’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
             ${refusal === FEEDBACK_REFUSAL.FAILED
                 ? html`<span id="feedback-failed" class="ui-caption"
                     >${state.message ?? t('Sending failed.')}</span>`
                 : nothing}
-            <!-- SUBMIT, LEFT-ALIGNED, which is Slate's own place for it — AND PRESSABLE
-                 WITH AN EMPTY DESCRIPTION, which it was not.
-                 THE GATE MADE ITS OWN REFUSAL UNREACHABLE. A disabled primary is the navy
-                 face at 38 percent opacity, which on a near-black card reads as an empty
-                 slot rather than as a control that is waiting for something; and because
-                 the press could never happen, the store's EMPTY_DESCRIPTION refusal — and
-                 the sentence "Write something first." under the description box — had no
-                 caller at all. A finished half with no other half, guarding a form.
-                 SLATE KEEPS SUBMIT ENABLED AND REFUSES ON PRESS, and Ben's own ruling of
-                 25 August for the committing screens is the same: a refused action stays
-                 where it is and prints why. The refusal is free — feedback-store checks
-                 the description before it builds a request, so nothing reaches the wire.
-                 SENDING STILL DISABLES IT, because that gate stops a SECOND submission of
-                 a request already in flight, which is a different thing entirely. -->
             <ui-button
                 id="feedback-send"
                 class="bindings-reset"
@@ -3404,15 +3153,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 </section>`
                 : nothing}
 
-            <!-- THE STATUS BLOCK, AS SLATE DRAWS IT: a heading over three full-width
-                 rows, in the leaf's own rhythm. It was three flex rows inside a bordered
-                 card butted straight under the Dim toggle, so it read as part of that
-                 setting rather than as a report about the tablet (Ben, 26 Aug 2026: "drop
-                 the card and use Slate's layout for the status block").
-
-                 A DEFINITION LIST, like Machine Info's: these are FACTS the machine
-                 reports, not settings, and the value column shares one track so the three
-                 end on one edge. -->
             ${charging
                 ? html`<section class="group" id="charging-state">
                     <h3 class="ui-heading">${t('Charging status')}</h3>
@@ -3500,17 +3240,6 @@ export class SettingsBespokeLeaf extends UiElement {
                     ? html`<p id="devices-error" class="ui-caption prose" role="status"
                         >${t('This machine could not be asked what it remembers.')}</p>`
                     : html`
-                        <!-- THE SENTENCE THE REBUILD DELETED, AND IT WAS THE ONLY PLACE
-                             THE SKIN SAID THIS. "Looks for scales over Bluetooth. Nothing
-                             is connected automatically." lived in the bordered scan card
-                             that Ben's no-cards pass removed, and it went with the card —
-                             a real fact lost, not a nicety. Decal's scan sends
-                             connect=false on purpose (scale-connect-store.js carries the
-                             handler citation) and Slate's does NOT, so Slate's Search
-                             connects to whatever it finds and Decal's does not. An
-                             undocumented right choice reads as a broken button. It is on
-                             BOTH pages now; the Machine page never had it.
-                             NO BACKTICK IN THIS COMMENT: one would end the template. -->
                         <p class="ui-caption prose" id="devices-search-note"
                             >${t('Search looks for devices nearby. Nothing is connected automatically.')}</p>
                         ${known.length === 0
@@ -3520,17 +3249,6 @@ export class SettingsBespokeLeaf extends UiElement {
                                 body=${t('Press Search to look for one. A device stays on this list once it has been connected.')}
                             ></ui-empty-state>`
                             : html`<div class="devices">
-                                <!-- THE WORD, ONCE, OVER THE TRACK IT NAMES. The preferred
-                                     switch carried an aria-label and no visible name at
-                                     all, and a column of unlabelled switches on a
-                                     connection page is unreadable — "preferred" is not a
-                                     guessable meaning. Ben's instruction was about
-                                     PLACEMENT, not about the word: "controls sit in a
-                                     grid, aligned vertically with those in the list — keep
-                                     each row clean, the Preferred label currently pushes
-                                     its toggle down." A header row satisfies both halves,
-                                     because the grid is already four shared tracks and no
-                                     row grows a second line. -->
                                 <div class="device-head" aria-hidden="true">
                                     <span></span>
                                     <span></span>
@@ -3560,11 +3278,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 <span class="ui-heading">${device.name ?? device.id}</span>
                 <span class="ui-caption">${device.id}</span>
             </span>
-            <!-- THE WORD IS THE STATE. #33 carries one flag, the live one, and this is
-                 not that: a connected device is not a shot in progress, and borrowing the
-                 pulsing dot to mean "connected" would give one treatment two meanings.
-                 What separates the states here is the WORD, which is the machine's own.
-                 NO BACKTICK IN THIS COMMENT: one would end the html template. -->
             <ui-status-chip class="device-state">${t(word)}</ui-status-chip>
             <ui-switch
                 class="device-preferred"
@@ -3658,12 +3371,6 @@ export class SettingsBespokeLeaf extends UiElement {
             <section class="group" id="wifi">
                 <h3 class="ui-heading">${t('WiFi scales')}</h3>
                 <p class="ui-caption prose">${t('A WiFi scale is reached by address rather than found by scanning.')}</p>
-                <!-- A FAILED READ IS SAID, NOT DRAWN AS AN EMPTY LIST. loadEndpoints
-                     publishes an error and leaves the endpoint list null, and an empty map
-                     over null renders nothing — which is indistinguishable from a tablet that
-                     has no WiFi scales, and which would invite a person to re-add an
-                     address the machine already holds. Same rule as the devices section
-                     above it. NO BACKTICK IN THIS COMMENT. -->
                 ${state?.endpoints === null && state?.error
                     ? html`<p id="wifi-error" class="ui-caption prose" role="status"
                         >${t('This machine could not be asked which addresses it holds.')}</p>`
@@ -3693,13 +3400,6 @@ export class SettingsBespokeLeaf extends UiElement {
                         @click=${this.#onWifiAdd}
                     >${t('Add')}</ui-button>
                 </div>
-                <!-- THE ENDPOINT OPERATIONS ONLY, NOW. This sentence was the single
-                     reader of a writeError slot five operations wrote, so a refused
-                     Forget printed "That address was refused." here — on the Scale page,
-                     under the WiFi form, about a device that has no address. The store
-                     carries the operation; the device refusals are said in the devices
-                     section where the button was pressed.
-                     NO BACKTICK IN THIS COMMENT: one would end the template. -->
                 ${state?.writeError?.op === 'endpoint'
                     ? html`<span id="wifi-refusal" class="ui-caption" role="status"
                         >${t('That address was refused.')}${state.writeError.reason
@@ -3726,15 +3426,9 @@ export class SettingsBespokeLeaf extends UiElement {
 
         return html`<section class="group" id="bindings">
             <h3 class="ui-heading">${t('Keyboard shortcuts')}</h3>
-            <!-- SLATE'S SENTENCE, WHICH IS THE ONE A READER NEEDS FIRST: how to change a
-                 binding. Decal said only WHERE the keys work, which is worth saying and
-                 is not an instruction. Both are here, in that order. -->
             <p class="ui-caption prose"
                 >${t('Tap Rebind, then press a key on a connected USB or Bluetooth keyboard. These keys work on the Live screen, and only on a machine with no group-head controller.')}</p>
 
-            <!-- ONE GRID, so every keycap and every Rebind button lands on the same edge
-                 however long an action's name is. They were two nested flex rows, which
-                 sized themselves per row. -->
             <div class="bindings">
                 ${BINDABLE_ACTIONS.map((action) => html`<div class="binding" data-action=${action.id}>
                     <span class="ui-heading">${t(action.label)}</span>
@@ -3755,8 +3449,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 ? html`<span id="binding-conflict" class="ui-caption"
                     >${t('That key already runs')} ${t(this._bindingConflict)}.</span>`
                 : nothing}
-            <!-- SINGULAR AND LEFT-ALIGNED, which is Slate's own (Ben: "mostly Slate's
-                 version, tidied"). It restores ONE map, not a set of them. -->
             <ui-button
                 id="bindings-reset"
                 class="bindings-reset"
@@ -3909,12 +3601,6 @@ export class SettingsBespokeLeaf extends UiElement {
                 <p class="ui-caption prose"
                     >${t('Puts eight machine settings back to the values the machine ships with. Nothing else is touched — no profile, no calibration, no shot history.')}</p>
 
-                <!-- WHAT MOVES, WHERE IT LIVES, AND WHAT IT BECOMES. Ben, 26 Aug 2026:
-                     "name each row by the PAGE its setting comes from, and add two
-                     columns — the current value, and the default it will become."
-                     A list of setting names told the reader what would move; it did not
-                     tell them where to go and look at it afterwards, or whether the reset
-                     would change anything at all on their machine. -->
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>
                     <span class="ui-microcap resets-head">${t('Setting')}</span>

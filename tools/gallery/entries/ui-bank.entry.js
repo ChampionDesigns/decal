@@ -9,7 +9,7 @@ export const entry = {
     notes:
         'Item #3, THE selection component. One-piece bank of mutually exclusive items: '
         + 'a --ui-key ground inside one hairline, a --ui-seam-ink inset seam between '
-        + 'cells, and a selected item painted ONLY by the four dials. Slate had thirteen '
+        + 'cells, and a selected item painted ONLY by the four dials. The reference skin had thirteen '
         + 'selection implementations and six selected looks; there is one of each here, '
         + 'and the shadow boundary is what makes a seventh inexpressible (L8, E10, T5).',
     states: [
@@ -17,7 +17,7 @@ export const entry = {
             id: 'radio',
             title: 'Radio — the default spelling',
             notes:
-                'role=radiogroup / role=radio / aria-checked, the shape Slate uses for a '
+                'role=radiogroup / role=radio / aria-checked, the shape the reference skin uses for a '
                 + 'settings multi-choice group (oracle: settings-connection-scale, three '
                 + 'items at 126x62 in a 379x64 bank). 64px outside, 62px inside: the two '
                 + 'hairlines are --ui-control-inner, derived rather than written.',
@@ -44,7 +44,7 @@ export const entry = {
             id: 'toolbar',
             title: 'Toolbar — aria-pressed, and arrows that do not press',
             notes:
-                'role=group with plain buttons carrying aria-pressed, the shape Slate '
+                'role=group with plain buttons carrying aria-pressed, the shape the reference skin '
                 + 'leaves role-less (oracle: settings-accessories-lighting, two items at '
                 + '412x64). Selection does NOT follow focus here — arrowing past a pressed '
                 + 'button must not press it — so the arrows move the tab stop and '
@@ -69,7 +69,7 @@ export const entry = {
             title: 'The fork, in four values and no rule changes',
             notes:
                 'The identical component with --ui-selected-led and --ui-selected-glow '
-                + 'turned up and the face taken to a seated slice: Slate is a solid accent '
+                + 'turned up and the face taken to a seated slice: the reference skin is a solid accent '
                 + 'block with the LED off, Radian is the quiet slice with the LED and a '
                 + 'channel glow doing the work. Same file, same selectors, four numbers. '
                 + 'Note the seam still runs behind the selected cell — that is '
@@ -89,7 +89,7 @@ export const entry = {
             id: 'one-turn-three-banks',
             title: 'L8 — three banks, three spellings, one dial',
             notes:
-                'The favourites bank, the dye strip and the tab bank: in Slate these are '
+                'The favourites bank, the dye strip and the tab bank: in the reference skin these are '
                 + 'two hand-built copies of .slate-bank plus the real one, so re-skinning '
                 + 'selection moved the tabs and left the favourites behind. Here they are '
                 + 'three uses of one component, and the face override on the wrapper '
@@ -127,7 +127,7 @@ export const entry = {
             title: 'One item disabled',
             notes:
                 'The base dims the button from --ui-opacity-disabled and the keyboard skips '
-                + 'it on both the arrow path and the Home/End path. Slate never disables a '
+                + 'it on both the arrow path and the Home/End path. The reference skin never disables a '
                 + 'bank item, so there is no oracle answer and none is sought.',
             hostStyle: { 'inline-size': '560px' },
             html: `<ui-bank label="Steam" value="auto"

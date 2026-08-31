@@ -87,6 +87,8 @@ export class UiSettingsRow extends UiElement {
         controlLabel: { type: String, attribute: 'control-label' },
         /* Stop handing the accessible name to the slotted control. */
         noAutoLabel: { type: Boolean, reflect: true, attribute: 'no-auto-label' },
+        /** Announce the caption when it changes: it is the outcome of the control's own press. */
+        captionLive: { type: Boolean, reflect: true, attribute: 'caption-live' },
     };
 
     static styles = [
@@ -168,6 +170,7 @@ export class UiSettingsRow extends UiElement {
         this.dash = DEFAULT_DASH;
         this.controlLabel = '';
         this.noAutoLabel = false;
+        this.captionLive = false;
     }
 
     get control() {
@@ -267,7 +270,13 @@ export class UiSettingsRow extends UiElement {
                 ${reading === null
                     ? nothing
                     : html`<p id="reading" class="ui-body ui-numeric reading">${reading}</p>`}
-                ${caption ? html`<p id="caption" class="ui-caption caption">${caption}</p>` : nothing}
+                ${caption
+                    ? html`<p
+                        id="caption"
+                        class="ui-caption caption"
+                        role=${this.captionLive ? 'status' : nothing}
+                    >${caption}</p>`
+                    : nothing}
                 ${note ? html`<p id="note" class="ui-caption caption">${note}</p>` : nothing}
             </div>
             <div id="control" class="control">

@@ -51,7 +51,7 @@ describe('the dead suites died with their modules', () => {
             return RETIRED.includes(base);
         });
         assert.deepEqual(offenders, [],
-            'fused.js, detector.js and derived-channels.js are DROP/REPLACE and stay dead');
+            'fused.js, detector.js and are DROP/REPLACE and stay dead');
     });
 
     test('and nothing imports one, so none of them comes back by the side door', () => {
@@ -96,7 +96,7 @@ describe('no authored fixture keys on a name ReaPrime deleted', () => {
                 try {
                     parsed = JSON.parse(raw);
                 } catch {
-                    continue;               // a deliberately unparseable Gate B canary
+                    continue;               // a deliberately unparseable the contract check canary
                 }
                 for (const hit of deadKeyPaths(parsed)) offenders.push(`${path}: ${hit}`);
                 continue;

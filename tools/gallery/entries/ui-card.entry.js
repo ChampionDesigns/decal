@@ -8,7 +8,7 @@ export const entry = {
     module: '../../src/components/ui-card.js',
     notes:
         'Component #8, the plain surface (spec §5.1 #8, 9 uses): one hairline, one '
-        + 'radius, --ui-key. Slate declares no padding, so its nine call sites supply '
+        + 'radius, --ui-key. The reference skin declares no padding, so its nine call sites supply '
         + 'four different insets (24 / 16 / 60x30 / 24x14) - here the inset is a token '
         + 'with a tight and a none. Scroll mode is bounded and stated per spec §2.4: a '
         + '--ui-control-h floor, overflow: auto, a visible scrollbar, a tab stop, and '
@@ -30,14 +30,14 @@ export const entry = {
             id: 'pads',
             title: 'The three insets',
             notes:
-                'regular (--ui-space-5) / tight (--ui-space-4, spec §3.3 snaps Slate\'s '
-                + '16px to 18) / none (Slate-identical: the caller owns the inset).',
+                'regular (--ui-space-5) / tight (--ui-space-4, spec §3.3 snaps the reference skin\'s '
+                + '16px to 18) / none (the reference skin-identical: the caller owns the inset).',
             hostStyle: { 'inline-size': '520px' },
             html:
                 '<div style="display:flex; flex-direction:column; gap:12px">'
                 + '<ui-card>Regular - 24px</ui-card>'
                 + '<ui-card pad="tight">Tight - 18px</ui-card>'
-                + '<ui-card pad="none"><div style="padding:14px 24px">None - the call site insets, as all nine of Slate\'s do</div></ui-card>'
+                + '<ui-card pad="none"><div style="padding:14px 24px">None - the call site insets, as all nine of the reference skin\'s do</div></ui-card>'
                 + '</div>',
         },
         {
@@ -57,7 +57,7 @@ export const entry = {
             id: 'scroll-capped',
             title: 'Bounded scroll region (the notes pane shape)',
             notes:
-                'SCOPE.md:1702 builds the notes pane as this card plus type roles with a '
+                'The notes pane is this card plus type roles with a '
                 + 'max-block-size cap. The cap is set from outside; the card turns it into '
                 + 'a scroll region with a floor and a visible scrollbar (spec §2.4) rather '
                 + 'than clipping silently. It also takes a tab stop, so a keyboard can '

@@ -1,5 +1,5 @@
 /**
- * Plot-surface-fixture — the rendering subjects for Gate 5.
+ * Plot-surface-fixture — the rendering subjects for this layer.
  */
 
 import { PlotSurfaceElement } from '../../src/components/plot-surface.js';

@@ -14,7 +14,7 @@ export const DEFAULT_THEME = 'dark';
 /** The attribute the sheets select on. */
 export const THEME_ATTRIBUTE = 'data-theme';
 
-/** The LOGICAL storage key. The router owns the `decal.` prefix (B7). */
+/** The LOGICAL storage key. The router owns the `decal.` prefix. */
 export const THEME_KEY = 'theme';
 
 /** The query the stamp asks and this module asks. Written once. */

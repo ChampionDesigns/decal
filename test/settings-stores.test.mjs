@@ -274,7 +274,7 @@ describe('feedback: three refusals, and only one of them is worth retrying', () 
         const transport = transportOf(() => ok({}, 201));
         const store = createFeedbackStore({ transport });
         await store.submit({ description: 'hello', type: 'nonsense' });
-        /* `FeedbackType.values.firstWhere(..., orElse: () => other)` would answer 200 for
+        /* `FeedbackType.values.firstWhere(..., orElse:  => other)` would answer 200 for
          * a request that did not say what it meant. */
         assert.equal(transport.calls.at(-1).body.type, 'other');
     });
@@ -362,7 +362,7 @@ describe('the Decent account is a reading, and "not asked" is one of its answers
 
 describe('the support thread survives a body this skin did not design', () => {
     const THREAD = JSON.stringify([
-        { from_user: 'Ray', now: 200, subject: 'Re: grinder', body: 'Try 1.2 finer.', automsg: 0 },
+        { from_user: 'Support', now: 200, subject: 'Re: grinder', body: 'Try 1.2 finer.', automsg: 0 },
         { now: 100, subject: 'grinder', body: 'The grind seems coarse.' },
     ]);
 
@@ -400,7 +400,7 @@ describe('the support thread survives a body this skin did not design', () => {
             ['The grind seems coarse.', 'Try 1.2 finer.'],
             'the fixture serves them newest-first; a conversation read bottom-to-top is unreadable');
         assert.equal(state.messages[0].from, null, 'no from_user means the account wrote it');
-        assert.equal(state.messages[1].from, 'Ray');
+        assert.equal(state.messages[1].from, 'Support');
     });
 
     test('a message with only a body keeps its absences, and invents nothing', async () => {
@@ -413,7 +413,7 @@ describe('the support thread survives a body this skin did not design', () => {
     });
 
     test('an empty value before a comma is repaired, because the upstream really emits one', async () => {
-        const { store } = supportOf(() => ok('[{"from_user":"Ray","now":1,"subject": ,"body":"hello"}]'));
+        const { store } = supportOf(() => ok('[{"from_user":"Support","now":1,"subject": ,"body":"hello"}]'));
         await store.load();
         assert.equal(store.get().status, SUPPORT_STATUS.READY);
         assert.deepEqual(store.get().messages.map((m) => m.body), ['hello']);
@@ -618,8 +618,8 @@ describe('the scan sends connect=false and never quick=true', () => {
         const store = createScaleConnectStore({ transport });
         await store.loadEndpoints();
         assert.deepEqual(store.get().endpoints, []);
-        assert.equal(await store.addEndpoint('  192.168.1.50 '), true);
-        assert.deepEqual(store.get().endpoints, ['192.168.1.50'], 'trimmed, as the handler trims');
+        assert.equal(await store.addEndpoint('  192.0.2.10 '), true);
+        assert.deepEqual(store.get().endpoints, ['192.0.2.10'], 'trimmed, as the handler trims');
         assert.equal(transport.calls.filter((c) => c.method === 'GET').length, 1, 'no re-read');
     });
 
@@ -627,9 +627,9 @@ describe('the scan sends connect=false and never quick=true', () => {
         const transport = transportOf(({ key }) => (
             key === 'DELETE /devices/wifi' ? ok({ endpoints: [] }) : bad(500)));
         const store = createScaleConnectStore({ transport });
-        await store.removeEndpoint('192.168.1.50');
+        await store.removeEndpoint('192.0.2.10');
         const call = transport.calls.at(-1);
-        assert.deepEqual(call.query, { host: '192.168.1.50' });
+        assert.deepEqual(call.query, { host: '192.0.2.10' });
         /* A DELETE BODY is the one place a fetch stack or an intermediary may drop what it
          * was given, and `buildQuery` checks the query spelling against the contract. */
         assert.equal(call.body, undefined);

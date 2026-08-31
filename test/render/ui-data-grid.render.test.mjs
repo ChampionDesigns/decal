@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -297,7 +297,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'the ink it had — an ignored value that leaves the old paint in place '
                 + 'is indistinguishable from an accepted one');
             assert.equal(after, await page.resolveToken('--ui-text', 'color'),
-                'and the fallback is the cell ink the oracle measured: CITE live-ready '
+                'and the fallback is the cell ink the oracle measured: live-ready '
                 + '#shot-data-pi-time [i=134] color <- authored var(--slate-text)');
         }));
 
@@ -318,17 +318,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const want = ORACLE[theme];
 
                 assert.equal(await page.prop('#phase >>> #frame', 'background-color'), want.ground,
-                    `${theme}: CITE live-ready #shot-data-panel [i=126] background-color (= --ui-fascia)`);
+                    `${theme}: live-ready #shot-data-panel [i=126] background-color (= --ui-fascia)`);
 
                 assert.equal(await page.prop('#phase >>> #rowhead-preinfusion', 'color'), want.muted,
-                    `${theme}: CITE live-ready .h-9 [i=133] role=rowheader color <- authored var(--slate-muted)`);
+                    `${theme}: live-ready .h-9 [i=133] role=rowheader color <- authored var(--slate-muted)`);
                 assert.equal(await page.prop('#phase >>> #col-time', 'color'), want.muted,
-                    `${theme}: CITE history-shotdata .sx-data-col [i=178] color <- authored var(--slate-muted)`);
+                    `${theme}: history-shotdata .sx-data-col [i=178] color <- authored var(--slate-muted)`);
                 assert.equal(await page.prop('#phase >>> #col-time .unit', 'color'), want.muted,
-                    `${theme}: CITE live-ready .shot-data-col-unit [i=128] color <- authored var(--slate-muted)`);
+                    `${theme}: live-ready .shot-data-col-unit [i=128] color <- authored var(--slate-muted)`);
 
                 assert.equal(await page.prop('#phase >>> #cell-preinfusion-time', 'color'), want.text,
-                    `${theme}: CITE live-ready #shot-data-pi-time [i=134] color <- authored var(--slate-text)`);
+                    `${theme}: live-ready #shot-data-pi-time [i=134] color <- authored var(--slate-text)`);
             }
             await page.setTheme('dark');
         }));
@@ -337,36 +337,36 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const col = await page.computed('#phase >>> #col-time',
                 ['font-size', 'text-transform', 'align-items']);
             assert.equal(col['font-size'], ORACLE.colFontSize,
-                'CITE live-ready <span> [i=127] font-size = 14px  (= --ui-text-2xs)');
+                'live-ready <span> [i=127] font-size = 14px  (= --ui-text-2xs)');
             assert.equal(col['text-transform'], ORACLE.transform,
-                'CITE history-shotdata .sx-data-col [i=178] text-transform = uppercase');
+                'history-shotdata .sx-data-col [i=178] text-transform = uppercase');
             assert.equal(col['align-items'], 'baseline',
-                'slate-live.css:1907-1908 .sx-data-col { display: flex; align-items: baseline }');
+                '.sx-data-col { display: flex; align-items: baseline }');
 
             const unit = await page.computed('#phase >>> #col-time .unit',
                 ['font-size', 'font-weight', 'letter-spacing', 'text-transform']);
             assert.equal(unit['font-size'], ORACLE.colFontSize,
-                'CITE live-ready .shot-data-col-unit [i=128] font-size = 14px');
+                'live-ready .shot-data-col-unit [i=128] font-size = 14px');
             assert.equal(unit['font-weight'], ORACLE.unitWeight,
-                'CITE live-ready .shot-data-col-unit [i=128] font-weight = 400 <- var(--slate-weight-regular)');
+                'live-ready .shot-data-col-unit [i=128] font-weight = 400 <- var(--slate-weight-regular)');
             assert.equal(unit['letter-spacing'], ORACLE.unitTracking,
-                'CITE live-ready .shot-data-col-unit [i=128] letter-spacing = normal');
+                'live-ready .shot-data-col-unit [i=128] letter-spacing = normal');
             assert.equal(unit['text-transform'], ORACLE.unitTransform,
-                'slate-live.css:1336, verbatim: "Not uppercased: mL is a unit, and ML is a different one"');
+                'verbatim: "Not uppercased: mL is a unit, and ML is a different one"');
 
             const rowhead = await page.computed('#phase >>> #rowhead-preinfusion',
                 ['font-size', 'text-transform']);
             assert.equal(rowhead['font-size'], ORACLE.rowHeadFontSize,
-                'CITE live-ready .h-9 [i=133] font-size = 15px  (= --ui-text-sm, the .ui-microcap role)');
+                'live-ready .h-9 [i=133] font-size = 15px  (= --ui-text-sm, the .ui-microcap role)');
             assert.equal(rowhead['text-transform'], ORACLE.transform,
-                'CITE live-ready .h-9 [i=133] text-transform = uppercase');
+                'live-ready .h-9 [i=133] text-transform = uppercase');
 
             assert.equal(await page.prop('#phase >>> #cell-preinfusion-time', 'font-size'),
                 ORACLE.cellFontSize,
-                'CITE live-ready #shot-data-pi-time [i=134] font-size = 17px <- var(--slate-text-base)');
+                'live-ready #shot-data-pi-time [i=134] font-size = 17px <- var(--slate-text-base)');
             assert.equal(await page.prop('#phase >>> #cell-preinfusion-time', 'font-family'),
                 await page.resolveToken('--ui-font-family', 'font-family'),
-                'CITE live-ready #shot-data-pi-time [i=134] font-family <- var(--slate-font-numeric), '
+                'live-ready #shot-data-pi-time [i=134] font-family <- var(--slate-font-numeric), '
                 + 'which styles/tokens.css:346-347 records was already var(--slate-font-ui) — one family');
             assert.deepEqual(
                 (await page.prop('#phase >>> #cell-preinfusion-time', 'font-variant-numeric'))
@@ -443,11 +443,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const rowhead = await page.computed('#phase >>> #rowhead-preinfusion',
                 ['font-size', 'letter-spacing', 'text-transform']);
             assert.notEqual(rowhead['font-size'], ORACLE.slateHvRowHeadSize,
-                'CITE history-shotdata .sx-data-row [i=190] font-size = 20px — the HV '
+                'history-shotdata .sx-data-row [i=190] font-size = 20px — the HV '
                 + 'page\'s own row label, which loses to the shared role');
             assert.equal(rowhead['font-size'], ORACLE.rowHeadFontSize);
             assert.notEqual(rowhead['text-transform'], ORACLE.unitTransform,
-                'CITE history-shotdata .sx-data-row [i=190] text-transform = none');
+                'history-shotdata .sx-data-row [i=190] text-transform = none');
             assert.equal(rowhead['text-transform'], ORACLE.transform);
 
             assert.equal(rowhead['letter-spacing'], ORACLE.slateRowHeadTracking,
@@ -485,7 +485,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await page.prop('#phase >>> #col-time', 'column-gap'),
                 await page.resolveToken('--ui-space-1', 'column-gap'));
             assert.notEqual(await page.prop('#phase >>> #col-time', 'column-gap'), ORACLE.slateColGap,
-                'CITE history-shotdata .sx-data-col [i=178] gap = 6px — off the seven-step '
+                'history-shotdata .sx-data-col [i=178] gap = 6px — off the seven-step '
                 + 'scale (§3.3), snapped to --ui-space-1');
         }));
 
@@ -496,7 +496,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(frame['overflow-y'], 'auto');
             assert.equal(frame['min-block-size'], '0px',
                 'NO BLOCK FLOOR: C2\'s five-phase measurement was never taken '
-                + '(SCOPE.md:1918-1924), so this number is not this component\'s to invent');
+                + 'so this number is not this component\'s to invent');
 
             const frameBox = await page.box('#phase >>> #frame');
             const tableBox = await page.box('#phase >>> #table');
@@ -606,7 +606,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             for (const width of values) {
                 assert.ok(Math.abs(width - values[0]) < 1.5,
                     `value tracks disagree: ${values.join(' / ')} — "the columns are equal `
-                    + 'because the channels are peers" (slate-live.css:1895-1897)');
+                    + 'because the channels are peers" ');
             }
 
             const list = await tracks(page, '#list >>> #table');
@@ -616,7 +616,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'six fixed tracks totalling 554px become fr (spec §4.5)');
 
             assert.notEqual(Math.round(phase[0]), ORACLE.slateHvRowHeadTrackWidth,
-                'CITE history-shotdata .sx-data-row [i=190] width = 210px — the fixed '
+                'history-shotdata .sx-data-row [i=190] width = 210px — the fixed '
                 + 'row-label track §4.5 replaces');
         }));
 
@@ -805,7 +805,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.match(header.name.value, /\bg\b/,
                 'the unit must be part of the header\'s accessible name, so a reader '
                 + 'announcing a cell says "Weight g" — the unit belongs to the column, '
-                + 'not to every cell in it (slate-live.css:1920-1922)');
+                + 'not to every cell in it ');
 
             assert.equal(await page.evalFn(
                 () => window.__h.q('#phase >>> #col-weight .col-label').textContent,

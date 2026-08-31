@@ -75,7 +75,7 @@ const device = (id, type = 'machine', state = 'discovered') => ({ id, name: `${t
 const surfaceOf = (raw, feedStatus = FEED_STATUS.LIVE) =>
     connectionSurface(readDevicesFrame(raw), { feedStatus });
 
-/* ═══════════════════════════════════════════════ 1. B8 — DISTINGUISHABLE STATES */
+/* ═══════════════════════════════════════════════ 1. — DISTINGUISHABLE STATES */
 
 describe('B8: the connection states are distinguishable', () => {
     test('the three states SCOPE names never render as one picture', () => {
@@ -234,7 +234,7 @@ describe('a published error takes the banner only when it IS a connection failur
         ...over,
     });
 
-    test("Ben's own frame: an adapter error does not say \"could not connect\" about a machine on USB", () => {
+    test("a reported frame: an adapter error does not say \"could not connect\" about a machine on USB", () => {
         const state = surfaceOf(benchFrame());
         assert.equal(state.id, CONNECTION_SURFACE.READY,
             'a Bluetooth adapter error outranked phase: ready — that IS the bug');
@@ -362,7 +362,7 @@ describe('a published error takes the banner only when it IS a connection failur
     });
 
     test('errorScopeOf answers null for no error, and agrees with the ladder on what one is', () => {
-        // A7: absence is a real answer, and it is not `CONNECTION`.
+        //: absence is a real answer, and it is not `CONNECTION`.
         for (const absent of [null, undefined, 0, '', 'adapterOff']) {
             assert.equal(errorScopeOf(absent), null, `${JSON.stringify(absent)} is not an error`);
         }
@@ -517,7 +517,7 @@ describe('L11: one dimming owner', () => {
 
     test('the two rows that keep their input are a TABLE, and the paint does not name them', () => {
         assert.deepEqual([...DIM_KEEPS_INPUT], ['drink-weight-presets', 'steam-flow-presets'],
-            'the set Ben ruled on: the two preset banks, and nothing else');
+            'the decided set: the two preset banks, and nothing else');
         for (const row of DIM_KEEPS_INPUT) {
             assert.ok(railDimGroup(row), `${row} must still HAVE a dim group — it recedes, it is not exempt`);
             assert.equal(railKeepsInput(row), true);
@@ -854,7 +854,7 @@ describe('screen laws, over the cluster the skeleton suite does not cover', () =
 
     test('no machine name is read anywhere in the cluster', () => {
         for (const file of CLUSTER_FILES) {
-            assert.doesNotMatch(CODE[file], /\b(bengle|de1|decent)\b/i, `${file} reads a machine name (A3/A1)`);
+            assert.doesNotMatch(CODE[file], /\b(bengle|de1|decent)\b/i, `${file} reads a machine name`);
         }
     });
 
@@ -890,7 +890,7 @@ describe('screen laws, over the cluster the skeleton suite does not cover', () =
             assert.ok(connection.includes(`<${tag}`), `${tag} is composed`);
         }
         assert.ok(CODE['src/screens/live-refusal.js'].includes('<ui-alert-banner'));
-        // A local <dialog> or <button> would be the copy the L8 class is about.
+        // A local <dialog> or <button> would be the copy the class is about.
         for (const file of ['src/screens/live-connection.js', 'src/screens/live-refusal.js']) {
             assert.doesNotMatch(CODE[file], /<(dialog|button)\b/, `${file} hand-builds a control`);
         }

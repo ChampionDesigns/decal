@@ -788,7 +788,7 @@ describe('rule 6 — a favourite slot never points at a record the library is hi
     });
 
     test('a parent CYCLE terminates instead of hanging the rail', () => {
-        // Nothing ReaPrime writes contains one, but the corpus is server data.
+        // Nothing ReaPrime writes contains one, but the measurement is server data.
         const records = [
             hidden('p:a', 'P', { parentId: 'p:b' }),
             hidden('p:b', 'P', { parentId: 'p:a' }),

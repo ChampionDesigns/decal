@@ -217,8 +217,8 @@ function requireSpec(spec) {
     if (!spec?.series?.length) problems.push('spec.series is empty');
     if (!spec?.colors) problems.push('spec.colors is missing (read the four --ui-chart-* surface tokens)');
     if (!spec?.padding) problems.push('spec.padding is missing (read the four --ui-chart-gutter-* tokens)');
-    if (!(spec?.pixelRatio > 0)) problems.push('spec.pixelRatio is missing — the component owns it (bug chart-C12)');
-    if (!spec?.fontFamily) problems.push('spec.fontFamily is missing (read --ui-font-family, C9)');
+    if (!(spec?.pixelRatio > 0)) problems.push('spec.pixelRatio is missing — the component owns it');
+    if (!spec?.fontFamily) problems.push('spec.fontFamily is missing (read --ui-font-family)');
     if (!(spec?.tickFontPx > 0)) problems.push('spec.tickFontPx is missing (read --ui-chart-tick)');
     if (!(spec?.minTickGapPx > 0)) problems.push('spec.minTickGapPx is missing (read --ui-chart-tick-gap)');
     if (!spec?.yScale) problems.push('spec.yScale is missing');
@@ -248,7 +248,7 @@ export function assertPlotStyles(root) {
             'createPlot: uPlot.min.css is not in this shadow root\'s adoptedStyleSheets. '
             + 'Without it the canvas still paints — pixel-identical, 0 of 648,000 pixels differ — '
             + 'while laying out at its ATTRIBUTE size: 1.5x oversized and 450px past its card at '
-            + 'the bench dpr, with .u-cursor-x static and height 0 (Part 8 §3 Rule 1). It is still '
+            + 'the bench dpr, with .u-cursor-x static and height 0. It is still '
             + 'LIVE to input; the wave-0a "dead to input" reading was retracted as a hit-test '
             + 'artifact. Adopt the sheet with adoptStyleSheet(this.renderRoot, sheet) BEFORE '
             + 'building the plot.',

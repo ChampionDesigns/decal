@@ -5,7 +5,7 @@
 import { css, html, nothing } from 'lit';
 import { UiElement } from 'src/components/base.js';
 
-/** The four the spec names. Anything else falls back to `default` rather than blanking
+/** The four variants. Anything else falls back to `default` rather than blanking
  *  the control - the same choice base.js makes for an unrecognised focus-ring value. */
 export const BUTTON_VARIANTS = Object.freeze(['default', 'primary', 'ghost', 'danger']);
 

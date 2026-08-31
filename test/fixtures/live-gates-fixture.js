@@ -7,7 +7,7 @@
  * them. What is faked is exactly two things, and both are transports:
  *
  *   THE HTTP TRANSPORT is a scripted `request()`. That is what lets a suite ask for a
- *   400 `Unsupported profile` — B9's whole subject — without a machine that refuses one.
+ *   400 `Unsupported profile` — the rule's whole subject — without a machine that refuses one.
  *   The BODIES are the contract table's response shapes, not invented ones.
  *
  *   THE FEEDS are plain stores in the shape `feed-store.js` publishes, `{status, value}`,
@@ -57,7 +57,7 @@ const transport = {
      * hands back a URL and the browser opens it — so a transport without this method
      * throws inside the Live screen's DYE2 handler, and the throw would be invisible
      * because nothing would have rendered the button. The settings fixture learned exactly
-     * this on 27 August 2026 and its own note says so.
+     * this and its own note says so.
      *
      * THE BASE CARRIES `/api/v1`, WHICH IS NOT DECORATION. `reaBaseUrl` composes
      * `<scheme>//<host>:8080/api/v1` and the real `transport.url()` appends the
@@ -114,7 +114,7 @@ const workflow = createWorkflowStore({ transport });
  * `<live-screen>` now shows profile NAMES in the five favourite slots and draws the
  * LAST STORED SHOT in the chart and the foot band, and `app-boot.js` builds both stores
  * for it. A fixture that omitted them would render the screen exactly as the defect
- * rendered it — five numbered blanks and "No shot yet" on a machine with 321 shots —
+ * rendered it — five numbered blanks and "No shot yet" on a machine with 321 shots
  * and every assertion about a live composition would pass against a dead one, which is
  * the same reason the workflow store above is here.
  *
@@ -251,8 +251,8 @@ const boot = {
     arm,
     workflow,
     library,
-    /* CB-21's spelling again — the boot object's field is `shotHistory` everywhere,
-     * because Gate D refuses `.shots` in client code and this fixture stands in for
+    /* the rule's spelling again — the boot object's field is `shotHistory` everywhere,
+     * because gate-d refuses `.shots` in client code and this fixture stands in for
      * `app-boot.js`. */
     shotHistory: shots,
     appSettings,
@@ -326,7 +326,7 @@ const api = {
      * own `readMachineSnapshot`, exactly as `live-stores.js` publishes one.
      *
      * WHY THIS EXISTS BESIDE `pushMachineState`. That one publishes a state NAME and no
-     * channels, which is all the dimming owner ever needed. Since Ben's 22 Aug ruling
+     * channels, which is all the dimming owner ever needed. Since the ruling
      * the gauge cluster reads the snapshot's channels too, and a state-only frame
      * photographs five dashes on a machine the state calls connected — the defect the
      * wiring exists to end, wearing the fixture's clothes.

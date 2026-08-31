@@ -1,5 +1,5 @@
 /**
- * The end-to-end proof of the Gate A rig, and the pattern every.
+ * The end-to-end proof of the render harness rig, and the pattern every.
  */
 
 import { test, describe, before, after } from 'node:test';

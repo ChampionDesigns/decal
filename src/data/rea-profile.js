@@ -24,7 +24,7 @@ export function profileTitleOf(record) {
     return typeof title === 'string' ? title : null;
 }
 
-/** Verbatim. An unrecognised value is returned as-is — see A7 above. */
+/** Verbatim. An unrecognised value is returned as-is. */
 export function profileVisibilityOf(record) {
     return isRecord(record) && typeof record.visibility === 'string' ? record.visibility : null;
 }
@@ -39,7 +39,7 @@ export function isDefaultProfile(record) {
     return isRecord(record) && record.isDefault === true;
 }
 
-/** The version link ReaPrime already stores (B11's raw material). */
+/** The version link ReaPrime already stores. */
 export function profileParentIdOf(record) {
     return isRecord(record) && typeof record.parentId === 'string' && record.parentId
         ? record.parentId

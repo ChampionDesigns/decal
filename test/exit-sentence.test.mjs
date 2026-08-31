@@ -151,7 +151,7 @@ describe('Gate 2 — exit types are the address layer\'s, not a typed literal', 
     });
 });
 
-describe('exitConditionChoices — ported from profile_editor.js:1414-1424', () => {
+describe('exitConditionChoices — ported from ', () => {
     const table = [
         // pump,       powerExitOffered, expected
         ['flow', false, ['pressure']],

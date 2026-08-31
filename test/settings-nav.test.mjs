@@ -28,7 +28,7 @@ describe('the settings tree', () => {
     test('ten categories and thirty-two leaves', () => {
         assert.equal(SETTINGS_TREE.length, 10);
         assert.equal(allLeaves().length, 32,
-            'SCOPE Part 5 §4 cut 37; three merges on 28 Aug 2026 took it to 32');
+            '37 before three merges took it to 32');
     });
 
     test('every id is unique and every leaf is reachable from exactly one category', () => {

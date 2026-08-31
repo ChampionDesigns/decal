@@ -1,5 +1,5 @@
 /**
- * THE FIVE profileManager.js RULES — TRANSCRIBED, NOT PORTED.
+ * THE FIVE PROFILE RULES, each transcribed from the behaviour it has to keep.
  */
 
 import { splitProfileTitle } from './profile-folders.js';
@@ -55,7 +55,7 @@ export function partitionProfiles(records) {
     return { all, listable, hidden, deleted, unknown };
 }
 
-/** The bundled profiles a restore-to-factory (D6) offers back — hidden AND `isDefault`. */
+/** The bundled profiles a restore-to-factory offers back — hidden AND `isDefault`. */
 export function restorableProfiles(records) {
     return partitionProfiles(records).hidden.filter(isDefaultProfile);
 }
@@ -201,7 +201,7 @@ export function createMetadataWriteChain({ transport, logger = null } = {}) {
     };
 }
 
-/** The bundled titles the old skin seeds by position (`profileManager.js:864-870`). */
+/** The bundled titles, seeded by position. */
 export const FALLBACK_PROFILE_TITLES = Object.freeze([
     'Default',
     'Best practice (light roast)',

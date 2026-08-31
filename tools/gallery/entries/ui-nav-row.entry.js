@@ -20,9 +20,9 @@ export const entry = {
     notes:
         'Component #24: the Settings category row, at --ui-nav-row (88px, DERIVED from '
         + '--ui-control-h + 2 x --ui-space-3 x --ui-density) with a 24px inset and 22px '
-        + '--ui-text-nav in --ui-muted. It never existed as a primitive '
-        + '(DECISIONS.md:251). Three defects die here: the current row draws NO 4px LED '
-        + '(T5 - Slate\'s is steel-at-72% on a steel fill, won with !important by a sheet '
+        + '--ui-text-nav in --ui-muted. It never existed as a primitive. '
+        + 'Three defects die here: the current row draws NO 4px LED '
+        + '(T5 - the reference skin\'s is steel-at-72% on a steel fill, won with !important by a sheet '
         + 'the shell spent two declarations trying to overrule), the corners are square '
         + '(T3 - authored 0 twice, rendered 6px), and the pitch is a token rather than a '
         + 'per-column rule (T2 - 89 against 93, and a separator rule that never matched). '
@@ -44,9 +44,9 @@ export const entry = {
             id: 'column',
             title: 'The category column, ten rows',
             notes:
-                'Slate\'s own ten categories (settings.html:30-39), with the first one '
+                'The reference skin\'s own ten categories, with the first one '
                 + 'current. Ten cells give nine seams and no sibling selector is involved, '
-                + 'so T2 has nothing to fail to match. Ten rows at 88 fill 880 where Slate '
+                + 'so T2 has nothing to fail to match. Ten rows at 88 fill 880 where the reference skin '
                 + 'filled 890 and its comment claimed 981 - decision C4 lets the column\'s '
                 + 'tail be free rather than tuning the pitch to a row count.',
             html: column(CATEGORIES.map((name, i) => row(name, i === 0 ? 'current' : ''))),
@@ -56,9 +56,9 @@ export const entry = {
             title: 'Current, beside its resting neighbour',
             notes:
                 'The whole of the treatment is --ui-selected-face and --ui-selected-ink; '
-                + '--ui-selected-led is 0px and --ui-selected-glow is 0% on Slate\'s own '
+                + '--ui-selected-led is 0px and --ui-selected-glow is 0% on the reference skin\'s own '
                 + 'dials, so nothing else paints. What is deliberately absent is the 4px '
-                + 'steel strip Slate renders here (T5), the leading bar its shell draws at '
+                + 'steel strip the reference skin renders here (T5), the leading bar its shell draws at '
                 + '--slate-selected-led, and the jump to weight 500. The state is '
                 + 'aria-current="true" on the button - the element a screen reader '
                 + 'announces - so the paint and the announcement are one attribute.',
@@ -94,9 +94,9 @@ export const entry = {
             title: 'A category that is not available',
             notes:
                 'The base paints disabled from --ui-opacity-disabled, one dial settling '
-                + 'Slate\'s three live values (spec §3.7). The host attribute dims; the real '
+                + 'the reference skin\'s three live values (spec §3.7). The host attribute dims; the real '
                 + 'button carries the native `disabled`, so it refuses the press and leaves '
-                + 'the tab order (CONVENTIONS §4). Slate has no disabled nav row - this is '
+                + 'the tab order (CONVENTIONS §4). The reference skin has no disabled nav row - this is '
                 + 'the base\'s other painted state, shown because it is reachable.',
             html: column([row('Connections'), row('Scale', 'disabled'), row('Calibration')]),
         },
@@ -105,7 +105,7 @@ export const entry = {
             title: 'In a 200px column',
             notes:
                 'The label clamps and ellipsises rather than widening the column - a '
-                + 'departure from Slate, which never meets a narrow container because its '
+                + 'departure from the reference skin, which never meets a narrow container because its '
                 + 'geometry is frozen at 1920x1200 (the oracle is disqualified for '
                 + 'responsive behaviour). The 88px pitch and the 48px hit floor both hold, '
                 + 'and the row is still one line.',

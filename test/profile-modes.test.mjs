@@ -52,7 +52,7 @@ const sentences = (step) => spec(step).map(reviewLineText);
 /** A per-character measurer: the old character-count weighting, made explicit. */
 const monoMeasure = (ch) => (label) => label.length * ch;
 
-// ── The one range table (B2) ─────────────────────────────────────────────────
+// ── The one range table ─────────────────────────────────────────────────
 
 test('the three disagreeing copies collapse to one table — 12 / 12 / 8, never 16 / 16 / 15', () => {
     assert.equal(AUTHORING_RANGES.pressureTarget.max, 12);
@@ -114,7 +114,7 @@ test('a machine-dependent row cannot be read without STATING a class — null co
     for (const name of MACHINE_DEPENDENT_AUTHORING_RANGES) {
         assert.throws(() => authoringRange(name), /MACHINE-DEPENDENT/,
             `${name} answered without a machine class`);
-        assert.throws(() => authoringRange(name), /A3/, 'and the refusal says where the class comes from');
+        assert.throws(() => authoringRange(name), /capabilities/, 'and the refusal says where the class comes from');
         assert.ok(authoringRange(name, null), 'null is a stated class: "not known yet"');
         for (const machineClass of MACHINE_CLASSES) assert.ok(authoringRange(name, machineClass));
     }
@@ -288,7 +288,7 @@ test('MODE_TABLE: seeds and named ranges', () => {
     assert.deepEqual([power.limiter.unit, power.limiter.min, power.limiter.max], ['bar', 1, 12]);
     assert.equal(MODE_TABLE.power.limiterForced, true);
 
-    // Lever's target is P0, stored in the pressure key; its limiter is an optional flow cap.
+    // Lever's target is stored in the pressure key; its limiter is an optional flow cap.
     assert.equal(MODE_TABLE.lever.targetKey, 'pressure');
     const lever = modeRanges('lever');
     assert.deepEqual([lever.target.unit, lever.target.max], ['bar', 12]);
@@ -356,7 +356,7 @@ test('getModeConfig REFUSES an unknown pump — A7, no fallback to flow', () => 
 });
 
 test('the import boundary is the ONE place an unknown pump is coerced, and it leaves a mark', () => {
-    // A7's shape: tolerate at the boundary, once, visibly — never on every read.
+    // the rule's shape: tolerate at the boundary, once, visibly — never on every read.
     const legacy = normalizeImportedStep({ pump: 'turbo', flow: 6 });
     assert.equal(legacy.pump, DEFAULT_IMPORTED_PUMP);
     assert.equal(DEFAULT_IMPORTED_PUMP, 'flow');
@@ -805,7 +805,7 @@ test('the module exports no colour and no dash — both belong to the chart laye
     }
 });
 
-test('the blank step is Ben\'s six values, in the shape ReaPrime serves', () => {
+test('the blank step is the six decided values, in the shape ReaPrime serves', () => {
   assert.equal(NEW_STEP.pump, 'pressure', 'a pressure profile step');
   assert.equal(NEW_STEP.pressure, 8, 'with a target of 8 bar');
   assert.equal(NEW_STEP.limiter.value, 8, 'flow limit of 8 mL/s');
@@ -821,7 +821,7 @@ test('the blank step\'s target key is the one its own mode declares', () => {
   const cfg = getModeConfig(NEW_STEP.pump);
   assert.equal(NEW_STEP[cfg.targetKey], 8);
   assert.equal(cfg.limiterRange, 'stepFlowLimit',
-    'and its limiter IS its flow limit, which is why Ben\'s 8 mL/s needs no second name');
+    'and its limiter IS its flow limit, which is why the decided 8 mL/s needs no second name');
 });
 
 test('the blank step\'s limiter soft-knee is the ONE declared width, not a fourth 0.6', () => {
@@ -832,7 +832,7 @@ test('the blank step\'s limiter soft-knee is the ONE declared width, not a fourt
 
 test('the blank step\'s 8 bar is ITS OWN number — the mode switch still seeds 6', () => {
   assert.equal(MODE_TABLE.pressure.seed, 6.0, 'a mode SWITCH still seeds 6 bar');
-  assert.equal(NEW_STEP.pressure, 8, 'a brand-new step is Ben\'s 8 bar');
+  assert.equal(NEW_STEP.pressure, 8, 'a brand-new step is the decided 8 bar');
 
   const switched = seedStepForPump({ pump: 'flow', flow: 4 }, 'pressure');
   assert.equal(switched.pressure, 6.0, 'and the switch path is genuinely unaffected');

@@ -158,8 +158,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const inset = await page.resolveToken('--ui-space-4', 'padding-left');
             assert.equal(got['padding-left'], inset);
             assert.equal(got['padding-right'], inset);
-            assert.equal(got['padding-top'], '0px', 'SOURCE slate-components.css:363 padding: 0 var(--slate-space-4)');
-            assert.equal(got['border-top-width'], '0px', 'SOURCE slate-components.css:364 border: 0');
+            assert.equal(got['padding-top'], '0px', 'padding: 0 var(--slate-space-4)');
+            assert.equal(got['border-top-width'], '0px', 'border: 0');
             assert.equal(got['min-height'], await page.resolveToken('--ui-control-inner', 'min-height'));
         }));
 
@@ -213,9 +213,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const selected = await page.prop(item(bank, sel), 'font-weight');
                     const resting = await page.prop(item(bank, unsel), 'font-weight');
                     assert.equal(selected, SLATE_SELECTED_WEIGHT,
-                        `${bank}: CITE [i=164] the selected cell is Slate's 500`);
+                        `${bank}: [i=164] the selected cell is Slate's 500`);
                     assert.equal(resting, ORACLE_RESTING_WEIGHT,
-                        `${bank}: CITE [i=165] the resting cell is Slate's 400`);
+                        `${bank}: [i=165] the resting cell is Slate's 400`);
                     assert.equal(selected, await page.resolveToken('--ui-selected-weight', 'font-weight'),
                         `${bank}: the 500 is READ from the dial, not written in this component`);
                 }
@@ -244,7 +244,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             for (const edge of ['border-top-width', 'border-bottom-width', 'border-left-width']) {
                                 assert.equal(cell[edge], '0px',
                                     `${bank}: the ${name} cell has no border to colour `
-                                    + '(SOURCE slate-components.css:364 border: 0)');
+                                    + 'border: 0)');
                             }
                         }
                         for (const [i, cell] of [[sel, selected], [unsel, resting]]) {
@@ -564,7 +564,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.settle(2);
             assert.equal(await page.evalFn(() =>
                 document.getElementById('tabs').shadowRoot.activeElement?.id), 'item-2',
-            'ArrowLeft from the first wraps to the last, modulo, exactly as profile_editor.js:3592 does');
+            'ArrowLeft from the first wraps to the last, modulo, exactly as does');
         }));
 
         test('Home and End go to the ends', () => mounted(async (page) => {

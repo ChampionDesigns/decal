@@ -1,55 +1,55 @@
 /**
  * base-fixture - the rendering subject for the base-element conventions
- * (Wave 0a item #2; consumed by item #4's Gate A rig).
+ * (item #2; consumed by item #4's the render harness rig).
  *
  * This file makes no design decisions. It is the smallest component that puts every
  * base convention on screen at once, with stable ids, so the rig can mount it and
- * assert on COMPUTED styles and box geometry rather than on source text (Part 8 §2
- * Gate A: "computed styles, real layout engine ... never on source text").
+ * assert on COMPUTED styles and box geometry rather than on source text
+ * (the render harness: "computed styles, real layout engine ... never on source text").
  *
  * WHAT EACH ID IS FOR - the assertions this fixture is built to support:
  *
- *   #plain          the ONE focus ring, outset. focus it: outline-width should be
- *                   --ui-focus-w (3px), outline-offset --ui-focus-offset (2px),
- *                   outline-color --ui-steel. Move --ui-steel on :root and the ring
- *                   colour must move with it (tokens are consumed, not copied).
- *   #clipped        the same ring, INSET, inside `.band { overflow: hidden }` -
- *                   bug L24's class. outline-offset should be
- *                   --ui-focus-offset-inset (-3px), and the ring must not be clipped.
- *   #keycap         .hit-overlay on a 20x20 ink. getComputedStyle(el, '::before')
- *                   should be 48x48 - the --ui-hit-min floor on BOTH axes - while
- *                   the element itself stays 20x20. Ink and hit floor are separate.
- *   #preset         .hit-overlay with the per-axis escape hatch:
- *                   --_ui-hit-inline: 100%. ::before should be 20x48, which is what
- *                   a control in a shoulder-to-shoulder row needs.
- *   #slider         .hit-pad with --_ui-hit-ink: 8px. padding-block should compute
- *                   to 20px and min-block-size to 48px, so the box is 48 and the
- *                   painted track is 8. background-clip must still be content-box
- *                   AFTER the component paints it (see the longhand note below).
- *   #tab / #tab-off the four selection dials, on and off. #tab's background-color
- *                   should equal the computed --ui-selected-face and its color
- *                   --ui-selected-ink; with the Slate dials (led 0px, glow 0%) the
- *                   LED and the glow paint nothing. Move a dial on :root and both
- *                   must move.
- *   #seam-off /     the selection COMPOSITION SLOT. Both carry a resting inset seam
- *   #seam-on        declared through --_ui-rest-shadow. #seam-on is also selected, so
- *                   its computed box-shadow must still contain the seam's colour -
- *                   selectionSurface prepends the slot to its LED rather than
- *                   replacing the whole list, which is what it used to do.
- *   #disabled       one disabled dial: opacity should be --ui-opacity-disabled. The
- *                   HOST spelling is <base-fixture-spread disabled>, below.
- *   #override       the zero-!important mechanism. The base sets `box-sizing:
- *                   inherit` through :where() (zero specificity); this element's own
- *                   bare-id rule sets `content-box` and wins with no !important
- *                   anywhere in either sheet.
- *   #field-wrap     the exported `focusRing` fragment reused on an element the base
- *                   selector list does not reach, with the inner input's own ring
- *                   suppressed by a plain higher-specificity rule - again, no
- *                   !important.
- *   #container-probe container hosting. block-size is 10px below 400px of HOST
- *                   inline size and 40px at or above it. The rig resizes the HOST,
- *                   not the viewport: at a 1281x801 viewport a narrow host must
- *                   still report 10px, which is the whole of §2.1 Rule 1.
+ * #plain the ONE focus ring, outset. focus it: outline-width should be
+ * --ui-focus-w (3px), outline-offset --ui-focus-offset (2px),
+ * outline-color --ui-steel. Move --ui-steel on :root and the ring
+ * colour must move with it (tokens are consumed, not copied).
+ * #clipped the same ring, INSET, inside `.band { overflow: hidden }` -
+ * a clipped ring. outline-offset should be
+ * --ui-focus-offset-inset (-3px), and the ring must not be clipped.
+ * #keycap .hit-overlay on a 20x20 ink. getComputedStyle(el, '::before')
+ * should be 48x48 - the --ui-hit-min floor on BOTH axes - while
+ * the element itself stays 20x20. Ink and hit floor are separate.
+ * #preset .hit-overlay with the per-axis escape hatch:
+ * --_ui-hit-inline: 100%. ::before should be 20x48, which is what
+ * a control in a shoulder-to-shoulder row needs.
+ * #slider .hit-pad with --_ui-hit-ink: 8px. padding-block should compute
+ * to 20px and min-block-size to 48px, so the box is 48 and the
+ * painted track is 8. background-clip must still be content-box
+ * AFTER the component paints it (see the longhand note below).
+ * #tab / #tab-off the four selection dials, on and off. #tab's background-color
+ * should equal the computed --ui-selected-face and its color
+ * --ui-selected-ink; with the the previous skin dials (led 0px, glow 0%) the
+ * LED and the glow paint nothing. Move a dial on :root and both
+ * must move.
+ * #seam-off / the selection COMPOSITION SLOT. Both carry a resting inset seam
+ * #seam-on declared through --_ui-rest-shadow. #seam-on is also selected, so
+ * its computed box-shadow must still contain the seam's colour -
+ * selectionSurface prepends the slot to its LED rather than
+ * replacing the whole list, which is what it used to do.
+ * #disabled one disabled dial: opacity should be --ui-opacity-disabled. The
+ * HOST spelling is <base-fixture-spread disabled>, below.
+ * #override the zero-!important mechanism. The base sets `box-sizing:
+ * inherit` through :where (zero specificity); this element's own
+ * bare-id rule sets `content-box` and wins with no !important
+ * anywhere in either sheet.
+ * #field-wrap the exported `focusRing` fragment reused on an element the base
+ * selector list does not reach, with the inner input's own ring
+ * suppressed by a plain higher-specificity rule - again, no
+ * !important.
+ * #container-probe container hosting. block-size is 10px below 400px of HOST
+ * inline size and 40px at or above it. The rig resizes the HOST,
+ * not the viewport: at a 1281x801 viewport a narrow host must
+ * still report 10px, which is the whole of rule 1.
  *
  * <base-fixture-intrinsic> is the container-hosting OPT-OUT: one line of its own
  * styles turns inline-size containment off for a control that must shrink to fit
@@ -70,7 +70,7 @@
  * test for a file that contains none. Guarding the body behind a DOM check and
  * importing dynamically makes the file a no-op under node - zero tests, green - and
  * unchanged in the browser. The `css` templates stay exactly where a static guard
- * (Gate C) can parse them. */
+ * (guard) can parse them. */
 
 export let BaseFixture;
 export let BaseFixtureIntrinsic;
@@ -156,7 +156,7 @@ BaseFixture = class BaseFixture extends UiElement {
             /* THE LONGHAND RULE (see base.js, "THE ONE TRAP"). background-image,
              * never the background shorthand: the shorthand resets background-clip
              * to border-box and the 8px track silently swells to fill the 48px hit
-             * box. Slate's own sheet documents this at slate-live.css:1565-1567. */
+             * box. Slate's own sheet documents this at. */
             .track {
                 --_ui-hit-ink: 8px;
                 inline-size: 200px;

@@ -46,13 +46,13 @@ export const entry = {
         + 'from the light tree: --_ui-tile-grid-min (280px) and --_ui-tile-grid-gap '
         + '(--ui-space-3). One departure: the minimum is min(280px, 100%), so a '
         + 'container narrower than a tile gets one full-width track instead of an '
-        + 'overflow that Slate\'s own wrapper silently clips (settings.js:5641, spec '
+        + 'overflow that the reference skin\'s own wrapper silently clips (settings.js:5641, spec '
         + '§2.4). It declares no colour, no role and no selected look — the tiles are '
         + 'the consumer\'s, and here they are #8 cards.',
     states: [
         {
             id: 'leaf-1200',
-            title: 'The Settings leaf, at Slate\'s own width',
+            title: 'The Settings leaf, at the reference skin\'s own width',
             notes:
                 'ORACLE settings-units---language-select-language: 30 tiles, all '
                 + '291x84, first row x = 629 / 932 / 1235 / 1538 → 4 columns at a 303 '
@@ -66,7 +66,7 @@ export const entry = {
             title: 'Three columns at 900',
             notes:
                 'Nothing was told to do this. floor((900 + 12) / 292) = 3 tracks of '
-                + '292. Slate has no answer here — its geometry is frozen at 1920x1200 '
+                + '292. The reference skin has no answer here — its geometry is frozen at 1920x1200 '
                 + '— so the spec governs (Part 10 §4).',
             hostStyle: { 'inline-size': '900px' },
             html: grid(''),
@@ -82,13 +82,13 @@ export const entry = {
             id: 'collapsed-240',
             title: 'Narrower than one tile — the departure',
             notes:
-                'A bare minmax(280px, 1fr) cannot go below 280, so Slate\'s grid would '
+                'A bare minmax(280px, 1fr) cannot go below 280, so the reference skin\'s grid would '
                 + 'be 280 wide inside a 240 box and the leaf wrapper — '
                 + '"w-full max-w-full overflow-x-hidden", settings.js:5641 — would cut '
                 + 'the difference with no affordance (spec §2.4: "At no point does '
                 + 'anything tell the user content was removed"). min(280px, 100%) gives '
                 + 'one full-width track instead. Reachable now: the design floor is '
-                + '~1000 x 600 (DECISIONS.md:178) and Settings collapses to two columns '
+                + '~1000 x 600 and Settings collapses to two columns '
                 + 'below 1100px (spec §4.4).',
             hostStyle: { 'inline-size': '240px' },
             html: grid('', 4),
@@ -111,7 +111,7 @@ export const entry = {
                 'align-content: start. A grid\'s initial align-content behaves as '
                 + 'stretch, which pours surplus block space into the auto-sized row '
                 + 'tracks — one row of tiles in a 520px pane becomes one row of 520px '
-                + 'tiles. Slate never met the case; a Settings leaf pane is a scroll '
+                + 'tiles. The reference skin never met the case; a Settings leaf pane is a scroll '
                 + 'region with a definite height (spec §4.4), so this one will.',
             hostStyle: { 'inline-size': '620px', 'block-size': '520px' },
             html: grid('style="block-size: 100%"', 4),

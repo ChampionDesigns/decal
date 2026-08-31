@@ -63,9 +63,11 @@ import 'src/components/ui-text-field.js';
 /* #7, for the Settings panel's "Count volume from" — a step INDEX, whose only legal
  * values are the steps the draft already holds. See `#settingsRows`. */
 import 'src/components/ui-select.js';
+import 'src/components/ui-stepper.js';
 /* #5, for the Settings panel's "Hidden from the library" — a RECORD property rather than
  * a profile key, written by its own request. See `#settingsRows` and `#onHiddenSwitch`. */
 import 'src/components/ui-switch.js';
+import 'src/components/ui-settings-row.js';
 import 'src/components/ui-toast.js';
 
 export const EDITOR_TABS = Object.freeze([
@@ -130,31 +132,56 @@ export class EditorScreen extends UiElement {
             min-block-size: 0;
         }
 
-        .field {
-            display: block;
+        /* One grid item per column: the panel is a two-track grid over its light-DOM
+           children, so grouping the rows keeps each in its intended track. */
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: var(--ui-space-4);
             min-inline-size: 0;
         }
 
-        .field ui-text-field,
-        .field ui-select {
+        .column + .column {
+            border-inline-start: var(--ui-hairline) solid var(--ui-line);
+            padding-inline-start: var(--ui-space-7);
+        }
+
+        /* A settings row's control track shrink-wraps, and a text field states no width
+           of its own, so it would contribute nothing to that track. */
+        ui-settings-row > ui-text-field {
+            inline-size: var(--ui-form-control-w);
+        }
+
+        /* One stepper band, from the stepper's own two tokens, so the column has one
+           right edge. */
+        ui-settings-row > ui-select {
+            inline-size: calc(
+                2 * var(--ui-stepper-cap) + var(--ui-stepper-value-min)
+                + 2 * var(--ui-border-w));
+        }
+
+        /* A paragraph field is a name ABOVE a control, which is not a row's shape. */
+        .field-block {
+            display: flex;
+            flex-direction: column;
+            gap: var(--ui-space-2);
+            min-inline-size: 0;
+        }
+
+        .field-block > ui-text-field {
             inline-size: 100%;
         }
 
-        .field .switch-line {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: var(--ui-space-3);
-            min-block-size: var(--ui-hit-min);
+        editor-preview {
+            flex: 1 1 auto;
+            min-block-size: 0;
+            max-block-size: var(--ui-editor-preview-max-h);
         }
 
-        .field .switch-line ui-switch {
-            flex: none;
-        }
-
-        .field .ui-caption {
-            display: block;
-            margin-block-start: var(--ui-space-2);
+        .group {
+            margin: 0;
+            padding-block-end: var(--ui-space-3);
+            border-block-end: var(--ui-seam) solid var(--ui-line);
             color: var(--ui-muted);
         }
 
@@ -243,10 +270,10 @@ export class EditorScreen extends UiElement {
     /** The shell's editor store, or null when this screen was mounted without a boot. */
     #store = null;
 
-    /** The subscription to it. One in, one out — P14. */
+    /** The subscription to it. One in, one out. */
     #unwatch = null;
 
-    /** THE ONE RANGES DOOR (B2), built from the shell's capability answer. */
+    /** THE ONE RANGES DOOR, built from the shell's capability answer. */
     #ranges = null;
 
     /**
@@ -290,6 +317,7 @@ export class EditorScreen extends UiElement {
     }
 
     disconnectedCallback() {
+        if (this.#frame) { cancelAnimationFrame(this.#frame); this.#frame = 0; }
         for (const name of Object.values(EDITOR_EDIT)) this.removeEventListener(name, this.#onEdit);
         this.removeEventListener(STEP_ACTION, this.#onStepAction);
         this.removeEventListener(NUMPAD_REFUSED, this.#onNumpadRefused);
@@ -358,15 +386,77 @@ export class EditorScreen extends UiElement {
                 heading: t('Step {n}', { n: index + 1 }),
                 lines: reviewStepSpec(step, { machineRanges, machineClass }),
             }));
-            const half = Math.ceil(blocks.length / 2);
             return [
-                { id: 'a', blocks: blocks.slice(0, half) },
-                { id: 'b', blocks: blocks.slice(half) },
+                { id: 'steps', blocks },
+                {
+                    id: 'preview',
+                    chart: true,
+                    blocks: this.#profileSummaryBlocks(machineRanges),
+                },
             ];
         } catch (error) {
             this.#log('warn', `editor: the review could not be built — ${error?.message ?? error}`);
             return null;
         }
+    }
+
+    /**
+     * The profile's own numbers and notes, drawn under the preview in the same segment
+     * shape the step sentences use. A field the draft leaves unset contributes no line.
+     */
+    #profileSummaryBlocks(machineRanges) {
+        const t = this.#i18n.t;
+        const draft = this._draft ?? {};
+        const lines = [];
+
+        /* A `t` segment carries its own spaces; the panel prints segments adjacent. */
+        const label = (phrase) => ['t', `${t(phrase)} `];
+
+        const weight = Number(draft.target_weight);
+        if (Number.isFinite(weight) && weight > 0) {
+            const r = this.#settingsRange('targetWeight').range;
+            lines.push([
+                label('Stop at weight'),
+                ['num', 'target_weight', weight, r?.step ?? 0.1, r?.unit ?? 'g', r?.min, r?.max],
+            ]);
+        }
+
+        const volume = Number(draft.target_volume);
+        if (Number.isFinite(volume) && volume > 0) {
+            const r = this.#settingsRange('targetVolume').range;
+            lines.push([
+                label('Stop at volume'),
+                ['num', 'target_volume', volume, r?.step ?? 1, r?.unit ?? 'mL', r?.min, r?.max],
+            ]);
+        }
+
+        const tank = Number(draft.tank_temperature);
+        if (Number.isFinite(tank) && tank > 0) {
+            const r = this.#settingsRange('tankTemperature').range;
+            lines.push([
+                label('Tank temperature'),
+                ['num', 'tank_temperature', tank, r?.step ?? 1, r?.unit ?? '\u00B0C', r?.min, r?.max],
+            ]);
+        }
+
+        const beverage = String(draft.beverage_type ?? '').trim();
+        if (beverage) lines.push([label('Beverage type'), ['tog', 'beverage', beverage]]);
+
+        void machineRanges;
+
+        const notes = String(draft.notes ?? '').trim();
+        const blocks = [];
+        if (notes) {
+            blocks.push({
+                id: 'profile-notes',
+                heading: t('Notes'),
+                lines: notes.split(/\n{2,}/).map((para) => [['t', para.replace(/\s+/g, ' ').trim()]]),
+            });
+        }
+        if (lines.length > 0) {
+            blocks.push({ id: 'profile-settings', heading: t('Profile settings'), lines });
+        }
+        return blocks;
     }
 
     #totalsLine() {
@@ -392,11 +482,6 @@ export class EditorScreen extends UiElement {
                 @cancel=${this.#onCancel}
                 @change=${this.#onTabChange}
             >
-                <!-- THE PROFILE'S IDENTITY (cmp-seh-3). One flex item in the lead
-                     flank: the eyebrow the heading used to be, the name as a button, the
-                     rename pencil beside it, and the ceilings. Absent until a profile is
-                     open, because a name and four ceilings are things only a loaded
-                     profile has. -->
                 ${identity ? html`
                     <div id="identity" slot="lead">
                         <span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>
@@ -417,16 +502,6 @@ export class EditorScreen extends UiElement {
                         <p id="totals" class="ui-caption ui-numeric">${this.#totalsLine()}</p>
                     </div>` : nothing}
 
-                <!-- THE CENTRE TRACK IS THIS ELEMENT'S OWN WIDTH. No stretch: see
-                     the header. The tablist is named, and #32 names its panels rather
-                     than pointing at them, because an IDREF cannot cross a shadow
-                     boundary. -->
-                <!-- SLATE'S TABS (Ben, 25 August 2026: "I have changed my mind, make them
-                     all caps same font size as slate, also make the button width match
-                     slates"). ORACLE .slate-editor-tabs .slate-bank-item, measured on the
-                     running skin: 142.7 x 80 each, padding 0 14px, 16px at weight 500,
-                     letter-spacing 1.76px, uppercase. The three privates below carry
-                     those; #3 owns the paint, so nothing here states a colour. -->
                 <ui-tab-bar
                     slot="centre"
                     id="tabs"
@@ -435,12 +510,6 @@ export class EditorScreen extends UiElement {
                     label=${t('Editor panels')}
                 ></ui-tab-bar>
 
-                <!-- PREVIOUS VERSIONS, BESIDE SAVE (Ben, 24 Aug 2026: "Can we add it to
-                     the editor as well, could be useful to be able to undo a change etc.")
-                     Slate has the same control in the same place (#editor-history-btn),
-                     and it is shown only for a record with a lineage to have: a bundled
-                     profile has none, and neither does a draft that has never been saved.
-                     Restoring is NON-DESTRUCTIVE — see #onVersionPick. -->
                 ${identity && this.#canBrowseVersions ? html`
                     <ui-icon-button
                         slot="trail"
@@ -453,11 +522,6 @@ export class EditorScreen extends UiElement {
             </ui-page-header>
 
             <editor-body id="body">
-                <!-- THE MOUNT REGIONS' FALLBACK CONTENT (dec-A-B-1). The engine renders
-                     what is inside a slot ONLY when nothing is assigned to it, so a
-                     caller who mounts its own matrix, preview or overlay region gets
-                     exactly what it always got and nothing below is created at all. The
-                     app mounts none of the three, and this is where it gets them. -->
                 <div id="steps" part="steps" slot="steps">
                     <slot name="steps" @slotchange=${this.#onSlotChange}>
                         ${this.#owns('steps') ? html`<step-matrix
@@ -485,10 +549,6 @@ export class EditorScreen extends UiElement {
                     slot="review"
                     .columns=${this.reviewColumns ?? this.#reviewFromDraft()}
                 >
-                    <!-- THE PREVIEW CHART'S MOUNT REGION (row chart-preview). A slot
-                         forwarding into the review panel's own "chart" slot; empty, it
-                         is an auto row of zero height and every measurement of this
-                         panel is what it was without it. -->
                     <slot name="preview" slot="chart" @slotchange=${this.#onSlotChange}>
                         ${this.#owns('preview') ? html`<editor-preview
                             id="preview"
@@ -498,10 +558,6 @@ export class EditorScreen extends UiElement {
                 </editor-review-panel>
             </editor-body>
 
-            <!-- THE VERSION LIST. A dialog rather than a menu: the rows are profile
-                 titles with a date beside them, and a menu row is one line of text.
-                 display:contents over a closed native dialog, so it adds no row to the
-                 screen's two — the same shape every other overlay here has. -->
             <ui-dialog
                 id="versions"
                 heading=${t('Previous versions')}
@@ -510,9 +566,6 @@ export class EditorScreen extends UiElement {
                 <div slot="body" class="versions">${this.#versionsBody()}</div>
             </ui-dialog>
 
-            <!-- THE OVERLAY REGION (rows editor-dialogs, numpad-flows). It is not a
-                 band: <editor-overlays> is display:contents over closed dialogs, so this
-                 contributes no third row to the screen's two. -->
             <slot name="overlays" @slotchange=${this.#onSlotChange}>
                 ${this.#owns('overlays') ? html`<editor-overlays
                     id="overlays"
@@ -522,12 +575,6 @@ export class EditorScreen extends UiElement {
                 ></editor-overlays>` : nothing}
             </slot>
 
-            <!-- THE RENAME (cmp-seh-3), AND IT IS ONE PIPELINE, NOT A SECOND. The pencil
-                 and the title open this; its confirm is the RENAME gesture and goes
-                 through the same commitPlan table the band's Save uses. It is a
-                 ui-dialog over a CLOSED native dialog with a display:contents host, so
-                 it takes no track in this screen's two-row grid — the same construction,
-                 and the same reason, as the selector's own overlays. -->
             <ui-dialog id="discard-dialog" heading=${t('Discard your changes?')}>
                 <div slot="body">
                     <p>${t('{count} changes will be lost.', { count: this.#count })}</p>
@@ -550,10 +597,6 @@ export class EditorScreen extends UiElement {
                         ?invalid=${Boolean(this._renameRefusal)}
                         .value=${this._draft?.title ?? ''}
                     ></ui-text-field>
-                    <!-- WHY THE RENAME DID NOT HAPPEN (F-050). The house refusal idiom —
-                         a ui-caption paragraph with role=status, the same shape
-                         settings-screen.js uses for its two — rendered AT THE FIELD,
-                         because the dialog now stays open to hold it. NO BACKTICK HERE. -->
                     ${this._renameRefusal
                         ? html`<p id="rename-refusal" class="ui-caption" role="status"
                             >${t(this._renameRefusal)}</p>`
@@ -569,9 +612,6 @@ export class EditorScreen extends UiElement {
                 </div>
             </ui-dialog>
 
-            <!-- WHAT THE SERVER SAID. #22 is the skin's notice surface and it is
-                 position: fixed, so it contributes no grid item either. A save that
-                 reported nothing would be the silence dec-A-B-1 is about. -->
             <ui-toast id="notice"></ui-toast>
         `;
     }
@@ -579,6 +619,46 @@ export class EditorScreen extends UiElement {
     updated(changed) {
         super.updated?.(changed);
         this.#wirePanels();
+
+        /* A settings row caps its label against the widest control ON THE PAGE, which a
+           row cannot know: it sees one control. The screen publishes it. Synchronous
+           first; one frame only if that reads nothing, which is the first paint. */
+        this.#measureControls();
+        if (this.#controlWidth <= 0) {
+            if (this.#frame) cancelAnimationFrame(this.#frame);
+            this.#frame = requestAnimationFrame(() => {
+                this.#frame = 0;
+                this.#measureControls();
+            });
+        }
+    }
+
+    /** The widest control on the Settings tab, or 0 before first layout. */
+    #controlWidth = 0;
+
+    /** The pending frame, so a screen swapped out mid-frame measures nothing. */
+    #frame = 0;
+
+    /**
+     * Measure the widest control and publish it, once per render. Read every control
+     * before writing, so the write cannot invalidate a later read; write nothing when
+     * the number has not moved, so it cannot feed the next update.
+     */
+    #measureControls() {
+        const rows = this.renderRoot?.querySelectorAll?.('ui-settings-row');
+        if (!rows || rows.length === 0) return;
+        let widest = 0;
+        for (const row of rows) {
+            const control = row.shadowRoot?.getElementById?.('control');
+            /* offsetWidth, not a client rect: this screen draws inside a zoom, and a
+               rect is in scaled pixels while a CSS length is not. */
+            const width = control?.offsetWidth ?? 0;
+            if (width > widest) widest = width;
+        }
+        if (widest <= 0) return;
+        if (Math.abs(widest - this.#controlWidth) < 0.5) return;
+        this.#controlWidth = widest;
+        this.style.setProperty('--_ui-leaf-control-w', `${widest}px`);
     }
 
     #wirePanels() {
@@ -679,6 +759,31 @@ export class EditorScreen extends UiElement {
         this.#onFieldChange(key, event.currentTarget.value ?? '');
     };
 
+
+    /**
+     * What "start measuring the drink at" means on the machine in front of you.
+     *
+     * On a Bengle the machine measures: its weight does not rise before this step, so
+     * stop at weight cannot end the shot before it either. On a DE1 the app measures —
+     * it tares at the start of the pour and runs stop at weight from there, neither of
+     * them gated on this field — and the field reaches only the volume, which decides
+     * the shot when there is no scale. An unknown class gets neither claim.
+     */
+    #countFromCaption() {
+        const t = this.#i18n.t;
+        const machineClass = this.#ranges?.machineClass?.() ?? null;
+        if (machineClass === 'bengle') {
+            return t('The scale tares here, and stop at weight cannot end the shot before '
+                + 'it. Steps above this one do not count toward the drink.');
+        }
+        if (machineClass === 'de1') {
+            return t('Volume counts from this step, and with no scale connected the volume '
+                + 'stop is what ends the shot. With a scale, it tares when the pour begins.');
+        }
+        return t('Steps above this one do not count toward the drink, by weight or by '
+            + 'volume.');
+    }
+
     #onCountFrom = (event) => {
         event.stopPropagation();
         const raw = Number(event.detail?.value ?? event.currentTarget?.value);
@@ -690,89 +795,172 @@ export class EditorScreen extends UiElement {
         const draft = this._draft;
         if (!draft) return nothing;
         const t = this.#i18n.t;
-        const text = (key, label) => html`
-            <div class="field">
+
+        /* Every row on this panel is <ui-settings-row>: a heading, an optional range
+           hint, an optional caption, and the control beside them. The controls still
+           carry `label` with `hide-label`, because the row names the slotted control
+           for a screen reader from that. */
+        const row = (opts, control) => html`
+            <ui-settings-row
+                data-row=${opts.id}
+                heading=${t(opts.heading)}
+                hint=${opts.hint ?? ''}
+                caption=${opts.caption ? t(opts.caption) : ''}
+            >${control}</ui-settings-row>`;
+
+        const text = (key, label) => row(
+            { id: key, heading: label },
+            html`
                 <ui-text-field
                     id=${`field-${key}`}
                     data-profile-key=${key}
                     label=${t(label)}
+                    hide-label
                     .value=${draft[key] ?? ''}
                     @change=${this.#onTextField}
-                ></ui-text-field>
-            </div>`;
+                ></ui-text-field>`,
+        );
 
+        /* `target_volume_count_start` is a ZERO-BASED frame index, and the machine
+           counts while the frame is at or past it. So the stored number is the index of
+           the first step that counts, option k is step k, and 0 counts every step.
+           There is no "none" to offer: picking the first step is how a person says all
+           of it.
+
+           Every option carries its number, because a profile may name every step alike
+           and the number is the one thing that is always distinct. A step with no name
+           reads as its ordinal instead. */
         const steps = Array.isArray(draft.steps) ? draft.steps : [];
-        const choices = [
-            { value: '0', label: t('None') },
-            ...steps.map((step, i) => ({
-                value: String(i + 1),
-                label: step?.name || t('Step {n}', { n: i + 1 }),
-            })),
-        ];
-        const marker = Number.isInteger(draft.target_volume_count_start)
+        const choices = steps.map((step, i) => {
+            /* stepName, never `name`: gate-wire resolves the addEventListener(name, …)
+               loop in connectedCallback by looking up that identifier's binding in this
+               file, and a second one makes it refuse to guess — which reports five live
+               editing wires dead. */
+            const stepName = String(step?.name ?? '').trim();
+            return {
+                value: String(i),
+                label: stepName
+                    ? t('{n}. {name}', { n: i + 1, name: stepName })
+                    : t('Step {n}', { n: i + 1 }),
+            };
+        });
+
+        /* An index past the last step selects nothing rather than inventing a step:
+           on such a profile no frame ever satisfies the test, so nothing is counted.
+           Clamping here would silently rewrite the profile. */
+        const stored = Number.isInteger(draft.target_volume_count_start)
             ? draft.target_volume_count_start : 0;
+        const marker = stored >= 0 && stored < steps.length ? stored : null;
 
+        /* Bounds come from the one ranges door, never a literal here. A refused range
+           prints no hint and disables the control. */
+        const stepper = (field, key, label, caption, onChange) => {
+            const { range, refusal } = this.#settingsRange(field);
+            const hint = range
+                ? `${range.min}–${range.max}${range.unit ? ` ${range.unit}` : ''}`
+                : '';
+            return row(
+                { id: key, heading: label, hint, caption },
+                html`
+                    <ui-stepper
+                        id=${`field-${key.replace(/_/g, '-')}`}
+                        data-profile-key=${key}
+                        label=${t(label)}
+                        title=${refusal ? t('Unavailable') : nothing}
+                        data-refusal=${refusal || nothing}
+                        ?disabled=${Boolean(refusal)}
+                        .value=${Number(draft[key] ?? 0)}
+                        .min=${range ? range.min : null}
+                        .max=${range ? range.max : null}
+                        .step=${range ? range.step : null}
+                        unit=${range?.unit ?? nothing}
+                        @change=${onChange}
+                    ></ui-stepper>`,
+            );
+        };
+
+        /* The panel is a grid of two equal tracks over its light-DOM children, so a
+           column is one child holding a stack of rows. */
         return html`
-            ${text('title', 'Profile name')}
-            ${text('author', 'Author')}
-            ${text('beverage_type', 'Beverage')}
-            ${text('notes', 'Notes')}
-
-            <div class="field">
-                <ui-text-field
-                    id="field-tank-temperature"
-                    data-profile-key="tank_temperature"
-                    label=${t('Tank temperature')}
-                    .value=${draft.tank_temperature ?? ''}
-                    @change=${this.#onTankTemperature}
-                ></ui-text-field>
-                <!-- THE CAPTION IS THE DOOR'S OWN REASON, shortened to a sentence a
-                     barista can act on. editor-ranges.js refuses this field a range
-                     because every profile load ends in a tankTemp MMR write, so the
-                     machine takes this number from the profile whatever a control set.
-                     NO BACKTICK IN THIS COMMENT. -->
-                <span class="ui-caption"
-                    >${t('The machine takes this from the profile each time it loads.')}</span
-                >
+            <div class="column">
+                <p class="group ui-microcap">${t('The shot')}</p>
+                ${stepper('targetWeight', 'target_weight', 'Target weight', '', this.#onTargetWeight)}
+                ${stepper('targetVolume', 'target_volume', 'Stop the shot at', '', this.#onTargetVolume)}
+                ${row(
+                    {
+                        id: 'count-from',
+                        /* One name, because the field is one thing: the step where the
+                           drink starts being measured. It lives in the profile, which is
+                           portable, so the name cannot depend on the machine — the
+                           caption carries that. */
+                        heading: 'Start measuring the drink at',
+                        caption: this.#countFromCaption(),
+                    },
+                    html`
+                        <ui-select
+                            id="field-count-from"
+                            label=${t('Start measuring the drink at')}
+                            .options=${choices}
+                            .value=${marker === null ? '' : String(marker)}
+                            @change=${this.#onCountFrom}
+                        ></ui-select>`,
+                )}
+                ${stepper(
+                    'tankTemperature', 'tank_temperature', 'Tank temperature',
+                    /* Every profile load writes this to the machine, so it overwrites
+                       whatever the settings page holds. */
+                    'The machine takes this from the profile each time it loads.',
+                    this.#onTankTemperature,
+                )}
             </div>
 
-            <div class="field">
-                <ui-select
-                    id="field-count-from"
-                    label=${t('Count volume from')}
-                    .options=${choices}
-                    .value=${String(marker)}
-                    @change=${this.#onCountFrom}
-                ></ui-select>
-                <span class="ui-caption"
-                    >${t('Volume exits ignore everything poured before this step.')}</span
-                >
-            </div>
+            <div class="column">
+                <p class="group ui-microcap">${t('The profile')}</p>
+                ${text('title', 'Profile name')}
+                ${text('beverage_type', 'Beverage')}
+                ${text('author', 'Author')}
+                ${this.#hiddenSwitchRow()}
 
-            ${this.#hiddenSwitchRow()}
+                <div class="field-block" data-row="notes">
+                    <p class="ui-heading">${t('Notes')}</p>
+                    <ui-text-field
+                        id="field-notes"
+                        data-profile-key="notes"
+                        label=${t('Notes')}
+                        hide-label
+                        multiline
+                        rows="6"
+                        .value=${draft.notes ?? ''}
+                        @change=${this.#onTextField}
+                    ></ui-text-field>
+                </div>
+            </div>
         `;
     }
 
+    /**
+     * The library-visibility row. The row names the switch for a screen reader from its
+     * heading, and its caption is a live region because it is the only place the outcome
+     * of the press is stated.
+     */
     #hiddenSwitchRow() {
         const t = this.#i18n.t;
         const face = this.#libraryFace;
         return html`
-            <div class="field">
-                <div class="switch-line">
-                    <span id="field-hidden-label" class="ui-body"
-                        >${t('Hidden from the library')}</span
-                    >
-                    <ui-switch
-                        id="field-hidden"
-                        aria-labelledby="field-hidden-label"
-                        data-face=${face.state}
-                        .checked=${face.checked}
-                        ?disabled=${face.disabled}
-                        @change=${this.#onHiddenSwitch}
-                    ></ui-switch>
-                </div>
-                <span class="ui-caption" role="status">${face.caption}</span>
-            </div>`;
+            <ui-settings-row
+                data-row="hidden"
+                heading=${t('Hidden from the library')}
+                caption=${face.caption}
+                caption-live
+            >
+                <ui-switch
+                    id="field-hidden"
+                    data-face=${face.state}
+                    .checked=${face.checked}
+                    ?disabled=${face.disabled}
+                    @change=${this.#onHiddenSwitch}
+                ></ui-switch>
+            </ui-settings-row>`;
     }
 
     get #libraryFace() {
@@ -847,11 +1035,38 @@ export class EditorScreen extends UiElement {
         this.#store.setVisibility(wanted);
     };
 
+    /** The range this field resolves to, or the door's own reason for refusing it. */
+    #settingsRange(field) {
+        if (!this.#ranges) {
+            return { range: null, refusal: 'no ranges door was injected' };
+        }
+        try {
+            return { range: this.#ranges.rangeFor(field), refusal: null };
+        } catch (error) {
+            return { range: null, refusal: error?.message ?? String(error) };
+        }
+    }
+
+    /** The drink out of the machine, in grams. */
+    #onTargetWeight = (event) => {
+        event.stopPropagation();
+        const value = Number(event.detail?.value ?? event.currentTarget?.value);
+        if (!Number.isFinite(value)) return;
+        this.#onFieldChange('target_weight', value);
+    };
+
+    /** The profile's volume stop, in millilitres. */
+    #onTargetVolume = (event) => {
+        event.stopPropagation();
+        const value = Number(event.detail?.value ?? event.currentTarget?.value);
+        if (!Number.isFinite(value)) return;
+        this.#onFieldChange('target_volume', value);
+    };
+
+    /** The profile's tank temperature, in degrees. */
     #onTankTemperature = (event) => {
         event.stopPropagation();
-        const raw = String(event.currentTarget?.value ?? '').trim();
-        if (raw === '') return;
-        const value = Number(raw);
+        const value = Number(event.detail?.value ?? event.currentTarget?.value);
         if (!Number.isFinite(value)) return;
         this.#onFieldChange('tank_temperature', value);
     };
@@ -949,7 +1164,7 @@ export class EditorScreen extends UiElement {
             : null;
 
         const result = applyStepAction(this._draft, detail, {
-            /* D2, and the reason `NEW_STEP_NAME_KEY` is a key rather than text: the seed
+            /* The reason `NEW_STEP_NAME_KEY` is a key rather than text: the seed
              * lives in a DOM-free module with no translator, so the word is made here. */
             stepName: this.#i18n.t(NEW_STEP_NAME_KEY),
         });
@@ -995,7 +1210,7 @@ export class EditorScreen extends UiElement {
         return { count, clean: count === 0, tell: CHANGE_TELL.COMPARED, fields: [] };
     }
 
-    /** D11's count alone — what the band renders and what the discard question counts. */
+    /** The count alone — what the band renders and what the discard question counts. */
     get #count() { return this.#change.count; }
 
     /** The record the editor has open, or null. */

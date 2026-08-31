@@ -1,5 +1,5 @@
 /**
- *.5, rows chart-preview, editor-dialogs and numpad-flows, at both Gate A geometries (BENCH 1281×801 @ dsf 1.5, FLOOR 1000×600 @ dsf 1).
+ *.5, rows chart-preview, editor-dialogs and numpad-flows, at both the render harness geometries (BENCH 1281×801 @ dsf 1.5, FLOOR 1000×600 @ dsf 1).
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -14,7 +14,7 @@ import {
     matrixStep, ruleCensus, scanRules, assertScanIsLive,
 } from '../harness/editor.js';
 
-/** A lever step, for the dialog block. Values only; no bound is stated here (B2). */
+/** A lever step, for the dialog block. Values only; no bound is stated here. */
 const LEVER_STEP = Object.freeze({
     name: 'Lever pull',
     pump: 'lever',
@@ -109,7 +109,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(box.height >= floor,
                         `the card is below its own floor: ${box.height} < ${floor}`);
 
-                    /* chart-C3's rule, inherited by MOUNTING the card rather than building
+                    /* 's rule, inherited by MOUNTING the card rather than building
                      * a well around it: a plot host has no padding. */
                     const plot = await page.computed(EDITOR.previewPlot,
                         ['padding-top', 'padding-right', 'padding-bottom', 'padding-left']);
@@ -491,7 +491,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.evalFn((sel) => window.__h.need(sel).openExitCondition({ index: 0 }), EDITOR.overlays);
                     await page.settle(4);
                     const opened = await page.evalFn(
-                        (sel) => window.__h.need(sel).openNumpad({ field: 'tankTemperature' }), EDITOR.overlays,
+                        (sel) => window.__h.need(sel).openNumpad({ field: 'targetVolumeCountStart' }), EDITOR.overlays,
                     );
                     await page.settle(3);
                     assert.equal(opened, false, 'the door was supposed to refuse this field');
@@ -638,7 +638,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         'the hint is not the range the keypad was handed');
 
                     /* AND THE ENTRY IS THE DOOR'S. The cell beside it is bounded by the
-                     * same object, which is the whole of B2: one table, one entry. */
+                     * same object, which is the whole of: one table, one entry. */
                     const door = await page.evalFn(async (sel) => {
                         const cell = window.__h.need(sel);
                         return { min: cell.min, max: cell.max, step: cell.step };
@@ -730,7 +730,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('a field the door refuses opens nothing and says why (A7)',
                 () => mounted(async (page) => {
                     const opened = await page.evalFn(
-                        (sel) => window.__h.need(sel).openNumpad({ field: 'tankTemperature' }),
+                        (sel) => window.__h.need(sel).openNumpad({ field: 'targetVolumeCountStart' }),
                         EDITOR.overlays,
                     );
                     await page.settle(2);
@@ -794,7 +794,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     EDITOR.exitDialog, EDITOR.leverDialog,
                 ];
 
-                /* THE CANARY FIRST — E8's lesson pointed at the test. A scan walking
+                /* THE CANARY FIRST — the rule's lesson pointed at the test. A scan walking
                  * nothing finds nothing dead and passes. */
                 await assertScanIsLive(page, HOSTS);
 

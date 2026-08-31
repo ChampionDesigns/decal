@@ -97,9 +97,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             const track = await page.box('#mid >>> .track');
             near(track.height, space2 + 2 * hairline, 'thickness is the derivation, not a literal');
-            near(track.height, 10, 'SOURCE settings.js:6240 h-[10px]');
+            near(track.height, 10, 'h-[10px]');
             const fill = await page.box('#mid >>> .fill');
-            near(fill.height, track.height, 'SOURCE settings.js:6240 inner div class h-full');
+            near(fill.height, track.height, 'inner div class h-full');
         }));
 
         test('the trough is --ui-key-on at --ui-radius', () => mounted(async (page) => {
@@ -109,12 +109,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(
                 track['background-color'],
                 await page.resolveToken('--ui-key-on', 'background-color'),
-                'SOURCE slate-components.css:723-726 .slate-progress-track background-color: '
+                '.slate-progress-track background-color: '
                 + 'var(--slate-key-on) !important — the token carried, the !important dropped',
             );
             const radius = await page.resolveValue('var(--ui-radius)', 'border-top-left-radius');
             assert.equal(track['border-top-left-radius'], radius,
-                'SOURCE slate-components.css:724 border-radius: var(--slate-radius)');
+                'border-radius: var(--slate-radius)');
             assert.equal(track['border-bottom-right-radius'], radius, 'all four corners, one token');
         }));
 
@@ -133,10 +133,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(
                 await page.prop('#mid >>> .fill', 'background-color'),
                 await page.resolveToken('--ui-steel', 'background-color'),
-                'CITE themes live-ready #shot-rating-slider [i=157] background-image: '
+                'themes live-ready #shot-rating-slider [i=157] background-image: '
                 + 'dark linear-gradient(to right, rgb(176, 196, 206) 0%, ... rgb(58, 72, 82) 100%) / '
                 + 'light linear-gradient(to right, rgb(49, 92, 112) 0%, ... rgb(203, 208, 211) 100%) '
-                + 'DIFF <- slate-live.css `#main-page .slate-rate-slider` — dark rgb(176,196,206) and '
+                + 'DIFF <- `#main-page .slate-rate-slider` — dark rgb(176,196,206) and '
                 + 'light rgb(49,92,112) are both --ui-steel, so the FILL of a filled track is the token, '
                 + 'in both themes',
             );
@@ -454,9 +454,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const style = await page.computed('#mid >>> .fill', [
                 'transition-duration', 'transition-property', 'transition-timing-function',
             ]);
-            assert.equal(style['transition-duration'], slow, 'SOURCE settings.js:6240 duration-200');
+            assert.equal(style['transition-duration'], slow, 'duration-200');
             assert.match(style['transition-property'], /inline-size|width/,
-                'SOURCE settings.js:6240 transition-[width], written logically');
+                'transition-[width], written logically');
             assert.equal(
                 style['transition-timing-function'],
                 await page.resolveValue('var(--ui-ease)', 'transition-timing-function'),
@@ -480,8 +480,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(running.length, 1,
                 `the fill jumped instead of animating (animations in flight: ${JSON.stringify(running)})`);
             assert.match(String(running[0].property), /inline-size|width/,
-                'the running transition is the fill\'s own size, SOURCE settings.js:6240 transition-[width]');
-            assert.equal(running[0].duration, 200, 'at --ui-dur-slow, SOURCE duration-200');
+                'the running transition is the fill\'s own size transition-[width]');
+            assert.equal(running[0].duration, 200, 'at --ui-dur-slow, duration-200');
 
             await page.evalFn(async () => {
                 const fill = document.getElementById('empty').shadowRoot.querySelector('.fill');

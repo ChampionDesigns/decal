@@ -712,90 +712,6 @@ export class SelectorScreen extends UiElement {
             @select=${(event) => this.#onRowMenuSelect(event, id)}
             @click=${(event) => event.stopPropagation()}
         >
-            <!-- A SPAN, NOT A BUTTON, AND THAT IS THE P12 LAW RATHER THAN AN OVERSIGHT.
-                 A <button> inside a role="tree" is reported as a button child of the
-                 tree, and 78 of them is the exact defect this screen already paid for
-                 once: measured with CDP Accessibility.getFullAXTree, 78 operable "More
-                 actions" nodes, a listbox with 79 tab stops, and every option's name
-                 reading "Preinfuse then 45ml of water More actions".
-
-                 aria-hidden AND tabindex=-1 ON A ui-icon-button WERE NOT ENOUGH: the
-                 component renders its own <button> inside its shadow root, and the P12
-                 probe walks shadow roots and reports focusables. MEASURED after that
-                 attempt: 78 (focusable:ui-icon-button) and 83 button, unchanged. The only
-                 element that is neither is one that was never a button.
-
-                 ui-menu TAKES ITS TRIGGER EVENTS ON THE SLOT (ui-menu.js:696), so a span
-                 opens the menu exactly as the button did. The pointer gesture Ben asked
-                 for ("add the …") is unaffected.
-
-                 THE KEYBOARD ROUTE IS OWED. Assign, Edit and Versions are reachable
-                 another way; REMOVE FOR GOOD IS NOT, and that is an open item rather than
-                 a settled one.
-
-                 THE NAME IS HERE NOW, AND IT COST A CHANGE IN ui-list-row TO MAKE IT
-                 SAFE (audit F-016 #8, closed 29 August 2026 after being attempted and
-                 parked earlier the same night). Wave 1 rowed this span as one of sixteen
-                 controls whose accessible name is the empty string, and said why: the
-                 element carrying the glyph was itself aria-hidden, so the element that
-                 TAKES THE PRESS was hidden along with the decoration.
-
-                 THE OBVIOUS FIX ON ITS OWN COSTS MORE THAN IT BUYS, and that was
-                 measured before this line was written. Moving aria-hidden onto an inner
-                 glyph span and putting an aria-label on this one does give the opener a
-                 name -- and Chrome then folded that name into the ROW's, because a
-                 treeitem with no explicit label is named from its contents and a
-                 labelled descendant is part of them. Measured with
-                 Accessibility.getFullAXTree, every row's name became
-
-                     "Alpha bloom Loaded More actions for Alpha bloom"
-
-                 which is the defect the paragraph above this one is about, in a smaller
-                 form.
-
-                 WHAT CLOSED IT is the second of the two routes that note named:
-                 ui-list-row now composes its OWN aria-label, from its own content, for
-                 any row whose list has given it a role. Name-from-content therefore never
-                 runs on these rows and a labelled descendant cannot enter their names --
-                 so this span may be named, and is. The row's name is unchanged
-                 ("Alpha bloom Loaded"), which is asserted in ui-list-row's own suite
-                 against the real AX tree rather than argued here.
-
-                 THE GLYPH KEEPS aria-hidden, ON ITS OWN SPAN. The decoration is not the
-                 name; without this the opener would be announced as "More actions for
-                 Alpha bloom ⋯". The role walk and the tab-stop count are unaffected: a
-                 span with an aria-label and no role and no tabindex is reported as
-                 nothing by P12's walk, which is why role="button" was never a candidate.
-
-                 THE KEYBOARD ROUTE IS OPEN NO LONGER — Ben's decision D21, 30 August
-                 2026, and the ROVING TABINDEX is what makes it compatible with everything
-                 above. Read the two numbers together: P12's complaint was SEVENTY-EIGHT
-                 operable nodes and SEVENTY-NINE tab stops, measured; this adds exactly
-                 ONE, on the row the tree's own aria-activedescendant already names, and
-                 it moves with the arrow keys. Tab from the listing reaches the opener for
-                 the row you are standing on and nothing else — which is the shape the
-                 APG's own "actions in a composite widget" advice describes, and the
-                 opposite of a tab stop per row.
-
-                 role="button" COMES WITH THE TABINDEX AND NOT BEFORE IT. An unlabelled
-                 focusable generic is worse than either end state: a caret lands on
-                 something a screen reader cannot classify. The role is written only where
-                 the element is actually reachable, so the 77 openers that are not on the
-                 active row stay exactly what the F-016 #8 note above describes — a named
-                 span with no role and no tabindex, reported as nothing by a role walk.
-
-                 ENTER AND SPACE ARE HANDLED HERE, ARROWS BY THE COMPONENT. ui-menu's
-                 #onTriggerKeydown takes ArrowDown/ArrowUp on the slot and says in its own
-                 words why Enter and Space are absent from it: "the trigger is a real
-                 button, its native click opens the menu through #onTriggerClick". A span
-                 is not, and no native click arrives — so the two keys are supplied by the
-                 consumer that chose the span, rather than by widening the component for
-                 everybody. show() is its public door and it remembers the opener as the
-                 focus to return to, so the caret comes back here when the menu closes.
-
-                 aria-haspopup AND aria-expanded ARE NOT WRITTEN HERE: ui-menu's
-                 #syncTrigger puts both on whatever is slotted, and keeps aria-expanded in
-                 step with the open state. A second copy would be a second owner. -->
             <span
                 slot="trigger"
                 class="row-dots"
@@ -1181,27 +1097,6 @@ export class SelectorScreen extends UiElement {
         return html`
             <ui-page-header heading=${t('Profiles')} layout="flanks">
                 <div slot="trail" class="band-actions">
-                    <!-- BOTH ARE TALL, and the band already said so (parity surface 5;
-                         parity surface 1 wrote the same two words on live-screen.js and
-                         gave the whole argument at its ACTIONS block). --ui-band-h is
-                         calc((--ui-control-lg + 2 * --ui-band-inset) * --ui-density) =
-                         118 at density 1, and the CONTROL is deliberately not multiplied
-                         ("ergonomics is physical", ui-page-header.js:185), so a 64px
-                         control in this band leaves 27px of dead space above and below
-                         itself and contradicts the derivation the band's own height comes
-                         from. <ui-page-header> renders ITS OWN commit cluster tall
-                         (ui-page-header.js:551-563, the Settings screen's Cancel/Save);
-                         the Live band is tall; this screen supplied the trail slot itself
-                         and was the last one in the tree still drawing 64. The oracle
-                         agrees rather than merely permitting it:
-                           ORACLE profile-selector #cancel-profile-btn [i=4] height =
-                           82px, min-height = 82px, rect=[1602,18,108,82];
-                           #confirm-profile-btn [i=5] the same 82, rect=[1722,18,168,82];
-                           the band [i=2] min-height = 118px. 82 + 2*18 = 118 exactly,
-                           which is why both sit at y=18 and not at y=27.
-                         No geometry is written here and NO BACKTICK either (CONVENTIONS
-                         §9, and this comment cost one): the tall attribute IS
-                         --ui-control-lg, by name, on the component that already had it. -->
                     <ui-button id="cancel" tall @click=${this.#onCancelPress}
                         >${t('Cancel')}</ui-button
                     >
@@ -1219,22 +1114,6 @@ export class SelectorScreen extends UiElement {
             <selector-split id="split" part="split">
                 <selector-list-pane id="list-pane" slot="list">
                     <div slot="toolbar" class="toolbar">
-                        <!-- NO CAPTION. Ben, 25 August 2026: "We can remove 'ALL PROFILES'
-                             label." It said what the screen already says — its own title is
-                             "Profiles" and the list under it is the profiles — and it was
-                             what pushed the three controls to the right-hand end of the
-                             band. With it gone they start where Slate's do.
-
-                             THE COUNT WENT WITH IT and that is the one thing lost: the
-                             caption carried "93". Slate has no count either. -->
-
-                        <!-- ADD A PROFILE (Ben, 24 Aug 2026: "We should add Upload,
-                             import and the generate one"). Three doors behind one menu,
-                             because they are three ways to do one thing and a band with
-                             three buttons on it says they are three things.
-                             THE GENERATOR ROW IS ABSENT until its plugin answers loaded —
-                             a link to a plugin that is not installed is a dead affordance,
-                             which is the old skin's own rule for the same control. -->
                         <ui-menu
                             id="add"
                             label=${t('Add a profile')}
@@ -1249,16 +1128,6 @@ export class SelectorScreen extends UiElement {
                             >
                         </ui-menu>
 
-                        <!-- THE HIDDEN TOGGLE. Ben, 25 August 2026: "Add the hidden
-                             toggle." Slate's #view_profile, MEASURED at 124.8 x 82 with the
-                             word "Hidden" beside its glyph.
-
-                             PRESSED IS THE STATE AND aria-pressed IS THE SPELLING, so the
-                             control says which set is on screen rather than needing a second
-                             label. It is rendered whether or not anything is hidden: unlike
-                             the restore icon below it, "nothing is hidden" is an ANSWER this
-                             control gives, and a toggle that vanished when the answer was
-                             empty could never give it. -->
                         <ui-button
                             id="hidden-toggle"
                             variant=${this._showHidden ? 'primary' : nothing}
@@ -1267,21 +1136,6 @@ export class SelectorScreen extends UiElement {
                             >${t('Hidden')}</ui-button
                         >
 
-                        <!-- GENERATE, WITH ITS NAME ON IT. Ben, 25 August 2026: "Move the
-                             +, Hidden, and Generate button to the left, like what slate
-                             has" and "The generate button needs to say generate or
-                             something, its not clear what the icon does."
-
-                             IT WAS THE FOURTH ROW OF THE + MENU until now, which is why it
-                             read as an unlabelled glyph: the glyph beside Hidden was the
-                             RESTORE icon, and it is labelled below. Slate carries Generate
-                             as its own worded button in this band - profile_selector.html:26,
-                             #ai_generate_profile - so this is the parity move as well as
-                             the legibility one.
-
-                             STILL GATED ON THE PLUGIN ANSWERING. A link to a plugin that is
-                             not installed is a dead affordance, and that rule does not
-                             change by moving the control into daylight. -->
                         ${this._generatorUrl
                             ? html`<ui-button
                                 id="generate"
@@ -1290,14 +1144,6 @@ export class SelectorScreen extends UiElement {
                             >`
                             : nothing}
 
-                        <!-- D6's ENTRY POINT, NOW WORDED. Ben read its glyph as Generate,
-                             which is the strongest evidence a glyph can give that it is not
-                             carrying its own meaning. It says Restore now.
-
-                             Rendered only when there is something to restore, because a
-                             control that is permanently disabled on a machine nobody has
-                             deleted from is a dead affordance (P10's family). The count IS
-                             the offer. -->
                         ${restorable.length
                             ? html`<ui-button
                                 id="restore-open"
@@ -1317,13 +1163,6 @@ export class SelectorScreen extends UiElement {
                         @search=${this.#onSearch}
                     ></ui-search-field>
 
-                    <!-- THE LISTBOX (P12). One tab stop, aria-activedescendant, a keydown
-                         handler, and only options and groups inside it.
-                         THE SEAM CLASSES ARE ON THE ELEMENT, never restated in a
-                         stylesheet: seams.js owns the three declarations and this is the
-                         same class list settings-nav-column.js:200 renders on its own
-                         rows. See selector-list.js for why the list had no divider at
-                         all until parity surface 5. -->
                     <div
                         slot="list"
                         class="listbox seam-grid seam-rows seam-line"
@@ -1341,10 +1180,6 @@ export class SelectorScreen extends UiElement {
                             >${t('No profiles found.')}</p>`
                         : nothing}
 
-                    <!-- SLATE'S ASSIGN ROW: a cap, then five discs.
-                         Ben, 25 August 2026: "Can we use slates assign Favorites row, maybe
-                         reduce the height a bit but have the ASSIGN FAVOURITE and the 5
-                         round buttons. It looks clean." -->
                     <div id="favourites" slot="favourites" class="assign-row">
                         <span class="ui-microcap">${t('Assign favourite')}</span>
                         ${this.#favouriteSlots()}
@@ -1357,37 +1192,7 @@ export class SelectorScreen extends UiElement {
                             >${title ?? t('No profile selected')}</h2
                         >
 
-                        <!-- THREE BUTTONS, NOT A MENU. Ben, 25 August 2026, on the
-                             selector audit's finding 6 ("Three buttons, or one menu"):
-                             "Copy slate."
-
-                             SLATE'S OWN THREE, MEASURED on its running selector: Delete
-                             102.3 x 82 in red ink on a translucent red ground, Reset, and
-                             Edit 112 x 82. The actions are the ones the ... already
-                             carried; what changes is that they are on screen rather than
-                             one press behind a glyph.
-
-                             HIDE KEEPS ITS OWN WORD and Slate's paint. Decal calls this
-                             Hide and not Delete on purpose, and the contract says why:
-                             DELETE /profiles/<id> is a SOFT delete - the record stays and a
-                             bundled one comes back through Restore. Painting it as Slate's
-                             Delete while calling it Delete would be the first honest half
-                             and the second a lie. -->
                         <div id="actions" class="detail-actions">
-                            <!-- TWO DESTRUCTIVE WORDS, AND EACH DOES WHAT IT SAYS. Ben,
-                                 25 August 2026: "Hide should hide, delete should delete
-                                 after confirmation."
-
-                                 SLATE HAS ONE BUTTON HERE and calls it Delete, for a route
-                                 that hides. That was the audit's "The word" row and it is
-                                 what this replaces: Hide takes DELETE /profiles/<id>, the
-                                 SOFT delete that sets a visibility and removes nothing, and
-                                 Delete takes /purge, the one route that removes a record.
-
-                                 HIDE GOES AWAY ON A HIDDEN PROFILE. There is nothing left
-                                 for it to do, and a disabled button that is only ever
-                                 disabled in one view is a control that has to be explained.
-                                 Delete stays in both. -->
                             ${this._showHidden ? nothing : html`<ui-button
                                 id="act-hide"
                                 variant="danger"
@@ -1418,21 +1223,6 @@ export class SelectorScreen extends UiElement {
                             >
                         </div>
 
-                        <!-- THE OVERLAYS LIVE HERE, and P1 is why: this screen's grid has
-                             exactly two children and an overlay is not a band. Every
-                             confirm host has a display:contents host over a closed native
-                             dialog, so none contributes a flex item here.
-                             (No backtick in this template, comment or not.)
-
-                             THE LOAD CONFIRM IS GONE (Ben, 24 Aug 2026). A button labelled
-                             Confirm that opened a dialog asking you to confirm asked the
-                             same question twice; the old skin's own Confirm writes the
-                             workflow and leaves. What remains here asks about the things
-                             this app cannot undo. -->
-
-                        <!-- THE FILE PICKER, HELD OPEN NOWHERE. <ui-file-button> is a
-                             button over a clipped input; it is in the tree so a menu row
-                             can click it, and it paints nothing of its own here. -->
                         <ui-file-button
                             id="upload"
                             class="hidden-control"
@@ -1442,10 +1232,6 @@ export class SelectorScreen extends UiElement {
                             >${t('Upload a profile')}</ui-file-button
                         >
 
-                        <!-- THE SHARE CODE. Four characters and a message that says which
-                             of the two refusals happened — a wrong code and a Visualizer
-                             account nobody is signed in to need different answers, and the
-                             old skin shows a whole second modal for the second. -->
                         <ui-dialog
                             id="share-code"
                             heading=${t('Import a share code')}
@@ -1469,9 +1255,6 @@ export class SelectorScreen extends UiElement {
                             </div>
                         </ui-dialog>
 
-                        <!-- THE HIDE CONFIRM. Its detail names the profile, because the
-                             menu it came from is closed by the time the question is asked
-                             and "this profile" would then name nothing on screen. -->
                         <ui-confirm-dialog
                             id="confirm-hide"
                             tone="destructive"
@@ -1482,17 +1265,6 @@ export class SelectorScreen extends UiElement {
                             @confirm=${this.#onConfirmHide}
                         ></ui-confirm-dialog>
 
-                        <!-- REMOVE FOR GOOD, AND THE QUESTION SAYS SO IN THOSE WORDS.
-                             Ben, 25 August 2026: "build it behind a confirm that says
-                             plainly it cannot be undone."
-
-                             THE DETAIL IS THE SENTENCE, not the profile's name — the name
-                             is in the question. Every other confirm on this screen can
-                             afford to name the thing and stop, because every other action
-                             here is reversible: a hidden bundled profile comes back through
-                             Restore, and a hidden user profile is still on the server. This
-                             is the one route that removes a record, so the sentence a user
-                             needs is what it costs, not what it is about. -->
                         <ui-confirm-dialog
                             id="confirm-remove"
                             tone="destructive"
@@ -1503,10 +1275,6 @@ export class SelectorScreen extends UiElement {
                             @confirm=${this.#onConfirmRemove}
                         ></ui-confirm-dialog>
 
-                        <!-- RESET ONE PROFILE, ASKED FIRST. Same route as the bulk restore
-                             below and the same 'nothing the user made is touched' promise —
-                             what differs is that this one names the profile it is about,
-                             because it was reached from that profile's own row of actions. -->
                         <ui-confirm-dialog
                             id="confirm-reset"
                             question=${t('Reset this profile to factory?')}
@@ -1516,11 +1284,6 @@ export class SelectorScreen extends UiElement {
                             @confirm=${this.#onConfirmReset}
                         ></ui-confirm-dialog>
 
-                        <!-- D6, FIRST HALF ONLY. The wording says exactly what the handler
-                             does (see #restoreBody): the bundled version comes back, and
-                             nothing the user made is touched, because their edit is a
-                             different record with a different id. The PURGE half is
-                             deferred and has no control anywhere on this screen. -->
                         <ui-dialog id="restore" heading=${t('Restore bundled profiles')}>
                             <p slot="header-trail"
                                 >${t('The bundled version comes back. Your own profiles are untouched.')}</p
@@ -1538,22 +1301,6 @@ export class SelectorScreen extends UiElement {
                     </div>
 
                     <div slot="summary" class="detail-strip">
-                        <!-- B9 — THE REFUSAL, AT THE POINT OF PICKING. #49 takes a message
-                             and does not know the message: the server's own sentence
-                             arrives through profileRefusal() and is printed verbatim.
-
-                             AND IT TAKES NOTHING ELSE. This surface used to bind the
-                             refusal's own kind onto a "kind" attribute as well, and #49 has
-                             no such property, attribute or rule: its whole properties map is
-                             {_hasHeadline, _hasRemedy} (ui-alert-banner.js:180-185), and the
-                             only "kind" in that file is a prose note about the OLD skin's
-                             three alert kinds. An attribute with no consumer is P9's class
-                             exactly — markup that implies a distinction it never paints —
-                             so it is gone. The distinction still reaches the person, in the
-                             one place it was ever readable: the server's own two sentences,
-                             "Unsupported profile" and "Invalid profile", verbatim in the
-                             headline. The kind stays a VALUE on the store's state, where
-                             profileRefusal() puts it and the suites assert it. -->
                         ${refusal
                             ? html`<ui-alert-banner id="refusal"
                                 >${refusal.error}<span slot="remedy">${refusal.message}</span
@@ -1575,10 +1322,6 @@ export class SelectorScreen extends UiElement {
                         </div>
                     </div>
 
-                    <!-- chart-C3: THE PLOT HOST IS UNPADDED. The card's inset lives on its
-                         FRAME and the plot host inside it carries none, which is #47's own
-                         contract and is inherited whole by mounting the card rather than
-                         building a well around it. Nothing here declares padding on it. -->
                     <ui-chart-card
                         id="preview"
                         slot="chart"
@@ -1589,13 +1332,6 @@ export class SelectorScreen extends UiElement {
                         <span slot="empty">${t('Choose a profile to see its curves')}</span>
                     </ui-chart-card>
 
-                    <!-- READONLY, because there is nowhere to save an edit to.
-                         Slate's pane is a plain div that prints profile.notes
-                         (profile_selector.js:565); this mounted a full editor over the
-                         same read, so the caret landed and every word typed was thrown
-                         away at the next selection. Writing notes needs a route, a store
-                         and a Save — none of which this screen has — so until it does,
-                         the pane says what it can do. -->
                     <ui-notes-editor
                         readonly
                         id="notes"
@@ -1607,15 +1343,6 @@ export class SelectorScreen extends UiElement {
                 </selector-detail-pane>
             </selector-split>
 
-            <!-- THE SCREEN'S ONE LINE OF SPEECH. Slate says every favourite outcome in a
-                 toast, refusal and success alike, and its own note explains why they
-                 cannot share one: an error toast that a success overwrites 300 ms later
-                 is an error nobody reads.
-
-                 IT IS OUTSIDE THE SPLIT ON PURPOSE. ui-toast is position: fixed, so it
-                 contributes no grid item and P1's "this screen's grid has exactly two
-                 children" still holds - the same placement editor-screen.js:981 makes for
-                 the same reason. -->
             <ui-toast id="notice"></ui-toast>
         `;
     }

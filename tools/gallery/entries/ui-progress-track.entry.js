@@ -8,13 +8,13 @@ export const entry = {
     module: '../../src/components/ui-progress-track.js',
     notes:
         'Wave 1 #17. Determinate progress line with exactly one consumer — the app-update '
-        + 'download bar (settings.js:6240); D4 killed the firmware file upload, so there is no '
+        + 'download bar; D4 killed the firmware file upload, so there is no '
         + 'indeterminate mode and no upload API. The oracle has NO answer here (prov_query.py '
         + 'find --cls slate-progress-track -> "0 elements matched anywhere in this corpus": the '
         + 'bar only exists mid-download and no capture caught one), so the trough, radius, '
         + 'thickness and 200ms come from a read-only source read. The FILL does not: it is '
         + '--ui-steel, which the oracle measures on this skin\'s other filled track in both '
-        + 'themes (live-ready #shot-rating-slider), because Slate\'s own --ui-primary fill gives '
+        + 'themes (live-ready #shot-rating-slider), because the reference skin\'s own --ui-primary fill gives '
         + '1.11:1 against this trough in the dark theme. Look at the dark capture first.',
     states: [
         {
@@ -71,7 +71,7 @@ export const entry = {
             title: 'In the update card',
             notes: 'The one real context, rebuilt from settings.js:6250-6262 with tokens: a '
                 + 'hairline card on --ui-surface with the status line above the bar. This is '
-                + 'where the dark-theme contrast departure is judged — Slate\'s fill would sit '
+                + 'where the dark-theme contrast departure is judged — the reference skin\'s fill would sit '
                 + 'at 1.11:1 against this trough here.',
             hostStyle: { 'inline-size': '520px' },
             html: '<div style="border:var(--ui-hairline) solid var(--ui-line);border-radius:var(--ui-radius-xl);'

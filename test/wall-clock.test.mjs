@@ -57,7 +57,7 @@ describe('the time is spelled one way', () => {
     test('the shipped default is the one in the decisions table, not a second copy of it', () => {
         assert.equal(DEFAULT_CLOCK_FORMAT, STORED_DEFAULTS.clockFormat);
         assert.equal(DEFAULT_CLOCK_FORMAT, CLOCK_FORMAT.H12,
-            "Ben's ruling, 26 August 2026: 12-hour everywhere");
+            "the ruling: 12-hour everywhere");
     });
 
     test('an unnamed format is still 24-hour, which is the module\'s own contract', () => {

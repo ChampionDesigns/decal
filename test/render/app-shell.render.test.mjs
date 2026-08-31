@@ -124,7 +124,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(awake.active, false);
         }));
 
-        test('a tablet nobody has configured gets the saver Ben DECIDED, not the black one',
+        test('a tablet nobody has configured gets the DECIDED saver, not the black one',
             () => booted(async (page) => {
                 const seen = await page.evalFn(async () => {
                     const root = document.querySelector('app-root');
@@ -161,7 +161,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the premise: nothing is stored, which is every tablet until somebody '
                     + 'opens the page');
                 assert.equal(seen.pageReads, 'image',
-                    'the Settings page reads Ben\'s decided default (settings-defaults.js)');
+                    'the Settings page reads the decided default (settings-defaults.js)');
                 assert.equal(seen.active, true, 'a confirmed sleep still blanks');
                 assert.equal(seen.supported, true,
                     'the platform CAN dim — so a missing dim below is a decision, not an '
@@ -179,7 +179,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'a picture painted on a panel at brightness 0 is a black screen with a '
                     + 'cost — Image and Clock send nothing at all');
 
-                assert.equal(seen.language, 'en', 'Ben\'s decided language, not the empty string');
+                assert.equal(seen.language, 'en', 'the decided language, not the empty string');
                 assert.equal(seen.cycleReads, 10, 'and his ten minutes, from the one table');
             }));
 
@@ -270,7 +270,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
             });
             assert.match(shown.text ?? '', /^\d{1,2}:\d{2}\s?(am|pm)$/i,
-                "Ben's ruling, 26 August 2026: 12-hour, everywhere, on a tablet nobody has set");
+                "the ruling: 12-hour, everywhere, on a tablet nobody has set");
 
             /* AND THE PREFERENCE MOVES BOTH HALVES. A test that checked only the settings
              * page would have passed throughout the bug. */
@@ -431,11 +431,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             const calls = await page.evalFn(() => window.__shell.calls());
 
-            const RACING = 8;
+            const RACING = 7;
             const ordered = calls.slice(0, calls.length - RACING);
             const byPath = (a, b) => a.path.localeCompare(b.path);
             const racing = calls.slice(calls.length - RACING).sort(byPath);
             assert.deepEqual([...ordered, ...racing], [
+                /* Read on the START path, so it is the first call out. */
+                { path: '/api/v1/plugins', method: 'GET' },
                 { path: '/api/v1/machine/capabilities', method: 'GET' },
                 { path: '/api/v1/machine/info', method: 'GET' },
                 { path: '/api/v1/workflow', method: 'GET' },
@@ -450,7 +452,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 { path: '/api/v1/machine/cupWarmer/preheat', method: 'GET' },
                 /* THE PLUGIN LISTING, ASKED BY THE SCREEN THAT READS IT — see the note on
                  * `RACING` above. One request, one reader, and it is `<live-wiring>`. */
-                { path: '/api/v1/plugins', method: 'GET' },
                 { path: '/api/v1/store/decal/drinkOutPresets', method: 'GET' },
                 { path: '/api/v1/store/decal/favouriteProfiles', method: 'POST' },
                 { path: '/api/v1/store/decal/favouriteProfilesSeeded', method: 'GET' },
@@ -838,7 +839,7 @@ describe('index.html — the pre-paint theme stamp, honoured end to end', () => 
             });
             assert.notEqual(result.after.stamp, result.before.stamp);
             assert.notEqual(result.after.canvas, result.before.canvas,
-                'one attribute on the root is the whole switching mechanism (SCOPE Part 2 §6)');
+                'one attribute on the root is the whole switching mechanism');
             assert.equal(result.after.source, 'stored');
         }));
 });

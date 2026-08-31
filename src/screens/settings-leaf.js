@@ -139,7 +139,7 @@ export class SettingsLeaf extends UiElement {
             color: var(--ui-muted);
         }
 
-        /* The D4 note, and any other sentence a leaf's emptiness needs. Prose, so it
+        /* The note, and any other sentence a leaf's emptiness needs. Prose, so it
          * takes the prose measure rather than the form measure the pane sets. */
         #note {
             margin: 0;
@@ -271,13 +271,6 @@ export class SettingsLeaf extends UiElement {
          * about what any of them do. */
         const action = leafAction(this.leafId);
         return html`
-            <!-- THE PAGE'S NAME, AND THE ONE ACTION THAT BELONGS TO THE PAGE RATHER THAN
-                 TO A ROW. Ben, 26 August 2026 (O7): "we should have a button in on the
-                 right above the horizontal dividing line that says 'restore defaults'."
-
-                 IT IS ONLY RENDERED WHEN THERE IS SOMETHING TO RESTORE. The model answers
-                 which of this leaf's rows have a decided default; a leaf with none — Machine
-                 Info, the Help pages — gets no button rather than a disabled one. -->
             <div id="leaf-head-row">
                 <div id="leaf-title-block">
                     ${this.eyebrow
@@ -302,15 +295,6 @@ export class SettingsLeaf extends UiElement {
                     : nothing}
             </div>
 
-            <!-- THE RULE, AND THE SENTENCE UNDER IT. Ben, 26 August 2026 — O5: "Add the
-                 horizontal dividing line that Slate has below the page header on all
-                 pages", and O6: "All pages below the new horizontal dividing line should
-                 describe what the page does."
-
-                 THE RULE IS ALWAYS DRAWN and the sentence is not. The rule separates the
-                 page's name from its content and every page has both; a leaf whose
-                 description has not been written shows no line rather than an empty one,
-                 which is the same rule settings-leaf-copy.js states from the other end. -->
             <hr id="leaf-rule">
             ${desc ? html`<p id="leaf-desc" class="ui-body">${t(desc)}</p>` : nothing}
             ${note ? html`<p id="note" class="ui-caption">${t(note)}</p>` : nothing}

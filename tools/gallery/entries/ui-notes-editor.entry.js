@@ -7,15 +7,15 @@ export const entry = {
     title: 'Notes editor',
     module: './entries/ui-notes-editor.demo.js',
     notes: 'EasyMDE hosted in a shadow root: the vendor sheet is adopted into a cascade layer, '
-        + 'so every rule here wins without one !important against the 40 notes-modal.css needed. '
+        + 'so every rule here wins without one !important against the 40 the old modal needed. '
         + 'Keys are --ui-control-h square with a --ui-seam-ink seam; the active key is the four '
         + 'selection dials through aria-pressed, never a private look.',
     states: [
         {
             id: 'seeded',
             title: 'Seeded — text, bank and the 18px editing step',
-            notes: 'The editing surface is --ui-text-md (18px), the step notes-modal.css:249 '
-                + 'asked for, against a 28px dialog heading. Slate delivered that ratio as 1.04.',
+            notes: 'The editing surface is --ui-text-md (18px), the step the old modal '
+                + 'asked for, against a 28px dialog heading. The reference skin delivered that ratio as 1.04.',
             hostStyle: { 'inline-size': '772px', 'block-size': '380px' },
             html: `
 <ui-notes-editor
@@ -34,7 +34,7 @@ Next: hold the pre-infusion a second longer."></ui-notes-editor>`,
         {
             id: 'empty',
             title: 'Empty — the placeholder, in --ui-muted',
-            notes: 'notes-modal.js:199 shipped this prompt and this ellipsis; what changes is '
+            notes: 'The old modal shipped this prompt and this ellipsis; what changes is '
                 + 'that the colour is a token rather than CodeMirror\'s own grey.',
             hostStyle: { 'inline-size': '772px', 'block-size': '380px' },
             html: '<ui-notes-editor id="notes" label="Notes"></ui-notes-editor>',
@@ -42,7 +42,7 @@ Next: hold the pre-infusion a second longer."></ui-notes-editor>`,
         {
             id: 'with-subject',
             title: 'With a subject row — a slot, not an <input> this component builds',
-            notes: 'notes-modal.js:79-88 built its own subject field. Here the row is a slot: a '
+            notes: 'The old modal built its own subject field. Here the row is a slot: a '
                 + 'screen that needs one composes #7. Empty slot, no row and no gap (T13\'s family).',
             hostStyle: { 'inline-size': '772px', 'block-size': '380px' },
             html: `

@@ -10,7 +10,7 @@ export const entry = {
         'Component #13, and NOT an element: six roles - title / heading / caption / '
         + 'body / microcap / numeric - shipped as the shared style module '
         + 'src/components/type-roles.js over the twenty §3.5 tokens. Every value is '
-        + 'Slate\'s, with five declared departures: zero !important, the rules wrapped '
+        + 'the reference skin\'s, with five declared departures: zero !important, the rules wrapped '
         + 'in :where() so a component always wins, microcap weight 600 -> 700, microcap '
         + 'tracking .12em -> .04em, and the UA block margin zeroed so a role reads the '
         + 'same on an h1 and a div.',

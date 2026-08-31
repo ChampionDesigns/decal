@@ -1,5 +1,5 @@
 /**
- *.3, the core-loop-and-REST cluster: sel-core-loop, sel-highlight-by-id, sel-restore-to-factory, sel-versions-entry-point, sel-refusal-surfacing, sel-components, sel-contract-table, bug-P6-list-row-built-once, bug-P8-confirm-primary, bug-P12-real-listbox, bug-P4-hit-floor-one-owner,….
+ * The core-loop-and-REST cluster: sel-core-loop, sel-highlight-by-id, sel-restore-to-factory, sel-versions-entry-point, sel-refusal-surfacing, sel-components, sel-contract-table, list-row-built-once, confirm-primary, real-listbox, hit-floor-one-owner.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -285,7 +285,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 assert.deepEqual(tiles.map((tile) => tile.key),
                     ['temp', 'peak', 'duration', 'steps', 'stop-at'],
-                    'five tiles, in Ben\'s order — Duration is third');
+                    'five tiles, in the decided order — Duration is third');
                 assert.deepEqual(tiles.map((tile) => tile.label),
                     ['Temp', 'Peak', 'Duration', 'Steps', 'Stop at'],
                     'labelled as Slate labels them, through t()');
@@ -383,7 +383,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 2. P12 — A REAL LISTBOX
+         * 2. — A REAL LISTBOX
          * ═════════════════════════════════════════════════════════════════ */
 
         test('families ship SHUT, which is what makes 91 profiles legible', () => {
@@ -505,7 +505,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 3. P6 · P4 — one row, one owner of its box
+         * 3. · — one row, one owner of its box
          * ═════════════════════════════════════════════════════════════════ */
 
         test('P6 — every option is the same one component, and all 78 answer alike', () => {
@@ -539,7 +539,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `a row is ${row.height} against the --ui-hit-min floor ${floor} (P4 measured 64 vs a comment claiming 48)`);
 
                 /* THE SCREEN DECLARES NOTHING ABOUT THE BOX. Geometry and paint are in one
-                 * root — #26's — so P4's "one rule here, paint 1300 lines away" has no
+                 * root — #26's — so the rule's "one rule here, paint 1300 lines away" has no
                  * second place to live. */
                 const declared = await page.computed(ROW, ['block-size', 'min-block-size', 'padding-top']);
                 const rowToken = px(await page.resolveToken('--ui-list-row', 'block-size'));
@@ -550,7 +550,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 4. P8 — the confirm button has a real primary treatment
+         * 4. — the confirm button has a real primary treatment
          * ═════════════════════════════════════════════════════════════════ */
 
         test('P8 — Confirm is not Cancel painted twice, in the band and in the dialog',
@@ -585,7 +585,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 5. chart-C3 — the preview host is unpadded
+         * 5. — the preview host is unpadded
          * ═════════════════════════════════════════════════════════════════ */
 
         test('chart-C3 — the plot host carries no inset, and the frame carries it instead',
@@ -671,7 +671,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 7. B9 — the refusal, at the point of picking
+         * 7. — the refusal, at the point of picking
          * ═════════════════════════════════════════════════════════════════ */
 
         test('B9 — a typed 400 renders at the picker, carrying the server\'s own sentence',
@@ -706,7 +706,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('§4.2 GIVE ORDER, in the refusal state: the chart pays and the notes do not — DQ',
             async () => {
                 const plotFloor = px(await page.resolveToken('--ui-chart-min-h', 'block-size'));
-                /* AT REST FIRST, and the B9 test above leaves its refusal standing, so the
+                /* AT REST FIRST, and the test above leaves its refusal standing, so the
                  * screen is put back before anything is read. */
                 await page.evalFn(() => window.__sel.clearRefusal());
                 await page.settle(3);
@@ -762,7 +762,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 8. B11 / Q7 — the versions entry point
+         * 8. — the versions entry point
          * ═════════════════════════════════════════════════════════════════ */
 
         test('B11 / Q7 — the detail pane\'s overflow menu opens the versions surface',
@@ -800,7 +800,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 9. D6 — restore to factory, without the purge half
+         * 9. — restore to factory, without the purge half
          * ═════════════════════════════════════════════════════════════════ */
 
         test('D6 — restore offers the hidden bundled profiles and round-trips one back',
@@ -841,7 +841,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 10. P1 HELD — the overlays did not become grid children
+         * 10. HELD — the overlays did not become grid children
          * ═════════════════════════════════════════════════════════════════ */
 
         test('the loop added seven overlays and the grid still has two ITEMS', async () => {
@@ -932,7 +932,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         `${overlay.id} woke up beside an open dialog`);
                 }
 
-                /* AND SHUT AGAIN — after a real open, which is the state P13 hides in. */
+                /* AND SHUT AGAIN — after a real open, which is the state hides in. */
                 for (const overlay of await census()) {
                     assert.equal(overlay.open, false, `${overlay.id} would not close`);
                     assert.equal(overlay.reachable, 0,

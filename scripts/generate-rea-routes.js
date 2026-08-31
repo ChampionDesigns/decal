@@ -15,7 +15,7 @@ export const WS_REL = 'assets/api/websocket_v1.yml';
 /** ReaPrime's REST prefix. Routes are also emitted relative to it, as the transport takes them. */
 export const API_PREFIX = '/api/v1';
 
-/** HTTP methods a path item may carry. Anything else in the spec is a hard failure. */
+/** HTTP methods a path item may carry. Anything else in the source document is a hard failure. */
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'];
 
 export const SPEC_EXCEPTIONS = Object.freeze([
@@ -29,7 +29,7 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         handlerSymbol: 'ShotsHandler._getShots',
         handlerEvidence: "params['order'] at ~:73 and ~:89; no occurrence of 'orderBy' in the handler directory",
         why: 'documented parameter that no handler reads — emitting it would publish a capability the server does not have',
-        upstreamAsk: "SCOPE Part 6, 'Two new upstream asks the count produced'",
+        upstreamAsk: 'Two new upstream asks the count produced',
         stillNeeded: (spec) => hasQueryParam(spec, '/api/v1/shots', 'get', 'orderBy'),
         goneMessage:
             'rest_v1.yml no longer documents the /api/v1/shots orderBy parameter. The upstream fix has landed: '
@@ -46,7 +46,7 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         handlerEvidence: "app.all('/api/v1/plugins/<id>/<endpoint>', …) at :90; final method = req.method at :184; "
             + 'the body is read with req.readAsString() and forwarded to the plugin verbatim',
         why: 'documented GET-only against an app.all handler — a spec-faithful client loses the POST passthrough',
-        upstreamAsk: "SCOPE Part 6, 'Two new upstream asks the count produced'",
+        upstreamAsk: 'Two new upstream asks the count produced',
         marks: Object.freeze({ anyMethod: true }),
         stillNeeded: (spec) => {
             const item = spec.paths['/api/v1/plugins/{id}/{endpoint}'];
@@ -70,7 +70,7 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         handlerSymbol: "SensorsHandler.addRoutes (inline GET /api/v1/sensors)",
         handlerEvidence: "returns {'id': s.deviceId, 'info': info.toJson()} per sensor; the key 'name' is never emitted",
         why: 'documented response key that the handler does not emit — the served key is id',
-        upstreamAsk: 'NEW (wave 0b contract check, 17 Aug 2026) — same class as the two E2 asks',
+        upstreamAsk: 'Same class as the two E2 asks',
         stillNeeded: (spec) => {
             const props = spec.paths?.['/api/v1/sensors']?.get?.responses?.['200']
                 ?.content?.['application/json']?.schema?.items?.properties;
@@ -95,7 +95,7 @@ export const SPEC_EXCEPTIONS = Object.freeze([
             + "DecentProxyService._buildUri as `query: rawQuery`; the two names are ReaPrime's own, from "
             + "DecentAccountService.emailSerialMismatch ('/support/api/email?subject=$subject&body=$body')",
         why: 'a verbatim query-string relay documented with no query parameters — a spec-faithful client cannot address the only send path a read-scoped skin token has',
-        upstreamAsk: 'NEW (Talk to Decent build, 27 Aug 2026) — same class as the three above',
+        upstreamAsk: 'Same class as the three above',
         stillNeeded: (spec) => {
             const op = spec.paths?.['/api/v1/account/proxy/support/api/{endpoint}']?.get;
             if (!op) return false;
@@ -543,18 +543,18 @@ export function render({ reaRoot = REA_ROOT, requireCommit = true } = {}) {
 // This is the DOCUMENTED SURFACE, complete: every path and verb in ReaPrime's own specs,
 // ${counts.routes} REST operations across ${counts.paths} paths and ${counts.channels} socket channels. It is a table, not a
 // client — no fetch, no base URL, no error policy. \`src/data/rea-routes.js\` binds a row to
-// the injected transport, and only for the calls this wave's stores and connectors make.
+// the injected transport, and only for the calls the stores and connectors make.
 //
 // ${applied.length} ROWS DO NOT MATCH THE SPEC, DELIBERATELY. Where \`rest_v1.yml\` and the Dart handler
 // disagree at ${commit.slice(0, 8)}, the handler wins: see REA_ROUTE_EXCEPTIONS below, and the
 // commented exception config in the generator. Each is an upstream ask; each deletes itself
-// (the generator hard-fails) the moment the spec is fixed.
+// (the generator hard-fails) the moment the source document is fixed.
 //
-// \`successMedia\` / \`json\` are what the spec DOCUMENTS. A null there means the response
+// \`successMedia\` / \`json\` are what the source document declares. A null there means the response
 // content is undocumented — not a promise that no body arrives (PUT /machine/cupWarmer
 // documents "200 Accepted" and the handler returns {"status":"accepted"}).
 //
-// Absence is a signal here too (A7): a route missing from this table is a route ReaPrime
+// Absence is a signal here too: a route missing from this table is a route ReaPrime
 // does not document, and the answer is never to hand-write it at the call site.
 
 function deepFreeze(value) {
@@ -566,7 +566,7 @@ function deepFreeze(value) {
 }
 
 /**
- * Every documented REST operation, in spec order.
+ * Every documented REST operation, in source order.
  *
  * \`path\` is as documented (\`/api/v1/shots/{id}\`); \`route\` is what the transport takes —
  * relative to \`${API_PREFIX}\`, in ReaPrime's own \`<param>\` syntax, so it matches the route
@@ -579,7 +579,7 @@ ${routeText}
 /**
  * Every documented WebSocket channel. \`sends\` is non-empty only where the channel is
  * bidirectional — devices, display, update and the raw characteristic channel — which is
- * the fact B8 rests on: the connection state arrives AND the answer goes back on the same
+ * the fact the connection surface rests on: the state arrives AND the answer goes back on the same
  * socket.
  */
 export const SOCKET_CHANNELS = deepFreeze([

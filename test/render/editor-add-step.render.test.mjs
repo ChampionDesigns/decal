@@ -101,7 +101,7 @@ describe('the empty step area is a door (F-033)', () => {
             const rect = svg.getBoundingClientRect();
             return { paths: svg.querySelectorAll('path').length, w: rect.width, h: rect.height };
         }, MATRIX);
-        assert.ok(glyph, 'the small plus Ben asked for is composed');
+        assert.ok(glyph, 'the small plus asked for is composed');
         assert.equal(glyph.paths, 1);
         assert.ok(glyph.w > 0 && glyph.h > 0, 'and it is drawn, not collapsed');
 

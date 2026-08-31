@@ -21,10 +21,10 @@ export class UiTimeKey extends UiElement {
         /** The value at the bottom of the strip. Zero on every caller today. */
         from: { type: Number },
 
-        /** The unit, under the strip — already translated (D2). */
+        /** The unit, under the strip — already translated. */
         caption: { type: String },
 
-        /** The GROUP's accessible name, on the host as `aria-label` (chart-C14). */
+        /** The GROUP's accessible name, on the host as `aria-label`. */
         label: { type: String },
     };
 

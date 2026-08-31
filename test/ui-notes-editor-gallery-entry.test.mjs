@@ -45,7 +45,7 @@ test('both the seeded and the empty surface are on the stage', () => {
     assert.ok(empty.length > 0, 'no empty state — the placeholder is never photographed');
 });
 
-/* O11's class, one component over: a bank that runs out of room must scroll, not
+/* the rule's class, one component over: a bank that runs out of room must scroll, not
  * truncate. The narrow state is what makes that visible in a screenshot diff. */
 test('a narrow container is one of the states', () => {
     const widths = entry.states

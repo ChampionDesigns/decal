@@ -9,19 +9,19 @@ export const entry = {
     notes:
         'Wave 4 #37, the Live rail\'s steam / hot-water / dose shortcut row — and one of the '
         + 'four selection implementations the audit started from: "The preset bank is a fourth '
-        + 'idiom (spec §5.2 #37)". Slate paints its active preset with four properties and no '
+        + 'idiom (spec §5.2 #37)". The reference skin paints its active preset with four properties and no '
         + 'dial — ink at var(--slate-text), font-weight 300 → 400, a steel text-shadow glow and '
         + 'a 42px ::after underline — so a fork can retarget every --slate-selected-* value and '
         + 'this row will not move. Here the row IS a ui-bank (#3) in its toolbar spelling: this '
         + 'component contributes one CSS rule, opacity: 1, and no colour at all. The half it '
         + 'does own is which preset is lit, and that is derived from the control\'s current '
-        + 'value and read-only in both directions (steam-mode.js:57-75) — a press publishes '
+        + 'value and read-only in both directions — a press publishes '
         + 'preset-select with the preset\'s NUMBER and the highlight waits for the machine.',
     states: [
         {
             id: 'drink-out',
             title: 'Drink weight — 40 g active',
-            notes: 'Slate\'s own row, measured: CITE live-ready #drink-out-preset-1..4 [i=37..40] '
+            notes: 'the reference skin\'s own row, measured: CITE live-ready #drink-out-preset-1..4 [i=37..40] '
                 + 'four cells at x=134 / 201 / 268 / 335, each 67 x 34, texts "30" "36" "40" "50", '
                 + 'with #drink-out-preset-3 carrying .preset-active. Four equal cells across the '
                 + 'width of the stepper they set (.slate-stepper is 268 x 64 in all 85 elements the '
@@ -38,7 +38,7 @@ export const entry = {
                 + 'live-ready, find --cls has-context-menu returns 8 preset buttons (drink-out at '
                 + 'y=395, steam-flow 0.6 / 0.8 / 1.0 / 1.2 at y=764) while find --cls preset-active '
                 + 'returns exactly one. The flow was hand-dialled, so no shortcut matches — '
-                + '"no highlight, the honest state for a hand-dialed flow" (steam-mode.js:57-60). '
+                + '"no highlight, the honest state for a hand-dialed flow". '
                 + 'Note "1.0" rather than "1": the label and the match are both read at the row\'s '
                 + 'step, through one formatter (units.js formatToStep), so they cannot disagree.',
             hostStyle: { 'inline-size': '400px' },
@@ -51,7 +51,7 @@ export const entry = {
             notes: 'Presets are choices, not bounds: this component carries no limits table, '
                 + 'because B2/R2 allow exactly one in the skin and it lives behind r2MachineLimits. '
                 + 'The values shown are inside the corrected steam range — floor 135, ceiling 165 '
-                + 'on a Bengle and 160 on a DE1 (CARRY_FORWARD.md §3c on machine-limits.js; '
+                + 'on a Bengle and 160 on a DE1 (machine-limits.js; '
                 + 'ReaPrime de1_controller.dart:545). The retired table\'s 130 is a dead band with '
                 + 'the heater off, and it appears nowhere in this row.',
             hostStyle: { 'inline-size': '400px' },
@@ -98,7 +98,7 @@ export const entry = {
         {
             id: 'three-rows-one-treatment',
             title: 'Three rows, one selected treatment',
-            notes: 'The founding defect, inverted. In Slate these three rows would be a preset '
+            notes: 'The founding defect, inverted. In the reference skin these three rows would be a preset '
                 + 'idiom, a bank and a favourites copy painting "selected" three different ways; '
                 + 'here they are three uses of one component, so the lit cell reads identically '
                 + 'down the column and one turn of --ui-selected-face moves all three.',
@@ -117,7 +117,7 @@ export const entry = {
             title: 'The four dials moved (a Radian-shaped preview)',
             notes: 'The same three rows with the LED and glow dials turned up on the stage, which '
                 + 'is what the Radian fork does. Zero rule changes in this component and zero in '
-                + 'ui-bank — this state IS the claim the row exists to make, rendered. Slate\'s '
+                + 'ui-bank — this state IS the claim the row exists to make, rendered. The reference skin\'s '
                 + 'fourth idiom cannot do it: its glow is a hard-coded steel text-shadow and its '
                 + 'underline a 42px ::after, neither of them reachable from a dial.',
             hostStyle: {

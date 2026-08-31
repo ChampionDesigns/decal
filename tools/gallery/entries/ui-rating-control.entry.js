@@ -17,7 +17,7 @@ export const entry = {
         + 'handoff is present - so the host states no height at all and instead states '
         + 'min-block-size: max-content, which a stated height cannot beat. The rating '
         + 'persists through ReaPrime\'s own enjoyment annotation, not the skin-local KV '
-        + 'orphan (CARRY_FORWARD.md §3c); this control reads and writes nothing itself - '
+        + 'orphan; this control reads and writes nothing itself - '
         + 'it publishes rating-change / dye-handoff and the screen owns the transport. '
         + '(rating-input, one per pixel of drag, was retired 29 Aug 2026 - audit F-011 - '
         + 'because nothing heard it and the drag preview is this component\'s own state.)',
@@ -27,7 +27,7 @@ export const entry = {
             title: 'Unrated (no handoff)',
             notes:
                 'The dash, not a zero. "An unrated shot must not look like a shot rated '
-                + 'zero" (slate-live.css:1533) - ui-stat-tile renders the em dash in '
+                + 'zero" - ui-stat-tile renders the em dash in '
                 + '--ui-muted and announces a sentence, and the track fills nothing.',
             hostStyle: { 'inline-size': ROOMY },
             html: '<ui-rating-control shot-id="shot-1"></ui-rating-control>',
@@ -36,7 +36,7 @@ export const entry = {
             id: 'rated',
             title: 'Rated 73 (no handoff)',
             notes:
-                'The three-child column Slate\'s 165px was derived for. The score is the '
+                'The three-child column the reference skin\'s 165px was derived for. The score is the '
                 + 'served enjoyment annotation, printed at the control\'s own step so the '
                 + 'number and the thumb cannot disagree.',
             hostStyle: { 'inline-size': ROOMY },
@@ -46,7 +46,7 @@ export const entry = {
             id: 'handoff',
             title: 'With the DYE handoff - L4\'s configuration',
             notes:
-                'The fourth child. In Slate the children now sum to 176 in a 165px box and '
+                'The fourth child. In the reference skin the children now sum to 176 in a 165px box and '
                 + 'the button\'s bottom measures 1156 against 1145; here the column simply '
                 + 'grows by the button and the gap.',
             hostStyle: { 'inline-size': ROOMY },
@@ -54,9 +54,9 @@ export const entry = {
         },
         {
             id: 'stated-height',
-            title: 'Slate\'s 165px stated, handoff present',
+            title: 'the reference skin\'s 165px stated, handoff present',
             notes:
-                'The bug, aimed straight at the component. A screen states Slate\'s own '
+                'The bug, aimed straight at the component. A screen states the reference skin\'s own '
                 + 'frozen height and the box is still as tall as its contents, because '
                 + 'min-block-size: max-content outranks it. Nothing is clipped and nothing '
                 + 'scrolls.',
@@ -74,7 +74,7 @@ export const entry = {
         },
         {
             id: 'narrow',
-            title: 'Slate\'s own zone width (172px)',
+            title: 'the reference skin\'s own zone width (172px)',
             notes:
                 'The container floor. The slider\'s 48px hit box and the handoff\'s '
                 + '--ui-control-h hold - ergonomics is physical (spec §2.2) - and the '

@@ -12,7 +12,7 @@ export const entry = {
     title: 'Toast',
     module: '../../src/components/ui-toast.js',
     notes:
-        'Wave 3 #22, and one of the six primitives DECISIONS.md:251 says the library '
+        'Wave 3 #22, and one of the six primitives the library '
         + 'never had. Today it is raw DaisyUI in index.html:645-661 with 26 call sites '
         + 'through ui.js:3283 showToast(message, duration = 2400, type = "info"). ONE '
         + 'element, so the second toast in a burst overwrites the first and restarts its '
@@ -29,7 +29,7 @@ export const entry = {
             id: 'info',
             title: 'One notice, info',
             notes: 'The default tone and the commonest call — "Shot uploaded '
-                + 'successfully!" (app.js:528). --ui-surface card, --ui-text ink, a '
+                + 'successfully!". --ui-surface card, --ui-text ink, a '
                 + '--ui-line hairline edge, --ui-radius-xl (DaisyUI\'s --rounded-box 1rem '
                 + 'on the scale\'s floating-surface step), --ui-elev-2 (index.html:646 '
                 + 'shadow-lg), --ui-space-4 padding and --ui-text-nav 22px type '
@@ -42,8 +42,8 @@ export const entry = {
         {
             id: 'tones',
             title: 'The four tones',
-            notes: 'DEPARTURE 1, the measured one. Slate fills the card with the status '
-                + 'colour and writes --slate-on-primary on top (slate-shell.css:84-104). '
+            notes: 'DEPARTURE 1, the measured one. The reference skin fills the card with the status '
+                + 'colour and writes --slate-on-primary on top. '
                 + 'In the DARK theme — the one the machine boots into, bug S11 — the '
                 + 'status tokens are the BRIGHT variants meant to be read AS ink, so white '
                 + 'on them measures 1.83 (ok) / 3.13 (danger) / 2.07 (warn) against a 4.5 '
@@ -62,7 +62,7 @@ export const entry = {
         {
             id: 'stack-cap',
             title: 'The cap: three, newest nearest the edge',
-            notes: 'DEPARTURE 3. Slate stacks nothing — ui.js:3290 writes '
+            notes: 'DEPARTURE 3. The reference skin stacks nothing — ui.js:3290 writes '
                 + 'messageEl.textContent and clears the running timer, so "Scale tared" '
                 + '(2000 ms) silently eats "Shot blocked: no scale connected" (4000 ms) if '
                 + 'they land together. Here up to max-visible notices stack, the OLDEST is '
@@ -84,7 +84,7 @@ export const entry = {
                 + 'app toast at the bottom; only the two edges are offered here, because a '
                 + 'middle toast is a modal that forgot to be one and #18 owns modality this '
                 + 'wave. The column reverses so the newest is still nearest the pinned '
-                + 'edge. Note S14 is not reproduced: Slate\'s app toast carries '
+                + 'edge. Note S14 is not reproduced: the reference skin\'s app toast carries '
                 + 'class="toast-buttom", a typo that matches no rule, so its bottom '
                 + 'placement is DaisyUI\'s default arriving by accident.',
             hostStyle: STAGE,
@@ -99,7 +99,7 @@ export const entry = {
             notes: 'The SECOND consumer in the old tree, and the one that proves this '
                 + 'surface has to take content rather than a string: index.html:645-656\'s '
                 + 'fullscreen prompt carries a heading, a body line and two buttons. A '
-                + 'press anywhere on a notice dismisses it (DEPARTURE 6 — Slate has no '
+                + 'press anywhere on a notice dismisses it (DEPARTURE 6 — the reference skin has no '
                 + 'affordance at all, on a wall panel with no keyboard), UNLESS it lands on '
                 + 'something interactive, which is what keeps "Enter Fullscreen" working. '
                 + 'The "Later" button is one attribute: data-ui-toast-dismiss. Both take '
@@ -119,8 +119,8 @@ export const entry = {
             notes: 'DEPARTURE 2. DaisyUI authors white-space: nowrap on .toast, so a long '
                 + 'message grows the column until it leaves the window — silent clipping, '
                 + 'the inherited default §2.4 exists to end. Here the notice is capped at '
-                + 'min(100%, --ui-measure) and wraps. Responsive behaviour has no Slate '
-                + 'answer (98.4% frozen); LAYOUT_SPEC_DRAFT governs.',
+                + 'min(100%, --ui-measure) and wraps. Responsive behaviour has no the reference skin '
+                + 'answer (98.4% frozen); the layout spec governs.',
             hostStyle: { ...STAGE, 'inline-size': '420px' },
             html: '<ui-toast anchor="container">'
                 + '<div tone="danger" duration="0">Machine did not accept the target '

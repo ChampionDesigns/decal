@@ -1,8 +1,8 @@
 /**
  * CANARY - deliberately violates "zero !important in component styles"
- * (LAYOUT_SPEC_DRAFT.md §2.1 Rule 3). Nothing can reach into a shadow root, so an
+ * ( Rule 3). Nothing can reach into a shadow root, so an
  * !important here can only be beating the component's own base rules - which is the
- * habit the rewrite exists to end (268 in slate-shell.css, 96 in slate-components.css).
+ * habit this repo exists to end (268 in 96 in).
  */
 /* Node-safe shape - see test/fixtures/canaries/README.md, "the node-safe shape".
  * A no-op under `node --test`, unchanged in the browser, and the css template below

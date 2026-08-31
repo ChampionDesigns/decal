@@ -1,5 +1,5 @@
 /**
- * A8's guard and its canary.
+ * a8's guard and its canary.
  */
 
 import { test, describe } from 'node:test';

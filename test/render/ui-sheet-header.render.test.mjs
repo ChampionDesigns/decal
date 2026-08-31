@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -434,7 +434,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await page.computed('#pair >>> #trail',
                         ['justify-content', 'margin-top', 'column-gap']),
                     clean,
-                    'slate-shell.css:2227-2232 reached the header cluster — O13 is alive',
+                    'reached the header cluster — O13 is alive',
                 );
                 near(clean['column-gap'], ORACLE.clusterGap, 'the cluster gap is the library\'s');
                 assert.equal(clean['margin-top'], '0px');

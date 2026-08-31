@@ -1,5 +1,5 @@
 /**
- * The settings store — B7 at volume, and the spine every settings leaf reads and writes through.
+ * The settings store — the spine every settings leaf reads and writes through.
  */
 
 import { createStore } from './store.js';
@@ -53,7 +53,7 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
         if (!known.has(key)) {
             throw new Error(
                 `settings: '${key}' is not a settings key. ${verb} needs a row in `
-                + 'src/lib/storage-routes.js carrying a `leaf` (B7: one owner per setting). '
+                + 'src/lib/storage-routes.js carrying a `leaf` (one owner per setting). '
                 + 'There is no default and no fallback layer.',
             );
         }
@@ -61,7 +61,7 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
     }
 
     /**
-     * A3, fail-closed. PRESENT shows; ABSENT and UNKNOWN both hide.
+     * Fail-closed. PRESENT shows; ABSENT and UNKNOWN both hide.
      *
      * @returns {{surface: string, capability: string|null, reason: string|null}}
      */
@@ -120,10 +120,10 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
 
         rowFor: (key) => rowFor(key, 'rowFor()'),
 
-        /** A3 gating verdict for one key. See `gate` above. */
+        /** The gating verdict for one key. See `gate` above. */
         gate,
         gateCapability,
-        /** A3 over an R3 SENSOR KIND — the milk probe's door. See `gateSensor` above. */
+        /** Gating over an R3 SENSOR KIND — the milk probe's door. See `gateSensor` above. */
         gateSensor,
 
         /** The current in-memory value. `undefined` until `load(key)` has resolved. */

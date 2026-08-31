@@ -10,7 +10,7 @@ import { launch, GATE_A_GEOMETRIES, BENCH, FLOOR, C1 } from '../harness/index.js
 const MODULE = ['/src/screens/live-screen.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"><live-screen></live-screen></div>';
 
-/** The three sizes this screen is judged at. C1 first, because it is the decided one. */
+/** The three sizes this screen is judged at. first, because it is the decided one. */
 const GEOMETRIES = [C1, ...GATE_A_GEOMETRIES];
 
 const S = 'live-screen';
@@ -398,7 +398,7 @@ for (const geometry of GEOMETRIES) {
             const tree = await page.eval(`JSON.stringify(${REGION_TREE})`).then(JSON.parse);
             const scrolling = tree.filter((n) => /auto|scroll/.test(n.overflowY) && n.scrollHeight > n.clientHeight + 1);
             assert.deepEqual(withoutRail(scrolling.map((n) => `${n.tag}.${n.cls}`)), [],
-                'slate-live.css:1126-1131: "a scroll affordance on a wall tablet is worse than the crowding it fixes"');
+                '"a scroll affordance on a wall tablet is worse than the crowding it fixes"');
             assert.equal(railScrolls(scrolling.map((n) => `${n.tag}.${n.cls}`)),
                 geometry.height < 1200,
                 `the rail's scroll state changed at ${geometry.name}`);
@@ -619,7 +619,7 @@ describe('C1 / C2: the order of surrender', () => {
             const share = (twelve.footFloor / twelve.height);
             const crossover = content / share;
             t.diagnostic(`the band stops scaling below ${crossover.toFixed(0)} rows `
-                + `(content ${content}px / share ${(share * 100).toFixed(1)} %); at Ben's own `
+                + `(content ${content}px / share ${(share * 100).toFixed(1)} %); at the bench `
                 + `1200 / 1080 / 800 it is content-sized at ${twelve.foot} / ${c1.foot} / ${bench.foot}`);
             assert.ok(content - twelve.footFloor < 20,
                 `at ${twelve.height} the band is ${(content - twelve.footFloor).toFixed(2)}px above its share - `
@@ -675,7 +675,7 @@ describe('C1 / C2: the order of surrender', () => {
 
         assert.ok(rows[0].foot > rows[rows.length - 1].foot, 'the capped band did not give anything');
 
-        // ...and C2's last resort: it scrolls, visibly, rather than clipping.
+        // ...and 's last resort: it scrolls, visibly, rather than clipping.
         const squeezed = rows[rows.length - 1];
         assert.equal(squeezed.bandScrolls, true, 'the band did not scroll once squeezed under its content');
         assert.notEqual(squeezed.bandOverflow, 'hidden', 'the band clips silently - §2.4 exists to end that');
@@ -683,7 +683,7 @@ describe('C1 / C2: the order of surrender', () => {
         const m = await page.metrics(BAND);
         assert.ok(m.scrollbarInline > 0,
             'the band scrolls with no scrollbar - a region the user cannot tell is scrollable is the same '
-            + 'defect one step later (slate-shell.css:456)');
+            + 'defect one step later ');
 
         assert.ok(rows.every((r) => r.railScrolls),
             'the rail did not scroll at these heights — nine standing rows do not fit them');
@@ -777,7 +777,7 @@ describe('the Live screen draws temperatures in the unit the person chose', () =
         });
         assert.equal(sent.length, 1, 'one press, one event');
         assert.equal(sent[0].key, 'brewTemp');
-        /* ONE MACHINE STEP: brewTemp steps by 0.5 °C, so 92 becomes 92.5 on the wire —
+        /* ONE MACHINE STEP: brewTemp steps by 0.5 °C, so 92 becomes 92.5 on the wire
          * not 92.2777…, which is what a one-Fahrenheit-degree step would have sent. */
         assert.equal(sent[0].value, 92.5);
     }));

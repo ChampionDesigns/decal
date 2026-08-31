@@ -122,7 +122,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.setStyle('#np', { '--_ui-numpad-inline': '700px' });
                 await page.settle(3);
                 assert.equal(await page.prop(CELL_BODY, 'padding-left'), `${PAD_NARROW}px`,
-                    'ui-dialog.js:612-616 — "numpad-modal.css:416 padding 24px -> 18px", as a container query');
+                    'ui-dialog.js:612-616 — " padding 24px -> 18px", as a container query');
                 near((await page.box(BODY)).width, 700 - 2 * PAD_NARROW,
                     'and the container narrows by the same 12px');
                 await page.setStyle('#np', { '--_ui-numpad-inline': null });

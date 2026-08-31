@@ -161,14 +161,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('term and value carry the measured type roles', () => mounted(async (page) => {
             const t = await page.computed(term(0), ['font-size', 'font-weight', 'color']);
-            near(parseFloat(t['font-size']), 20, 'CITE .slate-heading [i=50] font-size = 20px');
-            assert.equal(t['font-weight'], '500', 'CITE .slate-heading [i=50] font-weight = 500');
+            near(parseFloat(t['font-size']), 20, '.slate-heading [i=50] font-size = 20px');
+            assert.equal(t['font-weight'], '500', '.slate-heading [i=50] font-weight = 500');
             assert.equal(t.color, await page.resolveToken('--ui-text', 'color'),
-                'CITE .slate-heading [i=50] color ← var(--slate-text) = --ui-text');
+                '.slate-heading [i=50] color ← var(--slate-text) = --ui-text');
 
             const v = await page.computed(value(0), ['font-size', 'font-weight', 'font-variant-numeric']);
-            near(parseFloat(v['font-size']), 17, 'CITE .slate-body [i=51] font-size = 17px');
-            assert.equal(v['font-weight'], '400', 'CITE .slate-body [i=51] font-weight = 400');
+            near(parseFloat(v['font-size']), 17, '.slate-body [i=51] font-size = 17px');
+            assert.equal(v['font-weight'], '400', '.slate-body [i=51] font-weight = 400');
             assert.ok(v['font-variant-numeric'].includes('tabular-nums'),
                 '.slate-numeric is on every value in the oracle card, "Bengle" included');
         }));
@@ -254,7 +254,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     near(parseFloat(got['row-gap']), seam, `${sel} row-gap is --ui-seam`);
                     near(parseFloat(got['column-gap']), 0, `${sel} rules its rows, not its columns`);
                     assert.equal(got['background-color'], ink,
-                        `${sel} ground is --ui-line — CITE .slate-hairline border-top-color, both themes`);
+                        `${sel} ground is --ui-line — .slate-hairline border-top-color, both themes`);
                 }
             }));
 
@@ -320,7 +320,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const first = await page.box(row(0));
                 const second = await page.box(row(1));
                 near(first.height, 62, 'the data row content box');
-                near(second.top - first.top, 63, 'the row pitch — CITE 425 → 488 → 551 → 614 → 677');
+                near(second.top - first.top, 63, 'the row pitch — 425 → 488 → 551 → 614 → 677');
             }));
 
         test('the whole card is 492px tall — the oracle\'s own number, reached from tokens',
@@ -358,7 +358,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const withAction = await page.box(HEAD);
                 near(withAction.height, 64, 'with the slotted action, as Slate measures it');
                 near((await page.box(HEADING)).height, 26,
-                    '.ui-heading is 20px at line-height 1.3 — CITE .slate-heading [i=48] h=26');
+                    '.ui-heading is 20px at line-height 1.3 — .slate-heading [i=48] h=26');
             }));
 
         test('departure 3: the floor holds when nothing is slotted into the header',
@@ -374,7 +374,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(host.width, 900, 'the host fills its stated container');
                 const listBox = await page.box(LIST);
                 near(listBox.width, 900 - 2 * 24 - 2 * 1,
-                    'the rows are inset by #8\'s padding and border — CITE the 1150px rows in a 1200px card');
+                    'the rows are inset by #8\'s padding and border — the 1150px rows in a 1200px card');
                 near((await page.box(row(0))).height, 62, 'and the row height does not move with the window');
             }));
 

@@ -87,7 +87,7 @@ export class UiProgressTrack extends UiElement {
     }
 
     /**
-     * Appendix 15's contract, written in one place on every update so the aria
+     * The contract, written in one place on every update so the aria
      * numbers and the painted width cannot disagree. aria-valuemin is the
      * constant 0 that #reading clamps to.
      */

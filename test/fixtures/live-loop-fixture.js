@@ -1,24 +1,24 @@
 /**
  * live-loop-fixture — the REAL application, booted against the REAL WebSocket mock, so a
- * test can drive a whole recorded shot through it (wave 5.1, `live-15hz-loop`).
+ * test can drive a whole recorded shot through it (`live-15hz-loop`).
  *
  * This is the only fixture in the tree that starts nothing and fakes nothing on the data
  * road. `test/fixtures/app-shell-fixture.js` had to fake the sockets, and said so, because
  * when it was written `tools/mock_rea.py` spoke no WebSocket at all. It does now (wave
  * 5.1, `mock-ws`), so this fixture uses:
  *
- *   the real `createAppBoot`      — the shell's own assembly, not a hand-built store set;
- *   the real `<app-root>`         — including its route swap, which is how the mid-shot
- *                                   subscriber test takes the screen away and brings it
- *                                   back;
- *   the real `WebSocket`          — six channels, to the mock's own port;
- *   the real `fetch`              — `GET /api/v1/machine/capabilities` and `machine/info`
- *                                   answered by the mock process, not by a corpus copy;
- *   the real `src/screens/live-screen.js` through `index.html`'s importmap.
+ * the real `createAppBoot` — the shell's own assembly, not a hand-built store set;
+ * the real `<app-root>` — including its route swap, which is how the mid-shot
+ * subscriber test takes the screen away and brings it
+ * back;
+ * the real `WebSocket` — six channels, to the mock's own port;
+ * the real `fetch` — `GET /api/v1/machine/capabilities` and `machine/info`
+ * answered by the mock process, not by a corpus copy;
+ * the real `src/screens/live-screen.js` through `index.html`'s importmap.
  *
  * WHY `createAppBoot` AND NOT `bootFromWindow`. One reason, and it is the harness's:
  * `bootFromWindow` deliberately does not read `location.port` (ReaPrime is on 8080
- * whatever port served the page), and a rendering suite may not use a fixed port — wave 3
+ * whatever port served the page), and a rendering suite may not use a fixed port
  * recorded browser/port contention as an intermittency hazard, so the mock is started on
  * an ephemeral one. `createAppBoot` takes the location it is given, which is the seam
  * `bootFromWindow` exists to fill from ambient state. Everything below that line is the
@@ -29,34 +29,34 @@
  *
  * 1. IT HOLDS THE SIX SOCKETS UNTIL THE TEST SAYS GO (`DeferredSocket`).
  *
- *    The mock starts each channel's playback clock AT CONNECT — "a second subscriber gets
- *    its own shot from the beginning rather than the first one's backlog"
- *    (`tools/WS_FRAMES.md`). Six channels dialled at six slightly different moments would
- *    therefore play six slightly different shots: the shot-state channel would call
- *    `pouring` at a moment the machine channel had not reached yet, and the buffer would
- *    open around the wrong samples. Dialling them together is not a convenience, it is
- *    what keeps the recording coherent.
+ * The mock starts each channel's playback clock AT CONNECT — "a second subscriber gets
+ * its own shot from the beginning rather than the first one's backlog"
+ * (`tools/WS_FRAMES.md`). Six channels dialled at six slightly different moments would
+ * therefore play six slightly different shots: the shot-state channel would call
+ * `pouring` at a moment the machine channel had not reached yet, and the buffer would
+ * open around the wrong samples. Dialling them together is not a convenience, it is
+ * what keeps the recording coherent.
  *
- *    It also buys the one thing the proof needs and the run cannot otherwise have: a
- *    window BEFORE the stream, long enough to assert what an idle screen looks like. The
- *    channel is open and silent in that window, which is exactly what an idle machine's
- *    snapshot channel is.
+ * It also buys the one thing the proof needs and the run cannot otherwise have: a
+ * window BEFORE the stream, long enough to assert what an idle screen looks like. The
+ * channel is open and silent in that window, which is exactly what an idle machine's
+ * snapshot channel is.
  *
  * 2. IT CAN PUSH ONE CONSTRUCTED `idle` SNAPSHOT (`pushMachineFrame`).
  *
- *    NOT ONE FRAME IN THE FIXTURE SET CARRIES A MACHINE STATE OF `idle` — every recorded
- *    sample is mid-espresso — and the mock refuses to relabel a recorded espresso frame as
- *    idle, which is right (`DEFERRED_QUESTIONS_mock-ws.md` D2: "a screen that needs an
- *    idle machine should be driven from a store fake, not from this instrument"). So the
- *    two ends of the `idle -> espresso -> idle` sequence are constructed HERE, by the
- *    test, to `MachineSnapshot.toJson`'s shape, and they travel the same road as every
- *    recorded frame: socket message -> `readMachineSnapshot` -> feed store -> screen.
+ * NOT ONE FRAME IN THE FIXTURE SET CARRIES A MACHINE STATE OF `idle` — every recorded
+ * sample is mid-espresso — and the mock refuses to relabel a recorded espresso frame as
+ * idle, which is right ( _mock-the socket notes: "a screen that needs an
+ * idle machine should be driven from a store fake, not from this instrument"). So the
+ * two ends of the `idle -> espresso -> idle` sequence are constructed HERE, by the
+ * test, to `MachineSnapshot.toJson`'s shape, and they travel the same road as every
+ * recorded frame: socket message -> `readMachineSnapshot` -> feed store -> screen.
  *
- *    The frame carries `timestamp` and `state` and NOTHING ELSE. `rea-address.js` rule 2
- *    is "written -> valid, omitted -> gated", so an omitted channel is a gated absence and
- *    an invented temperature would be a lie; this fixture writes no measurement at all.
- *    `idle` is a real `MACHINE_STATE` (`machine-state.generated.js`), generated from
- *    ReaPrime's own enum — the recording lacks it, the protocol does not.
+ * The frame carries `timestamp` and `state` and NOTHING ELSE. `rea-address.js` rule 2
+ * is "written -> valid, omitted -> gated", so an omitted channel is a gated absence and
+ * an invented temperature would be a lie; this fixture writes no measurement at all.
+ * `idle` is a real `MACHINE_STATE` (`machine-state.generated.js`), generated from
+ * ReaPrime's own enum — the recording lacks it, the protocol does not.
  *
  * NODE-SAFE SHAPE, as every browser-only file under test/ must be.
  */
@@ -79,7 +79,7 @@ await import('../../src/components/app-root.js');
 /**
  * A WebSocket that is OPEN from the application's side and connected on demand.
  *
- * `rea-sockets.js` asks four things of whatever `createSocket` returns —
+ * `rea-sockets.js` asks four things of whatever `createSocket` returns
  * `addEventListener`, `removeEventListener`, `close`, `send` — so an `EventTarget` is the
  * whole of the contract. The synthetic `open` is dispatched at construction because the
  * channel IS available to the app from that moment: the far end simply has nothing to say
@@ -359,7 +359,7 @@ globalThis.__loop = {
 
     /**
      * Count drilled pixels in the column band a shot-time RANGE occupies right now.
-     * The A6 instrument, aimed: `[from, to]` are values on the plot's own x scale.
+     * The instrument, aimed: `[from, to]` are values on the plot's own x scale.
      */
     drillBand(from, to) {
         const card = cardEl();
@@ -406,12 +406,12 @@ globalThis.__loop = {
      * range by design and reads as `active: false`, so a sweep across the host's own
      * width samples a point that is correctly dead and then fails for it.
      *
-     * IT ONLY BIT AT THE FLOOR, and only once the Live band's inset became Slate's 57px
+     * IT ONLY BIT AT THE FLOOR, and only once the Live band's inset became the previous skin's 57px
      * (parity 7-live-polish): the plot narrowed while the y-axis gutter stayed as wide
      * as its labels need, and the first of eight samples moved from just inside the
      * plot to just inside the gutter. `.u-over` is uPlot's own name for the box the
      * cursor is bound to, and `uplot-plot.js`'s header already points at it ("a sweep
-     * across `.u-over` at BOTH Gate A geometries"). The fallback keeps the old answer
+     * across `.u-over` at BOTH the render harness geometries"). The fallback keeps the old answer
      * if the plot has not drawn yet, so a caller gets a box either way.
      */
     plotBox() {

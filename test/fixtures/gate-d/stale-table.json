@@ -1,5 +1,5 @@
 {
-  "$canary": "STALENESS. The table pin and one row's checkedCommit are both off the pinned ReaPrime commit. ReaPrime is EXPECTED to move under this build (A2), so drift is a certainty, not a risk — this is the fixture that proves the stamp is load-bearing.",
+  "$canary": "STALENESS. The table pin and one row's checkedCommit are both off the pinned ReaPrime commit. ReaPrime is EXPECTED to move under this build, so drift is a certainty, not a risk — this is the fixture that proves the stamp is load-bearing.",
   "pinnedCommit": "0000000000000000000000000000000000000000",
   "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
   "constructedRouteBuilders": [],

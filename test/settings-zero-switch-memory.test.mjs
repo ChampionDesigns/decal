@@ -1,5 +1,5 @@
 /**
- * D09, both halves: what a master switch comes back to, and how its memory can be forgotten.
+ * both halves: what a master switch comes back to, and how its memory can be forgotten.
  */
 
 import { test, describe } from 'node:test';

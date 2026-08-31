@@ -217,7 +217,7 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
             }
         }
         /* The screen half too: a debounce at the call site would be the same defect one
-         * storey up, and it is the storey the old skin put it on. */
+         * storey up, and it is the storey the previous skin put it on. */
         const leaf = CODE['src/screens/settings-bespoke-leaf.js'];
         assert.doesNotMatch(leaf, /setTimeout|setInterval|\bdebounce\b|\bthrottle\b/i,
             'the leaf that presses the swatch must not schedule the write either');
@@ -414,12 +414,12 @@ describe('D9: the load-cell wizard is a thin client over the machine’s own sta
     test('the latch weight comes from THE ONE TABLE, and is not typed on the leaf', () => {
         const limits = limitsFor('bengle');
         assert.equal(hasLimit(limits, 'calibrationWeight'), true);
-        assert.deepEqual(limits.calibrationWeight, { min: 1, max: 10000, step: 1, unit: 'g' });
+        assert.deepEqual(limits.calibrationWeight, { min: 50, max: 2000, step: 1, unit: 'g' });
         /* de1handler.dart:290-301 declares exactly this pair; nothing on the leaf repeats
-         * it, which is the whole of B2/R2 at this row. */
+         * it, which is the whole of /R2 at this row. */
         const leaf = CODE['src/screens/settings-bespoke-leaf.js'];
-        assert.doesNotMatch(leaf, /10000/, 'the leaf must not carry the ceiling');
-        assert.doesNotMatch(leaf, /min:\s*1\b/, 'nor the floor');
+        assert.doesNotMatch(leaf, /2000/, 'the leaf must not carry the ceiling');
+        assert.doesNotMatch(leaf, /min:\s*50\b/, 'nor the floor');
     });
 
     test('the flow-calibration factor writes through its OWN door and re-reads', async () => {
@@ -649,7 +649,7 @@ describe('which build of Decaid this tablet runs, read once and never invented',
         buildNumber: '2259',
         appStore: false,
         fullVersion: '1.0.0-bengle.1+2259',
-        localIp: '192.168.1.73',
+        localIp: '192.0.2.10',
     });
 
     test('one read per store, however many times a leaf opens', async () => {
@@ -765,7 +765,7 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
 });
 
 describe('plugin-pages: the destination lives where a screen AND a store can both read it', () => {
-    test('the DYE2 pair is the manifest\'s own spelling, and it is Ben\'s endpoint', () => {
+    test('the DYE2 pair is the manifest\'s own spelling, and it is the decided endpoint', () => {
         assert.equal(DYE2_PLUGIN.id, 'dye2.reaplugin');
         assert.equal(DYE2_PLUGIN.page, 'bean-picker');
         assert.equal(DYE2_PLUGIN_ID, DYE2_PLUGIN.id);
@@ -819,7 +819,7 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
     });
 
     test('THE BESPOKE HALF RENDERS NO ROW AND NO HEADING — the primitive owns both', () => {
-        assert.doesNotMatch(LEAF_CODE, /ui-settings-row/, 'a second row shape is a block (T13/T14/T17/T20)');
+        assert.doesNotMatch(LEAF_CODE, /ui-settings-row/, 'a second row shape is a block');
         assert.doesNotMatch(LEAF_CODE, /<h2/, 'the one leaf heading is <settings-leaf>’s');
         assert.doesNotMatch(LEAF_CODE, /leaf-heading/);
     });

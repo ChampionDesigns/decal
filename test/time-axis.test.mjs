@@ -133,7 +133,7 @@ describe('buildTimeAxis: nothing is resampled, filled, sorted or clamped', () =>
     const at = (ms) => new Date(base + ms).toISOString();
 
     test('elapsed seconds come out in ARRIVAL order, with the real jitter in them', () => {
-        // 0 / 97 / 213 / 300 ms — the uneven spacing IS the transport jitter B4 describes.
+        // 0 / 97 / 213 / 300 ms — the uneven spacing IS the transport jitter describes.
         const samples = [0, 97, 213, 300].map((ms) => sampleAt(at(ms)));
         const axis = buildTimeAxis(samples);
         assert.equal(axis.rule, ORIGIN_RULE.FIRST_POURING);

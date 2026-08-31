@@ -5,7 +5,7 @@
 /**
  * Tick intervals worth landing on, in seconds. A shot is read in seconds and
  * half-minutes, so 7 s and 25 s are not useful even when they would fit
- * (`chart-uplot.js:57-59`).
+ *
  */
 export const TICK_STEPS = Object.freeze([1, 2, 5, 10, 15, 20, 30, 60, 120, 300, 600]);
 

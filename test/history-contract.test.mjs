@@ -253,7 +253,7 @@ describe('the list handler\'s two silent behaviours are handled, not trusted', (
         const transport = {
             request: async (reqPath, options = {}) => {
                 seen.push(options.query);
-                // The handler's own shape: 100 items served, `limit: 200` echoed (CB-23).
+                // The handler's own shape: 100 items served, `limit: 200` echoed.
                 return { ok: true, status: 200, data: { ...PAGE, limit: 200, total: 321 }, notModified: false };
             },
         };

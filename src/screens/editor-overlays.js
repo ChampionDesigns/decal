@@ -38,7 +38,7 @@ function pressedIn(event) {
 export class EditorOverlays extends UiElement {
     static properties = {
         /**
-         * THE ONE RANGES DOOR (B2), injected — `createEditorRanges({machineLimits})`.
+         * THE ONE RANGES DOOR, injected — `createEditorRanges({machineLimits})`.
          * Forwarded to both dialogs, so there is one door on the screen and not three.
          */
         ranges: { attribute: false },
@@ -49,7 +49,7 @@ export class EditorOverlays extends UiElement {
          */
         source: { attribute: false },
 
-        /** B9 hint, forwarded to the exit dialog: may Power be offered as an exit? */
+        /** Hint, forwarded to the exit dialog: may Power be offered as an exit? */
         powerExitOffered: { type: Boolean, attribute: 'power-exit-offered' },
 
         steps: { attribute: false },

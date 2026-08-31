@@ -414,7 +414,7 @@ describe('profile selector — the + opens an editable profile', () => {
             assert.equal(columns, 1, 'one step, one column on screen');
         });
 
-    test('that one step carries Ben\'s six values, on rendered controls', async () => {
+    test('that one step carries the six decided values, on rendered controls', async () => {
         await stage();
         await pressNewProfile();
 

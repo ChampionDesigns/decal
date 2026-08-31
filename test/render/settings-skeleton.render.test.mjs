@@ -172,7 +172,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 ));
                 assert.equal(label, 'Save', 'zero changes: Save, with no count beside it');
                 assert.equal(await page.count(`${HEADER} >>> #cancel`), 1,
-                    'and Cancel beside it — Slate\'s pair, on Ben\'s ruling');
+                    'and Cancel beside it — the decided pair');
             }));
 
         test('Close ASKS THE SHELL and never moves the screen behind the address',
@@ -242,7 +242,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'one ink showing through it — T19 is two greys',
                 );
 
-                /* T19's arithmetic, the right way round: the seam comes OUT of the grid,
+                /* the rule's arithmetic, the right way round: the seam comes OUT of the grid,
                  * so the tracks plus the gaps are the whole width and no pane measures
                  * 599 because something ate a pixel. */
                 const grid = await page.box(GRID);
@@ -662,10 +662,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const dead = [...matched.entries()].filter(([, ok]) => !ok).map(([k]) => k);
                 assert.deepEqual(dead, [],
-                    'T6: "twelve selectors in slate-shell.css can never match — ~90 lines, '
+                    'T6: "twelve selectors in can never match — ~90 lines, '
                     + 'several documented as fixes for real defects"');
 
-                /* And no selector is declared twice at the same condition (P9's
+                /* And no selector is declared twice at the same condition (the rule's
                  * ".sx-recent-item declared TWICE in one file"). Four passes, so each
                  * key is expected exactly four times. */
                 const twice = [...seen.entries()].filter(([, n]) => n !== 4).map(([k]) => k);

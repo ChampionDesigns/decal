@@ -230,7 +230,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await open(p);
                         assert.equal(await p.prop(BODY, 'overflow-y'), 'auto',
                             '§4.6: "body: overflow-y auto — MANDATORY". Only the numpad did this in the '
-                            + 'old app (numpad-modal.css:44-48) and it was "the best-behaved overlay in the group"');
+                            + 'old app and it was "the best-behaved overlay in the group"');
 
                         const space5 = parseFloat(await p.resolveValue('var(--ui-space-5)', 'width'));
                         const natural = await p.box(NATIVE);
@@ -288,7 +288,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             'O6: "eight scrim colours, six blur radii" become one pair, and it is the token');
                         assert.equal(backdrop['backdrop-filter'], await p.resolveValue('blur(var(--ui-scrim-blur))', 'backdrop-filter'),
                             '§4.6: "With no canvas the ::backdrop works directly" — three sheets used to blur '
-                            + '#scaled-content from the outside (numpad-modal.css:35-37, profile-editor-v3.css:899, :1237)');
+                            + '#scaled-content from the outside :1237)');
 
                         await assertTokenDrill(p, {
                             token: '--ui-scrim',
@@ -445,7 +445,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await p.settle(3);
                         assert.equal(await isOpen(p), false, 'Escape closes every body, not just the ones that wired it');
                         assert.deepEqual(await escapesSeenByDocument(p), [],
-                            'numpad-modal.js:260-268 — own the key before anything else acts on it');
+                            'own the key before anything else acts on it');
                         assert.match(await activePath(p), /ui-button#invoker/,
                             '§4.6: "no focus restore" is the half of the modality gap a screenshot cannot see');
 
@@ -552,7 +552,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'Appendix 13: "a nested numpad closes by itself and the Exit dialog underneath never sees '
                     + 'that same physical gesture"');
                 assert.deepEqual(await escapesSeenByDocument(p), [],
-                    'and no document-level handler sees it either (numpad-modal.js:260-268)');
+                    'and no document-level handler sees it either ');
             }));
 
             test('the second Escape belongs to the outer, and only then', () => mounted(async (p) => {

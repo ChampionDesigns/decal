@@ -1,7 +1,7 @@
 # Type roles — the six, and how to use them
 
 Component **#13** of the 57-component inventory, and one of the two wave-1 rows that
-ships **no element**. `SCOPE.md:1531`, verbatim:
+ships **no element**:
 
 > Title / heading / caption / body / microcap / numeric. **Dissolves into the token
 > layer plus a shared style module rather than an element** — recorded here so the
@@ -10,8 +10,8 @@ ships **no element**. `SCOPE.md:1531`, verbatim:
 So there is no `<ui-title>`, and one appearing later is a defect, not a convenience.
 The two halves of the row are:
 
-* **the token layer** — `styles/tokens.css` §3.5: ten fixed UI steps, five fluid
-  display steps, FOUR weights (Slate's own — light 300, regular 400, medium 500,
+* **the token layer** — `styles/tokens.css`: ten fixed UI steps, five fluid
+  display steps, FOUR weights (light 300, regular 400, medium 500,
   semibold 600, restored at parity surface 1), `--ui-tracking-cap`, `--ui-measure`, and the
   one family token. This row added none and changed none.
 * **the shared style module** — `src/components/type-roles.js`, a `css` fragment
@@ -45,7 +45,7 @@ class SettingsLeaf extends UiElement {
 Three rules, and they are the whole contract:
 
 1. **Put `typeRoles` first**, with the structural fragments. It is a default layer;
-   every rule in it is written to lose a tie (`CONVENTIONS.md` §4 — structural
+   every rule in it is written to lose a tie (`CONVENTIONS.md` rule 4 — structural
    fragments first, state fragments last).
 2. **Use the right element.** A role is paint. A heading is structure, and a screen
    reader reads `<h2>`, not `.ui-heading`. Never fake a heading with a styled `<span>`,
@@ -70,11 +70,11 @@ Three rules, and they are the whole contract:
 
 **`.ui-numeric` is a modifier, not a step.** It sets no size, weight, colour or family,
 so it composes: `<span class="ui-body ui-numeric">` or, on a big readout, a component's
-own font-size rule plus `.ui-numeric`. Slate's `.slate-numeric` behaved the same way —
-the oracle finds its font-size, font-weight and color all "(no declaration — inherited
+own font-size rule plus `.ui-numeric`. The numeric class it replaces behaved the same way —
+measurement finds its font-size, font-weight and color all "(no declaration — inherited
 or initial value)".
 
-**Slate's `.slate-text` and `.slate-muted-text` are not carried.** They are ink
+**The old ink classes are not carried.** They are ink
 switches, not type roles; the ink comes from `styles/document.css` (`--ui-text` on
 `html`) and the two roles that deliberately speak quietly carry `--ui-muted`
 themselves.
@@ -103,26 +103,26 @@ The five display steps are the **only fluid type in the system**:
 `cqi` resolves against **the component's own container**, which is why this is not a
 shared class: a class would resolve against whatever container happened to be nearest,
 and the point of the fluid step is that the gauge cluster sizes its own numbers
-(spec §3.5; §2.1 Rule 1). Upper bounds are Slate's current values; the lower bounds are
-the spec's proposals and want a look on the bench.
+Upper bounds are the values in use today; the lower bounds are
+a proposal and want a look on the bench.
 
-**The UI scale is never fluid** (spec §2.2). Legibility is a floor, and the bench tablet
+**The UI scale is never fluid.** Legibility is a floor, and the bench tablet
 already renders text ~10 % larger than the desk harness, so that margin is spoken for.
 
 ---
 
-## Five declared departures from Slate
+## Five declared departures
 
 Each is asserted **as a departure** in `test/render/type-roles.render.test.mjs`, with
 both numbers named, so drifting back is a red test rather than a quiet regression.
 
-1. **Zero `!important`.** Slate carries one on nearly every declaration in
-   `slate-components.css:81-136`. Nothing outside a shadow root can reach these rules,
-   so the reason is gone (spec §2.1 Rule 3).
+1. **Zero `!important`.** The reference skin carries one on nearly every declaration in
+   Nothing outside a shadow root can reach these rules,
+   so the reason is gone.
 2. **Every rule is wrapped in `:where()`, and no role declares an alignment.** Two
-   mechanisms, because bug **T11** — "the loading/empty states are authored centred and
+   mechanisms, because "the loading/empty states are authored centred and
    rendered left-aligned by three shell rules — four call sites affected"
-   (`slate-shell.css:1304-1306, 1326-1328, 1244-1250`) — needs both.
+   — needs both.
 
    `:where()` makes a role (0,0,0), the same mechanism the base uses, so a component's
    own rule always wins, including a bare element selector. (Author origin beats the UA
@@ -134,24 +134,24 @@ both numbers named, so drifting back is a red test rather than a quiet regressio
    the element — (0,0,0) included — beats an inherited value, because inheritance is
    only consulted when nothing applies. `:where(.ui-caption) { text-align: start }`
    therefore rendered a caption **left** inside a container the component had centred:
-   T11's exact symptom, with nothing to out-specify. The roles now declare no alignment
+   that exact symptom, with nothing to out-specify. The roles now declare no alignment
    at all. `start` is the initial value, so LTR copy is unchanged; the difference is
    that centring an ancestor reaches the type.
 3. **Microcap weight 600 → 700 — CLOSED at parity surface 1.** It read `--ui-weight-bold`
-   (700) while the token sheet carried three weights, "because spec §3.5 enumerates
-   regular/medium/bold". §3.5's own citation, `slate-tokens.css:148-153`, declares FOUR —
-   regular 400, medium 500, **semibold 600**, light 300 — and the corpus renders 600 on 496
+   (700) while the token sheet carried three weights, because the token sheet enumerates
+   regular/medium/bold". The old token sheet declares FOUR —
+   regular 400, medium 500, **semibold 600**, light 300 — and 600 renders on 496
    elements against 51 at 700, all of which are one Tailwind `font-bold` utility on a modal
-   title. The role is `--ui-weight-semibold` (600), which is the oracle it was derived from.
+   title. The role is `--ui-weight-semibold` (600), which is the value it was derived from.
 4. **Microcap tracking .12em → .04em — CLOSED at parity surface 0**, for the same reason
-   in the same sentence: §3.5 writes `.04em` while citing the lines that declare `.12em`.
-   A 15px microcap tracks Slate's own 1.8px again.
-5. **The block roles zero the UA margin.** Slate resets `margin: 0` on `.slate-caption`
+   in the same sentence: one place writes `.04em` while another declares `.12em`.
+   A 15px microcap tracks 1.8px again.
+5. **The block roles zero the UA margin.** The sheet they replace reset `margin: 0` on its caption
    only, because its titles and headings are `div`s. See rule 3 above.
 
 One smaller one, recorded for the same reason:
 `.ui-numeric` no longer restates the font family —
-`--slate-font-numeric` was already defined as `var(--slate-font-ui)` and
+the numeric family token was already defined as the UI family and
 `styles/tokens.css:346-348` collapsed the two, so restating it would stop numbers
 inheriting a family their own component chose.
 
@@ -163,10 +163,10 @@ inheriting a family their own component chose.
   keeps the case the author wrote, so the accessible name is announced as *Pressure*,
   not *P-R-E-S-S-U-R-E*. Write the markup in sentence case; never uppercase the source.
 * **Roles carry no semantics.** Heading level, landmark and label are the element's job.
-  Row #13 cites no `LAYOUT_SPEC_DRAFT.md` Appendix 15 rule — Appendix 15 is the
+  Row #13 cites no rule — the appendix it would cite is the
   `aria-*`-driven *state* selector, and type has no state.
 * **The measure is an accessibility feature**, not decoration: `--ui-measure` (70ch)
-  keeps help text off a 155-character line, which is what Slate's caption comment
+  keeps help text off a 155-character line, which is what the old caption comment
   records as the failure it was written to end.
 
 ---
@@ -174,34 +174,34 @@ inheriting a family their own component chose.
 ## Where the values came from
 
 Queried mechanically with
-`realine-run/tools/prov_query.py rule --state <s> --cls <c> --prop <p>` against
+A provenance query, by state, class and property, against
 `prov-baseline` (dark); every citation is quoted verbatim in the header of
-`src/components/type-roles.js`. Reach, from `prov_query.py find`: title 38 elements in
+`src/components/type-roles.js`. Measured reach: title 38 elements in
 38 states, heading 88/30, caption 77/30, microcap 31/7, body 12/3, numeric 19/6.
 
 **Two properties have no oracle answer and the tool says so**: `line-height` and
 `text-align` are outside the probe's 18-property appearance surface — *"property not
-probed … The provenance probe measured an 18-property appearance surface and nothing
-else."* `line-height` was read from the Slate source read-only at
-`slate-components.css:81-136`, which is the carve-out's documented fallback.
-`text-align` is the one source read this module declines: Slate's value there is bug
-T11's own mechanism (departure 2), so no role declares it.
+probed … The measurement covered an 18-property appearance surface and nothing
+else."* `line-height` was read from the source, read-only, at
+the carve-out's documented fallback.
+`text-align` is the one source read this module declines: the old value there is bug
+the same mechanism (departure 2), so no role declares it.
 
-**No line-height tokens exist**, because §3.5 names none and this row may add a token
-only where §3 names it. The three ratios (1.2 / 1.3 / 1.5) live in the fragment. If a
+**No line-height tokens exist**, because the token sheet names none and this row may add
+a token only where the sheet names it. The three ratios (1.2 / 1.3 / 1.5) live in the fragment. If a
 `--ui-leading-*` family is ever agreed it replaces five values in one file.
 
 ---
 
 ## Testing
 
-* `test/render/type-roles.render.test.mjs` — Gate A, both geometries: the six roles on
+* `test/render/type-roles.render.test.mjs` — both geometries: the six roles on
   their tokens, a twelve-token drill, the five departures, the zero-specificity
   mechanism, the fixed-vs-fluid split measured against the *container*, and the
   `text-transform` a11y case.
 * `test/fixtures/type-roles-fixture.js` — the subject. A fixture, not a shipping
-  component, in the same sense as wave 0a's `base-fixture`: the roles are classes on
-  plain markup inside a shadow root, so Gate A needs a host and the gallery needs
+  component, in the same sense as `base-fixture`: the roles are classes on
+  plain markup inside a shadow root, so the render harness needs a host and the gallery needs
   something to photograph.
 * `test/type-roles-gallery-entry.test.mjs` — the entry shape, plus the two structural
   invariants: `type-roles.js` defines no custom element, and every `--ui-*` it reads is

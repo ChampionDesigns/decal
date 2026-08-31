@@ -1,7 +1,7 @@
 /**
  * selector-loop-fixture — the Profile selector, booted against the REAL mock, driven.
  *
- * Wave 5.3, the core-loop-and-REST cluster.
+ * the core-loop-and-REST cluster.
  *
  * WHAT IS REAL HERE, and it is nearly everything: `createAppBoot`, `createReaTransport`
  * (so `If-None-Match` and the 304-with-stored-body are the shipping code's, not a
@@ -14,7 +14,7 @@
  *
  * 1. THE FETCH IS WRAPPED, NOT REPLACED. `answer(method, pathname, …)` scripts ONE path;
  *    everything else goes to the mock. It is a wrapper rather than a fake transport
- *    because the interesting behaviour — conditional GETs, the 304 turn, the typed 400 —
+ *    because the interesting behaviour — conditional GETs, the 304 turn, the typed 400
  *    all lives INSIDE `rea-transport.js`, and a fake transport is exactly the layer that
  *    would skip it.
  *
@@ -22,7 +22,7 @@
  *      POST /machine/profile        the mock CAN answer it — 200 null, from the contract
  *                                   row's own success branch — which is the armed case
  *                                   and is used unscripted. The REFUSAL (400 Unsupported
- *                                   profile) is a state no recording carries, so B9's
+ *                                   profile) is a state no recording carries, so the rule's
  *                                   subject is scripted, with the body spelled exactly as
  *                                   the contract row spells it.
  *      POST /profiles/restore/…     the row's success body is a typed document
@@ -31,7 +31,7 @@
  *                                   therefore scripted — with a REAL fixture record,
  *                                   visibility flipped, not a hand-written one.
  *      GET  /profiles/<id>/lineage  no recording exists; the mock's endpoint fallback is
- *                                   deleted (A7) so it is an honest 503.
+ *                                   deleted so it is an honest 503.
  *
  * 2. THE `local` AND `session` STORAGE LAYERS ARE MEMORY, injected through
  *    `createAppBoot({backends})`. The favourites rail is a `kv` row, and the mock has no
@@ -144,11 +144,11 @@ function listboxWalk() {
              * <button aria-hidden="true"> is still a tab stop and still lands focus, so
              * hiding it from the tree only makes it a control nobody can name. An element
              * whose role is presentation AND which cannot be focused is not a control at
-             * all - it is paint - and that is what P12's "only items and groups" is a
+             * all - it is paint - and that is what the rule's "only items and groups" is a
              * claim about.
              *
              * SO IT IS GATED ON INERTNESS, not taken on the author's word. ui-favourite-slot
-             * renders role="presentation" only on its `inert` branch, because the ARIA spec
+             * renders role="presentation" only on its `inert` branch, because the ARIA layout layout spec
              * ignores presentation on a focusable element and inert is what makes it
              * unfocusable. A presentation role on something still reachable falls through
              * to the implicit role below and fails this test, which is the right answer. */
@@ -227,7 +227,7 @@ const api = {
      * How many times a path ENDING IN a suffix was fetched, by method.
      *
      * The exact-path counter above cannot ask about a route whose path carries an id, and
-     * D6's deferred half is exactly that shape: `/api/v1/profiles/<id>/purge`. Counting
+     * the rule's deferred half is exactly that shape: `/api/v1/profiles/<id>/purge`. Counting
      * every DELETE to `/api/v1/profiles` used to serve as a stand-in and stopped being
      * one the day the SOFT delete (Hide) got a control.
      */
@@ -305,7 +305,7 @@ const api = {
     /**
      * How many PROFILE rows the tree is showing.
      *
-     * `[role="treeitem"]` since the list became a tree (wave 5.8, Ben: "Make families
+     * `[role="treeitem"]` since the list became a tree ("Make families
      * collapse") — a listbox owns options and cannot own a disclosure, so a collapsible
      * grouped single-select list is a tree. The family rows carry the same role and are
      * excluded here: this number answers "how many profiles can be seen", which is what
@@ -329,7 +329,7 @@ const api = {
     /**
      * Open every family, and answer how many rows that revealed.
      *
-     * WHY THE SUITE CALLS THIS ONCE AT THE TOP. Families ship SHUT, which is Slate's own
+     * WHY THE SUITE CALLS THIS ONCE AT THE TOP. Families ship SHUT, which is the previous skin's own
      * default (`readOpenFolders` returns an empty set) and the state that makes 91
      * profiles legible. Every assertion below about "the listing" is about the whole
      * listing, so the drive opens the tree first and the FOLD gets a test of its own.
@@ -358,11 +358,11 @@ const api = {
     },
 
     /**
-     * Every role inside the listbox, FLATTENED, so P12's fourth half is countable.
+     * Every role inside the listbox, FLATTENED, so the rule's fourth half is countable.
      *
      * IT WALKS SHADOW ROOTS, AND THAT IS THE WHOLE POINT. This probe used to be one
      * `box.querySelectorAll('*')`, which does not cross a shadow boundary — so it could
-     * never see the <button> each <ui-list-row> renders INSIDE ITSELF, and the P12 role
+     * never see the <button> each <ui-list-row> renders INSIDE ITSELF, and the role
      * assertion passed vacuously over the exact children it exists to police (78 of them,
      * measured through CDP Accessibility.getFullAXTree). The accessibility tree is
      * computed over the flattened tree; a probe that is not must not be read as one.
@@ -371,9 +371,9 @@ const api = {
      * dump. An element with an explicit `role` is reported under that role, and a natively
      * interactive element with no role is reported under its IMPLICIT one — a <button>
      * inside an option becomes `button`, which is exactly what the AX tree exposed and what
-     * P12 calls a non-option child. Presentational containers (a <div>, a <span>, a <slot>
+     * calls a non-option child. Presentational containers (a <div>, a <span>, a <slot>
      * with no role and nothing operable about them) are not reported: a flattened walk is
-     * full of them, they are what shadow DOM is made of, and they are not what P12 is
+     * full of them, they are what shadow DOM is made of, and they are not what the rule is
      * about. `walked` is the guard on the guard — it counts the shadow roots the walk
      * entered, so a regression to a light-DOM-only probe shows up as a zero rather than as
      * a green assertion.
@@ -385,7 +385,7 @@ const api = {
     /** The same walk, reporting how far it reached — see listboxRoles(). */
     listboxWalk,
 
-    /** Tag names of the listbox's options — P6's "how many row implementations". */
+    /** Tag names of the listbox's options — the rule's "how many row implementations". */
     optionTags() {
         const box = screen.shadowRoot.getElementById('rows');
         const tags = {};
@@ -397,15 +397,15 @@ const api = {
     },
 
     /**
-     * How every option answers the row-actions question — P6's half, restated.
+     * How every option answers the row-actions question — the rule's half, restated.
      *
-     * P6 is "the row is implemented TWICE and the affordance added to the first never
+     * the rule is "the row is implemented TWICE and the affordance added to the first never
      * reached the second", so what it asks of this list is UNIFORMITY: one template, one
      * answer, every row. Both numbers are reported rather than one derived, because
      * "78 of 78 agree" and "the agreed answer is this one" are different facts and the
      * old tree failed the first.
      *
-     * REWRITTEN 30 August 2026, audit D11. `withNoOverflow` counted the `no-overflow`
+     * REWRITTEN, audit. `withNoOverflow` counted the `no-overflow`
      * attribute, which was every row's way of suppressing #26's built-in affordance.
      * That affordance was deleted and the attribute with it, so the count would now be
      * a uniform ZERO and would pass while measuring nothing.
@@ -495,7 +495,7 @@ const api = {
 
     /** The favourites rail, as the bank was handed it. */
     favourites() {
-        /* THE ROW IS FIVE DISCS, NOT A BANK, since 25 August 2026. Ben: "Can we use slates
+        /* THE ROW IS FIVE DISCS, NOT A BANK, because "Can we use slates
          * assign Favorites row... have the ASSIGN FAVOURITE and the 5 round buttons." The
          * `<ui-favourites-bank>` that carried a `.favourites` property went with it, and
          * reading that property off the plain div returned [] rather than failing - which
@@ -516,14 +516,14 @@ const api = {
      * THE DETAIL CARRIES `slot`, WHICH IS 1-BASED, because <ui-favourites-bank> answers
      * with the mark a person reads rather than with an array index — and because an
      * EMPTY slot has no value to identify it by, which is the case the strip exists to
-     * serve since Ben's 23 Aug ruling ("if I select one and then press the favorite
+     * serve since the ruling ("if I select one and then press the favorite
      * button at the bottom it should change that favorite"). `index` rides along
      * unchanged: it is ui-bank's own word for the item's position.
      *
      * Answers the ASSIGNMENTS after the press, not the selection: a press assigns now.
      */
     async pickFavourite(slot = 0) {
-        /* PRESS THE DISC, which is what the row is made of since 25 August 2026. It used
+        /* PRESS THE DISC, which is what the row is made of. It used
          * to read `.favourites` off a `<ui-favourites-bank>` and synthesise a `change`
          * event; the bank is gone, so both halves were reaching past the real control. */
         const disc = screen.shadowRoot.querySelectorAll('.assign-row ui-favourite-slot')[slot];
@@ -553,7 +553,7 @@ const api = {
      * What the selected row's overflow menu offers right now.
      *
      * THE ROW MENU, because the detail pane's `<ui-menu id="actions">` is three worded
-     * buttons since 25 August 2026 ("Copy slate"). `#actions` is a div now, its `.items`
+     * buttons ("Copy the previous skin"). `#actions` is a div now, its `.items`
      * is undefined, and the `|| []` swallowed that into an empty answer.
      */
     menuOffers() {
@@ -569,7 +569,7 @@ const api = {
      *
      * "ADD TO FAVOURITES" IS GONE, and with it the first-empty-slot rule it carried. The
      * row menu offers all five slots BY NUMBER, each labelled with what it currently holds
-     * - which is Slate's design and is why the implicit version was redundant rather than
+     * - which is the previous skin's design and is why the implicit version was redundant rather than
      * merely unreachable. So this names the slot instead of asking for "the next one".
      *
      * AND IT WAITS THE SAME WAY `pickFavourite` DOES, which it did not until 27 August
@@ -581,7 +581,7 @@ const api = {
      * how long a round trip through the router takes rather than a wait for the thing it
      * is waiting for.
      *
-     * WHAT IT COST, measured on 27 August 2026 before the fix: `test/render/
+     * WHAT IT COST, measured on before the fix: `test/render/
      * selector-core-loop.render.test.mjs` "an empty slot is a value, and every slot is
      * offered BY NUMBER" failed two runs in three ON AN IDLE BOX — `after[4]` came back
      * `null`, the pre-write map, and the failure read as "the named slot did not take it"
@@ -614,10 +614,10 @@ const api = {
     /**
      * Press the band's Confirm. Returns the arm outcome.
      *
-     * THERE IS NO SECOND PRESS SINCE 24 Aug 2026. Ben: "Pressing confirm in the profile
+     * THERE IS NO SECOND PRESS, because "Pressing confirm in the profile
      * selector doesn close the page, just asks for confirmation." A button labelled
      * Confirm that opened a dialog asking you to confirm asked the same question twice,
-     * and the old skin's own Confirm writes the workflow and leaves. `dialogOpened` is
+     * and the previous skin's own Confirm writes the workflow and leaves. `dialogOpened` is
      * kept and answers `false`, so a caller that used to read it now reads the FACT
      * rather than an undefined.
      */
@@ -647,7 +647,7 @@ const api = {
         return {
             headline: banner.textContent.trim(),
             /* #49 declares no `kind` — its whole properties map is {_hasHeadline,
-             * _hasRemedy} — so an attribute here would be P9's "markup that does nothing".
+             * _hasRemedy} — so an attribute here would be the rule's "markup that does nothing".
              * Reported so the suite can assert the ABSENCE rather than trusting it. */
             kindAttr: banner.getAttribute('kind'),
             attributes: [...banner.attributes].map((a) => a.name).sort(),
@@ -665,10 +665,10 @@ const api = {
     },
 
     /**
-     * Open the versions surface for the selected profile (B11 / Q7).
+     * Open the versions surface for the selected profile.
      *
-     * THROUGH THE ROW MENU, because that is where the door is since 25 August 2026. It
-     * used to dispatch on `#actions`, the detail pane's overflow menu; Ben's "Copy slate"
+     * THROUGH THE ROW MENU, because that is where the door is. It
+     * used to dispatch on `#actions`, the detail pane's overflow menu; the "Copy the previous skin"
      * on the three-buttons question replaced that menu with Hide / Reset / Edit, so
      * `#actions` is now a div and a `select` event on it reaches no handler at all.
      *
@@ -696,7 +696,7 @@ const api = {
         };
     },
 
-    /** D6 — open the restore surface and report what it offers. */
+    /** — open the restore surface and report what it offers. */
     async openRestore() {
         const button = screen.shadowRoot.getElementById('restore-open');
         if (!button) return { present: false };
@@ -775,7 +775,7 @@ const api = {
         };
     },
 
-    /** chart-C3 — the plot host's own inset, measured, and the frame's beside it. */
+    /** — the plot host's own inset, measured, and the frame's beside it. */
     chartHost() {
         const card = screen.shadowRoot.getElementById('preview');
         const root = card.shadowRoot;

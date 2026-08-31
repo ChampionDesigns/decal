@@ -8,19 +8,19 @@ export const entry = {
     module: '../../src/components/ui-action-key-rail.js',
     notes:
         'Wave 4 #42, the editor footer\'s key row: move-left / delete / insert-after / '
-        + 'duplicate / move-right, in Slate\'s own footer order. Five buttons and no '
+        + 'duplicate / move-right, in the reference skin\'s own footer order. Five buttons and no '
         + 'drag, per C7 — "drag works with a mouse, not a tablet", and OQ-9 says do not '
         + 'add it without asking. Composed of five #1 ui-buttons on the ghost variant '
         + 'inside the seam utility: the 1px gaps and the enclosing 1px are one ink '
         + '(--ui-line, the oracle\'s .pe-action-cell background in both themes) and each '
         + 'key face is --ui-fascia (the oracle\'s .pe-action-btn, both themes). The two '
-        + 'coloured keys are Slate\'s: --ui-steel for add, and for delete Slate\'s own '
+        + 'coloured keys are the reference skin\'s: --ui-steel for add, and for delete the reference skin\'s own '
         + 'arithmetic color-mix(in srgb, --ui-status-danger 72%, --ui-muted), which '
         + 'reproduces the corpus value to six decimal places in both themes. Three '
         + 'departures, all deliberate: the key is --ui-control-h tall rather than '
-        + 'Slate\'s literal 62 (E11 counts 18 of those in that sheet), the glyph is '
+        + 'the reference skin\'s literal 62 (E11 counts 18 of those in that sheet), the glyph is '
         + '--ui-icon rather than a bare 23px, and the neutral ink is --ui-muted in BOTH '
-        + 'themes rather than dark-mode.css\'s hardcoded #959595 (E13, live today). The '
+        + 'themes rather than the old hardcoded #959595 (E13, live today). The '
         + 'rank does not stretch — spec §2.2, touch targets are fixed tokens, so a wider '
         + 'editor column gets the same five keys, not five wider ones.',
     states: [
@@ -29,7 +29,7 @@ export const entry = {
             title: 'Step 1 of 4 — cannot move left',
             notes: 'The back arrow is inert: dimmed by the one dial (--ui-opacity-disabled, '
                 + '.38) on the glyph ONLY, over a face identical to its live siblings\'. '
-                + 'That is Slate\'s own stated intent — "a dimmed glyph on the same ground '
+                + 'That is the reference skin\'s own stated intent — "a dimmed glyph on the same ground '
                 + 'is the whole disabled state" — which its shell defeated with an '
                 + '!important 1000 lines away. Here the face belongs to the seam cell '
                 + 'under the button, so the dial cannot reach it.',
@@ -66,7 +66,7 @@ export const entry = {
             id: 'single-step',
             title: 'A one-step profile — both arrows out',
             notes: 'Nothing to reorder, so both ends are inert at once, and delete stays '
-                + 'live: removing the only step is Slate\'s behaviour and is the screen\'s '
+                + 'live: removing the only step is the reference skin\'s behaviour and is the screen\'s '
                 + 'call, not the rail\'s. The default state of a new rail, too '
                 + '(index 0, count 1).',
             html: '<ui-action-key-rail></ui-action-key-rail>',
@@ -76,8 +76,8 @@ export const entry = {
             title: 'The whole rail unavailable',
             notes: 'One attribute, five dimmed glyphs, five untouched grounds — the same '
                 + 'dial doing the same job five times rather than a second disabled look. '
-                + 'spec §3.7 settles one --ui-opacity-disabled at .38 against Slate\'s '
-                + 'three live values; Slate\'s rail adds a fourth (color-mix 44% muted '
+                + 'spec §3.7 settles one --ui-opacity-disabled at .38 against the reference skin\'s '
+                + 'three live values; the reference skin\'s rail adds a fourth (color-mix 44% muted '
                 + 'into fascia) that never renders anyway.',
             html: '<ui-action-key-rail index="1" count="4" disabled></ui-action-key-rail>',
         },
@@ -98,7 +98,7 @@ export const entry = {
             title: 'In a 900px container',
             notes: 'Unchanged. spec §2.2: "Control heights, touch targets, hairlines | '
                 + 'Fixed token. Never fluid." A rank of five touch targets is sized by the '
-                + 'targets, which is also what Slate does — .pe-action-cell is a fixed '
+                + 'targets, which is also what the reference skin does — .pe-action-cell is a fixed '
                 + '316px, "approved five-key footer rail" — but here with no literal in it.',
             hostStyle: { 'inline-size': '900px' },
             html: '<ui-action-key-rail index="1" count="4"></ui-action-key-rail>',

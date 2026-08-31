@@ -1,5 +1,5 @@
 /**
- * The Gate A rendering-test harness.
+ * the render harness rendering-test harness.
  */
 
 import { launchChrome, sleep } from './cdp.js';
@@ -258,7 +258,7 @@ export class Page {
         return this.eval(expr);
     }
 
-    /** A PNG of the emulated viewport, base64. The battery's primitive, not Gate A's. */
+    /** A PNG of the emulated viewport, base64. The battery's primitive, not the render harness's. */
     async screenshot({ format = 'png', fullPage = false } = {}) {
         const params = { format, captureBeyondViewport: fullPage };
         const res = await this.send('Page.captureScreenshot', params);

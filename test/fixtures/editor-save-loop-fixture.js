@@ -1,14 +1,14 @@
 /**
  * editor-save-loop-fixture — THE WHOLE APP, DRIVEN THROUGH ONE SAVE AND BACK.
  *
- * Written 27 August 2026 for Ben's report: "the profile editor, the save button doesn't
+ * Written for the report: "the profile editor, the save button doesn't
  * seem to be doing anything. I can make a change, hit save exit and go back into the
  * editor and it dosn't seem to have the change."
  *
  * ===========================================================================
  * WHY A SECOND FULL-APP FIXTURE, AND NOT A THIRD TEST ON THE EDITOR HARNESS
  * ===========================================================================
- * `test/harness/editor.js seatProfile()` mounts the editor over a REAL
+ * `test/harness/editor.js seatProfile` mounts the editor over a REAL
  * `createProfileEditorStore` and a transport the suite controls, and it already proves —
  * green, since fix run 4 — that a real control press counts, that the band reads
  * "Save (1)", that the press POSTs /profiles with the edit on the wire, and that the
@@ -21,7 +21,7 @@
  * library store, the real editor store and the ONE subscription that now joins them),
  * `<app-root>` with the real route table, and the real `<selector-screen>` and
  * `<editor-screen>` loaded through `index.html`'s importmap. The trip a test takes is the
- * trip Ben took: pick a row, press Edit, press the matrix's own +, press Save, press
+ * trip the report describes: pick a row, press Edit, press the matrix's own +, press Save, press
  * Cancel to leave, press Edit again.
  *
  * ===========================================================================
@@ -37,20 +37,20 @@
  * created, and whether the app is still pointing at the parent — so the fixture needs a
  * server with a memory. It is the smallest one that is still honest:
  *
- *   * `GET /api/v1/profiles` answers the RECORDED 147-record listing plus whatever this
- *     session created. The recording is untouched; the additions are appended.
- *   * `POST /api/v1/profiles` is `ProfileController.create` as this tree already documents
- *     it (`profile-editor-store.js`, read off the handler at pin 2b047d02): the body is
- *     wrapped, a NEW record is stored, `parentId` is carried through, the answer is 201
- *     with the whole ProfileRecord. That is B11's path and DQ-629's default.
- *   * Everything else falls through to the corpus, and a path with no recording answers
- *     503 with the mock's own sentence — the miss IS an answer and the shell must survive
- *     it (`app-shell-fixture.js` states the same rule).
+ * * `GET /api/v1/profiles` answers the RECORDED 147-record listing plus whatever this
+ * session created. The recording is untouched; the additions are appended.
+ * * `POST /api/v1/profiles` is `ProfileController.create` as this tree already documents
+ * it (`profile-editor-store.js`, read off the handler at pin 2b047d02): the body is
+ * wrapped, a NEW record is stored, `parentId` is carried through, the answer is 201
+ * with the whole ProfileRecord. That is the lineage path, and the default.
+ * * Everything else falls through to the measurement, and a path with no recording answers
+ * 503 with the mock's own sentence — the miss IS an answer and the shell must survive
+ * it (`app-shell-fixture.js` states the same rule).
  *
  * WHAT IT DELIBERATELY DOES NOT MODEL is content addressing: a real `create` computes the
  * id from the profile and returns the EXISTING record when that content is already stored,
  * without applying the parentId. Modelling it would mean transcribing `profile_hash.dart`
- * into a test fixture, which is the B10 defect wearing a lab coat — the client is not
+ * into a test fixture, which is that defect wearing a lab coat — the client is not
  * allowed to know that rule, so neither is the thing that stands in for the server. The
  * ids here are serial, which is enough for every question this suite asks: does the app
  * follow the record the server named.
@@ -97,12 +97,12 @@ let serial = 0;
  * to the recording, which was enough while every question in the suite was about the
  * LIBRARY: does the listing carry the saved record, and is the app pointing at it.
  *
- * Ben's bug turned out to have a second half that the library alone cannot see.
+ * The reported bug turned out to have a second half that the library alone cannot see.
  * `<app-root>` resolves the Live band's "Edit profile" through `library.get().loaded` — the
  * profile THE MACHINE IS HOLDING, not the one the selector has highlighted — and a save
  * deliberately did not move that. So every edit started from the same fixed point and the
- * versions came out as SIBLINGS off one ancestor rather than as a chain. Measured on Ben's
- * tablet over ADB, 27 August 2026: three of the five visible "Pressure Tuning" rows shared
+ * versions came out as SIBLINGS off one ancestor rather than as a chain. Measured on the
+ * tablet over ADB: three of the five visible "Pressure Tuning" rows shared
  * one parent, `profile:ea352e2e…`, which was the record the machine was holding. His words:
  * "I can make a change, hit save exit and go back into the editor and it dosn't seem to
  * have the change."
@@ -114,7 +114,7 @@ let serial = 0;
  *
  *   * `GET /api/v1/workflow` serves a document this session can move, seeded from the
  *     recording so every assertion written against this fixture before today still means
- *     what it meant. It was already being served — by the fallthrough, straight off disk —
+ *     what it meant. It was already being served — by the fallthrough, straight off disk
  *     so intercepting it changes nothing until somebody writes to it.
  *   * `PUT /api/v1/workflow` merges the patch and answers 200 with the WHOLE document,
  *     which is what `workflow-store.js write()` reads ("a 200 publishes the SERVER'S OWN
@@ -127,7 +127,7 @@ let serial = 0;
  *     503 MISS, so an arm could not succeed here at all and a test asserting one would
  *     have been asserting against a broken server rather than against the app.
  *
- * THE TWO RECORDED LISTS ARE THE ORACLE. `armCalls` and `workflowWrites` are what a test
+ * THE TWO RECORDED LISTS ARE THE REFERENCE. `armCalls` and `workflowWrites` are what a test
  * reads to say "the machine was told" or "the machine was left alone" — the second being
  * the more important claim, and one that can only be made against a server that would have
  * noticed. The app's own belief (`library.get().loaded`) is read separately, through
@@ -184,8 +184,8 @@ async function allRecords() {
  * CONTENT ADDRESSING, ADDED 27 AUGUST 2026 — AND THE RULE THIS FIXTURE CHANGED
  * ===========================================================================
  * This file used to say it deliberately did NOT model content addressing, because
- * "transcribing `profile_hash.dart` into a test fixture is the B10 defect wearing a lab
- * coat". THE HALF OF THAT WHICH IS RIGHT still stands and is the whole of B10: THE CLIENT
+ * "transcribing `profile_hash.dart` into a test fixture is the defect wearing a lab
+ * coat". THE HALF OF THAT WHICH IS RIGHT still stands and is the whole of: THE CLIENT
  * may not know ReaPrime's hashing rule. The half that was wrong is that the same
  * prohibition applied to the thing STANDING IN FOR THE SERVER — a server's stand-in
  * knowing the server's rules is what makes it a stand-in rather than a prop.
@@ -202,7 +202,7 @@ async function allRecords() {
  * NO HASH IS TRANSCRIBED, only the INPUT SET, which `profile-editor-store.js`'s own header
  * has stated in prose since it was written: the id's inputs are version, beverage_type,
  * steps, tank_temperature, target_weight, target_volume and target_volume_count_start
- * (`profile_hash.dart calculateProfileHash`). Title, author and notes are NOT among them —
+ * (`profile_hash.dart calculateProfileHash`). Title, author and notes are NOT among them
  * they are the metadata hash — so two records differing only in title collide here exactly
  * as they collide on the machine. Equality stands in for the sha256: same inputs, same
  * record, which is the only property any test here asks about.
@@ -353,8 +353,8 @@ async function mockFetch(url, options = {}) {
      * but `result.ok`, so this is the whole of the happy path.
      *
      * NO REFUSAL IS MODELLED HERE and that is deliberate. The typed 400s
-     * (`Unsupported profile` / `Invalid profile`) are B9's surface and belong to the
-     * suites that test B9; what this fixture is asked is only WHETHER the machine was
+     * (`Unsupported profile` / `Invalid profile`) are the rule's surface and belong to the
+     * suites that test what this fixture is asked is only WHETHER the machine was
      * told, and a refusal branch nothing exercises would be a second, untested rule
      * standing in for a server. */
     if (target.pathname === '/api/v1/machine/profile' && method === 'POST') {
@@ -379,7 +379,7 @@ async function mockFetch(url, options = {}) {
      * matters: it re-served the RECORDING, so a write came back 200 carrying the document
      * as it was before the write. `write()` publishes a served document verbatim, so the
      * app would have adopted the pre-write state as the post-write truth — a green arm
-     * that left `loaded` pointing at the old profile, which is Ben's bug wearing the
+     * that left `loaded` pointing at the old profile, which is the reported bug wearing the
      * fixture's clothes. */
     if (target.pathname === '/api/v1/workflow' && method === 'PUT') {
         const patch = JSON.parse(options.body);
@@ -441,14 +441,14 @@ async function waitForScreen(want, timeoutMs = 15000) {
 
 /**
  * ===========================================================================
- * WAIT UNTIL THE APP STOPS TALKING, added 27 August 2026 with Ben's "save closes".
+ * WAIT UNTIL THE APP STOPS TALKING, added with "save closes".
  * ===========================================================================
  * A press used to be followed by a fixed 150 ms, which was long enough while a Save did
  * exactly one thing and left the screen standing. It is not long enough now: one press of
  * Save writes the profile, writes the superseded row's visibility, re-reads the listing,
  * arms the machine and writes the workflow document, and swaps the route on the way past.
  * A fixed sleep tuned to that chain is a flake generator on a loaded box — and the box
- * running this is the one driving Ben's tablet.
+ * running this is the one driving the bench tablet.
  *
  * SO IT WAITS ON A FACT RATHER THAN ON A CLOCK: the call log stops growing. That is
  * deliberately NOT the shape of anything a test asserts — it does not wait for an arm, or
@@ -513,7 +513,7 @@ globalThis.__saveLoop = {
      * with somebody else's dose and yield would be a state the machine cannot be in.
      *
      * @returns {Promise<string|null>} the record id seated, or null if the title is not
-     *   unique in the corpus (or is not in it at all).
+     *   unique in the measurement (or is not in it at all).
      */
     async hold(title) {
         const matches = (await allRecords())
@@ -694,7 +694,7 @@ globalThis.__saveLoop = {
     /**
      * Press the real Save in the editor's band, and let everything it starts land.
      *
-     * SINCE 27 AUGUST 2026 THAT INCLUDES THE ROUTE SWAP. Ben: "pressing save should close
+     * THAT INCLUDES THE ROUTE SWAP, because "pressing save should close
      * and arm, I shouldn't need to press save twice." One press now writes the profile,
      * hides the row it supersedes, re-reads the listing, arms the machine, writes the
      * workflow document AND leaves the editor — so this waits for the app to fall silent
@@ -763,7 +763,7 @@ globalThis.__saveLoop = {
      *     assertion made against the app's own state.
      *   * WHAT THE APP BELIEVES — `held()`, off `library.get().loaded`. That is what
      *     `<app-root>` resolves the Live band's "Edit profile" through, so it is the value
-     *     Ben's bug was actually about.
+     *     the reported bug was actually about.
      *   * WHAT THE DOCUMENT SAYS — `machineHolds()`, off the served workflow. The
      *     tie-breaker: it is the server's own answer, unmediated by any store, and it is
      *     what a reboot would read back.
@@ -819,7 +819,7 @@ globalThis.__saveLoop = {
     },
 
     /**
-     * HOW MANY ROWS THIS PROFILE HAS IN THE LIST — the whole of Ben's complaint, counted.
+     * HOW MANY ROWS THIS PROFILE HAS IN THE LIST — the whole of the report, counted.
      *
      * `listable` is what the selector renders, after `profile-rules.js` has filtered the
      * `?includeHidden=true` listing. Counting by TITLE rather than by id is deliberate: the

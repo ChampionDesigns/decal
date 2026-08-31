@@ -22,14 +22,16 @@ const face = (page) => page.evalFn((sel) => {
     const screen = window.__h.need(sel);
     const control = screen.renderRoot.querySelector('#field-hidden');
     if (!control) return null;
-    const row = control.closest('.field');
+    /* The row draws the heading and the caption in its own root. */
+    const row = control.closest('ui-settings-row');
+    const inside = row?.renderRoot ?? row?.shadowRoot ?? null;
     return {
         checked: control.checked === true,
         disabled: control.disabled === true,
         ariaChecked: control.getAttribute('aria-checked'),
         state: control.dataset.face ?? null,
-        caption: (row?.querySelector('[role="status"]')?.textContent ?? '').trim(),
-        label: (row?.querySelector('#field-hidden-label')?.textContent ?? '').trim(),
+        caption: (inside?.querySelector('[role="status"]')?.textContent ?? '').trim(),
+        label: (inside?.querySelector('#heading')?.textContent ?? '').trim(),
     };
 }, EDITOR.screen);
 
@@ -263,8 +265,10 @@ describe('the library-visibility switch (D20)', () => {
         () => staged({ record: recordWith('visible') }, async (page) => {
             const role = await page.evalFn((sel) => {
                 const screen = window.__h.need(sel);
-                const row = screen.renderRoot.querySelector('#field-hidden').closest('.field');
-                return row.querySelector('[role="status"]')?.getAttribute('role') ?? null;
+                const row = screen.renderRoot.querySelector('#field-hidden')
+                    .closest('ui-settings-row');
+                const inside = row.renderRoot ?? row.shadowRoot;
+                return inside.querySelector('[role="status"]')?.getAttribute('role') ?? null;
             }, EDITOR.screen);
             assert.equal(role, 'status',
                 'the only place the press\'s outcome is stated must reach a screen reader');

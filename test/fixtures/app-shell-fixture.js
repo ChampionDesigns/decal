@@ -1,5 +1,5 @@
 /**
- * app-shell-fixture — the rendering subject for the application shell (wave 5.1,
+ * app-shell-fixture — the rendering subject for the application shell (
  * `live-app-shell`).
  *
  * WHAT IT DRIVES THE SHELL WITH, and why each choice is the honest one:
@@ -8,19 +8,19 @@
  * `tools/rea-fixtures/`, keyed by the request path with `/` -> `__` and `?`/`&` -> `~`
  * (`mock_rea.py` `_key`), on the fixed port 8080 the capture battery reuses. A rendering
  * suite cannot start it: it is a Python process, the port is shared with whatever battery
- * run is in flight, and wave 3 recorded browser/port contention as an intermittency
+ * run is in flight, and recorded browser/port contention as an intermittency
  * hazard. So this fixture serves THE SAME CORPUS through the harness's own static server,
  * with the same key function — the recordings are the mock's, byte for byte, and the only
  * thing left behind is the process. A path with no recording answers 503 with the mock's
  * own sentence ("this instrument has no recording of that page"), because a MISS IS AN
  * ANSWER and the shell must survive it: there is no `machine/capabilities` recording in
- * the corpus today, and the shell booting anyway is the point of the test, not an
+ * the measurement today, and the shell booting anyway is the point of the test, not an
  * accident of it.
  *
  * THE SOCKETS ARE FAKE AND THAT IS DOCUMENTED, NOT PAPERED OVER. Nothing in this tree can
  * push a WebSocket frame at the stores — `mock_rea.py` speaks no WebSocket at all, and the
  * nine `ws__*.json` fixtures are each 226 bytes of the 404 HTML page ReaPrime answers when
- * a socket path is fetched over plain HTTP (waves/0b/REPORT.md:255-261: "Gate B rule 4 is
+ * a socket path is fetched over plain HTTP (the measurement: "the contract check rule 4 is
  * closed for REST and open for sockets"). The factory here records what was dialled and
  * lets the test push a frame in, which is enough to prove the shell OPENS the six channels
  * and MIRRORS the connection feed. It is not a claim that a real socket behaves this way.
@@ -137,8 +137,8 @@ const MACHINE_FRAME = {
  * The minimum `/ws/v1/display` frame `readDisplayFrame` accepts.
  *
  * COPIED FROM THE BENCH TABLET rather than invented: this is the shape its live
- * `/ws/v1/display` socket was publishing on 28 August 2026, brightness values and all,
- * read over CDP while a black saver was up. The two brightness fields differ in general —
+ * `/ws/v1/display` socket was publishing, brightness values and all,
+ * read over CDP while a black saver was up. The two brightness fields differ in general
  * `requestedBrightness` is what somebody asked for and `brightness` is what ReaPrime
  * applied after its low-battery cap — and they are both here so a reader can see that the
  * distinction exists.
@@ -152,7 +152,7 @@ const DISPLAY_FRAME = {
     platformSupported: { brightness: true, wakeLock: true },
 };
 
-/** The minimum `/ws/v1/devices` frame `readDevicesFrame` accepts (B8's own shape). */
+/** The minimum `/ws/v1/devices` frame `readDevicesFrame` accepts (the rule's own shape). */
 const DEVICES_FRAME = {
     devices: [],
     scanning: false,
@@ -233,7 +233,7 @@ globalThis.__shell = {
      * Change route the way the app does: through the address.
      *
      * The deadline is generous ON PURPOSE. A route swap loads a module, and this suite
-     * runs beside every other rendering suite in the tree — wave 3 recorded browser
+     * runs beside every other rendering suite in the tree —   recorded browser
      * contention as an intermittency hazard, and a poll loop tuned to an idle machine is
      * how a real assertion becomes a flaky one. Waiting longer costs nothing when the
      * swap is fast, which it is.

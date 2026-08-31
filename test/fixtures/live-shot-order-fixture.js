@@ -2,7 +2,7 @@
  * live-shot-order-fixture — the Live band's shot arrows, over a shots route that can be
  * told what ORDER to answer in.
  *
- * Built 30 August 2026 for round 4 of the fix campaign, from Ben's report on the tablet:
+ * Built from a report on the tablet:
  * "when I tap the previous shot button it doesn't show the previous but some other shot,
  * like the order is all messed up".
  *
@@ -13,8 +13,8 @@
  * handler — it honours `limit`, `offset` and `order` exactly as `shots_handler.dart`
  * `_getShots` does, clamping `limit` to 1..100 and treating anything that is not `asc` as
  * descending — with ONE addition a real server does not have: `serveOrder(mode)`, which
- * decides the order the page is emitted in. The measured tablet (192.168.1.73, 921 shots,
- * read-only, 30 Aug 2026) answers strict timestamp-descending across all ten pages, so
+ * decides the order the page is emitted in. The measured tablet (192.0.2.10, 921 shots,
+ * read-only) answers strict timestamp-descending across all ten pages, so
  * `desc` is the truthful mode and the others are the fault injection.
  *
  * `stale` IS NOT FAULT INJECTION — it is the tablet's own condition. `app-boot.js`
@@ -133,7 +133,7 @@ const EMIT = {
  * amount of client-side ordering can turn that into the newest ones. That is a wrong
  * WINDOW, not a wrong walk, and it is a server fault the client can only report.
  *
- * `page-shuffled` is the fault the client CAN and MUST fix: the window is the right rows —
+ * `page-shuffled` is the fault the client CAN and MUST fix: the window is the right rows
  * the handler picked the newest `limit` of them, exactly as `order=desc` asks — and only
  * their order inside the response is wrong. Applied AFTER the slice, for that reason.
  */

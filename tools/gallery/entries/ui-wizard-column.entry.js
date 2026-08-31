@@ -17,7 +17,7 @@ export const entry = {
     title: 'Wizard column',
     module: './entries/ui-wizard-column.demo.js',
     notes:
-        'Wave 4 #39, the load-cell calibration walk. Slate\'s wizard is the one leaf that '
+        'Wave 4 #39, the load-cell calibration walk. The reference skin\'s wizard is the one leaf that '
         + 'is 63px wider than the other 37 (T1: CITE find --cls slate-cal-step-label -> '
         + 'settings-calibration-load-cells [i=50] rect 629,321,1263,27, against the 1200px '
         + 'cap every sibling gets) and it hangs a 760px card inside that (CITE find --cls '
@@ -32,7 +32,7 @@ export const entry = {
     states: [
         {
             id: 'step-1',
-            title: 'Step 1 of 4 — Slate\'s captured state',
+            title: 'Step 1 of 4 — the reference skin\'s captured state',
             notes:
                 'The leaf as the corpus has it: step 1 current, three ahead, no step '
                 + 'behind the walk yet. The connectors are all unwalked.',
@@ -47,7 +47,7 @@ export const entry = {
             id: 'mid-walk',
             title: 'Step 3 of 4 — two done, one current, one ahead',
             notes:
-                'The state Slate never captured. Done chips are filled and quiet with a '
+                'The state the reference skin never captured. Done chips are filled and quiet with a '
                 + 'check; the current chip is the selection dials; the ahead chip is an '
                 + 'outline. The connectors behind the walk take --ui-line-strong.',
             hostStyle: { 'inline-size': '760px' },
@@ -77,7 +77,7 @@ export const entry = {
             id: 'no-actions',
             title: 'No action slotted — the F3 hole',
             notes:
-                'F3 (calibration reset semantics) is blocked on Ben, so the wizard ships '
+                'F3 (calibration reset semantics) is blocked on the owner, so the wizard ships '
                 + 'without a reset-to-default control and the omission is recorded (Q1). '
                 + 'Every action here is slotted, so this is simply a state: the actions '
                 + 'cluster draws no box and the column draws no row gap for it.',

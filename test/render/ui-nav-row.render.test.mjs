@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -88,7 +88,7 @@ const ORACLE = {
     slatePitch: 89,
 };
 
-/** The derivation decision C4 settled: 88px, and where each part of it comes from. */
+/** The derivation decision settled: 88px, and where each part of it comes from. */
 const DERIVED = { controlH: 64, space3: 12, navRow: 88 };
 
 const DIAL_PROPERTIES = ['background-color', 'color', 'box-shadow', 'text-shadow', 'font-weight'];
@@ -183,7 +183,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.prop('#cat1', 'min-height'), `${natural}px`,
                     'restored');
                 assert.notEqual(Math.round(natural), ORACLE.slatePitch,
-                    'and it is not 89 — CITE .settings-nav-btn rects [0,219,260,89]');
+                    'and it is not 89 — .settings-nav-btn rects [0,219,260,89]');
             }));
 
         test('drill: the inset is --ui-space-5 and the gap is --ui-space-2',
@@ -270,9 +270,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const weights = await page.computed('#current >>> #row', ['font-weight']);
                 const restingWeight = await page.computed('#cat1 >>> #row', ['font-weight']);
                 assert.equal(weights['font-weight'], ORACLE.currentWeight,
-                    'CITE [i=9] the current row is Slate\'s 500');
+                    '[i=9] the current row is Slate\'s 500');
                 assert.equal(restingWeight['font-weight'], ORACLE.fontWeight,
-                    'CITE [i=11] a resting row is Slate\'s 400');
+                    '[i=11] a resting row is Slate\'s 400');
                 assert.equal(weights['font-weight'],
                     await page.resolveToken('--ui-selected-weight', 'font-weight'),
                     'the 500 is READ from the dial, not written in this component');
@@ -282,7 +282,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const p = await page.computed('#current >>> #row',
                         ['content', 'background-color'], { pseudo });
                     assert.equal(p.content, 'none',
-                        `slate-shell.css:517-527 draws a ${pseudo} leading bar of `
+                        `draws a ${pseudo} leading bar of `
                         + 'var(--slate-selected-led); the LED dial is the sanctioned '
                         + 'expression of that and there is exactly one of it');
                 }
@@ -356,19 +356,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         ['background-color', 'color']);
                     assert.equal(resting['background-color'], want.ground,
                         `${theme}: --ui-fascia IS the ground Slate's transparent nav row sat `
-                        + 'on (CITE #left-panel [i=6])');
+                        + 'on (#left-panel [i=6])');
                     assert.equal(resting.color, want.restingInk,
-                        `${theme}: --ui-muted (CITE [i=11] color <- var(--slate-muted))`);
+                        `${theme}: --ui-muted ([i=11] color <- var(--slate-muted))`);
 
                     const current = await page.computed('#current >>> #row',
                         ['background-color', 'color']);
                     assert.equal(current['background-color'], want.currentFace,
-                        `${theme}: --ui-selected-face (CITE [i=9] background-color)`);
+                        `${theme}: --ui-selected-face ([i=9] background-color)`);
                     assert.equal(current.color, want.currentInk,
-                        `${theme}: --ui-selected-ink (CITE [i=9] color)`);
+                        `${theme}: --ui-selected-ink ([i=9] color)`);
 
                     assert.equal(await page.resolveToken('--ui-line', 'color'), want.seam,
-                        `${theme}: CITE [i=11] box-shadow inset ink — it survives the move to a gap`);
+                        `${theme}: [i=11] box-shadow inset ink — it survives the move to a gap`);
 
                     // The host's ground follows the theme too, and is the same colour.
                     assert.equal(await page.prop('#cat1', 'background-color'), want.ground,
@@ -384,19 +384,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'padding-top', 'padding-bottom', 'border-top-width', 'box-shadow',
                     'text-align', 'white-space',
                 ]);
-                assert.equal(row['font-size'], ORACLE.fontSize, 'CITE [i=11] 22px');
-                assert.equal(row['font-weight'], ORACLE.fontWeight, 'CITE [i=11] 400');
-                assert.equal(row['padding-left'], ORACLE.paddingInline, 'CITE [i=11] 24px');
+                assert.equal(row['font-size'], ORACLE.fontSize, '[i=11] 22px');
+                assert.equal(row['font-weight'], ORACLE.fontWeight, '[i=11] 400');
+                assert.equal(row['padding-left'], ORACLE.paddingInline, '[i=11] 24px');
                 assert.equal(row['padding-right'], ORACLE.paddingInline,
                     'symmetrical: padding: 0 var(--slate-space-5)');
                 assert.equal(row['padding-top'], '0px', 'the height is the pitch, not padding');
                 assert.equal(row['padding-bottom'], '0px');
                 assert.equal(row['border-top-width'], ORACLE.borderWidth,
-                    'CITE [i=11] border-top-width = 0px');
+                    '[i=11] border-top-width = 0px');
                 assert.equal(row['box-shadow'], 'none',
                     'DEPARTURE 5: the 1px separator is the container gap, not a per-row '
                     + 'inset shadow (CONVENTIONS §13)');
-                assert.equal(row['text-align'], 'start', 'settings.html:30 text-left');
+                assert.equal(row['text-align'], 'start', 'text-left');
 
                 const rendered = await page.box('#cat1');
                 assert.equal(Math.round(rendered.height), Math.round(DERIVED.navRow * d),
@@ -477,7 +477,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const got = await page.computed(selector, corners);
                     assert.deepEqual(got, Object.fromEntries(corners.map((c) => [c, '0px'])),
                         `${selector} is rounded — DEPARTURE 2 is that the authored intent `
-                        + '(slate-shell.css:464, :534) finally renders');
+                        + '534) finally renders');
                 }
                 assert.notEqual('0px', ORACLE.slateRadius, 'and 6px is what Slate renders');
 

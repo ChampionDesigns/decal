@@ -18,8 +18,8 @@ export const entry = {
     module: '../../src/components/ui-list-row.js',
     notes:
         'Component #26: title + provenance badge + favourite disc + overflow affordance, '
-        + 'at --ui-list-row (64px) with a 24px inset. It never existed as a primitive '
-        + '(DECISIONS.md:251) and today it is built TWICE in JS with byte-identical class '
+        + 'at --ui-list-row (64px) with a 24px inset. It never existed as a primitive, '
+        + 'and today it is built TWICE in JS with byte-identical class '
         + 'strings, so an affordance added to one copy never reached the other (P6). '
         + 'Selection is the four dials and nothing else - no leading bar, no weight change. '
         + 'The separator between rows is the CONTAINER\'s 1px gap (CONVENTIONS §13), which '
@@ -56,7 +56,7 @@ export const entry = {
             title: 'Selected, beside its unselected neighbour',
             notes:
                 'The whole of the treatment is --ui-selected-face and --ui-selected-ink; '
-                + '--ui-selected-led is 0px and --ui-selected-glow is 0% on Slate\'s own dials, '
+                + '--ui-selected-led is 0px and --ui-selected-glow is 0% on the reference skin\'s own dials, '
                 + 'so nothing else paints. The affordance takes the ink by inheriting it, '
                 + 'which is what stops the muted grey disappearing into the fill.',
             html:
@@ -70,13 +70,13 @@ export const entry = {
             title: 'Provenance chip and favourite disc',
             notes:
                 'Everything the row can carry at once. The chip is a real ui-badge (#12) - '
-                + 'Slate\'s shell sheet repainted it into a pipe-separated span from 1,300 '
+                + 'the reference skin\'s shell sheet repainted it into a pipe-separated span from 1,300 '
                 + 'lines away and a shadow root makes that unreachable. The disc arrives '
                 + 'through slot="favourite"; component #35 owns its paint, not this row.',
             html:
                 LIST_OPEN
                 + `<ui-list-row provenance="from Adaptive v2">Adaptive v3${DISC(3)}</ui-list-row>`
-                + `<ui-list-row aria-selected="true" provenance="from Default">Ben's default${DISC(1)}</ui-list-row>`
+                + `<ui-list-row aria-selected="true" provenance="from Default">the default${DISC(1)}</ui-list-row>`
                 + '<ui-list-row>Extractamundo Dos!</ui-list-row>'
                 + LIST_CLOSE,
         },
@@ -93,7 +93,7 @@ export const entry = {
                 + 'also the evidence that a consumer who never updated is inert rather than '
                 + 'broken. The state id is the capture filename and the rendered result is '
                 + 'unchanged by the amputation, so no re-baseline is owed. A state showing a '
-                + 'SLOTTED trigger would be a new capture, which is Ben\'s call.',
+                + 'SLOTTED trigger would be a new capture, which is the owner\'s call.',
             html:
                 LIST_OPEN
                 + '<ui-list-row no-overflow>Cleaning / forward flush x5</ui-list-row>'
@@ -105,7 +105,7 @@ export const entry = {
             title: 'In a 260px container',
             notes:
                 'The title clamps and ellipsises rather than shoving a slotted control off the '
-                + 'end - a departure from Slate, which never meets a narrow container because '
+                + 'end - a departure from the reference skin, which never meets a narrow container because '
                 + 'its geometry is frozen at 1920x1200 (the oracle is disqualified for '
                 + 'responsive behaviour). The 64px floor and the 48px hit floor both hold.',
             hostStyle: { 'inline-size': '260px' },

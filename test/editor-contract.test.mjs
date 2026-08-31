@@ -161,8 +161,8 @@ describe('B10/B11 — the gates the editor was built against are on the rows', (
     test('the id-covers-content-only gate is a FACT about the server, not a rule in the client', () => {
         const gate = ROW('postProfiles').gates.find((g) => g.kind === 'id-covers-content-only');
         assert.match(gate.action, /never transcribed into the client/);
-        // B10: no module under the editor's save path re-implements the split.
-        assert.match(gate.action, /duplicating this split is the B10 defect/);
+        // No module under the editor's save path re-implements the split.
+        assert.match(gate.action, /duplicating this split is the defect/);
     });
 });
 

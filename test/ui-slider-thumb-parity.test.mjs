@@ -1,5 +1,5 @@
 /**
- * The half of bug T22 that Chrome cannot render.
+ * The half of bug that Chrome cannot render.
  */
 
 import { test } from 'node:test';
@@ -72,7 +72,7 @@ async function componentRules() {
 const find = (rules, selector) => rules.filter((r) => r.selector === selector);
 
 /* The pairs. Each is one job written twice because CSS makes it impossible to write
- * once — which is the whole mechanism behind T22. */
+ * once — which is the whole mechanism behind. */
 const PAIRS = [
     ['.track::-webkit-slider-thumb', '.track::-moz-range-thumb'],
     ['.track::-webkit-slider-runnable-track', '.track::-moz-range-track'],
@@ -97,7 +97,7 @@ test('T22: the WebKit and Gecko blocks are identical, declaration for declaratio
         assert.deepEqual(
             b, a,
             `\`${gecko}\` has drifted from \`${webkit}\`.\n`
-            + '  That drift IS bug T22: main.css:386-395 is a Gecko thumb at 24×24 #385a92 '
+            + 'That drift IS bug T22: is a Gecko thumb at 24×24 #385a92 '
             + 'with its own colours and hover transform, and nobody ever noticed because '
             + 'the bench browser never renders it.',
         );

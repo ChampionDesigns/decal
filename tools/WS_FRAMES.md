@@ -1,9 +1,9 @@
 # The socket half of the mock — every frame, and where its values come from
 
-`tools/mock_rea.py` used to speak no WebSocket. Wave 0b said so and did not paper over it
-(`_skinlab/realine-run/waves/0b/REPORT.md:255-261`):
+`tools/mock_rea.py` used to speak no WebSocket. said so and did not paper over it
+Measured:
 
-> The biggest remaining hole, stated not papered over … **Gate B rule 4 is closed for REST
+> The biggest remaining hole, stated not papered over … **the contract check is closed for REST
 > and open for sockets.**
 
 The nine `tools/rea-fixtures/ws__*.json` files are not frames. Each is a 226-byte recording
@@ -34,7 +34,7 @@ four honesty classes, and the class is the first column of every row below:
 | **unsourced** | no recording exists and the value is not the mock's to know. The channel is **SILENT** until a run script supplies it, and the mock says so on startup and at shutdown. |
 
 A silent channel is the point, not a gap: a plausible frame standing where an absence
-belongs is the A7 defect this whole instrument exists to kill.
+belongs is the defect this whole instrument exists to kill.
 
 ## The ten rows
 
@@ -60,7 +60,7 @@ Source fixtures, all inside the hashed set (`tools/FIXTURES.sha256`, 33 files):
 * `api__v1__info.json` — `fullVersion`, for the update channel.
 
 **`api__v1__shots__latest.json` is not usable and is not used.** It has no `measurements`
-array at all (the flat summary shape); wave 4's `test-shot-metrics-fixture-shape` suite
+array at all (the flat summary shape) 's `test-shot-metrics-fixture-shape` suite
 pins it as `ok:false`, and `ShotReplay` refuses a fixture with no measurements rather than
 play an empty shot.
 
@@ -70,15 +70,15 @@ Every derived frame is computed **at run time** from the hashed set. Nothing is 
 `tools/rea-fixtures/`, so `tools/FIXTURES.sha256` is byte-identical and still verifies —
 `python3 tools/mock_rea.py --check-fixtures` → *"fixture parity OK — 33 fixtures match"*.
 A derived copy on disk would be a second thing to drift from the recording it came from,
-and fixture parity is a final-review precondition (Part 10 §13), not a preference.
+and fixture parity is a final-review precondition, not a preference.
 
 ## The reshapes, one at a time
 
 ### 1. The machine frame: a key DROP, and nothing else
 
-The recording is from 2026-08-15 and its `machine` block predates ReaPrime `633f6f68`. It
+The recording is from an earlier run and its `machine` block predates ReaPrime `633f6f68`. It
 carries nineteen keys: the twelve `MachineSnapshot` still writes, plus **eleven dead
-names** — `weight`, `weightFlow`, `milkTemperature` (CB-08 and CB-03 deleted these from
+names** — `weight`, `weightFlow`, `milkTemperature` ( and deleted these from
 this frame) and the puck estimator's pre-rename channels `fusedConf`, `vAbs`, `estFlags`,
 `detEventCount`, `estLag`, `fusedR1`, `fusedR2`, `fusedC`.
 
@@ -122,7 +122,7 @@ channel says one is (`{"status":"connected"}`, then frames). What it streams is 
 real weight, carried under the key the handler uses today — but the *presence* of a scale
 is the mock's claim, not the recording's. `--ws-scale absent` turns the channel into a
 `{"status":"disconnected"}` envelope and no frames. See the deferred question in
-`waves/5.1/DEFERRED_QUESTIONS.md`.
+the deferred-questions record.
 
 ### 3. Shot state: the mock's own sequencer, the recording's own ids
 
@@ -152,7 +152,7 @@ does too, and `connectionStatus.phase` is `ready` rather than contradicting its 
 builds the map literally — on this frame an **absent** key is malformed, the opposite of
 the machine snapshot's rule.
 
-**B8 is exercisable end to end.** A run script sets `devices.pendingAmbiguity` and the
+** is exercisable end to end.** A run script sets `devices.pendingAmbiguity` and the
 frame parks in a selection session with `foundMachines` populated; a `connect` command
 clears it, because `_connectDevice` routes a connect-while-parked to
 `selectMachine`/`selectScale` — the answer, not a fresh connect. Consuming the state
@@ -188,7 +188,7 @@ unsupported-platform envelope, `{error, url}`, with a null url because none is r
 ### 6. Sensors
 
 An id the mock has no source for gets ReaPrime's own answer — `{"error":"not found"}` **and
-the socket closes**. That close is the client's re-discovery trigger (CB-07): the id
+the socket closes**. That close is the client's re-discovery trigger: the id
 derives from the machine's deviceId, so a machine swap mints a new one and the old id is
 dead for good. A socket that stayed open and silent would suppress the re-discovery, so
 the default is the honest one.
@@ -222,7 +222,7 @@ feature-absent, never to an error banner.
 python3 tools/mock_rea.py                      # 10 Hz, the real cadence
 python3 tools/mock_rea.py --ws-rate 15         # the 15 Hz loop proof
 python3 tools/mock_rea.py --ws-phase in-shot   # start and stay mid-pour
-python3 tools/mock_rea.py --ws-script run.json
+python3 tools/mock_rea.py --ws-script <frames file>
 ```
 
 **The default is 10 Hz** because that is what the channel does in a shot
@@ -247,7 +247,7 @@ The phases map onto the recording's own `state.substate` transitions:
 idle** — every recorded sample is mid-espresso. Holding an `espresso/preparingForShot`
 frame and calling the phase idle would be the instrument relabelling a recording. The gap
 is real, it is on the bench list, and it is written up in
-`waves/5.1/DEFERRED_QUESTIONS.md`.
+the deferred-questions record.
 
 **Fire and forget.** No channel replays history on connect:
 
@@ -304,7 +304,7 @@ of 170 °C, which is a recorded value and not a bound — steam bounds live only
 | rule | what it asks | canary |
 |---|---|---|
 | `socket-unvouched` | every row is served and every served channel has a row | — (parity is over two documents) |
-| `socket-key-drift` | every key the spec names is read by the **client** module for that channel | `--ws-canary key-drift` |
+| `socket-key-drift` | every key the contract table names is read by the **client** module for that channel | `--ws-canary key-drift` |
 | `socket-shape` | keys vouched, required present, no dead name, no null derived channel | `--ws-canary dead-key`, `--ws-canary null-derived` |
 | `socket-upgrade` | nine rows answer 101; the plugin row answers 404 first | — |
 | `socket-cadence` | the measured rate is the requested one | `--ws-canary cadence`, a sixth of the rate |
@@ -321,7 +321,7 @@ one rule — a canary that trips someone else's rule proves nothing about its ow
 `test/mock-ws.test.mjs` asserts that.
 
 `socket-key-drift` is the rule worth understanding: the client is held to the contract
-table by Gate D and the mock is held to it by this checker, **separately**. A key that gets
+table by `gate-d` and the mock is held to it by this checker, **separately**. A key that gets
 renamed upstream and reaches one document but not the other would otherwise produce frames
 nobody reads, silently, for as long as nobody looks. Naming a key the client never mentions
 is now a build failure.

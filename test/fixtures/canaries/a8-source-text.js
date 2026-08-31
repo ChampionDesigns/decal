@@ -1,9 +1,9 @@
 /**
- * CANARY - deliberately violates A8 (scripts/a8-source-text.js).
+ * CANARY - deliberately violates a8 (scripts/a8-source-text.js).
  * A guard that does not fail on this file is not covering its target.
  *
- * This is what the 29 text-scan test files did, and what §7.4 E1 records: a suite that
- * regex-matches a stylesheet's SOURCE TEXT for a geometry literal. The assertion below
+ * This is what the 29 text-scan test files did, and what records: a suite that
+ * regex-matches a stylesheet's TEXT for a geometry literal. The assertion below
  * would pass against a canvas nobody renders and fail the day the lock is removed -
  * "tests that made the defects UNREMOVABLE".
  *
@@ -43,7 +43,7 @@ canaryA8 = async () => {
     const all = [];
     for (const file of SHEETS) all.push(await readFile(file, 'utf8'));
 
-    /* THE ASSERTION A8 EXISTS TO KILL: a claim about a file's text, standing in for a
+    /* THE ASSERTION a8 EXISTS TO KILL: a claim about a file's text, standing in for a
      * claim about a rendered box. */
     return {
         locked: /width:\s*1920px/.test(sheet),

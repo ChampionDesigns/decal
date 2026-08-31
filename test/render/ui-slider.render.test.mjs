@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -288,7 +288,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
         });
 
-        test('origin anchors the fill away from the end (slate-live.css:2350-2356)', () => {
+        test('origin anchors the fill away from the end ', () => {
             return browser.withPage({ geometry }, async (page) => {
                 await page.mount(
                     '<ui-slider min="-5" max="5" step=".1" origin="0" value="2.5" label="Align"></ui-slider>',

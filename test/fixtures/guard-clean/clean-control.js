@@ -1,5 +1,5 @@
 /**
- * The NEGATIVE canary. Added by Wave 0a item #4, and it is deliberately NOT in
+ * The NEGATIVE canary. Added item #4, and it is deliberately NOT in
  * test/fixtures/canaries/ — every file in there violates a rule on purpose, and this
  * one violates nothing.
  *
@@ -18,7 +18,7 @@
  *     also CSS colour names ("plum", "linen");
  *   - `--_ui-hit-ink`, a private custom property carrying a LENGTH.
  *
- * Gate C must report zero violations here.
+ * guard must report zero violations here.
  */
 /* Node-safe shape - see test/fixtures/canaries/README.md, "the node-safe shape". */
 

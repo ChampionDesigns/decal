@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -192,7 +192,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const band = await page.computed('#hdr-plain >>> #band',
                     ['background-color', 'opacity', 'border-top-width', 'box-shadow']);
                 assert.equal(band['background-color'], want.ground,
-                    `${theme}: --ui-fascia — CITE .slate-section-header [i=14] background-color`);
+                    `${theme}: --ui-fascia — .slate-section-header [i=14] background-color`);
                 assert.equal(band.opacity, ORACLE.opacity, `${theme}: opacity = 1`);
                 assert.equal(band['box-shadow'], ORACLE.shadow, `${theme}: box-shadow = none`);
                 assert.equal(band['border-top-width'], ORACLE.edge,
@@ -202,11 +202,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const type = await page.computed(`#hdr-plain >>> ${part}`,
                         ['color', 'font-size', 'text-transform']);
                     assert.equal(type.color, want.ink,
-                        `${theme}: --ui-muted — CITE .slate-microcap [i=16] color`);
+                        `${theme}: --ui-muted — .slate-microcap [i=16] color`);
                     assert.equal(type['font-size'], ORACLE.fontSize,
-                        `${theme}: CITE .slate-microcap [i=16] font-size = 15px`);
+                        `${theme}: .slate-microcap [i=16] font-size = 15px`);
                     assert.equal(type['text-transform'], ORACLE.transform,
-                        `${theme}: CITE .slate-microcap [i=16] text-transform = uppercase`);
+                        `${theme}: .slate-microcap [i=16] text-transform = uppercase`);
                 }
             }
             await page.setTheme('dark');
@@ -215,23 +215,23 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the theme-independent half of the record is carried exactly', () => mounted(async (page) => {
             const host = await page.computed('#hdr-plain', ['height', 'min-height', 'position']);
             assert.equal(host.height, `${ORACLE.bandHeight}px`,
-                'CITE .slate-section-header [i=14] height = 60px  (= --ui-section-head-h)');
+                '.slate-section-header [i=14] height = 60px  (= --ui-section-head-h)');
             assert.equal(host['min-height'], `${ORACLE.bandHeight}px`,
-                'CITE .slate-section-header [i=14] min-height = 60px — restated as Slate restated it');
+                '.slate-section-header [i=14] min-height = 60px — restated as Slate restated it');
             assert.equal(host.position, 'sticky',
-                'slate-shell.css:2044-2049, read read-only: position never entered the corpus');
+                'read read-only: position never entered the corpus');
 
             const band = await page.computed('#hdr-plain >>> #band',
                 ['padding-left', 'padding-right', 'padding-bottom', 'padding-top', 'column-gap', 'align-items']);
             assert.equal(band['padding-left'], ORACLE.padInline,
-                'CITE .slate-section-header [i=14] padding-left = 24px  (= --ui-space-5)');
+                '.slate-section-header [i=14] padding-left = 24px  (= --ui-space-5)');
             assert.equal(band['padding-right'], ORACLE.padInline, 'the inset is symmetric');
             assert.equal(band['padding-bottom'], ORACLE.padBottom,
-                'slate-shell.css:2083 padding: 0 24px var(--slate-space-2)');
+                'padding: 0 24px var(--slate-space-2)');
             assert.equal(band['padding-top'], '0px',
                 'O11: "the only real defect was 12px of extra top padding on the first header"');
             assert.equal(band['column-gap'], ORACLE.gap,
-                'CITE .slate-section-header [i=14] gap = 12px  (= --ui-space-3)');
+                '.slate-section-header [i=14] gap = 12px  (= --ui-space-3)');
             assert.equal(band['align-items'], 'flex-end',
                 'O11: "the labels are deliberately bottom-anchored above their divider, '
                 + 'so they are NOT centred"');
@@ -253,9 +253,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('DEPARTURE 2: the layer is --ui-z-sticky, not Slate\'s literal 2', () => mounted(async (page) => {
             const z = await page.prop('#hdr-plain', 'z-index');
-            assert.notEqual(z, ORACLE.slateZIndex, 'slate-shell.css:2046 wrote z-index: 2');
+            assert.notEqual(z, ORACLE.slateZIndex, 'wrote z-index: 2');
             assert.equal(z, await page.tokenValue('--ui-z-sticky'),
-                'LAYOUT_SPEC_DRAFT.md:425 declares the layer; :435 states the rule it serves');
+                'declares the layer; :435 states the rule it serves');
             assert.equal(z, '10');
         }));
 
@@ -566,7 +566,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(
                 await page.evalFn(() => document.getElementById('hdr-a').textContent.trim()),
                 'Your Profiles',
-                'uppercasing the SOURCE would have a screen reader spell it out');
+                'uppercasing the would have a screen reader spell it out');
         }));
 
         test('`0` is a count; nothing is not', () => mounted(async (page) => {

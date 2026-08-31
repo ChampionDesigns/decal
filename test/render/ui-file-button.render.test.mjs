@@ -10,7 +10,7 @@ const MODULE = ['/src/components/ui-file-button.js'];
 /* The two shapes the skin actually ships: a slotted word (the screen-saver leaf's two
  * pickers) and a `label` over a glyph (the selector's Upload). */
 const MARKUP = `
-    <ui-file-button id="images" accept="image/*" multiple>Choose images</ui-file-button>
+    <ui-file-button id="images" accept="image/* " multiple>Choose images</ui-file-button>
     <ui-file-button id="upload" label="Upload a profile">⇪</ui-file-button>
 `;
 

@@ -213,26 +213,6 @@ export class HistoryScreen extends UiElement {
 
         return html`
             <history-header id="band">
-                <!-- THE WAY BACK. A real control in the band, because a route with no
-                     visible way out is a route only a hardware key can leave — and the
-                     tablet's browser chrome is not on screen. It asks the shell to go
-                     back rather than reaching for location itself, so a screen
-                     mounted in a fixture or the gallery simply does nothing.
-
-                     THE tall ATTRIBUTE IS A BAND CONTROL'S HEIGHT, and this is the
-                     third screen to want it (parity surface 6). NO BACKTICK IN THIS
-                     COMMENT: it sits inside an html tagged template and one of them
-                     ends it where it stands (CONVENTIONS §9). Surface 1 found the Live band's
-                     controls at --ui-control-h in a band derived from
-                     --ui-control-lg; surface 5 landed the same fix on the selector's
-                     Cancel and Confirm; this band was missed because it is a screen's
-                     own box rather than <ui-page-header>. The oracle agrees on every
-                     control in this band: CITE history-viewer #hv-back [i=161] rect
-                     82x82 at y=18, and its three tabs [i=169..171] 80 tall in the same
-                     118px row, where this button rendered 64 at y=27. The band's own
-                     height does not move: 118 = --ui-control-lg + 2 x --ui-band-inset,
-                     so an 82px control is exactly what the derivation was written
-                     for. -->
                 <ui-button
                     id="back"
                     slot="back"
@@ -243,19 +223,6 @@ export class HistoryScreen extends UiElement {
 
                 ${this.#renderPicker('picker-a', ALIGNMENT_SLOT.REFERENCE, 'A', t('Shot A'), this.shotA, options)}
 
-                <!-- COMPARING IS A THING YOU ASK FOR (Ben, 24 Aug 2026: "The expanded
-                     chart that you get when pressing the chart is not the same as the
-                     history viewer.")
-                     IT IS TWO SURFACES IN THE OLD SKIN, and the difference is not the
-                     plots — those are the same four — but everything around them. Tapping
-                     the chart opens ONE shot big; "All shots" opens a COMPARISON, with two
-                     pickers and an alignment slider. Decal pointed both at the
-                     comparison, so pressing the chart to see the shot you just pulled
-                     handed you a second picker you did not ask for and an alignment slider
-                     that could not do anything.
-                     ONE SCREEN, TWO STATES. Until a comparison is asked for, B and the
-                     alignment bar are ABSENT — not disabled — and this is how you ask.
-                     Choosing "No comparison" in B puts it away again. -->
                 ${this.#comparing
                     ? this.#renderPicker('picker-b', ALIGNMENT_SLOT.MOVING, 'B', t('Shot B'), this.shotB,
                         [{ value: '', label: t('No comparison') }, ...options])
@@ -277,19 +244,6 @@ export class HistoryScreen extends UiElement {
                 ></ui-tab-bar>
             </history-header>
 
-            <!-- #44, COMPOSED AND NOT RE-STATED. The bar renders #23 and #1 and owns
-                 the caption; the POLICY is src/lib/alignment-offset.js's. available
-                 is derived there from has-time-axis, which is the presence rule: a
-                 table has no time axis to slide, so on the data page the bar is not
-                 shown at all rather than shown dead.
-
-                 THE POWER PAGE KEEPS THE BAR, and the test is inverted for it: the
-                 question is which page has NO time axis, and that is the table alone.
-                 The power page's first chart is against time like the flow page's; its
-                 second is not, and the offset reaches it as the CORRESPONDENCE MARKS
-                 (Q16) rather than as a slide — "a time offset cannot move a P-Q path",
-                 so what moves is the marks that say which point of one path matches
-                 which point of the other. -->
             ${this.#comparing ? html`<ui-compare-bar
                 id="compare"
                 .offset=${this.offset}

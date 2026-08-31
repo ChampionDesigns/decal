@@ -44,7 +44,7 @@ describe('the machine keys are Slate\'s four, by the generated enum\'s names', (
             p: MACHINE_STATE.SLEEPING,
         });
         assert.ok(!MACHINE_KEYS.some((key) => key.state === MACHINE_STATE.SLEEPING),
-            'Ben removed the Sleep button from this band on 23 Aug 2026; the KEY stays');
+            'the Sleep button was removed from this band; the KEY stays');
     });
 
     test('a key lookup is case-insensitive, and an unbound key is null', () => {

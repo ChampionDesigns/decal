@@ -432,7 +432,7 @@ function fakeFetch(answer = { ok: true, status: 200, body: { capabilities: ['cup
 
 const LOCATION = { hostname: '127.0.0.1', protocol: 'http:' };
 
-/** A devices frame the address layer accepts — the minimum B8 shape. */
+/** A devices frame the address layer accepts — the minimum shape. */
 const DEVICES_FRAME = {
     devices: [],
     scanning: false,
@@ -486,6 +486,7 @@ describe('app-boot', () => {
         await boot.cupWarmerSettled();
 
         assert.deepEqual(fetchImpl.calls, [
+            { url: 'http://127.0.0.1:8080/api/v1/plugins', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/machine/capabilities', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/machine/info', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/workflow', method: 'GET' },
@@ -652,7 +653,7 @@ describe('app-boot', () => {
         assert.equal(boot.machineInfo.get().status, 'unavailable', 'the documented 500 — no machine to ask');
         assert.equal(boot.capabilities.groupHeadController().capability, 'unknown',
             'and the R3 gate is fail-closed on it');
-        assert.equal(fetchImpl.calls.length, 7, 'one set at boot');
+        assert.equal(fetchImpl.calls.length, 8, 'one set at boot');
 
         fetchImpl.state.connected = true;
         const devices = devicesSocket(createSocket);
@@ -660,7 +661,7 @@ describe('app-boot', () => {
         devices.emit('message', { data: JSON.stringify(machineFrame('m-1')) });
         await settle(boot);
 
-        assert.equal(fetchImpl.calls.length, 11,
+        assert.equal(fetchImpl.calls.length, 12,
             'the four MACHINE answers were re-asked, and exactly once each — the rail\'s '
             + 'targets belong to the machine that is here now, so a swap re-reads them too');
         assert.equal(boot.machineInfo.get().status, 'ready');
@@ -692,7 +693,7 @@ describe('app-boot', () => {
         assert.equal(boot.capabilities.groupHeadController().capability, 'unknown',
             'the departed machine\'s GHC flag was kept — the stale answer forget() exists to prevent');
         assert.equal(boot.capabilities.offers('cupWarmer'), false, 'and its capability set with it');
-        assert.equal(fetchImpl.calls.length, 11, 'nothing is asked of a machine that is not there');
+        assert.equal(fetchImpl.calls.length, 12, 'nothing is asked of a machine that is not there');
 
         // A DIFFERENT machine arrives: it gets its own answers, not the first one's.
         fetchImpl.state.connected = true;
@@ -821,8 +822,8 @@ describe('the stored ReaPrime address decides which machine the app talks to', (
     });
 
     test('a stored address is used instead of the page\'s own host', () => {
-        const boot = bootFromWindow({ window: windowWith('"192.168.1.99"'), createSocket: fakeSocketFactory() });
-        assert.match(boot.transport.baseUrl, /192\.168\.1\.99/);
+        const boot = bootFromWindow({ window: windowWith('"192.0.2.10"'), createSocket: fakeSocketFactory() });
+        assert.match(boot.transport.baseUrl, /192\.0\.2\.10/);
         boot.destroy();
     });
 
@@ -838,7 +839,7 @@ describe('the stored ReaPrime address decides which machine the app talks to', (
             assert.match(boot.transport.baseUrl, /page-host/, `stored ${stored} must not re-point the app`);
             boot.destroy();
         }
-        /* A locked-down WebView THROWS on the property itself. That is not an error here —
+        /* A locked-down WebView THROWS on the property itself. That is not an error here
          * it is a device with no answer, and the page's own host is the answer. */
         const throwing = {
             location: { hostname: 'page-host', protocol: 'http:' },

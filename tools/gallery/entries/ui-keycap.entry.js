@@ -7,9 +7,9 @@ export const entry = {
     title: 'Keycap',
     module: '../../src/components/ui-keycap.js',
     notes:
-        'Component #15, the numpad key face (spec §5.1 #15, slate-components.css:780-784). '
+        'Component #15, the numpad key face (spec §5.1 #15). '
         + 'One of the three components where --ui-hit-min is load-bearing (spec §2.3) and '
-        + 'the only one of the three that reached the floor in Slate: prov_query.py find '
+        + 'the only one of the three that reached the floor in the reference skin: prov_query.py find '
         + '--cls slate-keycap returns six elements, five at 48x48 and one at 68x48. Width '
         + 'is a minimum and grows with the word; height is exact. Not interactive - #53 '
         + '(Wave 4) owns pressing, this owns the face.',
@@ -18,7 +18,7 @@ export const entry = {
             id: 'default',
             title: 'A binding',
             notes:
-                'Slate\'s .slate-keycap exactly, in Decal tokens: 48x48 from --ui-hit-min, '
+                'The reference skin\'s .slate-keycap exactly, in Decal tokens: 48x48 from --ui-hit-min, '
                 + '--ui-key face, --ui-text ink, --ui-line-strong hairline with a 3x skirt on '
                 + 'the bottom edge, --ui-radius corners, 17px --ui-text-base at '
                 + '--ui-weight-medium. All three theme-varying colours match the oracle exactly '
@@ -27,7 +27,7 @@ export const entry = {
         },
         {
             id: 'shortcut-rows',
-            title: 'The shortcuts screen, as Slate renders it',
+            title: 'The shortcuts screen, as the reference skin renders it',
             notes:
                 'The six faces the oracle measured, in order: E W S F Space P (settings-help-'
                 + 'keyboard-shortcuts, rects [1655,333,48,48] ... [1635,689,68,48]). Space is '
@@ -45,7 +45,7 @@ export const entry = {
             notes:
                 'Twelve faces on a 3-column grid with a --ui-space-2 gutter. Every one is 48px '
                 + 'square before the grid gives it anything, which is the whole point: bug L22 '
-                + 'measured Slate\'s rail numpad targets at 32x35 against the same floor. The '
+                + 'measured the reference skin\'s rail numpad targets at 32x35 against the same floor. The '
                 + 'backspace face carries `label` because its glyph reads as nothing to a '
                 + 'screen reader (Wave 4\'s bug O9).',
             html:
@@ -63,7 +63,7 @@ export const entry = {
             title: 'Focusable, both ring offsets',
             notes:
                 'A consumer that needs the face focusable puts tabindex on the host and gets '
-                + 'the ONE ring from the base (spec §3.6 - Slate ships five treatments). The '
+                + 'the ONE ring from the base (spec §3.6 - the reference skin ships five treatments). The '
                 + 'right-hand pair sits in an overflow:hidden band and uses focus-ring="inset", '
                 + 'which is bug L24\'s class ("focus rings clipped on all four sides by the '
                 + 'components they sit inside"). Tab through this state to see both.',
@@ -81,11 +81,11 @@ export const entry = {
             title: 'Disabled, and hidden',
             notes:
                 'Two base behaviours with no code in this component. [disabled] on the host '
-                + 'dims once through --ui-opacity-disabled (.38, one dial against Slate\'s '
+                + 'dims once through --ui-opacity-disabled (.38, one dial against the reference skin\'s '
                 + 'three live values) - not twice, because nothing inside the shadow tree '
                 + 'carries the attribute. [hidden] really hides, even though this component '
                 + 'sets `display` on :host: the base rule is (0,2,0) and wins with zero '
-                + '!important, which is slate-components.css:230-239\'s bug fixed by '
+                + '!important, which is the old sheet\'s bug fixed by '
                 + 'specificity rather than by force.',
             html:
                 '<div style="display:flex; gap:var(--ui-space-3); align-items:center">'
@@ -122,7 +122,7 @@ export const entry = {
             notes:
                 'Ergonomics is physical (spec §2.2: "Control heights, touch targets, hairlines '
                 + '| Fixed token. Never fluid"), so the face overflows its container rather '
-                + 'than shrinking below the floor. The oracle has no vote here - Slate is '
+                + 'than shrinking below the floor. The oracle has no vote here - the reference skin is '
                 + 'frozen at 1920x1200 and never meets a narrow container - so the layout spec '
                 + 'governs, and it says the small window is exactly when a shrunken target '
                 + 'hurts most.',

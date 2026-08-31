@@ -1,5 +1,5 @@
 /**
- * The History POWER PAGE, in a real engine at both Gate A geometries.
+ * The History POWER PAGE, in a real engine at both the render harness geometries.
  */
 
 import { test, describe, before, after } from 'node:test';

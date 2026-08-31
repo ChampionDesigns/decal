@@ -41,10 +41,10 @@ export class EditorExitDialog extends UiElement {
         /** Which step it is, carried through to the event so a screen can write it. */
         index: { type: Number },
 
-        /** THE ONE RANGES DOOR (B2), injected. See the header. */
+        /** THE ONE RANGES DOOR, injected. See the header. */
         ranges: { attribute: false },
 
-        /** B9 hint: may Power be offered as a cross-variable exit? #41's own prop. */
+        /** Hint: may Power be offered as a cross-variable exit? */
         powerExitOffered: { type: Boolean, attribute: 'power-exit-offered' },
 
         /** Heading level, forwarded to #18 (which forwards it to #16). */
@@ -147,7 +147,7 @@ export class EditorExitDialog extends UiElement {
             exitType: draft.type,
         });
         /* THE DIRECTION IS PART OF THE BOUND. #4 clamps to `min`, so this is what makes
-         * "under 0" undialable rather than merely flagged (O5). */
+         * "under 0" undialable rather than merely flagged. */
         const floor = range ? this.#floor(range, draft.condition) : null;
 
         return html`

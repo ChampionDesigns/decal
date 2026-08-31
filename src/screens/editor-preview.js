@@ -32,7 +32,7 @@ export class EditorPreview extends UiElement {
     static properties = {
         profile: { attribute: false },
 
-        /** The chart's accessible name (D2 — a value, not an IDREF across a root). */
+        /** The chart's accessible name — a value, not an IDREF across a root. */
         label: { type: String },
 
         _cursor: { state: true },
@@ -42,11 +42,16 @@ export class EditorPreview extends UiElement {
         :host {
             display: block;
             min-inline-size: 0;
+
+            /* Pass the height on rather than pick one: the container decides how tall
+               the chart is, and without this it would stop at the card's own minimum. */
+            block-size: 100%;
         }
 
         ui-chart-card {
             display: block;
             min-inline-size: 0;
+            block-size: 100%;
         }
 
         .reading {
@@ -130,10 +135,6 @@ export class EditorPreview extends UiElement {
                 @cursor-change=${this.#onCursor}
             >
                 <span slot="empty">${t(REFUSAL_TEXT[reason] ?? REFUSAL_TEXT[PREVIEW_REFUSAL.NO_PROFILE])}</span>
-                <!-- THE READING (audit F-032). The card has always emitted the numbers it
-                     drew at the cursor's own index; this is the first thing to print
-                     them. It is a live region because the strip is the only place they
-                     appear, so a reader who cannot see the plot still gets the answer. -->
                 <span
                     slot="foot"
                     part="reading"

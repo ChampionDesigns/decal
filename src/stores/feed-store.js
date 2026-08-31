@@ -95,7 +95,7 @@ export function createFeedStore({
 
         /**
          * A frame arrived. Reads it through the address layer, stamps it, publishes NEW
-         * state (pattern F: nothing is mutated in place).
+         * state; nothing is mutated in place.
          */
         accept(frame) {
             const now = clock();

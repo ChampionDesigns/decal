@@ -131,7 +131,7 @@ describe('supersededIds — the discriminator, and it costs one pass over a list
     });
 });
 
-describe('versionChangeFacts — the diff Ben asked for, computed and never persisted', () => {
+describe('versionChangeFacts — the diff, computed and never persisted', () => {
     const record = (profile, parentId = 'profile:parent') => ({ id: 'profile:child', parentId, profile });
 
     test('a moved step is named by index, and a moved field by key', () => {

@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -14,7 +14,7 @@ const INPUT = 'ui-text-field >>> #control';
 const LABEL = 'ui-text-field >>> #label';
 
 const PLAIN = '<ui-text-field placeholder="Search profiles"></ui-text-field>';
-const LABELLED = '<ui-text-field label="Scale host" value="10.0.0.42"></ui-text-field>';
+const LABELLED = '<ui-text-field label="Scale host" value="192.0.2.42"></ui-text-field>';
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -272,7 +272,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         ));
 
         test('drill: --ui-opacity-disabled dims the whole control', () => mounted(
-            '<ui-text-field disabled label="Scale host" value="10.0.0.42"></ui-text-field>',
+            '<ui-text-field disabled label="Scale host" value="192.0.2.42"></ui-text-field>',
             async (page) => {
                 await assertTokenDrill(page, {
                     token: '--ui-opacity-disabled', value: '0.17', selector: 'ui-text-field', property: 'opacity',
@@ -424,7 +424,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('hide-label keeps the accessible name and drops only the ink', () => mounted(
-            '<ui-text-field hide-label label="Scale host" value="10.0.0.42"></ui-text-field>',
+            '<ui-text-field hide-label label="Scale host" value="192.0.2.42"></ui-text-field>',
             async (page) => {
                 const a11y = await page.evalFn(() => {
                     const root = document.querySelector('ui-text-field').shadowRoot;
@@ -481,17 +481,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
         ));
 
         test('the value submits with the form under the host\'s name', () => mounted(
-            '<form id="f"><ui-text-field name="host" value="10.0.0.42"></ui-text-field></form>',
+            '<form id="f"><ui-text-field name="host" value="192.0.2.42"></ui-text-field></form>',
             async (page) => {
                 const got = await page.eval(
                     'new FormData(document.getElementById("f")).get("host")',
                 );
-                assert.equal(got, '10.0.0.42', 'static formAssociated + setFormValue, or the field is invisible to the form');
+                assert.equal(got, '192.0.2.42', 'static formAssociated + setFormValue, or the field is invisible to the form');
             },
         ));
 
         test('the value submits under a name set as a PROPERTY, not only as an attribute', () => mounted(
-            '<form id="f"><ui-text-field value="10.0.0.42"></ui-text-field></form>',
+            '<form id="f"><ui-text-field value="192.0.2.42"></ui-text-field></form>',
             async (page) => {
                 const got = await page.evalFn(() => {
                     const el = document.querySelector('ui-text-field');
@@ -504,7 +504,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
                 assert.equal(got.attr, 'host', 'name must reflect, or the form cannot see the field');
                 assert.equal(got.prop, 'host');
-                assert.deepEqual(got.entries, [['host', '10.0.0.42']]);
+                assert.deepEqual(got.entries, [['host', '192.0.2.42']]);
 
                 const cleared = await page.evalFn(() => {
                     const el = document.querySelector('ui-text-field');
@@ -593,13 +593,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         ));
 
         test('form reset restores the authored value', () => mounted(
-            '<form id="f"><ui-text-field name="host" value="10.0.0.42"></ui-text-field></form>',
+            '<form id="f"><ui-text-field name="host" value="192.0.2.42"></ui-text-field></form>',
             async (page) => {
                 await page.evalFn(() => { document.querySelector('ui-text-field').value = 'typed over'; return true; });
                 await page.evalFn(() => { document.getElementById('f').reset(); return true; });
                 await page.settle();
-                assert.equal(await page.evalFn(() => document.querySelector('ui-text-field').value), '10.0.0.42');
-                assert.equal(await page.eval('new FormData(document.getElementById("f")).get("host")'), '10.0.0.42');
+                assert.equal(await page.evalFn(() => document.querySelector('ui-text-field').value), '192.0.2.42');
+                assert.equal(await page.eval('new FormData(document.getElementById("f")).get("host")'), '192.0.2.42');
             },
         ));
 

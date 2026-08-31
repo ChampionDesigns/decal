@@ -102,7 +102,7 @@ export const PAGE_HELPERS = String.raw`
      * is resolved where the element under test actually reads it. It matters because a
      * dial does not have to be a :root value: styles/tokens.css aims the three
      * selection dials at ui-preset-bank so that one row wears Slate's underlined-
-     * number idiom (Ben, 23 Aug 2026). Resolving such a token on a body-parented probe
+     * number idiom. Resolving such a token on a body-parented probe
      * answers the :root value and compares it against an element that never reads it —
      * a mismatch that says "the component paints privately" when the truth is "the
      * theme aimed the dial lower down". Default unchanged: no scope, probe on body. */

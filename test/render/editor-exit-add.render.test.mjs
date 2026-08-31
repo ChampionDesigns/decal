@@ -67,7 +67,7 @@ describe('profile editor — the + Condition button', () => {
             assert.equal(await page.exists(`${BAND} >>> #add-condition`), true);
             await pressAdd(page, 'condition');
             assert.equal(await page.evalFn((s) => window.__h.need(s).open, MENU), true,
-                'the press must open the menu — this is the bug Ben hit');
+                'the press must open the menu — this is the reported bug');
             assert.ok(await page.count(`${MENU} >>> [role=menuitem]`) > 0,
                 'the open menu must list the legal exit types');
         }));

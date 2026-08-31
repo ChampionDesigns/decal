@@ -1,5 +1,5 @@
 /**
- * CANARY - deliberately violates the colour-literal rule (A8, Gate C guard 3).
+ * CANARY - deliberately violates the colour-literal rule (a8, guard guard 3).
  * A guard that does not fail on this file is not covering its target.
  * The violation is inside a `css` tagged template in a .js file, which is where all
  * authored component CSS lives in this tree.

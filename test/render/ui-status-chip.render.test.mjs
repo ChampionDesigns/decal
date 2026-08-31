@@ -119,9 +119,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(a.classes.length >= 3,
                     `expected the chip, label and dot classes at least; saw ${JSON.stringify(a.classes)}`);
                 assert.deepEqual(a.orphaned, [],
-                    'L13 (spec §7.2, slate-live.css:1738-1745): ' +
+                    'L13 (spec §7.2: ' +
                     `${JSON.stringify(a.orphaned)} is styled here and carried by no element. ` +
-                    'That is the defect verbatim — prov_query.py find --cls slate-chart-state ' +
+                    'That is the defect verbatim — find --cls slate-chart-state ' +
                     'returned "0 elements matched anywhere in this corpus" across all 49 states.');
                 assert.deepEqual(a.carried.slice().sort(), a.classes.slice().sort());
             }));
@@ -185,7 +185,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.notEqual(cs['line-height'], 'normal',
                     'the leading is declared here, or Slate\'s frozen height is not reproduced');
                 near(parseFloat(cs['line-height']), 1.2 * parseFloat(cs['font-size']),
-                    'slate-live.css:912 line-height: 1.2 on the oracle\'s 18px', 0.05);
+                    'line-height: 1.2 on the oracle\'s 18px', 0.05);
 
                 /* The live chip is the same box: the 10px dot is shorter than the line
                    box and flex-centred, so the pulse must not move the header band. */
@@ -220,14 +220,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const style = await page.computed('#live >>> .dot', ['background-color', 'border-top-left-radius']);
                 assert.equal(style['background-color'],
                     await page.resolveToken('--ui-status-danger', 'background-color'),
-                    'slate-live.css:1839 background: var(--slate-danger) -> --ui-status-danger');
+                    'background: var(--slate-danger) -> --ui-status-danger');
                 assert.ok(parseFloat(style['border-top-left-radius']) >= dot.width / 2 - 0.51,
                     'spec §3.4: any radius >= half the height is the same circle; ' +
                     `got ${style['border-top-left-radius']} on a ${dot.width}px box`);
 
                 const gap = await page.prop('#live >>> .chip', 'column-gap');
                 assert.equal(gap, await page.resolveToken('--ui-space-2', 'column-gap'));
-                near(parseFloat(gap), 8, 'slate-live.css:1837 margin-right: var(--slate-space-2) = 8px');
+                near(parseFloat(gap), 8, 'margin-right: var(--slate-space-2) = 8px');
 
                 const label = await page.box('#live >>> .label');
                 assert.ok(dot.left < label.left, 'the dot leads the words');

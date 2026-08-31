@@ -15,9 +15,9 @@ export const entry = {
     module: './entries/ui-stat-tile.demo.js',
     notes:
         'Component #33, the label-over-value readout on Live - "named as a missing '
-        + 'primitive in DECISIONS.md:251". A two-row grid: a FIXED label track and a value '
+        + 'primitive". A two-row grid: a FIXED label track and a value '
         + 'track FLOORED at the display token the digits themselves read. That single '
-        + 'shared token is bug L2 dead: Slate had a 44px value track against numbers at '
+        + 'shared token is bug L2 dead: the reference skin had a 44px value track against numbers at '
         + '45px and 52px, so the promoted digits ran out of the cluster and the plot '
         + 'canvas painted over them. Track and type cannot disagree here because they are '
         + 'one number. The tile declares no height, no min-height and no max-height, and '
@@ -27,13 +27,13 @@ export const entry = {
             id: 'cluster-ready',
             title: 'The Live cluster at rest',
             notes:
-                'Seven gauges in one container, Slate\'s own column shape (1.15fr + six '
+                'Seven gauges in one container, the reference skin\'s own column shape (1.15fr + six '
                 + 'equal tracks, 24px gutter) WITHOUT its height: 84px / min-height: 84px - '
                 + 'that pair is L2. Time reads --ui-display-xl, the rest --ui-display-lg, '
                 + 'and the three the machine is not reporting show the one absent mark, '
                 + 'U+2014, which units.js calls NO_READING_MARK. Every label sits on one '
                 + 'line whatever size the number under it is: that is the fixed label '
-                + 'track, carried forward whole from LAYOUT_SPEC_DRAFT Appendix item 4.',
+                + 'track, carried forward whole from the layout spec.',
             hostStyle: { 'container-type': 'inline-size', 'inline-size': '1375px' },
             html:
                 `<div style="${CLUSTER}">`
@@ -59,7 +59,7 @@ export const entry = {
                 + 'to --ui-display-xl and the three that are not part of the pull recede to '
                 + '--ui-display-sm. Compare this capture with cluster-ready: the four '
                 + 'promoted tiles are the SAME BOX in both, because they carry reserve="xl" '
-                + 'and the space was always there. Slate bought the same stillness with the '
+                + 'and the space was always there. The reference skin bought the same stillness with the '
                 + 'fixed 84px cluster - which is what caused L2.',
             hostStyle: { 'container-type': 'inline-size', 'inline-size': '1375px' },
             html:
@@ -86,7 +86,7 @@ export const entry = {
                 + 'Nothing overhangs it, at any size the scale can produce, because the '
                 + 'value track is a FLOOR set from the same token the digits read - '
                 + 'minmax(var(--_ui-stat-value-reserve), 1fr) - and this component declares '
-                + 'no height anywhere. Slate needed BOTH halves for the bug: a fixed box '
+                + 'no height anywhere. The reference skin needed BOTH halves for the bug: a fixed box '
                 + 'AND a clipping neighbour. Only the neighbour survives.',
             hostStyle: { 'container-type': 'inline-size', 'inline-size': '1375px' },
             html:
@@ -126,8 +126,8 @@ export const entry = {
             notes:
                 'xs / sm / md / lg / xl, the whole fluid display scale and the only fluid '
                 + 'type in the system: clamp(22px, 2.2cqi, 27px) through '
-                + 'clamp(38px, 4.2cqi, 52px) (LAYOUT_SPEC_DRAFT.md:361-365). The upper '
-                + 'bounds are Slate\'s current values; the lower bounds are the spec\'s '
+                + 'clamp(38px, 4.2cqi, 52px). The upper '
+                + 'bounds are the reference skin\'s current values; the lower bounds are the spec\'s '
                 + 'proposals and want a look on the bench. The label track does not change '
                 + 'with the step - that is the point of a fixed label track.',
             hostStyle: { 'container-type': 'inline-size', 'inline-size': '1120px' },
@@ -165,7 +165,7 @@ export const entry = {
             id: 'channel-tints',
             title: 'Channel tints - and no channel table in the component',
             notes:
-                'Slate hard-codes seven per-gauge tint rules (.slate-gauge-pressure strong > '
+                'The reference skin hard-codes seven per-gauge tint rules (.slate-gauge-pressure strong > '
                 + 'span and six siblings). The sixteen channel colours live in '
                 + 'styles/chart-channels.css and the map from a tile to a channel belongs to '
                 + 'the CLUSTER, so the ink arrives from outside as --_ui-stat-ink. A '
@@ -190,10 +190,10 @@ export const entry = {
             id: 'slotted-action',
             title: 'An action in the value slot, not a private pill',
             notes:
-                'Slate paints a button inside the gauge - .slate-gauge strong > '
+                'The reference skin paints a button inside the gauge - .slate-gauge strong > '
                 + 'span.slate-gauge-action, a hairline pill with its own ink and an '
                 + '!important colour, "so it stops reading as a weight and starts reading as '
-                + 'a button" (slate-live.css:983-996). It IS a button, so here it is #1 '
+                + 'a button". It IS a button, so here it is #1 '
                 + 'ui-button slotted in: the slotted control REPLACES the reading rather '
                 + 'than sitting beside it, this component paints nothing on it, and it '
                 + 'brings its own hit floor and the one focus ring. A private button '
@@ -211,13 +211,13 @@ export const entry = {
             id: 'long-label',
             title: 'A label longer than its column',
             notes:
-                'The LABEL ellipsises - Slate states white-space: nowrap with no overflow at '
+                'The LABEL ellipsises - the reference skin states white-space: nowrap with no overflow at '
                 + 'all, so a long cap in a narrow gauge spills sideways into its neighbour '
                 + '(bug E19\'s class). The READING never ellipsises and never wraps: a '
                 + 'clipped number is a WRONG number. What absorbs a narrow container is the '
                 + 'fluid type, not a clip. The oracle is disqualified for both halves in any '
-                + 'case - what a box does below 1920 is responsive behaviour, and Slate has '
-                + 'no answer, so LAYOUT_SPEC_DRAFT.md governs.',
+                + 'case - what a box does below 1920 is responsive behaviour, and the reference skin has '
+                + 'no answer, so the layout spec governs.',
             hostStyle: { 'container-type': 'inline-size', 'inline-size': '760px' },
             html:
                 `<div style="${strip(3)}">`
@@ -311,9 +311,9 @@ export const entry = {
             id: 'disabled',
             title: 'Dimmed by the one disabled dial',
             notes:
-                'Paint only, from the base: --ui-opacity-disabled (.38), settling Slate\'s '
+                'Paint only, from the base: --ui-opacity-disabled (.38), settling the reference skin\'s '
                 + 'three live values. A readout accepts no input in either state - the host '
-                + 'attribute dims, it does not disable. Slate\'s own version of this is the '
+                + 'attribute dims, it does not disable. The reference skin\'s own version of this is the '
                 + 'gauge that is not reporting, which it paints by swapping the ink to '
                 + '--slate-muted and the size down a step; both are the consumer\'s call '
                 + 'here, and the absent-reading state above shows the other spelling.',

@@ -15,7 +15,7 @@ const REGISTRY = new URL('entries.js', GALLERY_DIR);
 
 const INLINE_ROWS = new Set(['base-fixture']);
 
-/** Every `<id>.entry.js` on disk. `.demo.js` sidecars are helpers, not entries. */
+/** Every entry file on disk. The `.demo.js` sidecars are helpers, not entries. */
 async function entryFilesOnDisk() {
     const names = await readdir(fileURLToPath(ENTRIES_DIR));
     return names.filter((name) => name.endsWith('.entry.js')).sort();

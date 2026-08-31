@@ -35,7 +35,8 @@ const report = (page) => page.evalFn((sel) => {
 async function typeInto(page, id, value) {
     await page.evalFn((sel, v) => {
         const host = window.__h.need(sel);
-        const input = host.renderRoot.querySelector('input');
+        /* input or textarea: a multiline field renders a textarea. */
+        const input = host.renderRoot.querySelector('input, textarea');
         input.value = v;
         input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -76,10 +77,10 @@ describe('the editor Settings tab composes bound fields (F-031)', () => {
     test('typing in Author moves the draft AND counts as a change', () => staged(async (page) => {
         assert.equal((await report(page)).count, 0, 'an untouched draft is clean');
 
-        await typeInto(page, 'author', 'Ben');
+        await typeInto(page, 'author', 'A. Author');
 
         const after = await report(page);
-        assert.equal(after.author, 'Ben', 'the draft took it');
+        assert.equal(after.author, 'A. Author', 'the draft took it');
         assert.equal(after.count, 1, 'and it is counted');
         assert.deepEqual(after.fields, ['author'], 'as the field it is');
     }));
@@ -100,42 +101,61 @@ describe('the editor Settings tab composes bound fields (F-031)', () => {
 
     test('the tank temperature is stored as a NUMBER, and rubbish writes nothing',
         () => staged(async (page) => {
-            await typeInto(page, 'tank-temperature', '22');
-            assert.equal((await report(page)).tank, 22,
-                'tank_temperature is one of the seven inputs to the content hash — a '
-                + 'string where a number belongs changes what the server stores');
+            const before = (await report(page)).tank;
 
-            await typeInto(page, 'tank-temperature', 'warm-ish');
-            assert.equal((await report(page)).tank, 22, 'an unparseable entry writes nothing');
+            /* A press on the cap, which is what a person touches. */
+            await page.evalFn((sel) => {
+                const host = window.__h.need(sel);
+                host.renderRoot.querySelector('#increment').click();
+            }, field('tank-temperature'));
+            await page.settle(2);
+
+            const after = (await report(page)).tank;
+            assert.equal(typeof after, 'number', 'the draft holds a number, never a string');
+            assert.ok(after > before, `the press moved it: ${before} -> ${after}`);
+
+            /* A stepper cannot be typed into, so a non-number can only arrive at the wire. */
+            await page.evalFn((sel) => {
+                window.__h.need(sel).dispatchEvent(new CustomEvent('change', {
+                    detail: { value: 'warm-ish' }, bubbles: true, composed: true,
+                }));
+            }, field('tank-temperature'));
+            await page.settle(2);
+            assert.equal((await report(page)).tank, after, 'an unparseable value writes nothing');
         }));
 
-    test('Count volume from lists the draft\'s OWN steps, and writes the 1-based marker',
+    test('Start measuring the drink at lists the draft\'s OWN steps, and writes the frame index',
         () => staged(async (page) => {
             const options = await page.evalFn(
                 (s) => window.__h.need(s).options.map((o) => o.value), field('count-from'),
             );
-            assert.deepEqual(options, ['0', '1', '2'],
-                'None, then one entry per step — the bound IS the step list');
+            assert.deepEqual(options, ['0', '1'],
+                'one entry per step and nothing else — the bound IS the step list');
 
             await page.evalFn((s) => {
                 const host = window.__h.need(s);
-                host.value = '2';
+                host.value = '1';
                 host.dispatchEvent(new CustomEvent('change', {
-                    detail: { value: '2' }, bubbles: true, composed: true,
+                    detail: { value: '1' }, bubbles: true, composed: true,
                 }));
                 return true;
             }, field('count-from'));
             await page.settle(4);
 
             const after = await report(page);
-            assert.equal(after.countFrom, 2, '1-based, with 0 meaning None');
+            assert.equal(after.countFrom, 1,
+                'the second step, zero-based — the frame the machine starts counting at');
             assert.deepEqual(after.fields, ['target_volume_count_start']);
         }));
 
     test('the FIRST save carries every field that was typed', () => staged(async (page) => {
-        await typeInto(page, 'author', 'Ben');
+        await typeInto(page, 'author', 'A. Author');
         await typeInto(page, 'notes', 'dial in at 18 g');
-        await typeInto(page, 'tank-temperature', '22');
+        await page.evalFn((sel) => {
+            window.__h.need(sel).renderRoot.querySelector('#increment').click();
+        }, field('tank-temperature'));
+        await page.settle(2);
+        const tank = (await report(page)).tank;
 
         await page.click(EDITOR.save);
         await page.settle(8);
@@ -143,9 +163,10 @@ describe('the editor Settings tab composes bound fields (F-031)', () => {
         const calls = await editorCalls(page);
         const body = calls[0]?.body?.profile ?? {};
         assert.equal(calls[0]?.method, 'POST');
-        assert.equal(body.author, 'Ben');
+        assert.equal(body.author, 'A. Author');
         assert.equal(body.notes, 'dial in at 18 g');
-        assert.equal(body.tank_temperature, 22);
+        assert.equal(typeof tank, 'number', 'the press wrote a number to the draft');
+        assert.equal(body.tank_temperature, tank, 'and the save carried that same number');
     }));
 
     test('a caller that mounts its OWN rows still gets exactly those',

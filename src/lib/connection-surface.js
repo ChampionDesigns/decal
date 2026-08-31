@@ -1,5 +1,5 @@
 /**
- * B8's connection states, as one pure derivation.
+ * The connection states, as one pure derivation.
  */
 
 import {

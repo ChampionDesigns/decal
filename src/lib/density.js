@@ -2,10 +2,10 @@
  * The density scale: how much room a control gives its inset, named once.
  */
 
-/** The LOGICAL storage key. The router owns the layer and the prefix (B7). */
+/** The LOGICAL storage key. The router owns the layer and the prefix. */
 export const DENSITY_KEY = 'density';
 
-/** The two custom properties C6 writes. Declared in `styles/tokens.css`. */
+/** The two custom properties this control writes. Declared in `styles/tokens.css`. */
 export const DENSITY_BASE_PROPERTY = '--ui-density-base';
 export const TYPE_SCALE_PROPERTY = '--ui-type-scale';
 

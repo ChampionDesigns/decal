@@ -10,8 +10,8 @@ export const entry = {
         'Component #43, the editor\'s read-only value cell - "a stepper with no caps" '
         + '(SCOPE L1528). Dashed --ui-line-strong edge on --ui-surface, --ui-muted ink at '
         + '--ui-text-note, floored at --ui-control-h. Intentionally NON-INTERACTIVE '
-        + '(profile_editor.js:1097): no caps, no numpad, no focus of its own. It does NOT '
-        + 'own its width - Slate pinned 346px with an !important that discarded its own '
+        + ': no caps, no numpad, no focus of its own. It does NOT '
+        + 'own its width - the reference skin pinned 346px with an !important that discarded its own '
         + 'call site\'s computed width (spec §2.3 "One owner per dimension"), so here the '
         + 'container owns the inline size and the box fills it.',
     states: [
@@ -19,7 +19,7 @@ export const entry = {
             id: 'default',
             title: 'Default, at the editor column width',
             notes:
-                'The Slate record at the one width the oracle can vouch for: '
+                'The the reference skin record at the one width the oracle can vouch for: '
                 + 'CITE editor-steps .pe-stepper [i=33] rect w=346 h=64. The box matches '
                 + 'the stepper it replaces because the CONTAINER is 346px, not because '
                 + 'the box says so.',
@@ -30,7 +30,7 @@ export const entry = {
             id: 'held-target',
             title: 'The sentence it actually carries',
             notes:
-                'heldTargetCopy() output (profile_editor.js:1110-1121): "Holds", the step '
+                'heldTargetCopy() output: "Holds", the step '
                 + 'ordinal, its name, the reading and the unit. Same 346px column.',
             hostStyle: { 'inline-size': '346px' },
             html: '<ui-locked-value>Holds 02 Preinfusion 84.0 &deg;C</ui-locked-value>',
@@ -59,11 +59,11 @@ export const entry = {
             title: 'In a 200px container',
             notes:
                 'The host is narrow at an unchanged viewport - the box tracks it exactly '
-                + 'and the sentence ellipsises on one line. Slate never meets this: its '
+                + 'and the sentence ellipsises on one line. The reference skin never meets this: its '
                 + 'geometry is frozen at 1920x1200 and its rule states no overflow at all, '
                 + 'so the copy would spill out of a fixed 64px box (bug E19\'s class). '
                 + 'The treatment is the same sheet\'s own value cell, '
-                + 'profile-editor-v3.css:568-578.',
+                + 'the old editor sheet.',
             hostStyle: { 'inline-size': '200px' },
             html: '<ui-locked-value>Holds 02 Preinfusion 84.0 &deg;C</ui-locked-value>',
         },
@@ -110,7 +110,7 @@ export const entry = {
             id: 'disabled',
             title: 'Dimmed by the one disabled dial',
             notes:
-                'Paint only, from the base: --ui-opacity-disabled (.38), settling Slate\'s '
+                'Paint only, from the base: --ui-opacity-disabled (.38), settling the reference skin\'s '
                 + 'three live values. Nothing here accepts input in either state.',
             hostStyle: { 'inline-size': '346px' },
             html: '<ui-locked-value disabled>Holds previous target</ui-locked-value>',

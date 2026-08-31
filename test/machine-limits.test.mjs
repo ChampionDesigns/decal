@@ -108,7 +108,7 @@ describe('the machine class is an input, never a guess', () => {
         }
     });
 
-    test('the fan threshold is Ben\'s band on a Bengle and ReaPrime\'s on a DE1', () => {
+    test('the fan threshold is the decided band on a Bengle and ReaPrime\'s on a DE1', () => {
         assert.deepEqual(
             { min: BENGLE.fanThreshold.min, max: BENGLE.fanThreshold.max }, { min: 40, max: 60 });
         assert.deepEqual(

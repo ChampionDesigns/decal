@@ -39,13 +39,13 @@ for (const row of DUPLICATED_QUANTITIES) {
     if (!ESTIMATOR_CHANNELS.includes(row.estimatorChannel)) {
         throw new Error(
             `shot-source: "${row.estimatorChannel}" is not an estimator channel in rea-names.js — `
-            + `the B6 pairing for "${row.quantity}" names a key ReaPrime does not serve.`,
+            + `the pairing for "${row.quantity}" names a key ReaPrime does not serve.`,
         );
     }
     if (!SNAPSHOT_DERIVED_KEYS.includes(row.derivedKey)) {
         throw new Error(
             `shot-source: "${row.derivedKey}" is not a derived snapshot key in rea-names.js — `
-            + `the B6 pairing for "${row.quantity}" names a key ReaPrime does not serve.`,
+            + `the pairing for "${row.quantity}" names a key ReaPrime does not serve.`,
         );
     }
 }

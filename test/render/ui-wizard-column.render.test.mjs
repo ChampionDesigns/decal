@@ -41,7 +41,7 @@ const MARKUP = `
       <div id="leaf">every other leaf</div>
     </div>`;
 
-/** The same walk with nothing slotted into actions — the F3 hole (Q1), as a state. */
+/** The same walk with nothing slotted into actions — the F3 hole as a state. */
 const NO_ACTIONS = `
     <style> #stage { box-sizing: border-box; inline-size: ${STAGE_W}px; padding: 24px; } </style>
     <div id="stage">
@@ -225,7 +225,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(doneChip['background-color'], keyOn, 'done is a filled quiet chip');
                 assert.equal(doneChip.color, text);
 
-                /* Every state keeps the same 44x44 box — Appendix 3, "state changes
+                /* Every state keeps the same 44x44 box — the appendix, "state changes
                  * weight, never position". The transparent border in the resting rule is
                  * what buys that. */
                 const rects = await page.eval(`JSON.stringify(${CHIP_RECTS})`).then(JSON.parse);
@@ -439,7 +439,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
 
         test('FOCUS: the ring survives a squeezed column', () => mounted(async (page) => {
-            /* L24 is rings clipped by the component they sit inside, and a narrow column
+            /* the rule is rings clipped by the component they sit inside, and a narrow column
              * is where a hidden overflow would first be reached for. */
             await page.setStyle('#stage', { 'inline-size': '320px' });
             await page.settle();

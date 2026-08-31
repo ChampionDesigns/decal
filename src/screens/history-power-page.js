@@ -1,5 +1,5 @@
 /**
- * <history-power-page>, the History route's THIRD page and the one surface D1's carve-out was reversed for.
+ * <history-power-page>, the History route's third page.
  */
 
 import { css, html } from 'lit';
@@ -46,7 +46,7 @@ const CHANNEL_LABELS = Object.freeze({
     impedance: 'Z — impedance (bar·s/mL)',
 });
 
-/** The ten ramp stops, by custom property name. Read computed; declared in CSS (A6). */
+/** The ten ramp stops, by custom property name. Read computed; declared in CSS. */
 const RAMP_TOKENS = Object.freeze(
     Array.from({ length: 10 }, (_, i) => `--ui-timekey-stop-${i}`),
 );
@@ -219,12 +219,6 @@ export class HistoryPowerPage extends UiElement {
                             { name: t('Pressure versus flow trajectory') })}
                         @cursor-change=${this.#onCursor}
                     >
-                        <!-- THE READING, AND THIS CARD HAS NOWHERE ELSE TO PUT ONE (audit
-                             F-034). No legend, because its key is the colour strip beside
-                             it; no time axis, because its x is flow. So the scrub's answer
-                             — the pressure, the flow and the second the point belongs to —
-                             is printed in the foot, in a strip whose height is reserved
-                             whether or not it has words. -->
                         <span
                             slot="foot"
                             class="trajectory-reading"
@@ -377,7 +371,7 @@ export class HistoryPowerPage extends UiElement {
 
     /**
      * The two trajectories, the correspondence marks and the links — every colour read
-     * from CSS at the moment of painting (A6), never held.
+     * from CSS at the moment of painting, never held.
      */
     #paintTrajectory(card, { a, b, offset }) {
         const stops = this.#ramp();

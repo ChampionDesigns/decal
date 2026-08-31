@@ -23,10 +23,10 @@ export const entry = {
     title: 'Colour swatch row',
     module: '../../src/components/ui-colour-swatch-row.js',
     notes:
-        'Wave 4 #52, the Lighting leaf\'s LED preset row. Slate ships ten 64x64 swatches here '
+        'Wave 4 #52, the Lighting leaf\'s LED preset row. The reference skin ships ten 64x64 swatches here '
         + '(CITE find --cls slate-swatch: 10 elements in 1 state, all 64 x 64, x = 629 … 1331, '
         + 'y = 816) and NOT ONE of the five declarations that were meant to style them survives '
-        + 'the cascade: the generic Settings button reset (slate-shell.css:716-724) marks '
+        + 'the cascade: the generic Settings button reset marks '
         + 'border-width, border-color, border-radius and box-shadow !important, so .slate-swatch\'s '
         + 'P30 ring (2px of --slate-line-strong, "its ring must be legible against BOTH the swatch '
         + 'and the page") measures 1px of --slate-line, the 50% circle measures a 6px rectangle, '
@@ -40,13 +40,13 @@ export const entry = {
         {
             id: 'nothing-active',
             title: 'Ten presets, none of them the machine\'s colour',
-            notes: 'Slate\'s own captured state, and the honest one: CITE prov_query find '
+            notes: 'the reference skin\'s own captured state, and the honest one: CITE prov_query find '
                 + '--cls is-selected returns 3 elements in 3 states, all editor tabs — no swatch '
                 + 'in any of the 49 states is selected, because the strip was on a hand-picked '
                 + 'colour. The highlight is derived from the current colour and read-only in both '
-                + 'directions (settings.js:4269-4272), so "none" is a first-class state rather '
+                + 'directions, so "none" is a first-class state rather '
                 + 'than an error. Note the ring: every swatch has a visible edge against the page '
-                + 'INCLUDING the black one, which is the whole of P30 and is what Slate\'s 1px of '
+                + 'INCLUDING the black one, which is the whole of P30 and is what the reference skin\'s 1px of '
                 + '--slate-line does not deliver.',
             hostStyle: { 'inline-size': '860px' },
             html: row('value="#1B9E5A"'),
@@ -84,7 +84,7 @@ export const entry = {
             notes: 'The component reads its own container and never the viewport (spec §2.1 Rule '
                 + '1); flex wrapping IS the container query here, resolving against the host\'s '
                 + 'own inline size. What it must not do is shrink a swatch to fit: the sample is '
-                + 'max(--ui-control-h, --ui-hit-min), so the 64px Slate measures is kept and the '
+                + 'max(--ui-control-h, --ui-hit-min), so the 64px the reference skin measures is kept and the '
                 + '48px touch floor is kept under it whatever a fork does to the control token — '
                 + '"a wet fingertip is about 9 mm" is physical. Nothing is clipped and nothing '
                 + 'scrolls sideways (spec §2.4).',
@@ -122,7 +122,7 @@ export const entry = {
             title: 'The four dials moved (a Radian-shaped preview)',
             notes: 'The same row with the LED and glow dials turned up on the stage, which is what '
                 + 'the Radian fork does. Zero rule changes in this component: this state IS the '
-                + 'claim the row exists to make. Slate cannot do it here at all — its selected '
+                + 'claim the row exists to make. The reference skin cannot do it here at all — its selected '
                 + 'swatch has no surviving treatment to retarget, and its ring colour comes from a '
                 + '!important reset in a sheet the swatch\'s own rule cannot outrank.',
             hostStyle: {

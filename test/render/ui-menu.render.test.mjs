@@ -30,7 +30,7 @@ const ITEMS = [
     { id: 'delete', label: 'Delete', danger: true },
 ];
 
-/** Forty rows: O11's menu, and taller than either standard geometry. */
+/** Forty rows: the rule's menu, and taller than either standard geometry. */
 const MANY = Array.from({ length: 40 }, (_, i) => ({ id: `row-${i}`, label: `Row ${i + 1}` }));
 
 const MARKUP = `
@@ -239,7 +239,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the surface sits one --ui-space-2 below the trigger, centred on it', () => mounted(async (page) => {
             await openByPress(page);
             const gap = parseFloat(await page.resolveValue('var(--ui-space-2)', 'width'));
-            near(gap, 8, 'SOURCE context-menu.js:3 MARGIN = 8 -> --ui-space-2');
+            near(gap, 8, 'MARGIN = 8 -> --ui-space-2');
 
             const trigger = await page.box('#trig');
             const surface = await page.box(surfaceOf());
@@ -248,7 +248,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(
                 surface.left + surface.width / 2,
                 trigger.left + trigger.width / 2,
-                'SOURCE context-menu.js:41 — centred on the anchor',
+                'centred on the anchor',
             );
             assert.equal(await page.evalFn((s) => window.__h.need(s).getAttribute('placed'), '#m'), 'below');
         }));
@@ -260,7 +260,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const surface = await page.box(surfaceOf());
 
             assert.equal(await page.evalFn((s) => window.__h.need(s).getAttribute('placed'), '#m'), 'above',
-                'SOURCE context-menu.js:35 — flip when below cannot hold the menu and above has more room');
+                'flip when below cannot hold the menu and above has more room');
             near(surface.bottom, trigger.top - gap, 'the flipped surface sits one gap above the anchor');
             assert.ok(surface.top >= 0, `the flipped surface starts off-screen at ${surface.top}`);
         }, LOW));
@@ -268,7 +268,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('a trigger at the right edge clamps by --ui-space-3, and the arrow follows', () => mounted(async (page) => {
             await openByPress(page);
             const edge = parseFloat(await page.resolveValue('var(--ui-space-3)', 'width'));
-            near(edge, 12, 'SOURCE context-menu.js:4 VIEWPORT_PADDING = 12 -> --ui-space-3');
+            near(edge, 12, 'VIEWPORT_PADDING = 12 -> --ui-space-3');
 
             const trigger = await page.box('#trig');
             const surface = await page.box(surfaceOf());
@@ -365,7 +365,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.notEqual(rendered, 'none',
                 'O2 is exactly this: "box-shadow: none kills its elevation — a floating menu with no shadow"');
             assert.equal(rendered, await page.resolveToken('--ui-elev-2', 'box-shadow'),
-                'SOURCE context-menu.css:21 is the token sheet\'s own SOURCE line for --ui-elev-2 '
+                'is the token sheet\'s own line for --ui-elev-2 '
                 + '(styles/tokens.css:797-798)');
 
             await assertTokenDrill(page, {
@@ -383,20 +383,20 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'border-top-left-radius', 'z-index', 'color', 'position',
             ]);
             assert.equal(got['background-color'], await page.resolveToken('--ui-surface', 'background-color'),
-                'SOURCE slate-shell.css:938 background: var(--slate-surface)');
+                'background: var(--slate-surface)');
             assert.equal(got['border-top-color'], await page.resolveToken('--ui-line', 'border-top-color'),
-                'SOURCE slate-shell.css:936 border-color: var(--slate-line)');
+                'border-color: var(--slate-line)');
             near(parseFloat(got['border-top-width']),
                 parseFloat(await page.resolveValue('var(--ui-border-w)', 'width')),
-                'SOURCE context-menu.css:19 border: 1px -> --ui-border-w');
+                'border: 1px -> --ui-border-w');
             assert.equal(got['border-top-left-radius'], await page.resolveValue('var(--ui-radius-xl)', 'border-top-left-radius'),
                 'DEPARTURE 1: tokens.css:293 names the step in its own comment — '
                 + '"a floating SURFACE: modal, sheet, menu"');
             assert.equal(got.color, await page.resolveToken('--ui-text', 'color'),
-                'SOURCE slate-shell.css:939 color: var(--slate-text)');
-            assert.equal(got.position, 'fixed', 'SOURCE context-menu.css:13');
+                'color: var(--slate-text)');
+            assert.equal(got.position, 'fixed');
             assert.equal(got['z-index'], (await page.tokenValue('--ui-z-menu')).trim(),
-                'spec §3.7: --ui-z-menu is 200, replacing context-menu.css:4/:14\'s 9998/9999');
+                'spec §3.7: --ui-z-menu is 200, replacing /:14\'s 9998/9999');
         }));
 
         test('the z-index is read from --ui-z-menu, not written', () => mounted(async (page) => {
@@ -428,7 +428,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(
                 surface.bottom <= geometry.height - edge + 0.5,
                 `O11: the surface ends at ${surface.bottom} in a ${geometry.height}px window — `
-                + 'Slate clamps top and lets the bottom run off the screen (context-menu.js:44)',
+                + 'Slate clamps top and lets the bottom run off the screen ',
             );
             assert.ok(surface.top >= edge - 0.5, `the surface starts at ${surface.top}, above the edge padding`);
 
@@ -488,17 +488,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'border-top-left-radius', 'padding-left', 'padding-top', 'column-gap', 'text-align',
             ]);
             assert.equal(got['min-height'], await page.resolveValue('var(--ui-control-h)', 'min-height'),
-                'SOURCE slate-shell.css:945 min-height: 64px, which is --ui-control-h exactly');
+                'min-height: 64px, which is --ui-control-h exactly');
             assert.equal(got['font-size'], await page.resolveValue('var(--ui-text-base)', 'font-size'),
-                'SOURCE slate-shell.css:947 var(--slate-text-base) = 17px = --ui-text-base');
-            assert.equal(got['font-weight'], '400', 'SOURCE slate-shell.css:948 -> --ui-weight-regular');
+                'var(--slate-text-base) = 17px = --ui-text-base');
+            assert.equal(got['font-weight'], '400', '> --ui-weight-regular');
             assert.equal(got['border-top-left-radius'], await page.resolveValue('var(--ui-radius)', 'border-top-left-radius'),
-                'SOURCE context-menu.css:79 var(--slate-radius) = 6px');
+                'var(--slate-radius) = 6px');
             assert.equal(got['padding-left'], await page.resolveValue('var(--ui-space-3)', 'padding-left'),
-                'SOURCE context-menu.css:71 padding: 12px 14px -> --ui-space-3 on both axes');
+                'padding: 12px 14px -> --ui-space-3 on both axes');
             assert.equal(got['column-gap'], await page.resolveValue('var(--ui-space-3)', 'column-gap'),
-                'SOURCE context-menu.css:69 gap: 12px -> --ui-space-3 exactly');
-            assert.equal(got['text-align'], 'start', 'SOURCE context-menu.css:78');
+                'gap: 12px -> --ui-space-3 exactly');
+            assert.equal(got['text-align'], 'start');
         }));
 
         test('every row clears the --ui-hit-min floor with the paint alone', () => mounted(async (page) => {
@@ -524,7 +524,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const plain = await page.computed(`${itemsOf()}:not(.danger)`, ['color', 'background-color']);
             const danger = await page.computed(`#m >>> .item.danger`, ['color', 'background-color']);
             assert.equal(danger.color, await page.resolveToken('--ui-status-danger', 'color'),
-                'SOURCE context-menu.css:90 color: var(--slate-danger)');
+                'color: var(--slate-danger)');
             assert.notEqual(danger.color, plain.color);
             assert.equal(danger['background-color'], plain['background-color'],
                 'a resting danger row is not a filled row — only its ink differs');
@@ -576,7 +576,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('a press opens the menu and puts the caret on the first row', () => mounted(async (page) => {
             await openByPress(page);
             const label = await focusedLabel(page);
-            assert.equal(label, 'Rename', 'SOURCE context-menu.js:184-185 — the first row takes focus');
+            assert.equal(label, 'Rename', 'the first row takes focus');
         }));
 
         test('ArrowDown from the trigger opens downward, ArrowUp opens onto the last row', () => mounted(async (page) => {
@@ -601,11 +601,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await label(), 'Duplicate');
             await page.press('ArrowDown');
             assert.equal(await label(), 'Delete',
-                'SOURCE context-menu.js:124-126 — the disabled row is not in the walk');
+                'the disabled row is not in the walk');
             await page.press('ArrowDown');
-            assert.equal(await label(), 'Rename', 'SOURCE context-menu.js:138 — the walk wraps');
+            assert.equal(await label(), 'Rename', 'the walk wraps');
             await page.press('ArrowUp');
-            assert.equal(await label(), 'Delete', 'SOURCE context-menu.js:142 — and wraps the other way');
+            assert.equal(await label(), 'Delete', 'and wraps the other way');
             await page.press('Home');
             assert.equal(await label(), 'Rename');
             await page.press('End');
@@ -630,7 +630,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await prepare(page);
             assert.equal(await page.prop(itemsOf(), 'background-color'),
                 await page.resolveToken('--ui-key-on', 'background-color'),
-                'SOURCE slate-shell.css:952 background: var(--slate-key-on). The hover half of '
+                'background: var(--slate-key-on). The hover half of '
                 + 'this rule cannot be tested on this rig — headless Chrome reports (hover:none) — '
                 + 'so the rule keeps both states in one selector list');
             await assertTokenDrill(page, {
@@ -659,7 +659,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.press('Escape');
             assert.deepEqual(await page.eval('window.__keys'), [],
                 'an overlay consumes the Escape it acted on. Slate handles it on document in the '
-                + 'CAPTURE phase (context-menu.js:152), so a menu inside a dialog closes both');
+                + 'CAPTURE phase so a menu inside a dialog closes both');
 
             // And the discriminator: with the menu closed, Escape is nobody's business.
             await page.press('Escape');
@@ -740,7 +740,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(seen[0].id, 'delete');
             assert.equal(seen[0].index, 4, 'the index is the position in the ITEMS array, separators included');
             assert.equal(seen[0].openAtDispatch, false,
-                'SOURCE context-menu.js:116-117 — close() runs before onSelect, so a handler that '
+                'close() runs before onSelect, so a handler that '
                 + 'opens a dialog moves focus LAST and nothing races it');
             assert.match(seen[0].focusAtDispatch, /ui-button#trig/);
         }));

@@ -66,7 +66,7 @@ const EMPTY_STATE = Object.freeze({
     record: null,
     /** `record.profile` — the baseline every dirty-state answer is measured against. */
     baseline: null,
-    /** B11's facts off the current record. Consumed, never computed. */
+    /** The lineage facts off the current record. Consumed, never computed. */
     lineage: lineageFactsOf(null),
     save: SAVE_STATUS.IDLE,
     /** `saveReportFrom()` — what the server said, or the absence of it. */
@@ -77,7 +77,7 @@ const EMPTY_STATE = Object.freeze({
     error: null,
     /** The last version answer, so a surface reads one object. */
     version: null,
-    /** D20's library-visibility write. Reset with the record — see `seat`. */
+    /** The library-visibility write. Reset with the record — see `seat`. */
     visibility: NO_VISIBILITY_WRITE,
     at: null,
 });
@@ -323,14 +323,14 @@ export function createProfileEditorStore({
 
         /**
          * How many unsaved changes, against the record the server last served. The rule that
-         * survives B10: when it cannot be told, the answer is CLEAN.
+         * rule: when it cannot be told, the answer is CLEAN.
          */
         changeCount(draft) { return changeCountOf(draft, store.get().baseline); },
 
         /** The two props `<ui-page-header>` takes. A count crosses the boundary, not a word. */
         headerCommit(draft) { return headerCommitFor(api.changeCount(draft)); },
 
-        /** B11's facts for the current record — parentId and the hashes, verbatim. */
+        /** The lineage facts for the current record — parentId and the hashes, verbatim. */
         lineage() { return store.get().lineage; },
 
         /** The last save's version answer, or null before a save. */

@@ -1,13 +1,13 @@
 /**
- * editor-shell-fixture — the profile editor's shell, mounted and driven, for Gate B.
+ * editor-shell-fixture — the profile editor's shell, mounted and driven, for the contract check.
  *
- * Wave 5.5, the shell-and-panels cluster (`editor-skeleton`, `settings-panel`,
+ * the shell-and-panels cluster (`editor-skeleton`, `settings-panel`,
  * `review-panel`, `tablist-and-selection`).
  *
  * WHY THIS ONE IS SMALL, and it is not an omission: the editor SKELETON has no data
  * layer. It imports nothing from `src/data/` and nothing from `src/stores/`, opens no
- * socket, makes no request and reads no storage key — every one of those has its own row
- * in this wave. So there is no transport to wrap and no boot to build: the fixture
+ * socket, makes no request and reads no storage key — every one of those has its own row.
+ * So there is no transport to wrap and no boot to build: the fixture
  * creates the element, mounts what a caller mounts, and lets Lit render. That is the
  * same reason `settings-shell-fixture.js` gives for its own size.
  *
@@ -18,7 +18,7 @@
  * panels' container queries have. A capture posed by some other means would be a picture
  * of a state no test asserts.
  *
- * B2 — THIS FIXTURE STATES NO RANGE, and that is deliberate rather than incidental. "A
+ * — THIS FIXTURE STATES NO RANGE, and that is deliberate rather than incidental. "A
  * second hand-written ranges table anywhere — a leaf, a stepper default, a numpad hint, A
  * TEST FIXTURE THAT RESTATES MAXIMA — is a BLOCK." So the settings rows below compose
  * only the primitives that HAVE no min/max (#6 ui-text-field, #5 ui-switch), and the
@@ -31,7 +31,7 @@
  * and unit off it. The sentence above was once true of the matrix and FALSE of the review
  * — four `num` segments carried typed bounds, and 80/105/step 1 for temperature agreed
  * with no table in the tree (machine-limits declares brewTemp {70, 110, step 0.5}). A
- * fixture that claims B2 in its header and breaks it 160 lines down is worse than one
+ * fixture that claims in its header and breaks it 160 lines down is worse than one
  * that never mentioned it, so the claim now has a mechanism under it.
  *
  * THE MOCK IS INDIFFERENT AND THE STATE ROWS SAY SO. The battery starts a mock per state
@@ -59,7 +59,7 @@ const { r2MachineLimits, machineClassFromServedSet } = await import('../../src/d
 const { adoptTypeRoles } = await import('../../src/components/type-roles.js');
 
 /**
- * THE ONE LIGHT-DOM ROLE USER IN THE TREE, AND IT HAS TO ASK (DQ-2-C).
+ * THE ONE LIGHT-DOM ROLE USER IN THE TREE, AND IT HAS TO ASK.
  *
  * `fieldRow` below builds its markup with `document.createElement`, so the two switch
  * rows' labels are LIGHT-DOM elements. `#13`'s roles travel as a `css` fragment adopted
@@ -86,7 +86,7 @@ adoptTypeRoles(document);
  * ONE door, not one per consumer: two doors in one fixture is how the second table gets
  * back in, because the second one is always built "just for the review".
  *
- * THE CLASS COMES OFF THE SAME SERVED SET (27 August 2026). Since Ben's flow-ceiling lift
+ * THE CLASS COMES OFF THE SAME SERVED SET. Since the flow-ceiling lift
  * the AUTHORING half is per-machine too — a flow step's target and a pressure step's flow
  * limit reach 20 mL/s on a Bengle and 15 and 8 on a DE1 — so the door is told the class as
  * well as the table, and both are derived from the one capability array above rather than
@@ -119,12 +119,12 @@ function stage() {
 }
 
 /**
- * The editor's own field rows — a COMPOSITION, not a component (Part 10 §9: a component
+ * The editor's own field rows — a COMPOSITION, not a component (the notes: a component
  * not on the 57-item inventory is scope invention, and "settings field row / toggle row"
  * carry no inventory number). A label over a control, which is the anatomy
  * `--ui-editor-field-min-h` is derived from.
  *
- * ONE LABEL PER ROW, AND WHICH ONE DEPENDS ON THE CONTROL (parity surface 4, DQ-2-C).
+ * ONE LABEL PER ROW, AND WHICH ONE DEPENDS ON THE CONTROL (parity surface 4, the open question-C).
  * The first version authored a `.ui-caption` span for every row AND handed the same
  * string to the control, so each of the six text rows painted its label TWICE — once
  * bright and unstyled, once muted by `ui-text-field`'s own `.label` — and stood 128px
@@ -135,14 +135,14 @@ function stage() {
  *
  * `#5 ui-switch` is the other case and it is the opposite: it is a leaf with no slot,
  * and its own header says "its label is a sibling in the light DOM … which is also what
- * lets aria-labelledby reach it". So the switch rows keep the span, and now WIRE it —
+ * lets aria-labelledby reach it". So the switch rows keep the span, and now WIRE it
  * `control.label = …` was an expando on a component with no `label` property, so both
- * switches shipped with no accessible name at all, which is bug T15's own shape ("four
+ * switches shipped with no accessible name at all, which is bug the rule's own shape ("four
  * of twenty switches have no accessible name") reproduced in a fixture.
  */
 const FIELDS = [
     { id: 'title', label: 'Profile name', kind: 'text', value: 'Gentle and sweet' },
-    { id: 'author', label: 'Author', kind: 'text', value: 'Ben' },
+    { id: 'author', label: 'Author', kind: 'text', value: 'A. Author' },
     { id: 'beverage', label: 'Beverage', kind: 'text', value: 'espresso' },
     { id: 'tank', label: 'Tank temperature', kind: 'text', value: '20 °C' },
     { id: 'volume-count', label: 'Count volume from', kind: 'text', value: 'step 1' },
@@ -182,22 +182,22 @@ function fieldRow(field) {
  * THE STEPS THE MATRIX EDITS, in the shape ReaPrime serves — the same keys all 890
  * steps of the 147-record fixture carry. VALUES ONLY: not one minimum, maximum or
  * increment is written here, because "a test fixture that restates maxima is a second
- * ranges table and a BLOCK" (B2). Every bound in the captured frame arrives through
+ * ranges table and a BLOCK". Every bound in the captured frame arrives through
  * `createEditorRanges`, behind the R2 door, exactly as the screen will hand it over.
  *
  * THREE STEPS IS THE CAPTURE SET, AND DESKTOP IS THE FILL FRAME. At the step column
  * minimum (400px measured — #42's five-key rank plus the cell rhythm) three columns need
- * 160 + 3 x 400 + seams = 1363, so both Gate A geometries SCROLL: measured through this
+ * 160 + 3 x 400 + seams = 1363, so both the render harness geometries SCROLL: measured through this
  * fixture's own mount, the matrix is 1266 wide at BENCH and 975 at FLOOR against that
  * same 1363 scrollWidth, with tracks `160px 400px 400px 400px` at both. The fill regime
  * (1fr columns, 160 + 3 x 585.7, no overflow) is DESKTOP's, 1920 wide.
  *
- * NO STEP COUNT PUTS BENCH AND FLOOR ON OPPOSITE SIDES OF THE FLIP, so the two Gate A
+ * NO STEP COUNT PUTS BENCH AND FLOOR ON OPPOSITE SIDES OF THE FLIP, so the two the render harness
  * frames are never the fill/scroll pair: at N=2 the flip is at a matrix clientWidth of
- * 962 (swept at 1px, 977 -> 976 on the stage, 962 fills / 961 scrolls) and BOTH Gate A
- * widths are above it, so both FILL; at N=3 both scroll. Gate B photographs one regime
- * at Gate A and the other at desktop, which is what `tools/screens/screens.js`'
- * `editor--steps` note and `_digests/matrix.json` both already say.
+ * 962 (swept at 1px, 977 -> 976 on the stage, 962 fills / 961 scrolls) and BOTH the render harness
+ * widths are above it, so both FILL; at N=3 both scroll. the contract check photographs one regime
+ * at the render harness and the other at desktop, which is what the screen walk'
+ * `editor--steps` note and the digest both already say.
  *
  * The middle step HOLDS, which is the one cell that swaps #4 for #43 (a stepper for the
  * read-only locked value box), and the first carries an exit condition and a volume so
@@ -250,10 +250,10 @@ const STEPS = [
  * min, max]` — with every bound, the increment and the unit READ OFF THE DOOR at
  * `RANGES.rangeFor(field)` and not one of them typed here.
  *
- * This is B2 at the only place this fixture could break it. The four slots were written
+ * This is at the only place this fixture could break it. The four slots were written
  * as literals (`…, 1, '°C', 80, 105`), and one of the three bands agreed with no table in
  * the tree: `machine-limits.js` declares brewTemp {70, 110, step 0.5}, so 80/105/step 1
- * was a FOURTH answer for the one field B2's own text cites. The others were a verbatim
+ * was a FOURTH answer for the one field 's own text cites. The others were a verbatim
  * transcription (pressure, seconds) and a restatement with a different increment (weight,
  * step 1 in `profile-modes.js`, typed 0.1 here) — all four are now the table's.
  *
@@ -291,13 +291,13 @@ const REVIEW_COLUMNS = [
 /**
  * A LEVER STEP, for the lever dialog's frame — and it is NOT in `STEPS` on purpose.
  *
- * `openLever()` takes the step it edits as an argument, so the dialog can be posed over
+ * `openLever` takes the step it edits as an argument, so the dialog can be posed over
  * a lever pull without a fourth column appearing in the matrix. The matrix cluster's
  * `editor--steps` note calls three steps "the capture SET rather than a posed width" and
  * names what each column is for; adding a step to `STEPS` would silently re-pose another
  * cluster's frame to get this one.
  *
- * VALUES ONLY (B2) — a P0, a spring and a give, no bound of any kind. The dialog arms
+ * VALUES ONLY — a P0, a spring and a give, no bound of any kind. The dialog arms
  * every control from `RANGES` above, which is the same door the matrix and the review
  * segments read.
  */
@@ -327,7 +327,7 @@ const DRAFT = {
     version: 2,
     title: 'Gentle and sweet',
     notes: '',
-    author: 'Ben',
+    author: 'A. Author',
     beverage_type: 'espresso',
     steps: STEPS,
     target_volume: 0,
@@ -386,10 +386,10 @@ function stepMatrix() {
  * WHY THEY WERE MISSING, recorded because the gap cost a whole cluster its pixels: this
  * fixture was written for the shell-and-panels cluster, whose four rows genuinely have no
  * preview and no overlay, and the editing cluster then shipped without adding them — so
- * every editing surface in the wave contributed ZERO frames to Gate B while three editor
+ * every editing surface in the wave contributed ZERO frames to the contract check while three editor
  * states photographed the panels around them.
  *
- * ONE DOOR STILL (B2): `overlays.ranges` is `RANGES`, the same instance the matrix and
+ * ONE DOOR STILL: `overlays.ranges` is `RANGES`, the same instance the matrix and
  * the review segments hold. Both dialogs and the keypad arm off it, so nothing in this
  * file states a bound and a posed keypad's hint is the table's.
  */
@@ -419,7 +419,7 @@ const api = {
             overlays = surfaces.region;
             screen.append(preview, overlays);
             for (const field of FIELDS) screen.append(fieldRow(field));
-            /* THE SOURCE IS THE SCREEN, set after both are in the tree — setting it
+            /* THE IS THE SCREEN, set after both are in the tree — setting it
              * moves the listeners, which is <editor-overlays>'s own stated behaviour.
              * The states below drive the three PUBLIC ROUTES rather than a press,
              * because a posed capture must not depend on hit-testing a cell that a
@@ -471,7 +471,7 @@ const api = {
      * posed call: the matrix resolves the entry from `RANGES`, puts it on its own `edit`
      * event, and <editor-overlays> arms #53 with THAT entry. A direct `openNumpad({field})`
      * would arm the pad off a second lookup, and the frame would stop being evidence that
-     * the cell and the keypad agree about their bound (B2).
+     * the cell and the keypad agree about their bound.
      *
      * `.click()` on the element rather than a hit test at a coordinate: the matrix is its
      * own scrollport on both axes, so at the narrow geometry the cell a coordinate lands
@@ -517,7 +517,7 @@ const api = {
         await settle();
     },
 
-    /** Scroll the matrix — it is its own scrollport, on both axes (§4.3). */
+    /** Scroll the matrix — it is its own scrollport, on both axes. */
     async scrollMatrix(left = 0, top = 0) {
         if (matrix) {
             matrix.scrollLeft = left;
@@ -545,7 +545,7 @@ const api = {
         return screen.getAttribute('tab');
     },
 
-    /** D11's count — the only thing this screen tells the band. */
+    /** the rule's count — the only thing this screen tells the band. */
     async changeCount(n) {
         screen.changeCount = n;
         await settle();

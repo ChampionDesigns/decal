@@ -7,7 +7,7 @@ export const entry = {
     title: 'A/B pick disc',
     module: '../../src/components/ui-pick-disc.js',
     notes:
-        'Wave 2 #45. The History viewer\'s two-slot shot selector, drawn twice in Slate and '
+        'Wave 2 #45. The History viewer\'s two-slot shot selector, drawn twice in the reference skin and '
         + 'named there as one object: a static tag in the header ("which slot is which") and a '
         + 'pressable disc in every shot-list row ("this row is that slot"). 48 elements measured, '
         + 'one geometry — 62 x 62, which is --ui-control-inner. It is one of the six components '
@@ -20,9 +20,9 @@ export const entry = {
         {
             id: 'tag-pair',
             title: 'Header tags — A picked, B not',
-            notes: 'The header\'s two slot tags, as Slate draws them: A filled because "A is the '
+            notes: 'The header\'s two slot tags, as the reference skin draws them: A filled because "A is the '
                 + 'shot on the charts, B the one it is measured against". A takes the two colour '
-                + 'dials; B rests on --ui-key inside a --ui-line-strong hairline. Slate\'s comment '
+                + 'dials; B rests on --ui-key inside a --ui-line-strong hairline. The reference skin\'s comment '
                 + 'on that hairline is carried in the component: filled with --slate-key alone the '
                 + 'disc vanished against the header bar in the light theme "so B read as disabled".',
             html: '<ui-pick-disc selected label="Slot A">A</ui-pick-disc>'
@@ -36,7 +36,7 @@ export const entry = {
                 + '--ui-muted ink. The assigned one is painted by the same four dials as the header '
                 + 'tag above — same treatment, two forms, one component. THE FORM IS AN ATTRIBUTE '
                 + 'OF ITS OWN since parity surface 6 (form="pick"), because "is this pressable" and '
-                + '"which of Slate\'s two discs is this" are different questions: the History band '
+                + '"which of the reference skin\'s two discs is this" are different questions: the History band '
                 + 'wants a slot-NAMING tag that is also pressable, which is interactive with no '
                 + 'form, and every state on this page renders exactly what it rendered before.',
             html: '<ui-pick-disc interactive form="pick" selected label="Compare slot A">A</ui-pick-disc>'
@@ -56,11 +56,11 @@ export const entry = {
         {
             id: 'departure-border',
             title: 'The departure: the ring survives selection',
-            notes: 'Slate swaps the border to --slate-steel on both selected rules, so a selected '
+            notes: 'the reference skin swaps the border to --slate-steel on both selected rules, so a selected '
                 + 'disc loses its edge into its own fill. That is a fifth painted property keyed on '
                 + 'the selected state — a private selected look, which this wave bans. The hairline '
                 + 'is resting paint and keeps its resting token in every state, so the selected disc '
-                + 'below still carries a ring where Slate\'s does not. This state exists to be looked '
+                + 'below still carries a ring where the reference skin\'s does not. This state exists to be looked '
                 + 'at and accepted or rejected on purpose.',
             html: '<ui-pick-disc interactive form="pick" label="Free">B</ui-pick-disc>'
                 + ' <ui-pick-disc interactive form="pick" selected label="Picked">A</ui-pick-disc>',

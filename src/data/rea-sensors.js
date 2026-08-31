@@ -26,7 +26,7 @@ export const R3_CAPABILITY_GATE = Object.freeze({
 export const SENSORS_ROUTE_ID = 'getSensors';
 export const SENSORS_ROUTE = routeById(SENSORS_ROUTE_ID).route;
 
-/** Default discovery interval. `estimator-link.js`'s 15 s, kept — it is a poll for a thing
+/** Default discovery interval. 15 s: it is a poll for a thing
  *  that appears once per boot, not a telemetry rate. */
 export const DEFAULT_DISCOVERY_MS = 15000;
 

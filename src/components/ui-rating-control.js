@@ -41,7 +41,7 @@ export class UiRatingControl extends UiElement {
 
         /**
          * Is the DYE handoff available on this machine? A capability, decided one
-         * level up (A3) — never a substring match on a plugin id here.
+         * level up — never a substring match on a plugin id here.
          */
         handoff: { type: Boolean },
 
@@ -149,7 +149,7 @@ export class UiRatingControl extends UiElement {
         this.handoffLabel = '';
         this.disabled = false;
         this._draft = null;
-        /* D2's mechanism, same spelling as #19 and #33 so the wave has one shape for
+        /* The same spelling the other two controls use, so there is one shape for
          * this and not two. */
         this.i18n = new I18nController(this);
     }
@@ -208,10 +208,6 @@ export class UiRatingControl extends UiElement {
         const capLabel = this.label || this.i18n.t(LABEL_KEY);
 
         return html`
-            <!-- THE SCORE IS THE BUTTON. It carries the cap and the number it opens the
-                 sheet to change, so the corner still says what it says at rest and the
-                 press is where it always was. An unrated shot shows the dash the tile
-                 shows, not a zero: a shot nobody has rated has no score. -->
             <ui-button
                 id="rate"
                 class="row rate"
@@ -248,10 +244,6 @@ export class UiRatingControl extends UiElement {
                         .value=${scoreText}
                     ></ui-stat-tile>
 
-                    <!-- THE SAME SLIDER, MOVED. #23's control, the same 0..100 scale from
-                         the same three constants, and the same two handlers - so the value
-                         a drag produces and the event it announces are unchanged by having
-                         been put behind a press. -->
                     <ui-slider
                         id="slider"
                         min=${RATING_MIN}
@@ -328,7 +320,7 @@ export class UiRatingControl extends UiElement {
 
     /**
      * The commit. ONE per gesture, which is why there is no debounce timer here
-     * (shot-rating.js:90-99 saved on `input` and therefore needed one).
+     * (the old control saved on `input` and therefore needed one).
      */
     #onSliderChange(event) {
         if (!this.ratable) return;

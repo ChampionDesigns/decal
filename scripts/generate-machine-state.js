@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 export const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 /** The pinned ReaPrime reference worktree. Override for a differently-placed checkout. */
-export const REA_ROOT = process.env.REA_ROOT || '/home/ben/bengle/_port/worktrees/rea-reanchor-v3';
+export const REA_ROOT = process.env.REA_ROOT || '../reaprime';
 
 export const SOURCE_REL = 'lib/src/models/device/machine.dart';
 

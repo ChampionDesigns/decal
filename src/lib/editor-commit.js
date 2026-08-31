@@ -59,7 +59,7 @@ function sameValue(a, b) {
 export function changeCountOf(draft, baseline) {
     const groups = changeGroupsOf(draft, baseline);
     if (!groups.known) {
-        // CANNOT TELL -> CLEAN. The rule that survives B10, applied at its one site.
+        // CANNOT TELL -> CLEAN, applied at its one site.
         return Object.freeze({
             count: 0, clean: true, tell: CHANGE_TELL.CANNOT_TELL, fields: Object.freeze([]),
         });
@@ -215,7 +215,7 @@ export function saveFailureFrom(failure, { route = null, refusal = null } = {}) 
 
 /** What the person did. Two affordances, two gestures. */
 export const COMMIT_GESTURE = Object.freeze({
-    /** The band's commit control — D11's "Save (N)" / "Close". */
+    /** The band's commit control — "Save (N)" / "Close". */
     SAVE: 'save',
     /** The header's rename affordance confirmed a new name. */
     RENAME: 'rename',

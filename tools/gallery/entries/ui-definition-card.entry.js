@@ -37,7 +37,7 @@ export const entry = {
         + 'rows and the header. THE DIVIDERS ARE GRID GAPS, not per-row borders '
         + '(CONVENTIONS §13, which names these five rows): N rows give N−1 seams with '
         + 'no sibling selector to get wrong, which is why T2\'s mechanism cannot be '
-        + 'expressed here. Slate draws 5 hairlines for 7 rows — the header and the '
+        + 'expressed here. The reference skin draws 5 hairlines for 7 rows — the header and the '
         + 'first data row have none — and this draws 6 for 7; that departure is the '
         + 'one visible difference from the oracle and it is deliberate. Terms are '
         + '.ui-heading (20/500, measured), values .ui-body.ui-numeric (17/400, '
@@ -46,12 +46,12 @@ export const entry = {
     states: [
         {
             id: 'machine-info',
-            title: 'The machine-info leaf, at Slate\'s own column width',
+            title: 'The machine-info leaf, at the reference skin\'s own column width',
             notes:
                 'The oracle record rebuilt: CITE settings-machine-machine-info '
                 + '.slate-card [i=47] rect x=629 y=273 w=1200 h=492, seven rows, and '
                 + 'CITE .slate-btn [i=49] "Copy all" rect w=114 h=64 in the header. '
-                + 'The 1200px is the CONTAINER\'s, not the card\'s: Slate\'s geometry '
+                + 'The 1200px is the CONTAINER\'s, not the card\'s: the reference skin\'s geometry '
                 + 'is frozen at 1920×1200 and has no vote on any other width.',
             hostStyle: { 'inline-size': '1200px' },
             html:
@@ -99,7 +99,7 @@ export const entry = {
             id: 'narrow',
             title: 'In a 320px container',
             notes:
-                'The question Slate cannot answer (departure 4). Term and value wrap '
+                'The question the reference skin cannot answer (departure 4). Term and value wrap '
                 + 'onto separate lines and the value keeps its end alignment; nothing '
                 + 'is clipped and the card never scrolls sideways.',
             hostStyle: { 'inline-size': '320px' },
@@ -122,7 +122,7 @@ export const entry = {
             title: 'pad="tight" — #8\'s second inset',
             notes:
                 'The inset is forwarded, never re-declared: --ui-space-4 (18px), '
-                + 'which is spec §3.3\'s own snap for Slate\'s 16px ("16 → 18").',
+                + 'which is spec §3.3\'s own snap for the reference skin\'s 16px ("16 → 18").',
             hostStyle: { 'inline-size': '760px' },
             html:
                 '<ui-definition-card pad="tight" heading="Machine" items=\''
@@ -133,7 +133,7 @@ export const entry = {
             title: 'Capped from outside, scrolling inside',
             notes:
                 'The cap arrives as `max-block-size` on the host, exactly as '
-                + 'SCOPE.md:1702 asks the notes pane to be built, and #8\'s bounded '
+                + 'The notes pane is asked for, and #8\'s bounded '
                 + 'scroll does the rest: a stated overflow, a VISIBLE scrollbar and '
                 + 'the §2.4 floor. The card takes a tab stop in this mode and the '
                 + 'ring is drawn INSIDE its own box so the scrollport cannot clip it '

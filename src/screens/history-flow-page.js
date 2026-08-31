@@ -140,22 +140,6 @@ export class HistoryFlowPage extends UiElement {
                         @cursor-change=${this.#onCursor}
                         @legend-change=${this.#onLegendChange}
                     >
-                        <!-- BOUND, AND IT WAS NOT (Ben, 24 Aug 2026: "The buttons/legend
-                             should toggle the series on and off, at the moment the buttons
-                             are not doing anything").
-
-                             #10's own contract is one line: "Bound, a press applies itself;
-                             unbound, the chip still shows its state and legend-change is
-                             the consumer's road in." This page passed no chart and
-                             listened for no legend-change, so every chip lit, dimmed, and
-                             changed nothing on the plot beside it. The POWER page one
-                             screen over has bound its legend since it was built, which is
-                             what makes this an omission rather than a missing feature.
-
-                             THE ID RESOLVES BECAUSE THE LEGEND IS SLOTTED. #chartElement
-                             asks getRootNode().getElementById(...), and a slotted element
-                             belongs to the tree it was AUTHORED in — this page's shadow
-                             root, where the card carries that id. -->
                         <ui-chart-legend
                             slot="legend"
                             chart="plot-${plot.id}"

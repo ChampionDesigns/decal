@@ -16,7 +16,7 @@ export function createTtlCache({ name, ttlMs, payoff, now = Date.now } = {}) {
     if (!name) throw new Error('createTtlCache: name is required');
     if (!Number.isFinite(ttlMs) || ttlMs <= 0) throw new Error(`createTtlCache(${name}): ttlMs must be a positive number`);
     if (typeof payoff !== 'string' || payoff.trim().length < 10) {
-        throw new Error(`createTtlCache(${name}): a named payoff is required (DECISIONS.md — keep caching only where it measurably pays)`);
+        throw new Error(`createTtlCache(${name}): a named payoff is required (keep caching only where it measurably pays)`);
     }
 
     let value = null;

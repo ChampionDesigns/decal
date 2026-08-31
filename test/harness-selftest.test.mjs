@@ -1,5 +1,5 @@
 /**
- * The Gate A harness testing itself.
+ * the render harness harness testing itself.
  */
 
 import { test, before, after } from 'node:test';

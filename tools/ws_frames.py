@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The WebSocket half of the offline mock — the ten `/ws/v1/*` channels, as data.
 
-WHY THIS EXISTS (wave 0b, `waves/0b/REPORT.md:255-261`, verbatim): "The biggest
-remaining hole, stated not papered over … Gate B rule 4 is closed for REST and open for
+WHY THIS EXISTS, measured: "The biggest
+remaining hole, stated not papered over … the contract check is closed for REST and open for
 sockets." `mock_rea.py` spoke no WebSocket at all: the nine `tools/rea-fixtures/ws__*.json`
 files are 226-byte recordings of ReaPrime's *"Only WebSocket connections are supported."*
 404 page — what the server answers when a socket path is fetched over plain HTTP — and the
@@ -138,7 +138,7 @@ UPDATE_PHASES = js_string_array("UPDATE_PHASES", FEED_READERS_JS)
 
 
 # --------------------------------------------------------------------------- #
-# The frame spec — one entry per socket row in CONTRACTS.json
+# The frame contract — one entry per socket row in CONTRACTS.json
 # --------------------------------------------------------------------------- #
 #
 # `source` is the honesty class, and it is the column a reader should read first:
@@ -161,7 +161,7 @@ SPECS = {
         "nonNullOptional": True,   # "Derived channels are OMITTED, not null" (the row)
         "reader": NAMES_JS,
         "derivation": "measurements[].machine of the recorded shot, keys outside "
-                      "SNAPSHOT_KEYS/SNAPSHOT_DERIVED_KEYS dropped (CB-03/CB-08: the "
+                      "SNAPSHOT_KEYS/SNAPSHOT_DERIVED_KEYS dropped (: the "
                       "recording predates 633f6f68 and still carries weight, weightFlow, "
                       "milkTemperature and the estimator's pre-rename channels). No key "
                       "is added and no value is touched.",
@@ -271,7 +271,7 @@ SPECS = {
         "reader": NAMES_JS,
         "derivation": "An id with no source gets ReaPrime's own answer — {\"error\":\"not "
                       "found\"} AND THE SOCKET CLOSES, which is the client's re-discovery "
-                      "trigger (CB-07). With --ws-sensors=derived the puck estimator's id "
+                      "trigger. With --ws-sensors=derived the puck estimator's id "
                       "streams the recording's pre-rename estimator channels under their "
                       "live names (fusedConf->confidence, vAbs->absorbedVolume, "
                       "estFlags->flags, detEventCount->collapseEventCount, estLag->lag, "
@@ -299,7 +299,7 @@ UPGRADED_ROWS = [k for k in SPECS if k != "pluginEndpoint"]
 
 
 def socket_rows(table_path: pathlib.Path = TABLE_PATH) -> list[dict]:
-    """The ten socket rows of the contract table. One table, no fallback (A7)."""
+    """The ten socket rows of the contract table. One table, no fallback."""
     table = json.loads(table_path.read_text())
     rows = table.get("sockets")
     if not rows:
@@ -310,8 +310,8 @@ def socket_rows(table_path: pathlib.Path = TABLE_PATH) -> list[dict]:
 def row_for_path(path: str) -> str | None:
     """Which socket row a request path belongs to, or None."""
     bare = path.split("?")[0]
-    for row_id, spec in SPECS.items():
-        template = spec["path"].split("/")
+    for row_id, contract in SPECS.items():
+        template = contract["path"].split("/")
         have = bare.split("/")
         if len(template) != len(have):
             continue
@@ -340,7 +340,7 @@ class ShotReplay:
         if not isinstance(measurements, list) or not measurements:
             raise RuntimeError(
                 f"{fixture.name} carries no measurements array. The flat summary shape "
-                "(shots/latest, the shots listing) must never drive a chart — wave 4's "
+                "(shots/latest, the shots listing) must never drive a chart — 's "
                 "test-shot-metrics-fixture-shape suite pins it as ok:false.")
         self.record = record
         self.shot_id = record.get("id")
@@ -362,8 +362,8 @@ class ShotReplay:
         """`MachineSnapshot.toJson`, from the recorded block, refuted keys dropped.
 
         DROPPING, NOT EDITING. `weight`, `weightFlow` and `milkTemperature` were deleted
-        from this frame in 633f6f68 (CB-08, CB-03) and the estimator's channels were
-        renamed wholesale; the 2026-08-15 recording predates both. Serving it verbatim
+        from this frame in 633f6f68 and the estimator's channels were
+        renamed wholesale; the an earlier run recording predates both. Serving it verbatim
         would teach the client a server that has not existed for months — and
         `deadKeysPresent` exists precisely to report that as a defect. Serving it with the
         dead keys REMOVED is the recording, minus what the handler no longer sends.
@@ -844,7 +844,7 @@ class DevicesChannel(_StateChannel):
             with s.lock:
                 if command == "connect":
                     s.connected.add(device_id)
-                    # THE B8 ANSWER. A connect while ReaPrime is parked on a picker is the
+                    # THE ANSWER. A connect while ReaPrime is parked on a picker is the
                     # CHOICE (`_connectDevice` routes it to selectMachine/selectScale), so
                     # it clears the ambiguity instead of starting a fresh connect.
                     if s.pending_ambiguity:
@@ -948,7 +948,7 @@ class SensorChannel(_Playback):
 
     An id the mock has no source for is answered exactly as ReaPrime answers an unknown
     one — `{"error":"not found"}` and the socket CLOSES — because that close is the
-    client's re-discovery trigger (CB-07) and a silent open socket would suppress it.
+    client's re-discovery trigger and a silent open socket would suppress it.
     """
 
     row_id = "sensorSnapshot"
@@ -1145,7 +1145,7 @@ def serve_socket(sock: _socket.socket, path: str, session: Session, replay: Shot
 class ProbeClient:
     """A client, for the checker and nothing else.
 
-    `check_mock_contract.check_socket_frames` has to ASK THE SERVER — comparing the spec
+    `check_mock_contract.check_socket_frames` has to ASK THE SERVER — comparing the contract table
     with a re-derivation of itself would be the tautology the REST half already refuses
     (`check_refusals`). So this opens a real socket, does the real handshake, and reads
     what actually comes down the wire. It is not an implementation the skin uses: the skin
@@ -1223,7 +1223,7 @@ class ProbeClient:
 
     def send(self, payload) -> None:
         body = json.dumps(payload).encode()
-        # A client frame MUST be masked (RFC 6455 §5.3); the server rejects nothing here,
+        # A client frame MUST be masked (RFC 6455); the server rejects nothing here,
         # but sending an unmasked one would test a protocol the real client never speaks.
         mask = hashlib.sha1(body).digest()[:4]
         masked = bytes(b ^ mask[i & 3] for i, b in enumerate(body))

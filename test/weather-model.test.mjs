@@ -48,7 +48,7 @@ describe('the three states, and why two of them are not one', () => {
     });
 });
 
-describe('two hours, then hide — Ben, 30 Aug 2026', () => {
+describe('two hours, then hide', () => {
     test('inside the window it still shows', () => {
         assert.equal(weatherState(reading({ ageMinutes: MAX_AGE_MINUTES })), WEATHER_STATE.READING);
     });

@@ -1,5 +1,5 @@
 /**
- *.3, the skeleton-and-layout cluster: sel-skeleton, sel-split-collapse, sel-elastic-boxes-notes-ordering, sel-scroll-floors, bug-P5-P7-P16-P17-register-rhythm, bug-P10-no-dead-affordances, bug-structural-P1-P3-P9-P11-P14-P15.
+ * The skeleton-and-layout cluster: sel-skeleton, sel-split-collapse, sel-elastic-boxes-notes-ordering, sel-scroll-floors, register-rhythm, no-dead-affordances, and the structural bugs.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -101,9 +101,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
     describe(`selector skeleton @ ${geometry.name} (${geometry.width}×${geometry.height} @ dsf ${geometry.deviceScaleFactor})`, () => {
 
         const mounted = (fn) => browser.withPage({ geometry }, async (page) => {
-            /* THE LISTENER COUNTERS GO IN BEFORE THE MODULES DO — this is P14's check and
+            /* THE LISTENER COUNTERS GO IN BEFORE THE MODULES DO — this is 's check and
              * it only means anything if it is installed before the imports it is about.
-             * `mount()` is what imports them. */
+             * `mount` is what imports them. */
             await page.evalFn(() => {
                 window.__listeners = [];
                 const wrap = (target, name) => {
@@ -640,7 +640,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const seam = px(await page.resolveToken('--ui-seam-split', 'block-size'));
                 near(px(await page.prop(GRID, 'column-gap')), seam, 'the gap IS the divider');
 
-                /* THERE IS NO SEPARATOR ELEMENT. Every clause of P10 — the lying cursor,
+                /* THERE IS NO SEPARATOR ELEMENT. Every clause of — the lying cursor,
                  * the hover, the aria-hidden node with no role, the missing keyboard path
                  * — needs one to be false of. */
                 const suspects = await page.eval(`(function () {
@@ -766,7 +766,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     `P14's two types are the ones that cannot fire; the skeleton added: ${added.join(', ') || 'none'}`);
 
                 /* AND TEARDOWN IS THE BROWSER'S. Removing the element takes its whole
-                 * subtree, which is the guarantee P14's two listeners were reaching for. */
+                 * subtree, which is the guarantee the rule's two listeners were reaching for. */
                 const gone = await page.eval(`(function () {
                     var el = document.querySelector('selector-screen');
                     el.remove();

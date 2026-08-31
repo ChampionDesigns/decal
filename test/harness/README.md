@@ -1,7 +1,7 @@
-# test/harness/ — the Gate A rendering-test harness
+# test/harness/ — the rendering-test harness
 
-Headless Chrome over CDP, turned from a measurement rig into a test runner. Wave 0a
-item #4 (SCOPE Part 4 Wave 0 item 4, Part 8 §2 Gate A).
+Headless Chrome over CDP, turned from a measurement rig into a test runner.
+
 
 A rendering test **mounts a component in a real engine and asserts on
 `getComputedStyle`, box geometry and behaviour — never on source text**. Logic tests
@@ -45,7 +45,7 @@ like any other suite.
 | `page.recordEvents(sel, types)` / `page.recordedEvents()` | what a component EMITTED |
 | `page.setStyle(sel, props)` | shrink a container, force a state |
 | `page.evalFn(fn, ...args)`, `page.eval(expr)` | the escape hatch |
-| `page.screenshot()` | a PNG — the battery's primitive, not Gate A's |
+| `page.screenshot()` | a PNG — the battery's primitive, not the harness's |
 
 ### The selector dialect
 
@@ -58,26 +58,26 @@ a piercing path, one `>>>` per shadow boundary:
 ```
 
 This is the same identity the capture battery records as an *anchor path*
-(Part 10 §13 adaptation 1); `page.anchorPath(sel)` produces one from an element.
+(adaptation 1); `page.anchorPath(sel)` produces one from an element.
 
 ### Geometry
 
 `BENCH` = **1281×801 @ deviceScaleFactor 1.5** — the bench truth, and the default.
 `FLOOR` = **1000×600 @ dsf 1** — for container behaviour.
-`DESKTOP` = 1920×1200 @ dsf 1 — the capture matrix and the geometry the Slate
-provenance corpus was captured at. Not a Gate A default.
+`DESKTOP` = 1920×1200 @ dsf 1 — the capture matrix and the geometry the earlier
+measurements were taken at. Not a harness default.
 
 "The old probes ran 1920×1200 at dpr 1, which is precisely how every dpr-1.5 raster
 surprise stayed invisible until the tablet."
 
 ## The four standing assertions
 
-In `assertions.js`, each answering a recorded failure (Part 8 §2):
+In `assertions.js`, each answering a recorded failure:
 
 * `assertTokenDrill(page, { token, value, selector, property })` — set a token on
   `:root`, assert the rendered value **moves**, lands on the token's new value, and
   **comes back** when the override is removed. Pass `read` for anything
-  `getComputedStyle` cannot see (a canvas pixel, for the A6 chart-channel drill);
+  `getComputedStyle` cannot see (a canvas pixel, for the chart-channel drill);
   pass `expectLanding: false` when the token is only a component of the property (a
   length inside a `box-shadow`).
 * `assertOneSelectionTreatment(page, { selected, unselected })` — face, ink, LED and
@@ -91,7 +91,7 @@ In `assertions.js`, each answering a recorded failure (Part 8 §2):
   at its floor.
 * `assertFocusUnclipped(page, selector)` — the ring is `--ui-focus-w` / `--ui-steel`
   at one of the two token offsets, and no ancestor (through shadow roots) clips it.
-  Bug L24's class as a computed-style assertion.
+  A clipped focus ring, as a computed-style assertion.
 
 Plus `assertHitFloor(page, selector, { mode })` for the shared hit-area utility.
 
@@ -153,9 +153,9 @@ No `node_modules`. `ws.js` is a ~150-line RFC 6455 client because Node 20.20 has
 None of these contains a `node:test` suite; `node --test test/` imports them as
 zero-test files, which is why nothing here runs at import time.
 
-## Q12 is settled
+## The open question is settled
 
 The harness decision — headless Chrome over CDP — is recorded in
-`realine-run/DEFERRED_QUESTIONS.md` as the **Q12 record**, fixed before the first component's
+recorded as an open question, fixed before the first component's
 tests were written, because a harness swap invalidates the mechanics of every
-rendering test after it (Part 2 §8 item 2).
+rendering test after it.

@@ -36,7 +36,7 @@ const READY_FRAME = Object.freeze({
     },
 });
 
-/** The frame B8 exists for: two machines visible, ReaPrime parked, waiting for a choice. */
+/** The frame exists for: two machines visible, ReaPrime parked, waiting for a choice. */
 const AMBIGUOUS_FRAME = Object.freeze({
     timestamp: '2026-08-17T09:14:25.000Z',
     devices: [],
@@ -135,7 +135,7 @@ describe('malformed maps to null, and null is not an empty list', () => {
     }
 
     test('a partial frame never reads as "the machine went away"', () => {
-        // The distinction machine-link.js was built on: null is "unknown", [] is "none".
+        // The distinction was built on: null is "unknown", [] is "none".
         const unknown = readDevicesFrame({ ...READY_FRAME, devices: undefined });
         assert.equal(unknown, null);
         assert.notDeepEqual(unknown, []);

@@ -189,7 +189,7 @@ function bundleFor(boot) {
                 : null,
             machineValue: (field) => model.machineValue(field),
             reloadMachine: () => model.loadMachine(),
-            /* A3, ONE EXPRESSION. PRESENT is the only answer that opens a surface; ABSENT
+            /* ONE EXPRESSION. PRESENT is the only answer that opens a surface; ABSENT
              * and UNKNOWN both close it, and so does having no capability store at all. */
             allowed: (capability) => (
                 typeof capabilities?.capability === 'function'

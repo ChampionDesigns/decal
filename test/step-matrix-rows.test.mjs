@@ -27,7 +27,7 @@ import { AUTHORING_RANGES, MODE_TABLE, PUMP_MODE_CYCLE, modeRanges } from '../sr
 import { limitsFor } from '../src/lib/machine-limits.js';
 import { translations } from '../src/lib/i18n.js';
 
-/** A step in the shape ReaPrime serves. VALUES ONLY — never a bound (B2). */
+/** A step in the shape ReaPrime serves. VALUES ONLY — never a bound. */
 const step = (over = {}) => ({
     name: 'Preinfusion',
     pump: 'flow',
@@ -68,7 +68,7 @@ describe('the ten rows, and Slate\'s own order', () => {
     test('two group seams, and they are Slate\'s own GRID_GROUP_END plus the head rule', () => {
         const ends = STEP_MATRIX_ROWS.filter((row) => row.groupEnd).map((row) => row.key);
         assert.deepEqual(ends, ['head', 'probe', 'limiter'],
-            'three horizontal rules only (profile-editor-v3.css:333-338)');
+            'three horizontal rules only ');
     });
 
     test('an unknown row is refused, never answered with a plausible one (A7)', () => {

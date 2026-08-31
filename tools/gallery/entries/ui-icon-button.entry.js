@@ -13,7 +13,7 @@ export const entry = {
     notes:
         'Wave 1 item #2. A square press control holding a glyph at --ui-icon / '
         + '--ui-icon-lg. Two sizes and nothing else: 64px (--ui-control-h, the value '
-        + 'Slate COMPUTES on its modal closes — those three elements are captured at '
+        + 'the reference skin COMPUTES on its modal closes — those three elements are captured at '
         + '58x58 through #scaled-content\'s transform, and no element in the corpus '
         + 'renders a 64x64 box) and 82px (--ui-control-lg, the size its toolbars '
         + 'render). Both clear the 48px hit floor with paint alone, which is the half '
@@ -28,7 +28,7 @@ export const entry = {
             id: 'md',
             title: 'Default (64px)',
             notes: 'ORACLE profile-selector #add-profile-modal-close [i=200] width = 64px '
-                + '<- slate-components.css .slate-icon-btn authored var(--slate-control-height). '
+                + 'the old icon button authored the control-height token. '
                 + 'That is the COMPUTED value and its winning rule; the same record\'s rect is '
                 + '58x58, because those dialogs sit inside #scaled-content (see the component header).',
             html: `<ui-icon-button label="Choose a profile">${GLYPH}</ui-icon-button>`,
@@ -37,21 +37,21 @@ export const entry = {
             id: 'lg',
             title: 'Large (82px)',
             notes: 'ORACLE editor-review #editor-history-btn [i=11] width = 82px '
-                + '<- slate-components.css .slate-icon-btn-lg authored var(--slate-control-lg).',
+                + 'the old large icon button authored the control-lg token.',
             html: `<ui-icon-button size="lg" label="Version history">${GLYPH}</ui-icon-button>`,
         },
         {
             id: 'pair',
             title: 'Both sizes, shoulder to shoulder',
             notes: 'The same component one size token apart — the sheet\'s own claim '
-                + '(slate-components.css:227-231), rendered.',
+                + ', rendered.',
             html: `<ui-icon-button label="Choose a profile">${GLYPH}</ui-icon-button>`
                 + `<ui-icon-button size="lg" label="Version history">${GLYPH}</ui-icon-button>`,
         },
         {
             id: 'text-glyph',
             title: 'Text glyph',
-            notes: 'Slate\'s three modal closes are a bare ✕ at the browser-default 16px '
+            notes: 'the reference skin\'s three modal closes are a bare ✕ at the browser-default 16px '
                 + 'and carry NO accessible name (corpus: aria=""). Here the glyph is drawn '
                 + 'at --ui-icon and the name comes from label.',
             html: '<ui-icon-button label="Close">✕</ui-icon-button>',
@@ -59,7 +59,7 @@ export const entry = {
         {
             id: 'disabled',
             title: 'Disabled',
-            notes: '--ui-opacity-disabled (.38, spec §3.7) against Slate\'s .3, and applied '
+            notes: '--ui-opacity-disabled (.38, spec §3.7) against the reference skin\'s .3, and applied '
                 + 'ONCE: the host dims, the inner control does not dim again.',
             html: `<ui-icon-button label="Add New Profile" disabled>${GLYPH}</ui-icon-button>`,
         },

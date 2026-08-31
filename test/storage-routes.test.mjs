@@ -33,14 +33,13 @@ function walk(dir) {
     });
 }
 
-test('every row names exactly one layer, one scope, one status and a trace', () => {
+test('every row names exactly one layer, one scope, one status and a reason', () => {
     for (const key of allKeys()) {
         const row = STORAGE_ROUTES[key];
         assert.ok(Object.values(LAYERS).includes(row.layer), `${key}: bad layer ${row.layer}`);
         assert.ok(Object.values(SCOPES).includes(row.scope), `${key}: bad scope ${row.scope}`);
         assert.ok(Object.values(STATUSES).includes(row.status), `${key}: bad status ${row.status}`);
         assert.ok(row.why && row.why.length > 10, `${key}: no reason given`);
-        assert.ok(row.trace && row.trace.length > 10, `${key}: no trace`);
     }
 });
 
@@ -90,7 +89,7 @@ test('machine-scoped rows live in ReaPrime KV, device-scoped rows live locally',
     }
 });
 
-test('the keys SCOPE Part 3 §5 names as wrongly local are machine-scoped or gone', () => {
+test('the keys named as wrongly local are machine-scoped or gone', () => {
     for (const key of ['waterTankUnit', 'experimentalFusedChannels', 'experimentalCollapseDetection']) {
         assert.equal(STORAGE_ROUTES[key].layer, LAYERS.kv, `${key} should be in the KV store`);
     }

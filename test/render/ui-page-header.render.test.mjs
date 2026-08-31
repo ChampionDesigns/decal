@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -23,7 +23,7 @@ const FIXTURE_CSS = `
     button.child { margin: 0; padding: 0 18px; border: 0; background: none; font: inherit;
                    block-size: 82px; color: inherit; }
 
-    /* THE SCREEN GRID, from LAYOUT_SPEC_DRAFT.md:519-525 — the band is row 1 and the
+    /* THE SCREEN GRID, from — the band is row 1 and the
      * gap below it IS the header underline (departure 2). Written by hand rather than
      * with the seam utility so this suite depends on nothing but the component. */
     .screen {
@@ -118,7 +118,7 @@ const ORACLE = {
     bandH: 118,        // at --ui-density 1; the compact band is 103.25 (tokens.css:182)
     controlLg: 82,
     bandInset: 18,     // the derived block inset — never declared, always measured
-    slateInset: 30,    // P17, the defect
+    slateInset: 30,    // the defect
     inset: 28,
     regionGap: 18,     // --ui-space-4, the editor header's own column-gap
     clusterGap: 24,
@@ -158,7 +158,7 @@ const textOf = (page, selector) => page.evalFn((sel) => {
 const densityOf = async (page) => parseFloat(await page.tokenValue('--ui-density'));
 
 /** Every element inside a host's shadow tree, with everything selection could paint.
- *  Used by the wave-law assertion: "no private selected look anywhere in this wave". */
+ *  Used by the wave-law assertion: "no private selected look anywhere in this repo". */
 const shadowPaint = (page, hostId) => page.evalFn((id) => {
     const root = document.getElementById(id).shadowRoot;
     return [...root.querySelectorAll('*')].map((el) => {
@@ -259,7 +259,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near((await page.computed('#probe-a', ['padding-left']))['padding-left'],
                     ORACLE.inset, 'and the probe on the same screen reads the same token');
 
-                // THE PATH IS REAL. This is P17's exact 2px, bought per screen.
+                // THE PATH IS REAL. This is 's exact 2px, bought per screen.
                 await page.setStyle('#screen-a', { '--ui-space-6': '30px' });
                 try {
                     near(await insetOf('settings'), ORACLE.slateInset,
@@ -481,7 +481,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(await textOf(page, '#clean >>> #save'), 'Save',
                 'the word is Save at zero, with no count beside it');
             assert.equal(await page.exists('#clean >>> #cancel'), true,
-                'and Cancel stays — Slate\'s editor pair, on Ben\'s ruling');
+                'and Cancel stays — the decided editor pair');
             const variants = await page.evalFn(() => ({
                 clean: window.__h.q('#clean >>> #save').getAttribute('variant'),
                 dirty: window.__h.q('#settings >>> #save').getAttribute('variant'),
@@ -491,7 +491,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
 
         test('D11: "cannot tell" is clean — a bad count never shows a false-dirty Save', () => mounted(async (page) => {
-            /* "CANNOT TELL" IS STILL CLEAN, and clean is now "Save" with no count —
+            /* "CANNOT TELL" IS STILL CLEAN, and clean is now "Save" with no count
              * the claim is unchanged, the word at zero is not. */
             for (const [value, expected] of [[-3, 'Save'], [0, 'Save'], ['x', 'Save'], [2.7, 'Save (2)']]) {
                 await page.evalFn((v) => {
@@ -779,7 +779,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             assert.equal(names.save, 'Save (3)');
             assert.equal(names.cancel, 'Cancel');
-            assert.equal(names.close, 'Save', 'clean is Save with no count — Ben, 25 Aug 2026');
+            assert.equal(names.close, 'Save', 'clean is Save with no count');
             assert.equal(names.saveAria, null,
                 'the visible text IS the name — an aria-label here could disagree with it');
         }));

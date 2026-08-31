@@ -76,7 +76,7 @@ const SHAPE = (id) => `(${((hostId) => {
         current: b ? b.getAttribute('aria-current') : null,
         isSelected: b ? b.classList.contains('is-selected') : null,
         disabled: b ? b.hasAttribute('disabled') : null,
-        /* Any inline style anywhere under this component — bug L11's mechanism. */
+        /* Any inline style anywhere under this component — bug the rule's mechanism. */
         inlineStyles: [...root.querySelectorAll('[style]')].length,
         accessibleName: host.accessibleName,
     };
@@ -109,7 +109,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const shape = JSON.parse(await page.eval(`JSON.stringify(${SHAPE('idle')})`));
                 assert.equal(shape.buttons, 0,
                     'Slate: "no cost at all when nothing is running: the control does not exist '
-                    + 'then" (ui.js:3559-3561). A hidden-but-present button is still a tab stop.');
+                    + 'then". A hidden-but-present button is still a tab stop.');
                 assert.equal(shape.interactive, 0, 'nothing focusable is left behind');
 
                 const host = await page.computed('#idle', ['display']);
@@ -130,7 +130,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     + 'is a submit button');
                 assert.equal(shape.disabled, false,
                     'never disabled: "a dimmed Coffee button still took the tap" was the defect '
-                    + '(ui.js:3566-3570); this control is present or absent');
+                    + 'this control is present or absent');
             }));
 
         test('presence follows `running` in both directions, at runtime',

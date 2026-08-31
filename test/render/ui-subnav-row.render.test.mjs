@@ -1,5 +1,5 @@
 /**
- * Gate A for.
+ * the render harness for.
  */
 
 import { test, describe, before, after } from 'node:test';
@@ -314,8 +314,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             );
             const weights = await page.computed(ROW('s1'), ['font-weight']);
             const restingWeights = await page.computed(ROW('s0'), ['font-weight']);
-            assert.equal(weights['font-weight'], '500', 'CITE [i=30] the current row is Slate\'s 500');
-            assert.equal(restingWeights['font-weight'], ORACLE.fontWeight, 'CITE [i=32] resting is 400');
+            assert.equal(weights['font-weight'], '500', '[i=30] the current row is Slate\'s 500');
+            assert.equal(restingWeights['font-weight'], ORACLE.fontWeight, '[i=32] resting is 400');
             assert.equal(weights['font-weight'],
                 await page.resolveToken('--ui-selected-weight', 'font-weight'),
                 'the 500 is READ from the dial, not written in this component');

@@ -11,7 +11,6 @@ import { hasLimit, MACHINE_CLASSES } from './machine-limits.js';
  * own "provisional" marking read from the same place.
  */
 export const R2_INTERIM = Object.freeze({
-    decision: 'B2',
     upstream: 'R2',
     landed: false,
     checkedCommit: '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3',
@@ -81,7 +80,7 @@ export const EDITOR_RANGE_FIELDS = Object.freeze([
         surface: 'lever-dialog',
         source: 'authoring',
         rangeName: 'leverGive',
-        why: 'lever feel, half two. P0 is stepTarget and a preset never touches it',
+        why: 'lever feel, half two. The step target is not touched by a preset',
     }),
     Object.freeze({
         field: 'exitCondition',
@@ -115,6 +114,17 @@ export const EDITOR_RANGE_FIELDS = Object.freeze([
             + 'answer as one of the three that disagreed before drinkWeight existed',
     }),
     Object.freeze({
+        field: 'tankTemperature',
+        surface: 'settings-panel',
+        source: 'machine',
+        limitKey: 'tankTemp',
+        why: 'the profile\u2019s own tank_temperature, and it is the same physical quantity as '
+            + 'the machine row it reads: same water, same sensor, same degrees. Whether the '
+            + 'profile should carry it at all is a separate question this entry does not '
+            + 'answer \u2014 every profile load writes it to the machine, so it overwrites '
+            + 'whatever the settings page holds',
+    }),
+    Object.freeze({
         field: 'targetVolume',
         surface: 'settings-panel',
         source: 'authoring',
@@ -132,20 +142,6 @@ export const EDITOR_RANGE_FIELDS = Object.freeze([
  * `rangeFor()` throws for these by name. Neither may be given a literal.
  */
 export const UNRANGED_EDITOR_FIELDS = Object.freeze([
-    Object.freeze({
-        field: 'tankTemperature',
-        surface: 'settings-panel',
-        why: 'THE LIMITS TABLE NOW CARRIES tankTemp AND THIS FIELD IS STILL UNRANGED, which '
-            + 'is a deliberate split rather than an oversight (24 Aug 2026). The machine row '
-            + 'was added for the Settings page: `unified_de1.profile.dart` ends every '
-            + '_sendProfile with a _writeMMRInt(MMRItem.tankTemp), so every profile load '
-            + 'clobbers whatever a control set — still true, and answered there by a CAPTION '
-            + 'saying so rather than by an empty leaf. THIS field is the other side of that '
-            + 'same write: the PROFILE\u2019s own tank_temperature, the value doing the '
-            + 'clobbering. Giving the editor a range would be a second surface writing one '
-            + 'MMR through two doors, and deciding whether the profile should own it at all '
-            + 'is the upstream question neither range answers. Ben has not ruled on it.',
-    }),
     Object.freeze({
         field: 'targetVolumeCountStart',
         surface: 'settings-panel',
@@ -166,7 +162,7 @@ function refuse(field) {
     if (declared) {
         throw new Error(
             `editor-ranges: "${field}" has no range ON PURPOSE — ${declared.why} `
-            + 'Do not give it a literal: B2 is exactly one table, and a stepper default is a '
+            + 'Do not give it a literal: there is exactly one table, and a stepper default is a '
             + 'second one. Render it unbounded, or unavailable, and say why.',
         );
     }
@@ -185,7 +181,7 @@ export function createEditorRanges({ machineLimits, machineClass = null } = {}) 
             'createEditorRanges: the machine limits table must be injected — '
             + 'capabilities-store.js machineLimits().value, which is r2MachineLimits() behind '
             + 'the R2 door. There is no default: a hand-written fallback here would be the '
-            + 'second table B2 forbids.',
+            + 'second table, which is forbidden.',
         );
     }
     if (machineClass !== null && machineClass !== undefined
@@ -194,7 +190,7 @@ export function createEditorRanges({ machineLimits, machineClass = null } = {}) 
             `createEditorRanges: "${machineClass}" is not a machine class. The classes are `
             + `${MACHINE_CLASSES.join(', ')}, or null for "not known yet". It comes from `
             + 'capabilities-store.js machineClass() — a served capability answer, never a '
-            + 'model name (A3).',
+            + 'model name.',
         );
     }
     const resolvedClass = machineClass ?? null;
@@ -204,7 +200,7 @@ export function createEditorRanges({ machineLimits, machineClass = null } = {}) 
         if (!hasLimit(machineLimits, row.limitKey)) {
             throw new Error(
                 `editor-ranges: the machine limits table carries no "${row.limitKey}" row, so `
-                + `"${row.field}" has no bounds. Absence is the R2 door's real answer (A7) — `
+                + `"${row.field}" has no bounds, and absence is the honest answer — `
                 + 'render the control unavailable. Never stand a plausible band in for it.',
             );
         }
@@ -231,7 +227,7 @@ export function createEditorRanges({ machineLimits, machineClass = null } = {}) 
                 if (!pump) {
                     throw new Error(
                         `editor-ranges: "${field}" is mode-dependent — pass {pump}. `
-                        + `getModeConfig refuses an unknown mode rather than reading it as flow (A7); `
+                        + `getModeConfig refuses an unknown mode rather than reading it as flow; `
                         + `the four are ${PUMP_MODE_CYCLE.join(', ')}.`,
                     );
                 }

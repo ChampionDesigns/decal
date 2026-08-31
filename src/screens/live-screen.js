@@ -224,7 +224,7 @@ export class LiveScreen extends UiElement {
         /** limit key -> preset values (#37). User data; nothing is invented here. */
         presets: { attribute: false },
 
-        /** L25's two restored toggles, as state. */
+        /** The two restored toggles, as state. */
         steamStop: { type: String, attribute: 'steam-stop' },
         waterStop: { type: String, attribute: 'water-stop' },
 
@@ -618,6 +618,8 @@ export class LiveScreen extends UiElement {
             gap: var(--ui-space-2) var(--ui-space-5);
             margin: 0;
             min-inline-size: 0;
+            block-size: 100%;
+            align-content: end;
         }
 
         .foot-derived dt {
@@ -906,7 +908,7 @@ export class LiveScreen extends UiElement {
     }
 
     /** The value a target currently holds, or undefined. Undefined is a real answer:
-     *  the control is shown with the dash and cannot be stepped (A7). */
+     *  the control is shown with the dash and cannot be stepped. */
     #valueOf(key) {
         const held = this.targets ? this.targets[key] : undefined;
         if (typeof held !== 'number' || !Number.isFinite(held)) return undefined;
@@ -1466,12 +1468,6 @@ export class LiveScreen extends UiElement {
             </live-rail>
 
             <live-main part="main">
-                <!-- THE CHART IS THE SHOT'S, OR THE STEAM SESSION'S (Ben, 24 Aug 2026).
-                     ONE CARD, NOT TWO: a second card would be a second cursor, a second
-                     legend and a second set of tokens to keep in step, and the card
-                     already takes its channels and both its scales as properties. What
-                     changes on a steam is the derivation, the channel list and the two
-                     axes — every one of them a value this screen hands over. -->
                 <ui-chart-card
                     id="live-chart"
                     slot="chart"
@@ -1553,67 +1549,7 @@ export class LiveScreen extends UiElement {
 
                     ${this.#renderDerived()}
 
-                    <!-- ============================================================
-                         THE RATE STRIP, ALONE IN ITS CORNER (it16 / it21; this note
-                         corrected in review — an it20 draft of it still argued for the
-                         "All shots" button living here, one arrangement after the tree
-                         had already moved on)
-
-                         SLATE'S OWN CORNER IS FOUR THINGS AND THE LAST IS A BUTTON:
-                         .slate-shot-rate [i=154] holds the microcap "Rate this shot"
-                         [i=155], the score [i=156], the slider [i=157] and then
-                         #shot-dye-btn [i=158] "Full notes".
-
-                         THE FOURTH ITEM HAS A DESTINATION NOW, AND IT IS DYE2'S BEAN
-                         PICKER (Ben, 27 August 2026: "Have the button open the bean
-                         picker page for now, I need to do more work on this though").
-                         This note used to say "Decal builds no NOTES surface, so that
-                         destination does not exist here (the digest's declared drop) and
-                         the corner holds the rating control alone" — both halves of that
-                         have moved on. The notes button arrived on 25 August with its
-                         own sheet, and the DYE handoff that ui-rating-control has been
-                         firing since it was built now has a listener: #openDye2 below.
-                         Until today dye-handoff was published by the component,
-                         documented in its header, exercised by its own render tests, and
-                         listened to by NOTHING in src/ — a finished half with no other
-                         half, in the one place the component's header had already warned
-                         about it. (NO BACKTICKS ANYWHERE IN THIS BLOCK. It sits inside an
-                         html tagged template, where one backtick inside a comment closes
-                         the template and the parse error names a distant line.)
-
-                         THE COMPOSITION IS UNCHANGED AND SO IS THE PIN. The handoff is a
-                         child of ui-rating-control, not a sibling of it, so this
-                         corner still holds exactly one element —
-                         which is what the oracle's corner is once its dead-end button
-                         is declared away, and what live-bands' composition test pins
-                         (foot-controls renders exactly ['ui-rating-control']).
-
-                         THE WAY OUT ("All shots") is NOT here: it is in Slate's own
-                         block, under the date and the profile line (#history-open-viewer
-                         [i=118] inside #shot-history-panel) — see #renderShotIdentity.
-                         it20 tried it stacked in this corner and measured it out: the
-                         auto track resolved to the button's width and the strip's
-                         microcap ellipsised at 1920 (the strip states no measure of its
-                         own — see .foot-controls in the styles). it21 put it back under
-                         the identity, unconditional, with only the three identity LINES
-                         conditional, and gave this column the token-derived box the
-                         component never states.
-
-                         THE STEPPER THAT USED TO BE HERE was deleted outright, and it
-                         was worse than an invention. Its value was pinned at 0 with no
-                         change handler at all, so it rendered a control that could not
-                         move: three presses, no event, no re-read, nothing. Slate has
-                         no such control on this band and Ben's enumeration of the foot
-                         has none. Paging back through stored shots is what Slate's
-                         #history-prev-btn does and what the History screen does
-                         properly; the digest carries the declared drop. -->
                     <div class="foot-controls">
-                        <!-- WEATHER TAKES THE WHOLE CORNER WHEN IT HAS A READING, and the
-                             three controls it replaces are not rendered beside it - Ben's
-                             call, 29 Aug 2026. weatherState returns HIDDEN whenever the
-                             plugin is absent, has never been given a location, or its
-                             reading has aged past two hours, so the ordinary corner is
-                             what a machine without the plugin still sees. -->
                         ${this.#weatherShowing
                             ? html`<ui-weather-corner
                                 .reading=${this.weather}
@@ -1636,22 +1572,6 @@ export class LiveScreen extends UiElement {
 
             ${this.#renderKeypad()}
 
-            <!-- THE FULL-SCREEN CHART. Ben, 24 Aug 2026: the tap "should load the
-                 expanded chart that does show live tracking etc".
-
-                 IT IS HANDED THE DERIVATION THE CARD ABOVE IS DRAWING, not a second one.
-                 That is what makes it live and it is the reason this is an overlay rather
-                 than a route: a second screen would need its own feeds, its own
-                 derivation and its own copy of the running-vs-browsed rule, and no two of
-                 those can be built twice without disagreeing about which shot is on
-                 screen. -->
-            <!-- ALWAYS THE BAND'S DERIVATION, never the steam session's: this surface
-                 cannot be opened during a steam session (see #openExpanded), so a steam
-                 branch here would be a branch nothing can reach.
-
-                 A COMMENT GOES ABOVE THE TAG AND NEVER INSIDE ITS ATTRIBUTE LIST. One put
-                 between two bindings here made lit parse the element as text: the overlay
-                 opened, took no derivation, and drew its own "No shot to draw" refusal. -->
             <live-expanded-chart
                 id="expanded"
                 ?open=${this._expanded}

@@ -1,9 +1,9 @@
 /* CANARY — an @font-face in a .css file that is not styles/document.css.
  *
- * Added by Wave 0a item #4, the stylesheet half of the font-face guard's coverage.
- * styles/document.css is "the ONE place a face may be declared" (SCOPE Part 2 §2,
- * §7); anywhere else the face measurably never registers for canvas text
- * (Part 8 §3 Rule 2).
+ * Added item #4, the stylesheet half of the font-face guard's coverage.
+ * styles/document.css is "the ONE place a face may be declared" ( the notes,
+ *); anywhere else the face measurably never registers for canvas text
+ * (the notes  Rule 2).
  */
 
 @font-face {

@@ -1,14 +1,14 @@
 # scripts/
 
-Generators and guards that run under node, never at serve time: the i18n build (D2),
-the colour-literal guard (A8), the token-integrity check, and the generated-artifact
-freshness check (SCOPE Part 2 §7).
+Generators and guards that run under node, never at serve time: the i18n build,
+the colour-literal guard, the token-integrity check, and the generated-artifact
+freshness check.
 
 Every guard ships with a canary - a fixture that deliberately violates the rule and a
 test asserting the guard fails on it. All three old-guard failures were guards that
-silently stopped covering their target (Part 8 §2, Gate C).
+silently stopped covering their target.
 
-## Gate C
+## The CSS guards
 
 ```
 node scripts/guards.js            # all guards; exit 1 on any error
@@ -18,15 +18,15 @@ node scripts/guards.js --only colour-literal
 
 | guard | rule | exempt |
 |---|---|---|
-| `colour-literal` | no raw colour literal in authored component CSS (A8) | `styles/tokens.css`, `styles/chart-channels.css` |
-| `font-face` | no `@font-face` in component styles (Part 8 §3 Rule 2, static half) | `styles/document.css` |
-| `important` | zero `!important` in component styles (spec §2.1 Rule 3) | - |
-| `private-palette` | no re-declaring a public `--ui-*` token in a component (bug L12) | the token sheets |
+| `colour-literal` | no raw colour literal in authored component CSS | `styles/tokens.css`, `styles/chart-channels.css` |
+| `font-face` | no `@font-face` in component styles, the static half | `styles/document.css` |
+| `important` | zero `!important` in component styles | - |
+| `private-palette` | no re-declaring a public `--ui-*` token in a component | the token sheets |
 
 `guards.js` is the registry - severity is one field per row, so downgrading a guard to
 a warning is a one-word edit. `lib/authored-css.js` finds and parses the CSS;
 `lib/colour-literals.js` decides what counts as a literal. `lib/source-scan.js` is the
-shared JavaScript lexer under every source scan (Gate 2's dead names, Gate 3's excluded
+shared JavaScript lexer under every source scan (the dead-name scan, the excluded
 surface, the cache register): it tells a name USED from a name DISCUSSED, so the module
 headers and `src/data/EXCLUDED.md` can name dead symbols in prose without earning an
 exemption.
@@ -66,9 +66,9 @@ The canaries are in `test/fixtures/canaries/`, the clean counter-example in
 
 ## i18n
 
-`build-i18n.js` generates `i18n/en.json` from `i18n/source/` (D2).
+`build-i18n.js` generates `i18n/en.json` from `i18n/source/`.
 
-## MachineState (Gate 2)
+## MachineState
 
 `generate-machine-state.js` generates `src/data/machine-state.generated.js` from
 ReaPrime's `enum MachineState` / `enum MachineSubstate` in
@@ -80,20 +80,20 @@ node scripts/generate-machine-state.js --check    # exit 1 if it is stale
 ```
 
 It is a generator rather than a copy because **the hand copy already drifted twice in one
-object**: the old skin invented `READY: 'ready'` (not a state in either direction, then
+object**: the previous skin invented `READY: 'ready'` (not a state in either direction, then
 used as a rule in a live-state fold) and lost `schedIdle` (which is one, so a
 scheduled-idle machine classified as busy and the post-shot review window was cut short).
 Both shipped, and both are among the 31 live contract bugs.
 
-The source is the **pinned read-only reference worktree**
-(`REA_ROOT`, default `/home/ben/bengle/_port/worktrees/rea-reanchor-v3`). The generator
+The source is a **ReaPrime checkout**, read only (`REA_ROOT`, default `../reaprime`).
+The generator
 resolves that tree's HEAD and refuses to run against anything but the pinned commit, so
 the commit stamped into the artifact is a fact rather than a hope; a missing source or a
 non-plain enum is a hard error, never a partial parse.
 `test/machine-state-freshness.test.mjs` runs `--check` and, separately, re-parses the Dart
 enum so byte-equality alone cannot pass a generator and artifact that are wrong together.
 
-## The route table (Gate 3)
+## The route table
 
 `generate-rea-routes.js` generates `src/data/rea-routes.generated.js` from ReaPrime's own
 API specs — `assets/api/rest_v1.yml` and `assets/api/websocket_v1.yml` — in the same
@@ -105,7 +105,7 @@ node scripts/generate-rea-routes.js --check     # exit 1 if it is stale
 node scripts/generate-rea-routes.js --summary   # counts only, writes nothing
 ```
 
-It exists because 872 of `api.js`'s 2,406 lines were one-line wrappers around a surface the
+It exists because 872 of the previous transport's 2,406 lines were one-line wrappers around a surface the
 server already publishes (E2). `lib/yaml-subset.js` is the YAML reader underneath — no npm
 dependency, and a deliberately small subset that **refuses** anchors, multi-document
 streams, merge keys, explicit keys and tab indentation with a file and line number rather
@@ -113,15 +113,15 @@ than parsing them into something plausible. `lib/rea-source.js` holds the one pi
 (`REA_ROOT`, `PINNED_COMMIT`, `resolveReaCommit`); a test asserts it agrees with
 `generate-machine-state.js`.
 
-Where the spec and the handler disagree, **the handler wins**: three named, commented
+Where the document and the handler disagree, **the handler wins**: three named, commented
 exceptions in the generator conform the output to the Dart, and each one hard-fails the
-generator the moment the spec is fixed, so it deletes itself rather than rotting. See
+generator the moment the document is fixed, so it deletes itself rather than rotting. See
 `src/data/ROUTES.md`.
 
 <!-- gate-d -->
-## Gate D — the contract table
+## `gate-d` — the contract table
 
-`gate-d.js` is the build gate over `src/data/CONTRACTS.json`, the record Part 3 §7 requires:
+`gate-d.js` is the build gate over `src/data/CONTRACTS.json`, the required record:
 path, verb, request body, response shape, handler symbol, handler file and the ReaPrime
 commit checked against, for every endpoint the skin adopts.
 

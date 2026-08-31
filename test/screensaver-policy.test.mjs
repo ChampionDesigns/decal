@@ -34,7 +34,7 @@ const ABSENT_STATES = [
 
 const AWAKE_STATES = MACHINE_STATES.filter((state) => state !== MACHINE_STATE.SLEEPING);
 
-// --- Gate 2: the names are the generated ones ----------------------------------
+// --- this layer: the names are the generated ones ----------------------------------
 
 describe('every state name in the policy comes from the generated enum', () => {
     test('the sleep state this module compares against is a real MachineState', () => {
@@ -397,7 +397,7 @@ test('every named import is actually used — a dead import is an unfinished int
     }
 });
 
-// --- D10: fully black, one owner ------------------------------------------------
+// ---: fully black, one owner ------------------------------------------------
 
 describe('D10 — the saver is black and the skin owns blanking', () => {
     test('the blank level is 0', () => {

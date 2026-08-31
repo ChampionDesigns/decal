@@ -22,9 +22,9 @@ export const R_ADAPTERS = Object.freeze([
         tag: 'R2',
         adapter: 'r2MachineLimits',
         missingField: 'a machine limits endpoint (pressure, flow, power, temperatures, steam, dose ranges)',
-        why: 'the ranges are hand-written tables in the old skin that no firmware change updates; B3 is that rot already visible.',
+        why: 'the ranges are hand-written tables that no firmware change updates, and that rot is already visible.',
         servedInstead: null,
-        interim: 'EXACTLY ONE limits table in the skin, never two — src/lib/machine-limits.js, reached only through this adapter. The steam envelope is machine-dependent and comes from the served capability answer, never from a machine name (A3).',
+        interim: 'EXACTLY ONE limits table, never two — src/lib/machine-limits.js, reached only through this adapter. The steam envelope is machine-dependent and comes from the served capability answer, never from a machine name.',
         provisional: true,
         swapWhen: 'the limits endpoint serves the ranges per machine type; every numeric component takes min/max/step from that answer',
         outputs: Object.freeze(['machineLimits']),
@@ -34,7 +34,7 @@ export const R_ADAPTERS = Object.freeze([
         tag: 'R3',
         adapter: 'r3GroupHeadControllerCapability',
         missingField: 'a group-head-controller entry in GET /api/v1/machine/capabilities',
-        why: 'the served set is seven fixed entries and GHC is not one of them; the GHC strip today renders on every machine (L1).',
+        why: 'the served set is seven fixed entries and GHC is not one of them; the GHC strip renders on every machine.',
         servedInstead: 'MachineInfo.toJson key `GHC` (bool) on GET /api/v1/machine/info',
         interim: "read the served `GHC` flag — a served field, not a machine name",
         provisional: true,
@@ -72,7 +72,7 @@ export const R_ADAPTERS = Object.freeze([
         missingField: 'profile-mode entries (Power / Lever / HOLD / power exit) in GET /api/v1/machine/capabilities',
         why: 'ReaPrime never names the bits over the API; the mask is served as an opaque integer on machine/info.',
         servedInstead: "extra.profileModeCaps on GET /api/v1/machine/info (unified_de1.dart `_readProfileModeCaps`)",
-        interim: 'decode the four bits as a UI-OFFER HINT ONLY — the authority is the arm-time 400 refusal (B9)',
+        interim: 'decode the four bits as a UI-OFFER HINT ONLY — the authority is the arm-time 400 refusal',
         provisional: true,
         swapWhen: 'the capability set names the four modes',
         outputs: Object.freeze(['profileModeCapabilities']),
@@ -201,7 +201,7 @@ export function r3ProfileModeCapabilities(machineInfo) {
         basis: garbled
             ? 'bits outside the defined mask — fail-closed to no modes, as unified_de1.dart does'
             : 'machine/info extra.profileModeCaps',
-        note: 'UI-offer hint only; the arm-time 400 is the authority (B9)',
+        note: 'UI-offer hint only; the arm-time 400 is the authority',
     });
 }
 
@@ -353,7 +353,7 @@ export function r2MachineLimits(entries) {
         basis: `served capability set is ${entries.length > 0 ? 'non-empty' : 'empty'}`
             + ' (de1handler emits the seven iff BengleInterface) — machine class from a served'
             + ' answer, never a model string',
-        note: 'the whole table is PROVISIONAL (R2/B2): hand-written in the skin until the'
+        note: 'the whole table is PROVISIONAL, pending R2: hand-written in the skin until the'
             + ' limits endpoint serves it',
     });
 }

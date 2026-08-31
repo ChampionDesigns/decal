@@ -82,7 +82,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(
                 labels,
                 ['12', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
-                'HOUR_LABELS carried unchanged from time-picker-modal.js:42',
+                'HOUR_LABELS carried unchanged from ',
             );
         }));
 
@@ -121,7 +121,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.deepEqual(
                 labels,
                 ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'],
-                'MIN_LABELS carried unchanged from time-picker-modal.js:43',
+                'MIN_LABELS carried unchanged from ',
             );
         }));
 
@@ -205,9 +205,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const base = await page.resolveValue('var(--ui-text-base)', 'font-size');
             assert.equal(
                 await page.prop(chip(6), 'font-size'), base,
-                'CITE settings-machine-sleep---wake-schedules #schedule-time-input [i=76] '
+                'settings-machine-sleep---wake-schedules #schedule-time-input [i=76] '
                 + 'font-size = 17px <- authored var(--slate-text-base) (token-driven); '
-                + 'time-picker-modal.css:174 gives the clock numbers the same token',
+                + 'gives the clock numbers the same token',
             );
             await assertTokenDrill(page, {
                 token: '--ui-text-base', value: DRILL_LENGTH,
@@ -528,7 +528,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(await page.evalFn(() => window.__h.need('#tp').value), '09:30');
                 assert.equal(
                     await page.evalFn(() => window.__h.need('#tp').getAttribute('mode')), 'minute',
-                    'auto-advance, "like the OS picker" (time-picker-modal.js:105)',
+                    'auto-advance, "like the OS picker" ',
                 );
                 const events = await page.recordedEvents();
                 assert.equal(events.length, 1, 'one change, on the one user choice');

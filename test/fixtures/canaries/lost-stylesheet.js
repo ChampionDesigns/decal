@@ -3,9 +3,9 @@
  * scan".
  *
  * A BACKTICK INSIDE A css TAGGED TEMPLATE CLOSES IT. Every rule after that point simply
- * stops applying, so every Gate C rule inside the lost tail has nothing left to violate
+ * stops applying, so every guard rule inside the lost tail has nothing left to violate
  * and the build goes green over a component that is no longer painting. Measured three
- * times in one session on 23 Aug 2026; the third time it produced a passing gate and a
+ * times in one session; the third time it produced a passing gate and a
  * broken screen, which is why this canary exists.
  *
  * IT HAS TO PARSE, AND THE FIRST VERSION DID NOT. This file is under `test/`, so

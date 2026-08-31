@@ -1,5 +1,5 @@
 /**
- * <editor-lever-dialog>, the profile editor's LEVER dialog: an INSTANCE of #18 <ui-dialog> holding the two feel legs, the three presets, and P0 shown but not editable.
+ * <editor-lever-dialog>, the profile editor's LEVER dialog: an instance of <ui-dialog> holding the two feel legs, the three presets, and P0 shown but not editable.
  */
 
 import { html, nothing } from 'lit';
@@ -40,7 +40,7 @@ export class EditorLeverDialog extends UiElement {
 
         index: { type: Number },
 
-        /** THE ONE RANGES DOOR (B2), injected. */
+        /** THE ONE RANGES DOOR, injected. */
         ranges: { attribute: false },
 
         level: { type: Number },
@@ -176,26 +176,6 @@ export class EditorLeverDialog extends UiElement {
                         ></ui-stepper>
                     </div>
 
-                    <!-- P0, SHOWN AND NOT EDITABLE HERE. #43 takes no data: the value
-                         arrives through its default slot and the formatted sentence is
-                         this caller's. The unit is the range's, never a word typed here,
-                         and the Target row of the step matrix is where P0 is edited.
-
-                         NO BACKTICK IN THIS COMMENT: one ends the html tagged template
-                         where it stands (the same trap ui-chart-card's css block names).
-
-                         The label IS THE WHOLE ACCESSIBLE READING, not the caption. #43
-                         makes the slotted glyphs aria-hidden the moment a label is set
-                         (ui-locked-value.js render(), ACCESSIBILITY note), so a label of
-                         "Lever P0" — which is ALREADY on screen as #p0-label beside the
-                         box — announced the caption twice and the reading not at all: the
-                         one value this dialog exists to protect reached no assistive
-                         technology, while the suite's textContent invariant stayed green.
-                         The reading is COMPOSED ONCE above and used for both the visible
-                         glyphs and the label, so the two cannot drift. With no finite P0
-                         there is no reading to announce and the caption alone is the
-                         honest name — the em dash is a visual placeholder and announcing
-                         it would be worse than announcing nothing. -->
                     <div class="row" data-row="p0">
                         <span class="ui-caption" id="p0-label">${t('Lever P0')}</span>
                         <ui-locked-value id="p0" label=${p0Reading}

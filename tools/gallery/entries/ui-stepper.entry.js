@@ -39,7 +39,7 @@ export const entry = {
                 'B2: the limits are DATA (min/max attributes here; machine-limits.js and '
                 + 'then ReaPrime\'s served ranges later). At the end the cap stops looking '
                 + 'live — one dial, --ui-opacity-disabled — and stays in the tab order so a '
-                + 'keyboard user can find out why it does nothing. Slate leaves steam '
+                + 'keyboard user can find out why it does nothing. The reference skin leaves steam '
                 + 'pinned at 170/170 with a fully lit +.',
             hostStyle: { 'inline-size': '268px' },
             html: '<ui-stepper label="Steam temperature" unit="°C" value="165" min="135" max="165"></ui-stepper>',
@@ -48,7 +48,7 @@ export const entry = {
             id: 'editable',
             title: 'Editable value cell',
             notes:
-                'Bug L22\'s value-cell half: Slate\'s rail cells are tabindex="-1" — in the '
+                'Bug L22\'s value-cell half: the reference skin\'s rail cells are tabindex="-1" — in the '
                 + 'markup, out of the tab order. Here an editable cell is a real button at '
                 + '110 × 62, it announces its own value, and it reports the press rather '
                 + 'than opening anything itself (the numpad is #53).',
@@ -98,7 +98,7 @@ export const entry = {
             id: 'settings-column',
             title: 'A settings column',
             notes:
-                'Where Slate renders eight of these in a row at [1561, y, 268, 64]. Every '
+                'Where the reference skin renders eight of these in a row at [1561, y, 268, 64]. Every '
                 + 'field states its own range; nothing in the component knows what any of '
                 + 'them measures.',
             hostStyle: { 'inline-size': '420px' },

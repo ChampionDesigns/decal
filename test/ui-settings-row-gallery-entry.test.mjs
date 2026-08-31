@@ -48,9 +48,9 @@ test('the battery photographs T13 with the hazard LIVE, not merely absent', () =
     const t13 = entry.states.find((s) => s.id === 't13');
     assert.ok(t13, 'the T13 state is the one a reviewer looks at first');
     assert.match(t13.html, /\.content-stretch\.flex\.items-center\.justify-between/,
-        'the state must carry slate-shell.css:1291\'s class-shape selector');
+        'the state must carry \'s class-shape selector');
     assert.match(t13.html, /padding-block:\s*var\(--ui-space-3\)/,
-        'and slate-shell.css:1295, the declaration that displaces the Brightness title');
+        'and the declaration that displaces the Brightness title');
     assert.match(t13.html, /\[data-settings-row\]/,
         'including line 1292\'s explicit opt-in, which zero elements in Slate use');
 

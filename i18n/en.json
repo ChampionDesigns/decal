@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "ee50c4405170a32dbd8cbba13a7e78a3c8584e9d05f78adf78b7d0e3fcf16323",
+  "sourceSha256": "53e5bd1eae54f797980aa798bf4500a29ba682d33280e1879b716b8d55653a09",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -567,6 +567,11 @@
     "Steaming": "Steaming",
     "Step": "Step",
     "Step actions": "Step actions",
+    "{n}. {name}": "{n}. {name}",
+    "Start measuring the drink at": "Start measuring the drink at",
+    "The scale tares here, and stop at weight cannot end the shot before it. Steps above this one do not count toward the drink.": "The scale tares here, and stop at weight cannot end the shot before it. Steps above this one do not count toward the drink.",
+    "Volume counts from this step, and with no scale connected the volume stop is what ends the shot. With a scale, it tares when the pour begins.": "Volume counts from this step, and with no scale connected the volume stop is what ends the shot. With a scale, it tares when the pour begins.",
+    "Steps above this one do not count toward the drink, by weight or by volume.": "Steps above this one do not count toward the drink, by weight or by volume.",
     "Step {n}": "Step {n}",
     "Step {n} name": "Step {n} name",
     "Step {n} of {total}": "Step {n} of {total}",

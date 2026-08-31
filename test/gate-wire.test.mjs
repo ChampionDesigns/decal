@@ -313,7 +313,7 @@ describe('gate-wire over this repo', () => {
     });
 
     test('the ledger ships with the repo, and its absence is not an error', () => {
-        /* Under tools/, not beside the audit notes: the vouches are part of the gate and
+        /* Under tools/, not beside an earlier run notes: the vouches are part of the gate and
            have to travel with it. */
         assert.equal(LEDGER_PATH, 'tools/wire-ledger.json');
         assert.ok(Array.isArray(loadLedger().entries));

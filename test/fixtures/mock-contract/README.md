@@ -1,8 +1,8 @@
-# Gate B rule 4 canaries
+# Mock-contract canaries
 
 Every guard ships with a canary: a fixture that violates the rule on purpose, and a test
-asserting the guard fails on it (SCOPE Part 8 §2). `tools/check_mock_contract.py` holds
-the capture mock to the same contract table Gate D holds the client to, and these are
+asserting the guard fails on it. `tools/check_mock_contract.py` holds
+the mock to the same contract table gate-d holds the client to, and these are
 what prove it still bites.
 
 Nothing here is a real recording and nothing here is ever served: each directory is
@@ -16,7 +16,7 @@ rule proves nothing about its own.
 | `shape-kind/` | an object where `getDevices` says an array |
 | `keys-missing/` | eight of the nine keys `GET /machine/settings` writes |
 | `keys-extra/` | a seventh key on the six-key `/machine/settings/advanced` row |
-| `forbidden-spelling/` | `prewarmLeadMinutes` (CB-18) nested inside an LED-strip frame — a typed, open row, so no key rule can fire and the spelling scan is isolated |
+| `forbidden-spelling/` | `prewarmLeadMinutes` nested inside an LED-strip frame — a typed, open row, so no key rule can fire and the spelling scan is isolated |
 | `invariant/` | three items for `limit=2`, which `shot_dao`'s SQL LIMIT cannot produce |
 | `unvouched-route/` | a recording of a route with no row anywhere |
 | `verb-not-served/` | a GET fixture for `/api/v1/feedback`, which the table has only as POST |
