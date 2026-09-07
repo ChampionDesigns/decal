@@ -78,7 +78,19 @@ export class EditorExitDialog extends UiElement {
      * Open, seeding the draft from the step. Forwarded to #18 so the RESTORE TARGET is
      * captured there, at open time (`ui-dialog.js:699-702`).
      */
-    show({ invoker = null, reason = 'api' } = {}) {
+    show({ invoker = null, reason = 'api', draft = null } = {}) {
+        /* RESUME, NOT RESEED, when a draft is handed back. The threshold's keypad is a
+         * second overlay and the region shows one at a time, so editing the number closes
+         * this dialog and reopens it. Reseeding from the step would throw away the type
+         * and the direction just chosen. */
+        if (draft) {
+            this.#draft = { ...draft };
+            this.requestUpdate();
+            const back = this.dialog;
+            if (back) back.show({ invoker, reason });
+            else this.open = true;
+            return;
+        }
         this.#seed();
         this.requestUpdate();
         const dialog = this.dialog;
@@ -188,6 +200,7 @@ export class EditorExitDialog extends UiElement {
                         <span class="ui-caption">${t('Threshold')}</span>
                         <ui-stepper
                             id="value"
+                            editable
                             label=${t('Threshold')}
                             title=${refusal ? t('Unavailable') : nothing}
                             data-refusal=${refusal || nothing}

@@ -2159,7 +2159,10 @@ export class SettingsBespokeLeaf extends UiElement {
     #onWheel = (event) => {
         const hex = event.detail?.hex;
         if (typeof hex !== 'string') return;
-        void this.deps?.led?.preview(this._ledZone, this._ledBank, hex);
+        /* `_ledZone` is the group a person picked; the store takes the wire zones
+         * `ledZonesFor` maps it to. Passing the group straight through is refused as a
+         * bad target and nothing reaches the wire. */
+        void this.deps?.led?.preview(ledZonesFor(this._ledZone), this._ledBank, hex);
     };
 
     #firmware() {

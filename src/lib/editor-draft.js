@@ -2,7 +2,10 @@
  * The profile draft: the working copy a screen edits, and the rules that keep it valid.
  */
 
-import { newStep, seedStepForPump, limiterOnClear } from './profile-modes.js';
+import {
+    newStep, seedStepForPump, limiterOnClear,
+    LIMITER_TOLERANCES, limiterToleranceOfStep,
+} from './profile-modes.js';
 import { exitBand } from './exit-sentence.js';
 
 /** The four event names this module applies. Spelled once, imported by the screen. */
@@ -89,6 +92,45 @@ export function applyExitRemove(draft, { index, slot } = {}) {
 
 export function applyLeverChange(draft, { index, leverSpring, leverGive } = {}) {
     return withStep(draft, index, (step) => ({ ...step, leverSpring, leverGive }));
+}
+
+/**
+ * The limiter tolerance: one profile-wide setting, written to `step.limiter.range` on
+ * every step whose limiter is measured in that tolerance's unit. Its own door rather than
+ * a case in `applyEditorEdit`, because it names no step index.
+ *
+ * A STEP WITH NO LIMITER OBJECT IS LEFT ALONE. `limiter: null` is how a step says it has
+ * no limit, and a step with no limit has no knee to widen — writing one would put content
+ * into the profile that nobody authored. A profile with no such limiter is REFUSED, so
+ * the caller can disable the control rather than offer one that writes nothing.
+ *
+ * @param {object|null} draft
+ * @param {{tolerance:string, value:number}} detail  `tolerance` is one of LIMITER_TOLERANCES
+ * @returns {{draft:object|null, applied:boolean, reason:string|null}}
+ */
+export function applyLimiterTolerance(draft, { tolerance, value } = {}) {
+    if (!LIMITER_TOLERANCES.includes(tolerance)) {
+        return refuse(draft, `'${tolerance}' is not a limiter tolerance `
+            + `(${LIMITER_TOLERANCES.join(', ')})`);
+    }
+    if (!Number.isFinite(value)) return refuse(draft, 'the tolerance is not a number');
+    if (!isObject(draft)) return refuse(draft, 'the draft is not a profile object');
+    const steps = Array.isArray(draft.steps) ? draft.steps : null;
+    if (!steps) return refuse(draft, 'the draft carries no steps array');
+
+    let reached = 0;
+    const next = steps.map((step) => {
+        if (!isObject(step) || !isObject(step.limiter)) return step;
+        if (limiterToleranceOfStep(step) !== tolerance) return step;
+        reached += 1;
+        if (step.limiter.range === value) return step;
+        return { ...step, limiter: { ...step.limiter, range: value } };
+    });
+
+    if (reached === 0) {
+        return refuse(draft, `no step in this profile carries a ${tolerance} limiter`);
+    }
+    return Object.freeze({ draft: { ...draft, steps: next }, applied: true, reason: null });
 }
 
 export function applyEditorEdit(draft, name, detail = {}) {

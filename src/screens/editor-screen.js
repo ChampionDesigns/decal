@@ -12,7 +12,7 @@ import { shotClock } from 'src/lib/shot-summary.js';
 import { VERSIONS_STATUS } from 'src/stores/profile-library-store.js';
 import { createEditorRanges } from 'src/lib/editor-ranges.js';
 import {
-    applyEditorEdit, applyStepAction, EDITOR_EDIT, renameBody,
+    applyEditorEdit, applyLimiterTolerance, applyStepAction, EDITOR_EDIT, renameBody,
 } from 'src/lib/editor-draft.js';
 import { STEP_ACTION } from 'src/components/ui-action-key-rail.js';
 import {
@@ -22,7 +22,9 @@ import {
     profileFailureSentence, PROFILE_VISIBILITY, profileVisibilityOf,
 } from 'src/data/rea-profile.js';
 import { profileTotalTerms, TOTALS_SEPARATOR } from 'src/lib/profile-totals.js';
-import { NEW_STEP_NAME_KEY, reviewStepSpec } from 'src/lib/profile-modes.js';
+import {
+    NEW_STEP_NAME_KEY, reviewStepSpec, limiterToleranceIn, POWER_CAP_DEFAULT,
+} from 'src/lib/profile-modes.js';
 import {
     VERSION_KEPT, versionChangeFacts, parentRecordOf, lineageFactsOf,
 } from 'src/lib/profile-lineage.js';
@@ -183,6 +185,12 @@ export class EditorScreen extends UiElement {
             padding-block-end: var(--ui-space-3);
             border-block-end: var(--ui-seam) solid var(--ui-line);
             color: var(--ui-muted);
+        }
+
+        /* A band that opens a new subject needs more air over it than the rows inside it
+         * have between them, or the heading reads as one more row. */
+        .column > .group:not(:first-child) {
+            margin-block-start: var(--ui-space-4);
         }
 
         #steps {
@@ -383,6 +391,10 @@ export class EditorScreen extends UiElement {
             const machineClass = this.#ranges.machineClass();
             const blocks = steps.map((step, index) => ({
                 id: `step-${index}`,
+                /* The step this block describes, and it is what makes the sentence's slots
+                 * pressable: the panel writes no draft, so every event it emits addresses
+                 * a step by index. A block with no index renders prose. */
+                step: index,
                 heading: t('Step {n}', { n: index + 1 }),
                 lines: reviewStepSpec(step, { machineRanges, machineClass }),
             }));
@@ -879,6 +891,38 @@ export class EditorScreen extends UiElement {
             );
         };
 
+        /* The one row on this panel whose value does not live on the profile: it is
+           written to `step.limiter.range` on every step the tolerance reaches, so the
+           number shown is the first such step's. A profile that carries no such limiter
+           disables the row and says so — a stepper that moves and writes nothing is the
+           fault this panel was rebuilt to remove. */
+        const tolerance = (field, key, label, caption, absentCaption, onChange) => {
+            const { range, refusal } = this.#settingsRange(field);
+            const authored = limiterToleranceIn(steps, field);
+            const absent = authored === null;
+            const hint = range
+                ? `${range.min}–${range.max}${range.unit ? ` ${range.unit}` : ''}`
+                : '';
+            return row(
+                { id: key, heading: label, hint, caption: absent ? absentCaption : caption },
+                html`
+                    <ui-stepper
+                        id=${`field-${key}`}
+                        data-limiter-tolerance=${field}
+                        label=${t(label)}
+                        title=${refusal ? t('Unavailable') : nothing}
+                        data-refusal=${refusal || nothing}
+                        ?disabled=${Boolean(refusal) || absent}
+                        .value=${absent ? POWER_CAP_DEFAULT.range : authored}
+                        .min=${range ? range.min : null}
+                        .max=${range ? range.max : null}
+                        .step=${range ? range.step : null}
+                        unit=${range?.unit ?? nothing}
+                        @change=${onChange}
+                    ></ui-stepper>`,
+            );
+        };
+
         /* The panel is a grid of two equal tracks over its light-DOM children, so a
            column is one child holding a stack of rows. */
         return html`
@@ -911,6 +955,22 @@ export class EditorScreen extends UiElement {
                        whatever the settings page holds. */
                     'The machine takes this from the profile each time it loads.',
                     this.#onTankTemperature,
+                )}
+
+                <p class="group ui-microcap">${t('The limiters')}</p>
+                ${tolerance(
+                    'pressureLimitTolerance', 'pressure-limit-tolerance',
+                    'Pressure limit tolerance',
+                    'Applies to every step whose limiter is a pressure limit.',
+                    'No step in this profile has a pressure limit.',
+                    this.#onPressureLimitTolerance,
+                )}
+                ${tolerance(
+                    'flowLimitTolerance', 'flow-limit-tolerance',
+                    'Flow limit tolerance',
+                    'Applies to every step whose limiter is a flow limit.',
+                    'No step in this profile has a flow limit.',
+                    this.#onFlowLimitTolerance,
                 )}
             </div>
 
@@ -1069,6 +1129,26 @@ export class EditorScreen extends UiElement {
         const value = Number(event.detail?.value ?? event.currentTarget?.value);
         if (!Number.isFinite(value)) return;
         this.#onFieldChange('tank_temperature', value);
+    };
+
+    /**
+     * Not a `#onFieldChange`: this writes `limiter.range` on a set of steps, and which
+     * steps that is is `editor-draft.js`'s rule. A refusal leaves the draft alone.
+     */
+    #onLimiterTolerance(tolerance, event) {
+        event.stopPropagation();
+        const value = Number(event.detail?.value ?? event.currentTarget?.value);
+        if (!Number.isFinite(value) || !this._draft) return;
+        const result = applyLimiterTolerance(this._draft, { tolerance, value });
+        if (result.applied) this._draft = result.draft;
+    }
+
+    #onPressureLimitTolerance = (event) => {
+        this.#onLimiterTolerance('pressureLimitTolerance', event);
+    };
+
+    #onFlowLimitTolerance = (event) => {
+        this.#onLimiterTolerance('flowLimitTolerance', event);
     };
 
     #versionsBody() {

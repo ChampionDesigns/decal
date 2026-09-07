@@ -134,6 +134,24 @@ export const EDITOR_RANGE_FIELDS = Object.freeze([
             + 'Recorded as a deferred question: R2 may serve a machine row for it, which '
             + 'would move this line and change nothing else',
     }),
+    Object.freeze({
+        field: 'pressureLimitTolerance',
+        surface: 'settings-panel',
+        source: 'authoring',
+        rangeName: 'pressureLimitTolerance',
+        why: 'the soft-knee width beside every pressure limit in the profile. An authoring '
+            + 'band and not a machine row: it is a shape the author chooses, and the machine '
+            + 'states no limit on how wide a knee may be',
+    }),
+    Object.freeze({
+        field: 'flowLimitTolerance',
+        surface: 'settings-panel',
+        source: 'authoring',
+        rangeName: 'flowLimitTolerance',
+        why: 'the same width beside every flow limit. TWO entries and not one because the '
+            + 'width is measured in the limit’s own unit — bar over a pressure limit, mL/s '
+            + 'over a flow limit — so one entry would print one unit over both controls',
+    }),
 ]);
 
 /**

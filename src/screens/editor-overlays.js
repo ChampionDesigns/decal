@@ -7,6 +7,7 @@ import { css, html } from 'lit';
 import { UiElement } from 'src/components/base.js';
 import { STEP_MATRIX_ROWS } from 'src/lib/step-matrix-rows.js';
 import { exitBand } from 'src/lib/exit-sentence.js';
+import { resolveRange } from 'src/screens/editor-dialog-parts.js';
 import { I18nController } from 'src/lib/i18n.js';
 
 import 'src/components/ui-numeric-keypad.js';
@@ -77,6 +78,16 @@ export class EditorOverlays extends UiElement {
 
     #onFieldEdit = (event) => this.#routeFieldEdit(event);
 
+    /**
+     * `lever-edit` — a lever value in the review sentence was pressed. The step comes
+     * from `steps`, so the dialog seeds from the draft rather than from the sentence.
+     */
+    #onLeverEdit = (event) => {
+        const index = event.detail?.index;
+        if (!Number.isInteger(index)) return;
+        this.openLever({ index, invoker: pressedIn(event) });
+    };
+
     constructor() {
         super();
         this.ranges = null;
@@ -131,6 +142,7 @@ export class EditorOverlays extends UiElement {
                 id="exit"
                 .ranges=${this.ranges}
                 ?power-exit-offered=${this.powerExitOffered}
+                @edit=${this.#onExitDialogEdit}
             ></editor-exit-dialog>
 
             <editor-lever-dialog
@@ -138,6 +150,53 @@ export class EditorOverlays extends UiElement {
                 .ranges=${this.ranges}
             ></editor-lever-dialog>
         `;
+    }
+
+    /**
+     * The exit dialog's own threshold asked for the keypad. Only one overlay may be open,
+     * so the keypad REPLACES the dialog and this remembers what to reopen: the step, and
+     * the draft as it stood, so the type and the direction survive the trip.
+     */
+    #onExitDialogEdit = (event) => {
+        event.stopPropagation();
+        const dialog = this.exitDialog;
+        if (!dialog) return;
+        const draft = dialog.draft;
+        const index = Number.isInteger(dialog.index) ? dialog.index : 0;
+        const { range } = resolveRange(this.ranges, 'exitCondition', { exitType: draft?.type });
+        if (!range) {
+            this.#refuse('the exit condition has no range, so its keypad has no bound', {
+                index, exitType: draft?.type ?? null,
+            });
+            return;
+        }
+        /* The cell that was tapped is the restore target on the way back. Without it the
+         * reopening dialog takes `deepActiveElement()`, which is inside the closing pad. */
+        this.#resume = { index, draft, invoker: pressedIn(event) };
+        this.openNumpad({
+            origin: 'exit-dialog',
+            field: 'exitCondition',
+            range,
+            value: event.detail?.value ?? draft?.value,
+            index,
+            row: 'condition',
+            heading: 'Threshold',
+            invoker: pressedIn(event),
+        });
+    };
+
+    /** Where an `exit-dialog` keypad returns to, or null. */
+    #resume = null;
+
+    /** Reopen the exit dialog after its keypad, with `value` folded into the draft. */
+    #returnToExitDialog(value) {
+        const resume = this.#resume;
+        this.#resume = null;
+        if (!resume) return false;
+        const draft = Number.isFinite(value)
+            ? { ...resume.draft, value }
+            : resume.draft;
+        return this.openExitCondition({ index: resume.index, draft, invoker: resume.invoker });
     }
 
     #attach() {
@@ -149,6 +208,7 @@ export class EditorOverlays extends UiElement {
         source.addEventListener('exit-edit', this.#onExitEdit);
         source.addEventListener('exit-add', this.#onExitAdd);
         source.addEventListener('edit', this.#onFieldEdit);
+        source.addEventListener('lever-edit', this.#onLeverEdit);
         this.#listening = source;
     }
 
@@ -159,6 +219,7 @@ export class EditorOverlays extends UiElement {
         source.removeEventListener('exit-edit', this.#onExitEdit);
         source.removeEventListener('exit-add', this.#onExitAdd);
         source.removeEventListener('edit', this.#onFieldEdit);
+        source.removeEventListener('lever-edit', this.#onLeverEdit);
         this.#listening = null;
     }
 
@@ -293,8 +354,6 @@ export class EditorOverlays extends UiElement {
             }
         }
 
-        this.#closeOthers(pad);
-
         this.#context = { origin, field, index, row, limitKey: key };
         /* ONE ROW, UNDER THE KEY BEING EDITED. #53 reads `limits[limitKey]`, so this is
          * the shape it needs and the entry inside it is the door's, unmodified. */
@@ -303,18 +362,25 @@ export class EditorOverlays extends UiElement {
         pad.unit = entry.unit ?? '';
         pad.value = value === null || value === undefined ? '' : String(value);
         pad.heading = heading ? this.#i18n.t(heading) : '';
+
+        /* OPEN FIRST, THEN CLOSE WHAT THIS REPLACES. Closing first leaves one frame with
+         * neither overlay on screen, which reads as a flicker when a dialog hands over to
+         * the keypad. Still not before the refusal: every refusal above returns before
+         * this point, so an edit in progress survives a bound this element never had. */
         pad.show({ invoker, reason: 'press' });
+        this.#closeOthers(pad);
         return true;
     }
 
     /** Open the exit condition dialog on one step. Any other overlay closes first. */
-    openExitCondition({ index = 0, step = null, invoker = null } = {}) {
+    openExitCondition({ index = 0, step = null, invoker = null, draft = null } = {}) {
         const dialog = this.exitDialog;
         if (!dialog) return false;
-        this.#closeOthers(dialog);
         dialog.index = index;
         dialog.step = step ?? this.#stepAt(index);
-        dialog.show({ invoker, reason: 'press' });
+        /* Open first, then close what it replaces — see openNumpad. */
+        dialog.show({ invoker, reason: 'press', draft });
+        this.#closeOthers(dialog);
         return true;
     }
 
@@ -322,10 +388,11 @@ export class EditorOverlays extends UiElement {
     openLever({ index = 0, step = null, invoker = null } = {}) {
         const dialog = this.leverDialog;
         if (!dialog) return false;
-        this.#closeOthers(dialog);
         dialog.index = index;
         dialog.step = step ?? this.#stepAt(index);
+        /* Open first, then close what it replaces — see openNumpad. */
         dialog.show({ invoker, reason: 'press' });
+        this.#closeOthers(dialog);
         return true;
     }
 
@@ -335,6 +402,15 @@ export class EditorOverlays extends UiElement {
      */
     #onConfirm(event) {
         const context = this.#context ?? {};
+        this.#context = null;
+
+        /* A keypad the exit dialog opened goes back to it, carrying the number. Nothing
+         * is committed here: the dialog owns that draft and emits on its own confirm. */
+        if (context.origin === 'exit-dialog') {
+            this.#returnToExitDialog(Number(event.detail?.value));
+            return;
+        }
+
         this.dispatchEvent(new CustomEvent(VALUE_COMMIT, {
             detail: {
                 ...context,
@@ -344,10 +420,14 @@ export class EditorOverlays extends UiElement {
             bubbles: true,
             composed: true,
         }));
-        this.#context = null;
     }
 
-    #onCancel() { this.#context = null; }
+    /** #53 dismissed. A keypad the exit dialog opened reopens it, with the draft it had. */
+    #onCancel() {
+        const context = this.#context ?? {};
+        this.#context = null;
+        if (context.origin === 'exit-dialog') this.#returnToExitDialog(null);
+    }
 
     /** A refusal is REPORTED. The door's own sentence, never a substituted band. */
     #refuse(reason, detail = {}) {

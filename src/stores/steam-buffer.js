@@ -43,6 +43,11 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
         counts: Object.freeze({ samples: t.length, dropped }),
     }));
 
+    /* The next pouring sample begins a NEW session rather than appending to the last.
+     * Set when the mode leaves steam, which is the only signal the machine gives that a
+     * session has finished — it issues no session id. */
+    let stale = false;
+
     const reset = () => {
         originMs = null;
         t = [];
@@ -54,6 +59,7 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
     };
 
     reset();
+    stale = false;
 
     return {
         subscribe(listener) { return store.subscribe(listener); },
@@ -61,17 +67,26 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
 
         take({ mode, pouring, machine, milk = null, at = now() } = {}) {
             if (mode !== CHART_MODE.STEAM) {
+                /* Leaving steam ends the session. The samples stay published until the
+                 * next one starts, because the hold keeps the finished graph on screen
+                 * for the settle window. */
+                stale = true;
                 if (t.length === 0 && originMs === null) return store.get();
                 return store.get();
             }
             if (!pouring) {
-                /* THE RAMP. The canvas is claimed and the axes are up; nothing is plotted
-                 * until the valve opens, and a ramp that follows a finished session must
-                 * not append to it. */
-                if (originMs !== null) { reset(); return publish(); }
+                /* The valve is shut and the mode is still steam: the ramp before a
+                 * session, a pause inside it, and the settle window after the stop.
+                 * NOTHING IS DISCARDED HERE. The machine reports puffing and paused steam
+                 * as idle, so a stop lands here at once; dropping the session is the next
+                 * session's job, not the end of this one's. */
                 return store.get();
             }
             if (!machine || machine.ok !== true) return store.get();
+            /* A new session starts from zero, on its first sample, so a finished graph is
+             * replaced only when there is something to replace it with. */
+            if (stale && originMs !== null) reset();
+            stale = false;
             if (originMs === null) originMs = at;
             if (t.length >= STEAM_SAMPLE_CAP) {
                 dropped += 1;
@@ -88,6 +103,7 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
 
         /** Throw the session away — a machine swap, or a screen leaving. */
         clear() {
+            stale = false;
             if (t.length === 0 && originMs === null) return store.get();
             reset();
             return store.set({ ...EMPTY });

@@ -160,12 +160,37 @@ describe('the session buffer', () => {
         assert.deepEqual([...series.milkTemperature.y], [null, 21]);
     });
 
-    test('a new ramp clears the finished session rather than appending to it', () => {
+    /* The claim is unchanged and the moment has moved: a new session must not append to
+     * the finished one, but it is the START of the new session that discards the old. */
+    test('a new session starts from zero rather than appending to the finished one', () => {
         const buffer = createSteamBuffer({});
         buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 });
         assert.equal(buffer.get().counts.samples, 1);
-        buffer.take({ mode: CHART_MODE.STEAM, pouring: false, machine: machine(1), at: 60000 });
-        assert.equal(buffer.get().counts.samples, 0, 'the next session starts from zero');
+
+        buffer.take({ mode: CHART_MODE.ESPRESSO, pouring: false, machine: machine(1), at: 60000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: false, machine: machine(1), at: 61000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(2), at: 62000 });
+        assert.equal(buffer.get().counts.samples, 1, 'the new session holds only its own sample');
+    });
+
+    /* The machine reports puffing and paused steam as `idle`, so a stop arrives as a
+     * not-pouring frame while the mode is still steam. */
+    test('shutting the valve KEEPS the session, which is what the settle window shows', () => {
+        const buffer = createSteamBuffer({});
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(1), at: 1100 });
+        assert.equal(buffer.get().counts.samples, 2);
+
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: false, machine: machine(2), at: 1200 });
+        assert.equal(buffer.get().counts.samples, 2, 'the stop draws nothing away');
+    });
+
+    test('pausing and resuming inside a steam session keeps one graph', () => {
+        const buffer = createSteamBuffer({});
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: false, machine: machine(1), at: 1100 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(2), at: 1200 });
+        assert.equal(buffer.get().counts.samples, 2);
     });
 
     test('leaving steam KEEPS the samples — the hold exists to show them', () => {

@@ -45,9 +45,9 @@ describe('B2 — every editor field resolves to exactly one table entry', () => 
     const requests = enumerateEditorRangeRequests();
 
     test('the enumeration covers every declared field, and every request resolves', () => {
-        assert.equal(EDITOR_RANGE_FIELDS.length, 14, 'the editor has fourteen ranged fields');
+        assert.equal(EDITOR_RANGE_FIELDS.length, 16, 'the editor has sixteen ranged fields');
         assert.equal(new Set(requests.map((r) => r.field)).size, EDITOR_RANGE_FIELD_IDS.length);
-        assert.equal(requests.length, 22, 'fourteen fields, four pump modes and three exit types');
+        assert.equal(requests.length, 24, 'sixteen fields, four pump modes and three exit types');
         for (const { field, ctx } of requests) {
             assert.ok(door.rangeFor(field, ctx), `${field} resolved nothing`);
         }

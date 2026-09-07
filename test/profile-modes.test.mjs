@@ -231,9 +231,14 @@ test('B2 across the two modules: no field is declared twice, and the brew range 
 test('B2: both key sets are PINNED, so a new row in either table forces the question', () => {
     assert.deepEqual(Object.keys(AUTHORING_RANGES).sort(), [
         'exitFlow', 'exitPower', 'exitPressure',
-        'flowTarget', 'leverFlowCap', 'leverGive', 'leverP0', 'leverSpring',
-        'powerPressureCap', 'powerTarget', 'pressureTarget', 'seconds',
-        'stepFlowLimit', 'stepPressureLimit', 'volume', 'weight',
+        /* Two joined with the limiter tolerance, and the question this assertion asks —
+         * "is this field the machine's or the step's?" — is answered THE STEP'S for both.
+         * `range` is a field of StepLimiter: stored per step, carried with the profile,
+         * and the machine declares no limit on how wide a soft knee may be. */
+        'flowLimitTolerance', 'flowTarget',
+        'leverFlowCap', 'leverGive', 'leverP0', 'leverSpring',
+        'powerPressureCap', 'powerTarget', 'pressureLimitTolerance', 'pressureTarget',
+        'seconds', 'stepFlowLimit', 'stepPressureLimit', 'volume', 'weight',
     ], 'a new AUTHORING_RANGES row: is this field the machine\'s (machine-limits.js) or the step\'s?');
     assert.deepEqual([...LIMIT_KEYS].sort(), [
 

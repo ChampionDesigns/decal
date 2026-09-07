@@ -44,6 +44,13 @@ const BASE_AUTHORING_RANGES = Object.freeze({
      */
     leverFlowCap: Object.freeze({ min: 0, max: 20, step: 0.1, unit: 'mL/s' }),
 
+    /**
+     * The soft-knee WIDTH beside a limiter's value, in the limit's own unit. Two entries
+     * and not one, so each control prints the unit of the limit it widens.
+     */
+    pressureLimitTolerance: Object.freeze({ min: 0, max: 5, step: 0.1, unit: 'bar' }),
+    flowLimitTolerance: Object.freeze({ min: 0, max: 5, step: 0.1, unit: 'mL/s' }),
+
     /** Lever feel: the spring rate. */
     leverSpring: Object.freeze({ min: 0, max: 3, step: 0.1, unit: 'bar per 10 mL' }),
     /** Lever feel: the give. */
@@ -189,6 +196,55 @@ export function modeRanges(pump, machineClass = null) {
         target: authoringRange(cfg.targetRange, machineClass),
         limiter: authoringRange(cfg.limiterRange, machineClass),
     };
+}
+
+/** The two limiter tolerances, in the order the settings panel draws them. */
+export const LIMITER_TOLERANCES = Object.freeze(['pressureLimitTolerance', 'flowLimitTolerance']);
+
+const TOLERANCE_BY_LIMITER_UNIT = Object.freeze({
+    bar: 'pressureLimitTolerance',
+    'mL/s': 'flowLimitTolerance',
+});
+
+/**
+ * The tolerance a pump mode's limiter is measured in. Read off the null-class table: the
+ * machine moves a limiter's CEILING, never its unit, and the unit is all this asks for.
+ *
+ * @param {'flow'|'pressure'|'power'|'lever'} pump
+ * @returns {'pressureLimitTolerance'|'flowLimitTolerance'|null}
+ */
+export function limiterToleranceOf(pump) {
+    const cfg = getModeConfig(pump);
+    const unit = AUTHORING_RANGES[cfg.limiterRange]?.unit ?? null;
+    return TOLERANCE_BY_LIMITER_UNIT[unit] ?? null;
+}
+
+/** The same answer for a step, and `null` for a pump this build does not know. */
+export function limiterToleranceOfStep(step) {
+    const pump = step && step.pump;
+    if (!pump || !(pump in MODE_TABLE)) return null;
+    return limiterToleranceOf(pump);
+}
+
+/** The pump modes whose limiter is measured in this tolerance, in cycle order. */
+export function pumpsForLimiterTolerance(tolerance) {
+    return Object.freeze(PUMP_MODE_CYCLE.filter((pump) => limiterToleranceOf(pump) === tolerance));
+}
+
+/**
+ * The tolerance a profile is already authored with, or `null` when no step carries a
+ * limiter of that kind. A step with no limiter object is skipped, not defaulted: it has
+ * no limit, so it has no knee to widen.
+ */
+export function limiterToleranceIn(steps, tolerance) {
+    if (!Array.isArray(steps)) return null;
+    for (const step of steps) {
+        const held = step && step.limiter;
+        if (!held || typeof held !== 'object') continue;
+        if (limiterToleranceOfStep(step) !== tolerance) continue;
+        return num(held.range);
+    }
+    return null;
 }
 
 export function pumpChipsFor(step, offered) {
@@ -448,9 +504,14 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
     const isHold = step.transition === 'hold';
     const probe = step.sensor === 'water' ? 'water' : 'coffee';
 
+    /* A toggle slot carries the step key it writes and that key's value now, so the
+     * panel can name the next value without a second table of its own. */
+    const togTrans = (label) => ['tog', 'trans', label, 'transition', step.transition];
+    const togPump = (label) => ['tog', 'pumpword', label, 'pump', pump];
+
     lines.push([
         ['t', 'Set '],
-        ['tog', 'probe', probe],
+        ['tog', 'probe', probe, 'sensor', probe],
         ['t', ' temperature to '],
         ['num', 'temperature', num(step.temperature), temperature.step, '°C', temperature.min, temperature.max],
     ]);
@@ -470,12 +531,12 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
     const lim = num(step.limiter && step.limiter.value);
     if (isHold) {
         const what = pump === 'flow' ? 'flow rate' : pump === 'power' ? 'power' : 'pressure';
-        rate.push(['tog', 'trans', 'Hold'], ['t', ' the previous '], ['tog', 'pumpword', what], ...timeClause);
+        rate.push(togTrans('Hold'), ['t', ' the previous '], togPump(what), ...timeClause);
     } else if (pump === 'power') {
         const target = authoringRange('powerTarget');
         rate.push(
-            ['tog', 'trans', isRamp ? 'Ramp' : 'Jump'], ['t', ' to a constant '],
-            ['tog', 'pumpword', 'hydraulic power'], ['t', ' of '],
+            togTrans(isRamp ? 'Ramp' : 'Jump'), ['t', ' to a constant '],
+            togPump('hydraulic power'), ['t', ' of '],
             ['num', 'power', num(step.power), target.step, target.unit, target.min, target.max],
             ['t', ' — pressure and flow find their own balance on the puck'], ...timeClause);
     } else if (pump === 'lever') {
@@ -485,14 +546,14 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
         const give = authoringRange('leverGive');
         if (preset === 'CUSTOM') {
             rate.push(
-                ['t', 'Engage a '], ['tog', 'pumpword', 'custom spring-lever source'], ['t', ': start at '],
+                ['t', 'Engage a '], togPump('custom spring-lever source'), ['t', ': start at '],
                 ['lev', `${revFmt(num(step.pressure), p0.step)} ${p0.unit}`], ['t', ', dropping '],
                 ['lev', `${revFmt(num(step.leverSpring), spring.step)} bar per 10 mL delivered`], ['t', ' with '],
                 ['lev', `${revFmt(num(step.leverGive), give.step)} ${give.unit}`], ['t', ' of give'], ...timeClause);
         } else {
             const feel = LEVER_FEEL_WORD[preset] || 'classic';
             rate.push(
-                ['t', 'Engage a '], ['lev', feel], ['t', ' '], ['tog', 'pumpword', 'spring-lever'],
+                ['t', 'Engage a '], ['lev', feel], ['t', ' '], togPump('spring-lever'),
                 ['t', ' feel, starting near '], ['lev', `${revFmt(num(step.pressure), p0.step)} ${p0.unit}`],
                 ['t', ' and easing as the shot pours'], ...timeClause);
         }
@@ -501,8 +562,8 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
         const pumpWord = pump === 'flow' ? 'flow rate' : 'pressure';
         const field = pump === 'flow' ? 'flow' : 'pressure';
         rate.push(
-            ['tog', 'trans', isRamp ? 'Ramp' : 'Jump'], ['t', ' to a '],
-            ['tog', 'pumpword', pumpWord], ['t', ' of '],
+            togTrans(isRamp ? 'Ramp' : 'Jump'), ['t', ' to a '],
+            togPump(pumpWord), ['t', ' of '],
             ['num', field, num(step[field]), target.step, target.unit, target.min, target.max], ...timeClause);
     }
     if (lim > 0) {
@@ -529,7 +590,7 @@ export function reviewStepSpec(step, { machineRanges, machineClass = null } = {}
     if (exit && exitVal > 0 && exitBounds) {
         const dir = exit.condition === 'under' ? 'falls below' : 'rises above';
         triggerParts.push([
-            ['t', `${exit.type} `], ['tog', 'exitcmp', dir], ['t', ' '],
+            ['t', `${exit.type} `], ['tog', 'exitcmp', dir, 'exit', exit.condition], ['t', ' '],
             ['num', 'exitValue', exitVal, exitBounds.step, exitBounds.unit, exitBounds.min, exitBounds.max],
         ]);
     }
