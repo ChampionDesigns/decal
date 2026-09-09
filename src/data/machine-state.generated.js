@@ -2,8 +2,8 @@
 //
 //   generator: scripts/generate-machine-state.js
 //   source:    lib/src/models/device/machine.dart (ReaPrime)
-//   commit:    2b047d02e42e29bf2d96a2aa964ef94e4a4daba3
-//   sha256:    0e2d64ca1bcad99cda371d51c117bba0e4101684144bc55717f87182c8012aa5
+//   commit:    42f67f69334197a08cc0f4138ca05302616e977a
+//   sha256:    de74297fbfa0ecbf2a0e86b889a147437ff647d24e4ad8ef136957305d6b9c44
 //
 // Regenerate with `node scripts/generate-machine-state.js`; `--check` fails on a stale
 // artifact and test/machine-state-freshness.test.mjs runs that check.
@@ -73,6 +73,8 @@ export const MACHINE_SUBSTATES = Object.freeze([
     'cleaningGroup',
     'cleanSoaking',
     'cleaningSteam',
+    'pausedSteam',
+    'puffing',
     'errorNaN',
     'errorInf',
     'errorGeneric',
@@ -104,6 +106,8 @@ export const MACHINE_SUBSTATE = Object.freeze({
     CLEANING_GROUP: 'cleaningGroup',
     CLEAN_SOAKING: 'cleanSoaking',
     CLEANING_STEAM: 'cleaningSteam',
+    PAUSED_STEAM: 'pausedSteam',
+    PUFFING: 'puffing',
     ERROR_NA_N: 'errorNaN',
     ERROR_INF: 'errorInf',
     ERROR_GENERIC: 'errorGeneric',
@@ -127,6 +131,6 @@ export const MACHINE_SUBSTATE = Object.freeze({
 /** Provenance, asserted by the freshness test rather than trusted. */
 export const MACHINE_STATE_SOURCE = Object.freeze({
     file: 'lib/src/models/device/machine.dart',
-    commit: '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3',
-    sha256: '0e2d64ca1bcad99cda371d51c117bba0e4101684144bc55717f87182c8012aa5',
+    commit: '42f67f69334197a08cc0f4138ca05302616e977a',
+    sha256: 'de74297fbfa0ecbf2a0e86b889a147437ff647d24e4ad8ef136957305d6b9c44',
 });

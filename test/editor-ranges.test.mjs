@@ -5,6 +5,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
+/* The pin is READ, never restated: a literal here would assert the commit the
+ * tree has moved off the moment anyone re-pins. */
+import { PINNED_COMMIT } from '../scripts/lib/rea-source.js';
+
 import {
     createEditorRanges,
     enumerateEditorRangeRequests,
@@ -307,7 +311,7 @@ describe('the R2 door is the only way in, and the gap is declared', () => {
     test('R2 has not landed and the module says so as data', () => {
         assert.equal(R2_INTERIM.landed, false);
         assert.equal(R2_INTERIM.upstream, 'R2');
-        assert.equal(R2_INTERIM.checkedCommit, '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3');
+        assert.equal(R2_INTERIM.checkedCommit, PINNED_COMMIT);
         assert.match(R2_INTERIM.note, /interim single table pending R2/);
         assert.equal(doorFor(BENGLE).provenance(), R2_INTERIM);
     });

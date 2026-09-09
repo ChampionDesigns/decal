@@ -911,13 +911,22 @@ const SERVER = {
 
     /** Every PUT /machine/ledStrip the store has issued, in order. The drill reads it. */
     ledWrites: [],
-    /* THE TWO THAT PERSIST, COUNTED SEPARATELY FROM THE ONES THAT DO NOT. A PUT pushes the
-     * strip live and writes nothing durable; only the commit route reaches NVM, and the
+    /* THE LIVE WRITES, AND THEY ARE A DIFFERENT ROUTE SINCE THE RE-PIN. The app gained
+     * `POST /machine/ledStrip/preview` and `.../preview/clear` (de1handler.dart:261, :302)
+     * and the store moved onto them, so a drag no longer PUTs the four STORED registers on
+     * every frame. They are recorded separately from `ledWrites` for the reason the two
+     * routes exist: a preview must leave the stored palette alone, and a fixture that fed
+     * both into one list could not tell a preview from a save. The body is the route's own
+     * flat shape — `{frontStrip, backStrip}`, 12 hex each — not the nested strip state. */
+    ledPreviews: [],
+    ledPreviewClears: 0,
+    /* THE TWO THAT PERSIST, COUNTED SEPARATELY FROM THE ONES THAT DO NOT. A PUT writes the
+     * stored registers and nothing durable; only the commit route reaches NVM, and the
      * reset route reloads it. Counting all three together would have hidden the defect this
      * pair exists to pin — a header Save that closed the page without committing anything. */
     ledCommits: 0,
     ledResets: 0,
-    /** When true, a PUT parks until `releaseLed()` — "a slow mock", the rule's own condition. */
+    /** When true, a live write parks until `releaseLed()` — "a slow mock", the rule's own condition. */
     ledHeld: false,
     ledParked: [],
 };
@@ -999,6 +1008,27 @@ function createFixtureTransport() {
                         SERVER.ledParked.push(() => resolve(ok({ status: 'accepted' })));
                     });
                 }
+
+                /* THE LIVE PREVIEW. Accepted, recorded, and it does NOT touch `SERVER.led`
+                 * — the stored palette is what `GET /machine/ledStrip` answers and what a
+                 * reload gets back, and the whole point of this route is that a preview
+                 * does not reach it. The real handler answers `jsonAccepted()` with no
+                 * body (de1handler.dart:295), which is what 202/null is here.
+                 *
+                 * IT PARKS UNDER `holdLed()`, because this is the route the one-write-in-
+                 * flight rule now governs; the PUT it replaced used to be. */
+                case 'POST /machine/ledStrip/preview': {
+                    SERVER.ledPreviews.push(JSON.parse(JSON.stringify(body)));
+                    const accepted = () => reaSuccess({ status: 202, data: null, method, url: 'fixture' });
+                    if (!SERVER.ledHeld) return accepted();
+                    return new Promise((resolve) => {
+                        SERVER.ledParked.push(() => resolve(accepted()));
+                    });
+                }
+
+                case 'POST /machine/ledStrip/preview/clear':
+                    SERVER.ledPreviewClears += 1;
+                    return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
 
                 case 'POST /machine/ledStrip/commit':
                     SERVER.ledCommits += 1;
@@ -1490,6 +1520,12 @@ const api = {
         ledLast: SERVER.ledWrites.length
             ? SERVER.ledWrites[SERVER.ledWrites.length - 1]
             : null,
+        /** The live half: what a drag put on the wire, and what ended it. */
+        ledPreviews: SERVER.ledPreviews.length,
+        ledPreviewClears: SERVER.ledPreviewClears,
+        ledPreviewLast: SERVER.ledPreviews.length
+            ? SERVER.ledPreviews[SERVER.ledPreviews.length - 1]
+            : null,
         flowMultiplier: SERVER.flowMultiplier,
         calibration: { ...SERVER.calibration },
         /* THE 24 AUG 2026 LEAVES. Each one is what a press on a new surface is supposed
@@ -1567,7 +1603,7 @@ const api = {
     /** What the leaf asked the panel for. The half a screenshot cannot show. */
     brightnessSent: () => [...SERVER.brightnessSent],
 
-    /** the rule's drill needs A SLOW MOCK: park every PUT until `releaseLed` lets them go. */
+    /** the rule's drill needs A SLOW MOCK: park every live write until `releaseLed` lets them go. */
     holdLed() { SERVER.ledHeld = true; },
 
     /** Let the parked writes answer, one round at a time. */
@@ -1581,7 +1617,7 @@ const api = {
      * THE OTHER HALF OF `holdLed()`, and it was missing.
      *
      * `holdLed()` sets a flag nothing ever cleared, so a suite that parked a write left
-     * every LATER test in the same page talking to a server that never answers a PUT.
+     * every LATER test in the same page talking to a server that never answers a write.
      * That is invisible while no other test awaits one and is an unkillable hang the
      * moment one does — which is exactly how it surfaced (cmp-ss-1's power drill, the
      * next test to await `settled()`).
@@ -1591,7 +1627,7 @@ const api = {
         return api.releaseLed();
     },
 
-    /** How many PUTs are parked on the wire right now. Must never exceed 1. */
+    /** How many live writes are parked on the wire right now. Must never exceed 1. */
     ledParked: () => SERVER.ledParked.length,
 
     /** The store's own counters: intents, sent, peak in flight, dropped. */

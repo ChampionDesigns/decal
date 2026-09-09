@@ -12,7 +12,11 @@ export const REA_ROOT = process.env.REA_ROOT || '../reaprime';
 
 export const SOURCE_REL = 'lib/src/models/device/machine.dart';
 
-export const PINNED_COMMIT = '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3';
+/* READ, NEVER RESTATED. A second copy of the pin here is a second authority, and it
+ * is what let this generator sit a pin behind the contract table. */
+import { PINNED_COMMIT } from './lib/rea-source.js';
+
+export { PINNED_COMMIT };
 
 export const OUT_FILE = join(REPO_ROOT, 'src', 'data', 'machine-state.generated.js');
 

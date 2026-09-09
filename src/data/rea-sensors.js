@@ -17,7 +17,7 @@ export const SENSOR_KIND = Object.freeze({
 export const R3_CAPABILITY_GATE = Object.freeze({
     rNumber: 'R3',
     argument: 'capabilityGate',
-    upstreamGap: 'GET /api/v1/machine/capabilities serves no estimator entry at 2b047d02',
+    upstreamGap: 'GET /api/v1/machine/capabilities serves no estimator entry at 42f67f69',
     handlerFile: 'lib/src/services/webserver/de1handler.dart',
     handlerSymbol: 'De1Handler.addRoutes /api/v1/machine/capabilities',
     interim: 'the one R3-tagged adapter module (Gate 4) supplies this argument',

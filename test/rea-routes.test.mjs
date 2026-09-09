@@ -176,8 +176,15 @@ describe('the four exceptions, justified at the handler', () => {
 
         test('subject and body are the names ReaPrime itself sends to that upstream endpoint', () => {
             const account = read('lib/src/services/account/decent_account_service.dart');
-            assert.match(account, /'\/support\/api\/email\?subject=\$subject&body=\$body'/,
-                'emailSerialMismatch is the in-tree evidence for both names');
+            /* The evidence moved at the 42f67f69 re-pin, the names did not: emailSerialMismatch no
+             * longer builds the URL itself, it calls the new sendSupportMessage, which builds the
+             * query from the same two names and GETs the same /support/api/email. */
+            assert.match(account, /Future<void> emailSerialMismatch\(String serial\) async \{\s*\n\s*await sendSupportMessage\(/,
+                'emailSerialMismatch is still the in-tree caller');
+            assert.match(account, /queryParameters: \{'subject': subject, 'body': body\},/,
+                'and sendSupportMessage is the in-tree evidence for both names');
+            assert.match(account, /'\/support\/api\/email\?\$query'/,
+                'on the same /support/api/email endpoint the proxy relays');
             const all = walkDart(join(REA_ROOT, 'lib/src'))
                 .map((f) => readFileSync(f, 'utf8')).join('\n');
             assert.ok(!/support\/api\/emails/.test(all),
@@ -192,7 +199,19 @@ describe('the four exceptions, justified at the handler', () => {
             const tokens = read('lib/src/services/account/proxy_token_service.dart');
             assert.match(tokens, /id: 'skin',\s*\n\s*scopes: \{scopeAccountProxy\},/,
                 'the skin caller is registered with the read scope alone');
-            assert.match(read('lib/main.dart'), /webUIService\.skinProxyToken = proxyTokenService\.skinToken;/,
+            /* At the 42f67f69 re-pin the fixed token became a per-skin minted one: main.dart sets
+             * skinProxyTokenProvider, which rotates a token for the requesting skin. The scope it
+             * mints with is still the read scope alone, and webui_service.dart still injects the
+             * result as skinProxyToken into every served page. */
+            const main = read('lib/main.dart');
+            assert.match(main, /webUIService\.skinProxyTokenProvider = \(path\) \{/,
+                'the served skin page takes its token from this provider');
+            assert.match(main, /rotateSkinToken\(\s*\n\s*ProxyCaller\(\s*\n\s*id: skin\.key,\s*\n\s*scopes: const \{ProxyTokenService\.scopeAccountProxy\},/,
+                'and the provider mints it with the read scope alone');
+            assert.ok(!main.includes('scopeAccountProxyWrite'),
+                'nothing in main hands a skin the write scope');
+            assert.match(read('lib/src/webui_support/webui_service.dart'),
+                /if \(tokenProvider != null\) skinProxyToken = tokenProvider\(path\);/,
                 'and that is the token injected into every served skin page');
             const middleware = read('lib/src/services/webserver/proxy_auth_middleware.dart');
             assert.match(middleware, /case 'POST':/);
@@ -252,7 +271,9 @@ describe('the table agrees with ReaPrime elsewhere in the tree', () => {
         const fromSpec = REST_ROUTES.filter((r) => r.conditional).map((r) => r.route).sort();
         const fromHandlers = CONDITIONAL_ROUTES.map((r) => r.path).sort();
         assert.deepEqual(fromSpec, fromHandlers);
-        assert.equal(fromSpec.length, 6);
+        // 6 -> 7 at the 42f67f69 re-pin: BeansHandler._getAllBatches serves
+        // GET /api/v1/bean-batches with jsonOkConditional, and rest_v1.yml documents its 304.
+        assert.equal(fromSpec.length, 7);
     });
 
     test('every conditional route also documents the ETag response header', () => {

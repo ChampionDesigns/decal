@@ -37,7 +37,7 @@ import {
     stripRemainingDelimiter,
     stripTagPrefix,
 } from '../src/lib/profile-rules.js';
-import { PROFILE_VISIBILITY } from '../src/data/rea-profile.js';
+import { PROFILE_VISIBILITY, profileUpdateBody } from '../src/data/rea-profile.js';
 import { readReaFile } from '../scripts/lib/rea-source.js';
 import { createStorageRouter } from '../src/lib/storage-router.js';
 import { createMemoryBackend } from '../src/lib/storage-backends.js';
@@ -415,14 +415,60 @@ describe('rule 3\'s premise, re-read at the pin', () => {
 
     test('a supplied metadata map REPLACES wholesale — there is no server-side merge', () => {
         const record = dart('lib/src/models/data/profile_record.dart');
-        assert.match(record, /metadata:\s*metadata \?\? this\.metadata,/);
+        /* THE PREMISE HOLDS AND THE EXPRESSION MOVED. `copyWith` gained a `clearMetadata`
+         * flag at this pin, so the tail that was `metadata ?? this.metadata` is now
+         * `clearMetadata ? null : metadata ?? this.metadata`. A SUPPLIED MAP still
+         * replaces wholesale — the flag adds a way to erase, never a way to merge — and
+         * the `??` fallback is asserted alongside it so a real merge arriving here (a
+         * spread, a `addAll`) still fails this test. */
+        assert.match(record, /metadata:\s*clearMetadata \? null : metadata \?\? this\.metadata,/);
+        assert.doesNotMatch(record, /metadata:\s*\{\s*\.\.\.this\.metadata/,
+            'copyWith has started merging the stored map into the supplied one');
         const controller = dart('lib/src/controllers/profile_controller.dart');
-        assert.match(controller, /existing\.copyWith\(profile: profile, metadata: metadata\)/);
+        /* THE WHOLE ARGUMENT LIST, not a prefix. The old assertion matched through the
+         * CLOSING paren, so it also said "and nothing else is passed"; a prefix match
+         * would let a fourth argument arrive unseen. The call is pinned complete. */
+        assert.match(
+            controller,
+            /existing\.copyWith\(\s*profile: profile,\s*metadata: metadata,\s*clearMetadata: metadataPresent && metadata == null,\s*\)/);
     });
 
-    test('`metadata: null` therefore KEEPS the stored map — which is why a null transform is refused', () => {
+    test('an ABSENT metadata key keeps the stored map — which is why a null transform is refused', () => {
         const record = dart('lib/src/models/data/profile_record.dart');
-        assert.ok(!/metadata:\s*null/.test(record), 'nothing in copyWith clears the metadata');
+        const controller = dart('lib/src/controllers/profile_controller.dart');
+        const handler = dart('lib/src/services/webserver/profile_handler.dart');
+
+        /* THIS PREMISE MOVED AT THE RE-PIN AND THE RULE SURVIVED IT FOR A NEW REASON.
+         *
+         * The old assertion was that NOTHING in `copyWith` clears the metadata, so a
+         * `metadata: null` on the wire kept the stored map. That is no longer true: the
+         * app can now erase it, and an explicit `"metadata": null` in a PUT body is
+         * exactly what asks it to. `profile_handler.dart` passes
+         * `metadataPresent: json.containsKey('metadata')` and the controller raises
+         * `clearMetadata` on present-and-null, so the two cases the old app could not
+         * tell apart — key absent, key null — now mean OPPOSITE things.
+         *
+         * What keeps rule 3 true is the skin's own body builder: `profileUpdateBody`
+         * OMITS the key entirely for a null map, so the skin cannot express the erasing
+         * case even by accident, and a null transform is still refused before it reaches
+         * the wire. The clearing path is pinned here so it cannot be reached by a body
+         * builder that starts emitting the key. */
+        assert.match(record, /bool clearMetadata = false,/);
+        assert.match(record, /metadata: clearMetadata \? null : /,
+            'the only way copyWith clears the map is the explicit flag');
+        assert.match(controller, /clearMetadata: metadataPresent && metadata == null,/);
+        assert.match(handler, /metadataPresent: json\.containsKey\('metadata'\),/);
+
+        assert.deepEqual(profileUpdateBody({ metadata: null }), {},
+            'the skin emitted a metadata key for a null map — on this app that ERASES it');
+        assert.deepEqual(profileUpdateBody({}), {},
+            'a body with nothing to say must carry no metadata key at all');
+        /* AND `{}` IS THE CLEAR, unchanged by any of this: the key IS present and it is
+         * NOT null, so `clearMetadata` stays false and `metadata ?? this.metadata`
+         * replaces the stored map with an empty one. `mutate`'s refusal message tells a
+         * caller to return `{}` for exactly this reason. */
+        assert.deepEqual(profileUpdateBody({ metadata: {} }), { metadata: {} },
+            'the empty map that clears must reach the wire as a present, non-null key');
     });
 
     test('a metadata-only body keeps the id, because the hashes come from the unchanged profile', () => {

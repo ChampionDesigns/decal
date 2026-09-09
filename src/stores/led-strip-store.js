@@ -131,6 +131,23 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
 
     const publish = (patch) => store.set({ ...store.get(), ...patch, version: store.get().version + 1 });
 
+    /**
+     * The two colours the preview route takes, or null when there is no strip yet.
+     *
+     * THE LIVE REGISTERS ARE FRONT AND REAR. `frontSwitch` has none, so it is never
+     * sent and never darkened; it catches up when the colour is saved.
+     *
+     * THE COLOUR COMES FROM THE BANK BEING EDITED, not from the machine's current one.
+     * That is the whole point: it is what makes an ASLEEP colour visible while the
+     * machine is awake, which a stored write cannot do.
+     *
+     * A wire colour IS the 12-hex spelling the route takes, so nothing is converted.
+     */
+    function previewBody(strip, bank) {
+        if (!strip || !LED_BANKS.includes(bank)) return null;
+        return { frontStrip: strip.frontStrip[bank], backStrip: strip.backStrip[bank] };
+    }
+
     /** Say the strip is showing something NVM does not hold. See `dirty` on the state. */
     const markDirty = () => { if (!store.get().dirty) publish({ dirty: true }); };
 
@@ -149,7 +166,20 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
         publish({ strip: next, writing: true, refusal: null });
         try {
             sent += 1;
-            const result = await callRoute(transport, 'putMachineLedStrip', { body: next });
+            /* THE PREVIEW ROUTE, NOT THE SAVE. `putMachineLedStrip` writes the four
+             * STORED registers and every one of them is a flash write, so dragging
+             * against it wrote flash on every frame and saved a colour the finger only
+             * passed over. This route writes the two LIVE registers: nothing is stored,
+             * nothing reaches flash, and it is the only way to show an ASLEEP colour on
+             * an awake machine — the firmware applies a stored colour only when it is
+             * already in the state that colour belongs to.
+             *
+             * A STRIP THE BODY DOES NOT NAME IS LEFT ALONE, so a zone group that moves
+             * one strip must not darken the other. `frontSwitch` has no live register
+             * and is therefore never sent; it catches up on the save. */
+            const body = previewBody(next, intent.bank);
+            if (!body) return true;
+            const result = await callRoute(transport, 'postMachineLedStripPreview', { body });
             if (!result.ok) {
                 log.warn(`ledStrip preview refused: ${result.status ?? 'no status'}`);
                 publish({ refusal: LED_REFUSAL.WRITE_FAILED, status: result.status === 404
@@ -230,6 +260,7 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
                 ? { kind: 'colour', zone: zones[0], bank, wire }
                 : {
                     kind: 'strip',
+                    bank,
                     strip: withBank(strip, bank, (one, current) => (
                         zones.includes(one) ? wire : current)),
                 };
@@ -264,7 +295,7 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
                 return isColour16(remembered) ? remembered : LED_DEFAULT_ON;
             });
 
-            pendingColour = { kind: 'strip', strip: next };
+            pendingColour = { kind: 'strip', bank, strip: next };
             /* THE POWER SWITCH DIRTIES TOO. Turning the strip off is as much a change to
              * what the machine will show at the next power cycle as picking a colour is. */
             markDirty();
@@ -276,10 +307,42 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
         /** Resolves when nothing is pending and nothing is on the wire. Tests only. */
         settled: () => pump ?? Promise.resolve(),
 
+        /**
+         * SAVE. The preview showed the colour; this is what stores it.
+         *
+         * TWO CALLS, AND THE FIRST IS THE ONE THAT MATTERS. `putMachineLedStrip` writes
+         * the four stored registers — the awake and asleep colours the firmware applies
+         * on every transition — and the app writes only the ones that changed, so a
+         * palette re-saved unchanged costs no flash write at all. `commit` follows it
+         * because the route exists and a machine whose save IS a separate step would
+         * need it; on this firmware it is an accepted no-op.
+         */
         async commit() {
+            const strip = store.get().strip;
+            if (!strip) {
+                publish({ refusal: LED_REFUSAL.NO_STATE });
+                return false;
+            }
+            const saved = await callRoute(transport, 'putMachineLedStrip', { body: strip });
+            if (!saved.ok) {
+                if (saved.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
+                else publish({ refusal: LED_REFUSAL.WRITE_FAILED });
+                return false;
+            }
             const result = await callRoute(transport, 'postMachineLedStripCommit', { body: {} });
             if (!result.ok && result.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
             if (result.ok) publish({ dirty: false });
+            return Boolean(result.ok);
+        },
+
+        /**
+         * END THE PREVIEW. The strips go back to the stored palette for the state the
+         * machine is actually in — the firmware picks the bank, because it is the only
+         * place that knows. A preview otherwise stands until the next sleep or wake.
+         */
+        async clearPreview() {
+            const result = await callRoute(transport, 'postMachineLedStripPreviewClear', { body: {} });
+            if (!result.ok && result.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
             return Boolean(result.ok);
         },
 

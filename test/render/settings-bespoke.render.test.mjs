@@ -507,6 +507,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const api = window.__settings;
                     api.holdLed();
                     const before = api.ledCounters();
+                    /* THE SERVER IS SHARED BY EVERY TEST ON THIS PAGE, so what a drag put
+                     * on the wire is a DELTA, never a total. */
+                    const serverBefore = api.server();
 
                     /* SEVEN PRESSES, THROUGH THE COMPONENT — a swatch click, not a store
                      * call, so what is exercised is the whole path a finger takes. */
@@ -529,6 +532,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const out = {
                         before, midFlight, after: api.ledCounters(), peak,
                         parkedNow: api.ledParked(),
+                        serverBefore,
                         server: api.server(),
                         shown: api.stores().led.hex('frontStrip', 'awake'),
                     };
@@ -546,9 +550,33 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(drill.after.sent < drill.after.intents,
                     'the intermediate colours were DROPPED, not queued');
 
+                /* THE DRAG IS ON THE PREVIEW ROUTE NOW, AND IT STORES NOTHING. Seven
+                 * presses used to be seven candidate PUTs of the four STORED registers —
+                 * a flash write per frame, saving a colour the finger only passed over.
+                 * `POST /machine/ledStrip/preview` exists at this pin (de1handler.dart:261)
+                 * and `led-strip-store.js preview()` moved onto it, so the count that says
+                 * "one write on the wire" is the count of previews, and the stored palette
+                 * must not have moved at all. That second half is the point of the change,
+                 * so it is asserted rather than assumed. */
+                assert.equal(drill.server.ledPreviews - drill.serverBefore.ledPreviews, drill.after.sent,
+                    'the previews the server received are not the writes the store counted sending');
+                assert.equal(drill.midFlight.sent, 1, 'and exactly one of the seven was on the wire mid-drill');
+                assert.equal(drill.server.ledWrites - drill.serverBefore.ledWrites, 0,
+                    'a drag wrote the STORED registers — that is a flash write per frame');
+                assert.equal(drill.server.ledCommits - drill.serverBefore.ledCommits, 0,
+                    'a drag committed to NVM');
+                /* AND THE DECIDED NUMBERS, not just "fewer than seven". Two writes — the
+                 * first press, and the single survivor the other six collapsed into —
+                 * and five dropped. This is the same pair test/settings-bespoke.test.mjs
+                 * pins at the store; pinning it here proves the component path collapses
+                 * them too, rather than the store being asked seven times politely. */
+                assert.equal(drill.after.sent, 2, 'seven intents, two writes');
+                assert.equal(drill.after.dropped, 5, 'the five the finger passed over never reached the wire');
+
                 /* LATEST-WINS, AT THE MACHINE. The last preset pressed is the colour the
-                 * fake server is left holding and the colour the row shows. */
-                const expected = drill.server.ledLast.frontStrip.awake;
+                 * fake server is left holding and the colour the row shows. The preview
+                 * body is the route's own flat shape — one 12-hex string per strip. */
+                const expected = drill.server.ledPreviewLast.frontStrip;
                 assert.equal(drill.shown.toLowerCase(),
                     `#${expected.slice(0, 2)}${expected.slice(4, 6)}${expected.slice(8, 10)}`.toLowerCase());
             });
@@ -644,8 +672,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await bespoke.updateComplete;
                     };
                     /* Black it out FIRST and forget, so nothing is remembered — the
-                     * cold-start case, which is the only one the default answers. */
+                     * cold-start case, which is the only one the default answers.
+                     *
+                     * AND THE BLACK HAS TO BE SAVED NOW. `press(false)` previews: since
+                     * the re-pin it POSTs the live registers and leaves the STORED
+                     * palette alone, so the `load()` below used to re-read the black the
+                     * preview had written and now re-reads the fixture's lit palette —
+                     * `#ffc180` — which is a remembered colour, not a cold start. The
+                     * commit is what makes the machine's stored colour black, which is
+                     * the state this test is about, and it is the same two steps a
+                     * finger takes: turn the strip off, then Save. */
                     await press(false);
+                    const saved = await led.commit();
+                    if (!saved) throw new Error('the save that blacks the stored palette was refused');
                     led.forget();
                     await led.load();
                     await press(false);
@@ -689,6 +728,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
                 await page.settle();
 
+                /* A DELTA, NOT A TOTAL. `ledCommits` counts every Save this whole page has
+                 * made, and the cold-start test above now has to commit a black palette to
+                 * create its own precondition — the preview route stopped writing the
+                 * stored registers, so a preview can no longer arrange one. A total made
+                 * this test depend on which tests ran before it. */
+                const commitsBefore = await page.evalFn(() => window.__settings.server().ledCommits);
+
                 const clean = await page.evalFn(() => {
                     const screen = document.querySelector('settings-screen');
                     return {
@@ -717,9 +763,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         commits: window.__settings.server().ledCommits,
                     };
                 });
-                assert.equal(previewed.dirty, true, 'a PUT lights the machine and persists nothing');
+                assert.equal(previewed.dirty, true, 'a preview lights the machine and persists nothing');
                 assert.equal(previewed.count, 1, 'so the header says there is one thing to save');
-                assert.equal(previewed.commits, 0, 'and nothing has reached NVM yet');
+                assert.equal(previewed.commits - commitsBefore, 0, 'and nothing has reached NVM yet');
 
                 const saved = await page.evalFn(async () => {
                     const screen = document.querySelector('settings-screen');
@@ -735,7 +781,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         left: seen,
                     };
                 });
-                assert.equal(saved.commits, 1, 'Save writes NVM — this is the whole finding');
+                assert.equal(saved.commits - commitsBefore, 1, 'Save writes NVM — this is the whole finding');
                 assert.equal(saved.dirty, false, 'and there is nothing left to save');
                 assert.deepEqual(saved.left, ['live'], 'then it leaves, as Save does everywhere');
 

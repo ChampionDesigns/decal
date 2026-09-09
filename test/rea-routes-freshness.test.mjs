@@ -162,18 +162,61 @@ describe('the generator refuses rather than guesses', () => {
         assert.throws(() => extractRest(spec, ''), /is not declared/);
     });
 
-    test('a $ref query parameter is refused, not silently flattened', () => {
-        const spec = {
-            paths: {
-                '/api/v1/x': {
-                    get: {
-                        parameters: [{ in: 'query', name: 'state', schema: { $ref: '#/components/schemas/MachineState' } }],
-                        responses: {},
-                    },
-                },
+    /* THE REFUSAL NARROWED; IT DID NOT GO. The generator now FOLLOWS a $ref when the target
+     * is a plain string enum — `type: string` plus `enum` and nothing else — because its
+     * meaning IS the list: there is no nesting to flatten and no shape to get wrong. The real
+     * document does this once, on `source` of GET /machine/calibration/{target}. Everything else
+     * still refuses, and a $ref pointing at nothing fails before either decision is reached.
+     * All three boundaries are pinned here, so a widening of what gets followed goes red
+     * rather than quietly inventing a parameter type the handler never agreed to. */
+    const paramSpec = (schema, components) => ({
+        ...(components ? { components } : {}),
+        paths: {
+            '/api/v1/x': {
+                get: { parameters: [{ in: 'query', name: 'state', schema }], responses: {} },
             },
+        },
+    });
+
+    test('a $ref query parameter resolving to a plain string enum is FOLLOWED', () => {
+        const [route] = extractRest(paramSpec(
+            { $ref: '#/components/schemas/CalibrationSource' },
+            { schemas: { CalibrationSource: { type: 'string', enum: ['current', 'factory'] } } },
+        ), '');
+        assert.deepEqual(route.query, [
+            { name: 'state', required: false, type: 'string', enum: ['current', 'factory'] },
+        ], 'the enum lands on the parameter — the point of following it at all');
+    });
+
+    test('a description on the enum does not stop it being plain', () => {
+        const [route] = extractRest(paramSpec(
+            { $ref: '#/components/schemas/CalibrationSource' },
+            { schemas: { CalibrationSource: { type: 'string', enum: ['current'], description: 'why' } } },
+        ), '');
+        assert.deepEqual(route.query[0].enum, ['current']);
+    });
+
+    test('a $ref to anything but a plain string enum is refused, not silently flattened', () => {
+        const notPlain = {
+            'an object': { type: 'object', properties: { a: { type: 'string' } } },
+            'a string with no enum': { type: 'string' },
+            'an enum carrying a second constraint': { type: 'string', enum: ['a'], format: 'uuid' },
+            'a non-string enum': { type: 'integer', enum: [1, 2] },
         };
-        assert.throws(() => extractRest(spec, ''), /resolve it deliberately/);
+        for (const [label, target] of Object.entries(notPlain)) {
+            assert.throws(
+                () => extractRest(paramSpec({ $ref: '#/components/schemas/T' }, { schemas: { T: target } }), ''),
+                /resolve it deliberately/,
+                label,
+            );
+        }
+    });
+
+    test('a $ref that points at nothing fails before either decision is reached', () => {
+        assert.throws(
+            () => extractRest(paramSpec({ $ref: '#/components/schemas/MachineState' }), ''),
+            /does not resolve/,
+        );
     });
 
     test('a socket channel with no address is a hard failure', () => {

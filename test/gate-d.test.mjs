@@ -295,12 +295,17 @@ describe('handler-body gates, re-read at the pin', () => {
         assert.ok(gateKinds('getShotsLatest').includes('null-is-the-answer'));
     });
 
-    test('the ledStrip routes D7 was said to be missing all exist (four of them)', () => {
+    /* THE TWO PREVIEW ROUTES NOW EXIST, and this test asserted their absence until the
+     * pin moved. They are what a colour picker drags against: they write the firmware's
+     * LIVE registers, which are not persisted, where PUT writes the four stored ones and
+     * every one of those is a flash write. */
+    test('all six ledStrip routes exist, preview and preview/clear among them', () => {
         const src = dart('lib/src/services/webserver/de1handler.dart');
-        for (const r of ['/api/v1/machine/ledStrip', '/api/v1/machine/ledStrip/commit', '/api/v1/machine/ledStrip/reset']) {
+        for (const r of ['/api/v1/machine/ledStrip', '/api/v1/machine/ledStrip/commit',
+            '/api/v1/machine/ledStrip/reset', '/api/v1/machine/ledStrip/preview',
+            '/api/v1/machine/ledStrip/preview/clear']) {
             assert.ok(src.includes(`'${r}'`), r);
         }
-        assert.ok(!/ledStrip\/preview/.test(src), 'and the two the old skin POSTed do NOT exist');
     });
 });
 

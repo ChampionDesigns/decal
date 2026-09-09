@@ -5,7 +5,7 @@ Companion to `EXCLUDED.md` (the REST dead surface), for this layer's socket half
 every omission is written down with a reason and a citation.
 
 Everything below was checked against ReaPrime **as written** at
-`2b047d02e42e29bf2d96a2aa964ef94e4a4daba3`
+`42f67f69334197a08cc0f4138ca05302616e977a`
 (the pinned ReaPrime checkout, read-only). Old-skin line numbers are
 from the previous skin's modules and go soft the moment anything
 moves — **re-anchor by symbol**.

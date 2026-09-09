@@ -9,7 +9,7 @@ reviewer sees what was written, not what was left out — so the omissions are w
 here with a reason and a citation each.
 
 Everything below was checked against ReaPrime **as written** at
-`2b047d02e42e29bf2d96a2aa964ef94e4a4daba3`
+`42f67f69334197a08cc0f4138ca05302616e977a`
 (the pinned ReaPrime checkout, read-only). Old-skin line numbers are
 from its and go soft the moment
 anything moves — **re-anchor by symbol**.
@@ -25,7 +25,6 @@ because the work is somewhere else.
 
 | Not built | Why | Citation |
 |---|---|---|
-| `previewLedStrip` / `clearLedStripPreview` — `POST /machine/ledStrip/preview` and `../preview/clear` | These endpoints have never existed in ReaPrime, so every call from the settings page 404s, and the failure was swallowed as "preview is a nicety". **This is not 's live preview** — drives the strip from the four REAL routes below, and those stay. was reversed in the owner favour: *ReaPrime gains the two endpoints*, so this is an upstream feature ask, not skin work. 18 lines, the entire UNCLEAR bucket; DROP either way. | `de1handler.dart` `addRoutes` — the only ledStrip routes are `GET /api/v1/machine/ledStrip`, `PUT /api/v1/machine/ledStrip`, `POST /api/v1/machine/ledStrip/commit`, `POST /api/v1/machine/ledStrip/reset`. the reversal, decision; `gate3-dead-surface`. |
 | `calibrateScale`'s `POST /machine/scale/calibrate` and `buildCalibrateBody` | Written against an API that has never existed: wrong path, wrong verb, wrong command set, wrong body key, wrong response model. The real contract is `PUT /api/v1/machine/scaleCalibration`, commands `abort\|zero\|latch`, body `weightGrams`. | `de1handler.dart` `PUT /api/v1/machine/scaleCalibration`; the port notes row. |
 | `setCupWarmerPrewarm` — `PUT /machine/cupWarmer` with `{prewarmEnabled, prewarmLeadMinutes}` | That handler returns 400 unconditionally for a body without `temperature` or `enabled`. The real route is `PUT /api/v1/machine/cupWarmer/preheat` with `{enabled, leadMinutes}`. The old comment block documents the wrong response shape in both directions. | `de1handler.dart` `PUT /api/v1/machine/cupWarmer` and `PUT /api/v1/machine/cupWarmer/preheat`. |
 | The `orderBy` query parameter on `GET /shots` | No handler reads it. The real parameter is `order=asc\|desc`. `rest_v1.yml` documents `orderBy` anyway, so a generated client would faithfully emit a dead parameter — one of the two upstream schema fixes. | `shots_handler.dart` `_getShots` reads `params['order']` only. |

@@ -27,7 +27,7 @@
       "wantedBy": "items hist-shot-list-derivation / hist-b5-scalars-q17. The History list wants to print '28 s' in a row cell without downloading the shot the row names.",
       "servedAt": null,
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
-      "basis": "NOT A MISSING ROUTE — A MISSING FIELD, verified by reading both serializers at the re-pin rather than by sweeping paths. Neither ShotRecord.toJson nor ShotRecord.toJsonWithoutMeasurements emits duration, peak pressure or average flow in any spelling; both gained only createdAt and updatedAt at this pin. ShotAnnotations diffs empty — six modelled fields plus a free `extras` map, no computed metric. Eleven paths were added between the pins and none was removed; none of the eleven serves a shot metric. Corroborating: the app's own history screen computes duration and peak pressure from record.measurements in-app, so the metrics live nowhere on the wire.",
+      "basis": "NOT A MISSING ROUTE — A MISSING FIELD, verified by reading both serializers at the re-pin rather than by sweeping paths. Neither `ShotRecord.toJson` (lib/src/models/data/shot_record.dart:50-63) nor `ShotRecord.toJsonWithoutMeasurements` (shot_record.dart:65-77) emits duration, peak pressure or average flow in any spelling; both gained only createdAt and updatedAt at this pin — the two serializers sat at :36-47 and :49-59 at the old pin, so the citation moved with the record's new fields, not with its keys. `ShotAnnotations` (shot_annotations.dart:5-14) diffs empty between the pins — six modelled fields plus a free `extras` map, no computed metric. The shots list maps every row through toJsonWithoutMeasurements (shots_handler.dart:132), so the gap is on the payload as well as in the model. Eleven paths were added between the pins and none was removed; none of the eleven serves a shot metric. Corroborating: the app's own history screen computes duration and peak pressure from record.measurements in-app, so the metrics live nowhere on the wire.",
       "interim": "decided: the scalars are computed IN THE SKIN from the data layer's single walk (src/lib/shot-derivation.js `scalars`, twelve keys, each null when absent), for the shots that have actually been downloaded because they are on the chart. Every other row shows a DASH. (the previous skin's module, 16 Aug) settled the open half: the list does NOT download a ~221 KB record to fill a list cell, so `fillMissingOutcomes` and the whole fetch-per-row machinery are not built and there is no code path to them.",
       "policy": "NO STUB, NO SENTINEL, NO FETCH. The absence is the recorded finding. The reading shape is src/lib/shot-summary.js SUMMARY_SCALAR_KEYS: each scalar names the summary field that carries it, or null for 'nothing serves this yet'. R5 lands as a STRING in that table — one field per scalar — and the dash fills in with nothing to delete, because nothing was built. Pinned by test/shot-summary.test.mjs (the dash truth table, and the per-row fetch count asserted at exactly 0) and declared on the wave manifest."
     }
@@ -511,6 +511,42 @@
       "notes": [
         "THE ROW DECLARED `query: []` UNTIL 21 AUG and the handler has read includeArchived since it was written — an omission on one of the four desk-checked columns, with no note claiming it was deliberate (contrast getShots's `$notRead`, which names what the handler ignores). rea-routes.generated.js already carried the parameter from rest_v1.yml, so the table was the only place that denied it.",
         "Still `declared`: no caller. grep for a callRoute site naming this id in src/ returns none, which is why the omission cost nothing at runtime and everything to the next reader."
+      ]
+    },
+    {
+      "id": "getBeanBatches",
+      "path": "/api/v1/bean-batches",
+      "route": "/bean-batches",
+      "verb": "GET",
+      "requestFields": {
+        "query": [
+          "includeArchived"
+        ],
+        "body": null
+      },
+      "responseShape": "200 array of BeanBatch.toJson, with an ETag; 304 when If-None-Match matches (jsonOkConditional, beans_handler.dart:167); 500 {error:<Dart exception>} from the handler's own catch (:169-171)",
+      "handlerSymbol": "BeansHandler._getAllBatches",
+      "handlerFile": "lib/src/services/webserver/beans_handler.dart",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "status": "declared",
+      "consumedBy": [
+        "src/data/rea-conditional.js CONDITIONAL_ROUTES"
+      ],
+      "gates": [
+        {
+          "kind": "conditional",
+          "meaning": "jsonOkConditional — the route gained it at this pin (beans_handler.dart had two such call sites at the previous one and has three now), so a 304 is newly possible here",
+          "action": "send If-None-Match and treat a 304 as 'unchanged', never as empty."
+        },
+        {
+          "kind": "string-compared-boolean",
+          "meaning": "`queryParameters['includeArchived'] == 'true'` — any other spelling reads as false",
+          "action": "send the literal string 'true'."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "The batch LIST is conditional; the per-id routes are not."
       ]
     },
     {
@@ -2290,7 +2326,7 @@
         },
         {
           "kind": "enum-value-must-be-declared",
-          "meaning": "`_validateSettings` also refuses a value outside an enum setting's declared list — 400 {error:'Setting \"<key>\" must be one of: <values>'} (plugin_loader_service.dart:1099-1108); the list is read from the manifest by `parsePluginEnumValues` (plugin_manifest.dart:4-13), which has zero hits anywhere under lib/ at 2b047d02, so the refusal is new at this pin",
+          "meaning": "`_validateSettings` also refuses a value outside an enum setting's declared list — 400 {error:'Setting \"<key>\" must be one of: <values>'} (plugin_loader_service.dart:1101-1108); the list is read from the manifest by `parsePluginEnumValues` (plugin_manifest.dart:4). BOTH ARE NEW AT THIS PIN: neither the refusal nor the symbol exists at the previous one, so a value this route used to accept can now be rejected.",
           "action": "build an enum control from the manifest's own values and send one of them — never a free-text field, and never a value the manifest does not list."
         }
       ],
@@ -2761,6 +2797,74 @@
       "notes": [
         "POST /machine/ledStrip/preview and .../preview/clear EXIST at this pin — de1handler.dart:261 and :302 — and the preview body is {frontStrip?, backStrip?} as 12 hex, at least one of the two required, else 400 {error:'name at least one of frontStrip or backStrip'} (:281-284). This note said they DO NOT EXIST at this commit and were excluded (EXCLUDED.md) as an upstream ask: true at the old pin, false at this one.",
         "adopted. The re-verification this note carried — 0 hits against 30 for ledStrip, so the live path is answered with the existing PUT and zero upstream work — no longer holds: both preview routes are in lib/ at this pin (de1handler.dart:261, :302), and they, not this PUT, are what pushes live. See the live-not-persisted gate."
+      ]
+    },
+    {
+      "id": "postMachineLedStripPreview",
+      "path": "/api/v1/machine/ledStrip/preview",
+      "route": "/machine/ledStrip/preview",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": {
+          "frontStrip": "12 hex, RRRRGGGGBBBB — optional",
+          "backStrip": "12 hex, RRRRGGGGBBBB — optional",
+          "$cap": "64 KiB / 10 s (smallRequestBodyBytes)"
+        }
+      },
+      "responseShape": "202, no body; 400 {error:'Invalid JSON body'|'invalid JSON body'}; 400 {error:'name at least one of frontStrip or backStrip'} when the body names neither; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}; 404 feature gate; 503 {error:'Machine write queue is full', message}; 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise — NO 409 (withQueuedDe1 sets no coalescing key) and NO 504 (previewLedStrip writes MMRs whose BLE errors surface as the 500 above)",
+      "handlerSymbol": "De1Handler.addRoutes",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "shows-without-storing",
+          "meaning": "the firmware keeps a LIVE colour apart from the stored awake/sleep pair. This route writes the live pair only, so nothing reaches flash and nothing survives a reboot or a sleep/wake transition",
+          "action": "drag against this route, never against PUT /machine/ledStrip. PUT persists — every one of its four registers is a flash write — and commit is an empty no-op. This is the ONLY way to show an ASLEEP colour on an awake machine, because the firmware applies a stored colour only when it is already in that state."
+        },
+        {
+          "kind": "omission-is-not-black",
+          "meaning": "a strip the body does not name is LEFT ALONE, not darkened",
+          "action": "send only the strips that moved. Naming one must not blank the other."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "frontSwitch has NO live register and does not follow a preview. It catches up when the colour is saved.",
+        "End a preview with POST /machine/ledStrip/preview/clear. It otherwise stands until the next sleep or wake, which may be hours."
+      ]
+    },
+    {
+      "id": "postMachineLedStripPreviewClear",
+      "path": "/api/v1/machine/ledStrip/preview/clear",
+      "route": "/machine/ledStrip/preview/clear",
+      "verb": "POST",
+      "requestFields": {
+        "query": [],
+        "body": null
+      },
+      "responseShape": "202, no body; 404 feature gate; 503 {error:'Machine write queue is full', message}; 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise — reads no body, so no 413/408; no 409 (no coalescing key)",
+      "handlerSymbol": "De1Handler.addRoutes",
+      "handlerFile": "lib/src/services/webserver/de1handler.dart",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "status": "consumed",
+      "consumedBy": [
+        "src/stores/led-strip-store.js"
+      ],
+      "gates": [
+        {
+          "kind": "the-machine-picks-the-bank",
+          "meaning": "clearLedStripPreview reads the machine's own awake/asleep state and writes the stored pair for THAT state back to the live registers",
+          "action": "call it when the picker closes. Do not try to work out the bank here — the firmware is the only place that knows."
+        }
+      ],
+      "retires": [],
+      "notes": [
+        "Not a rollback of a SAVE. PUT persists; this only ends a preview."
       ]
     },
     {

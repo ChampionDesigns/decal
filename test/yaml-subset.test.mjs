@@ -156,8 +156,13 @@ describe('the two real specs', () => {
 
     test('rest_v1.yml parses to the expected shape', () => {
         assert.equal(rest.openapi, '3.0.3');
-        assert.equal(Object.keys(rest.paths).length, 101);
-        assert.equal(Object.keys(rest.components.schemas).length, 82);
+        // 101 -> 112 and 82 -> 97 at the 42f67f69 re-pin: purely additive, nothing removed.
+        // New paths: machine/ledStrip/preview(+/clear), machine/stopAtWeight,
+        // machine/calibration/{target}, bean-batches, plugins/{id}/source,
+        // plugins/install/github-release, .../github-branch, plugins/update,
+        // plugins/{id}/update/approve, diagnostics/ble.
+        assert.equal(Object.keys(rest.paths).length, 112);
+        assert.equal(Object.keys(rest.components.schemas).length, 97);
     });
 
     test('websocket_v1.yml parses to the expected shape', () => {

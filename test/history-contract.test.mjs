@@ -16,7 +16,9 @@ import { SHOT_RECORD_KEYS, SHOT_ANNOTATION_KEYS } from '../src/data/rea-shot-rec
 
 const REPO = path.resolve(fileURLToPath(new URL('../', import.meta.url)));
 const TABLE = JSON.parse(readFileSync(path.join(REPO, 'src/data/CONTRACTS.json'), 'utf8'));
-const PIN = '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3';
+/* THE PIN IS READ, NEVER RESTATED. A literal here is a second authority, and a
+ * re-pin then leaves it asserting the commit the tree has moved off. */
+import { PINNED_COMMIT as PIN } from '../scripts/lib/rea-source.js';
 const PAGE = JSON.parse(readFileSync(
     path.join(REPO, 'tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc.json'), 'utf8'));
 const RECORD = JSON.parse(readFileSync(
@@ -423,11 +425,32 @@ describe('the enjoyment round-trip against the mock', () => {
 });
 
 describe('the R5 absence is a finding, not a stub', () => {
-    test('the ShotRecord keys are the six the serializer emits, and none is a metric', () => {
+    test('SHOT_RECORD_KEYS is the six the SKIN models; the wire carries ten; none is a metric', () => {
+        /* THE SERIALIZER GREW AT THIS PIN AND THIS CONSTANT DID NOT, so the assertion had to
+         * stop claiming they are the same thing. `ShotRecord.toJson` gained `createdAt` and
+         * `updatedAt` (shot_record.dart:54-55, and :69-70 on the without-measurements twin),
+         * both emitted unconditionally; the regenerated route table lists ten keys, while
+         * src/data/rea-shot-record.js still lists six under a doc comment calling itself
+         * "`ShotRecord.toJson`'s keys". This test used to call those six "the keys the
+         * serializer emits" — true at 2b047d02, false at 42f67f69. The gap is REAL and lives
+         * in src/, so it is COUNTED here rather than blessed: the wire list is pinned whole
+         * and the modelled/served difference is pinned exactly, so widening it goes red.
+         * R5 is untouched by any of it — not one of the four extra keys is a shot metric. */
         assert.deepEqual([...SHOT_RECORD_KEYS],
             ['id', 'timestamp', 'measurements', 'workflow', 'annotations', 'stopReason']);
+        const wire = REST_ROUTE_BY_ID.getShotsById.successSchema;
+        assert.equal(wire.ref, 'ShotRecord');
+        assert.deepEqual([...wire.keys],
+            ['id', 'timestamp', 'createdAt', 'updatedAt', 'measurements', 'workflow',
+                'annotations', 'stopReason', 'shotNotes', 'metadata'],
+            'the served shape of ShotRecord moved — re-read shot_record.dart before editing this');
+        assert.deepEqual(wire.keys.filter((k) => !SHOT_RECORD_KEYS.includes(k)),
+            ['createdAt', 'updatedAt', 'shotNotes', 'metadata'],
+            'the modelled/served gap changed; SHOT_RECORD_KEYS still calls itself toJson\'s keys');
         for (const forbidden of ['duration', 'durationSeconds', 'peakPressure', 'averageFlow']) {
             assert.ok(!SHOT_RECORD_KEYS.includes(forbidden));
+            assert.ok(!wire.keys.includes(forbidden),
+                `${forbidden} is served now — R5 has LANDED, re-read the finding before deleting it`);
             assert.ok(!SHOT_ANNOTATION_KEYS.includes(forbidden),
                 `${forbidden} would make R5 already landed; re-read shot_annotations.dart`);
         }
@@ -447,7 +470,12 @@ describe('the R5 absence is a finding, not a stub', () => {
         assert.ok(r5, 'R5 has no absentRoutes entry — a stub would have been the alternative');
         assert.equal(r5.servedAt, null);
         assert.equal(r5.checkedCommit, PIN);
-        assert.match(r5.basis, /shot_record\.dart:49-59/);
+        /* The serializer MOVED, it did not go away: ShotRecord gained createdAt and
+         * updatedAt, so toJsonWithoutMeasurements slid from :49-59 to :65-77 and toJson
+         * from :36-47 to :50-63. The citation is what makes the basis checkable, so both
+         * halves are pinned here — a rewritten basis that drops them is the regression. */
+        assert.match(r5.basis, /shot_record\.dart:65-77/);
+        assert.match(r5.basis, /shot_record\.dart:50-63/);
         assert.match(r5.policy, /NO STUB, NO SENTINEL, NO FETCH/);
         assert.match(r5.interim, /dash/i);
     });

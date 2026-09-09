@@ -60,7 +60,9 @@ describe('the registry matches ReaPrime at the pinned commit', () => {
             [...expected.entries()].sort(),
             'conditional handlers drifted — re-derive CONDITIONAL_ROUTES from the handlers',
         );
-        assert.equal([...found.values()].reduce((a, b) => a + b, 0), 7);
+        // 7 -> 8 at the 42f67f69 re-pin: beans_handler.dart gained _getAllBatches
+        // (GET /api/v1/bean-batches), a third jsonOkConditional call site. Still five files.
+        assert.equal([...found.values()].reduce((a, b) => a + b, 0), 8);
         assert.equal(files.length, 5);
     });
 

@@ -1,6 +1,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+
+/* The pin is READ, never restated — the doc has to cite the CURRENT pin. */
+import { PINNED_COMMIT } from '../scripts/lib/rea-source.js';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,8 +20,6 @@ const EXCLUDED_MD = fileURLToPath(new URL('../src/data/EXCLUDED.md', import.meta
  */
 export const EXCLUDED_SYMBOLS = Object.freeze([
     'signalHeartbeat',
-    'previewLedStrip',
-    'clearLedStripPreview',
     'getValueFromStore',
     'setValueInStore',
     'resyncIfDrifted',
@@ -37,7 +38,6 @@ export const EXCLUDED_SYMBOLS = Object.freeze([
 
 /** Route text that addresses something ReaPrime does not serve. */
 export const EXCLUDED_PATHS = Object.freeze([
-    'ledStrip/preview',
     'machine/scale/calibrate',
 ]);
 
@@ -68,7 +68,7 @@ export function excludedHits(source) {
 describe('the canary pair', () => {
     test('a file that ports dead surface is rejected', () => {
         const hits = excludedHits(readFileSync(join(FIXTURES, 'ports-excluded.js'), 'utf8'));
-        assert.deepEqual(hits.sort(), ['ledStrip/preview', 'orderBy', 'previewLedStrip', 'signalHeartbeat'].sort());
+        assert.deepEqual(hits.sort(), ['orderBy', 'signalHeartbeat'].sort());
     });
 
     test('a file that names every excluded symbol in prose passes', () => {
@@ -107,7 +107,7 @@ describe('EXCLUDED.md and the scan say the same thing', () => {
     }
 
     test('the doc cites the pinned commit', () => {
-        assert.ok(doc.includes('2b047d02e42e29bf2d96a2aa964ef94e4a4daba3'));
+        assert.ok(doc.includes(PINNED_COMMIT));
     });
 
     test('the doc records how a row may be removed', () => {

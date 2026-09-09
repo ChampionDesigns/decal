@@ -243,7 +243,7 @@ def _derived_or_none(p: float, f: float, value: float):
 def upgrade_recorded_shot(record):
     """Recompute the three derived channels onto a recorded shot, AT SERVE TIME.
 
-    THE DATA TRUTH, at pin 2b047d02 (`lib/src/models/device/machine.dart:64-140`): the
+    THE DATA TRUTH, at pin 42f67f69 (`lib/src/models/device/machine.dart:64-140`): the
     derived channels are "computed on read from the raw pressure and flow fields — never
     stored — so already-recorded history shots gain these channels with zero migration
     (fromJson does not read them; toJson recomputes them)". `ShotsHandler._getShot`

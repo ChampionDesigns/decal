@@ -34,6 +34,15 @@ export const CONDITIONAL_ROUTES = Object.freeze([
         note: null,
     }),
     Object.freeze({
+        path: '/bean-batches',
+        handlerFile: 'lib/src/services/webserver/beans_handler.dart',
+        handlerSymbol: 'BeansHandler._getAllBatches',
+        callSites: 1,
+        note: 'Added at the 42f67f69 re-pin: GET /api/v1/bean-batches lists every batch across beans. '
+            + 'includeArchived participates in the body, hence in the ETag. The per-batch read '
+            + '/bean-batches/<id> stays plain jsonOk.',
+    }),
+    Object.freeze({
         path: '/grinders',
         handlerFile: 'lib/src/services/webserver/grinders_handler.dart',
         handlerSymbol: 'GrindersHandler._getGrinders',
