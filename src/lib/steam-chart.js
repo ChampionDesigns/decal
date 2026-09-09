@@ -16,6 +16,22 @@ export function isSteamPouring(substate) {
     return substate === STEAM_ACTIVE_SUBSTATE;
 }
 
+/**
+ * The states a steam session is still running in. `airPurge` is the automatic purge the
+ * machine runs at the end of one, and it is a STATE rather than a substate — so a fold
+ * that watched `steam` alone saw the session end when the purge began.
+ */
+export const STEAM_SESSION_STATES = Object.freeze([
+    MACHINE_STATE.STEAM, MACHINE_STATE.AIR_PURGE,
+]);
+
+/* The purge only counts when the chart is already in steam: a purge reached from
+ * anywhere else must not claim the canvas. */
+function stillSteaming(state, previousMode) {
+    if (state === MACHINE_STATE.STEAM) return true;
+    return state === MACHINE_STATE.AIR_PURGE && previousMode === CHART_MODE.STEAM;
+}
+
 export const STEAM_Y_RANGE = Object.freeze([0, 6.5]);          // bar and mL/s
 
 export const STEAM_Y2_RANGE = Object.freeze([0, 195]);         // °C
@@ -70,8 +86,8 @@ export function initialChartMode() {
 
 export function chartModeFor(prev, { state, substate, now }) {
     const previous = prev || initialChartMode();
-    const inSteam = state === MACHINE_STATE.STEAM;
-    const pouring = inSteam && isSteamPouring(substate);
+    const inSteam = stillSteaming(state, previous.mode);
+    const pouring = state === MACHINE_STATE.STEAM && isSteamPouring(substate);
     const espresso = state === MACHINE_STATE.ESPRESSO;
     let next;
 
@@ -90,9 +106,12 @@ export function chartModeFor(prev, { state, substate, now }) {
     } else if (pouring) {
         next = { mode: CHART_MODE.STEAM, holdUntil: null, poured: true };
     } else if (inSteam) {
-        next = previous.poured
-            ? hold(true)
-            : { mode: CHART_MODE.STEAM, holdUntil: null, poured: false };
+        /* NO HOLD WHILE THE MACHINE IS STILL IN A STEAM STATE. Every phase that brackets a
+         * pour inside one session — a pause, and the puff that holds the pressure up —
+         * reports a non-pouring substate, so a hold armed at the valve expired while the
+         * machine was still steaming. `poured` is CARRIED, or a pause forgets that the
+         * session poured and the settle window is skipped when it really ends. */
+        next = { mode: CHART_MODE.STEAM, holdUntil: null, poured: previous.poured };
     } else if (previous.mode === CHART_MODE.STEAM) {
         next = previous.poured
             ? hold(true)

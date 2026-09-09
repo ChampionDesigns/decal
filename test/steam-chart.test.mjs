@@ -60,14 +60,50 @@ describe('the settle window', () => {
         frame('steam', 'pouring', at),
     );
 
-    test('the valve closing starts a hold, and the graph stays', () => {
+    /* The hold starts when the machine LEAVES steam, not when the valve shuts. */
+    test('the valve closing keeps the graph, and starts NO hold', () => {
         const poured = pour(1000);
         assert.equal(poured.poured, true);
         assert.equal(poured.holdUntil, null, 'pouring cancels any pending hold');
         const closed = chartModeFor(poured, frame('steam', 'pouringDone', 2000));
         assert.equal(closed.mode, CHART_MODE.STEAM);
+        assert.equal(closed.holdUntil, null, 'the machine is still in steam');
+        assert.equal(isSteamHoldActive(closed), false);
+    });
+
+    test('leaving steam starts the hold, and the graph stays for the window', () => {
+        const closed = chartModeFor(pour(1000), frame('idle', 'idle', 2000));
+        assert.equal(closed.mode, CHART_MODE.STEAM);
         assert.equal(closed.holdUntil, 2000 + STEAM_HOLD_MS);
         assert.equal(isSteamHoldActive(closed), true);
+    });
+
+    /* A puff and a pause both report a non-pouring substate, so a session that puffs to
+     * hold its pressure reports minute after minute of steam-and-idle. */
+    test('a long puff never expires the graph while the machine is in steam', () => {
+        let mode = pour(1000);
+        for (let at = 2000; at <= 2000 + STEAM_HOLD_MS * 6; at += STEAM_HOLD_MS / 2) {
+            mode = chartModeFor(mode, frame('steam', 'idle', at));
+            assert.equal(mode.mode, CHART_MODE.STEAM, `still steam at ${at}`);
+            assert.equal(mode.holdUntil, null, `no hold armed at ${at}`);
+        }
+        assert.equal(mode.poured, true, 'and it still knows the session poured');
+    });
+
+    test('the automatic purge holds the canvas, and the hold starts after it', () => {
+        let mode = chartModeFor(pour(1000), frame('steam', 'idle', 2000));
+        mode = chartModeFor(mode, frame('airPurge', 'idle', 3000));
+        assert.equal(mode.mode, CHART_MODE.STEAM, 'the purge is part of the session');
+        assert.equal(mode.holdUntil, null);
+
+        mode = chartModeFor(mode, frame('idle', 'idle', 4000));
+        assert.equal(mode.holdUntil, 4000 + STEAM_HOLD_MS, 'the window opens after it');
+    });
+
+    test('a purge that follows anything else does NOT claim the canvas', () => {
+        const idle = chartModeFor(initialChartMode(), frame('idle', 'idle', 1000));
+        const purge = chartModeFor(idle, frame('airPurge', 'idle', 2000));
+        assert.equal(purge.mode, CHART_MODE.ESPRESSO);
     });
 
     test('it expires on the clock, not on a countdown', () => {
@@ -91,7 +127,8 @@ describe('the settle window', () => {
     });
 
     test('and a second steam mid-hold cancels it rather than stacking', () => {
-        const closed = chartModeFor(pour(1000), frame('steam', 'pouringDone', 2000));
+        const closed = chartModeFor(pour(1000), frame('idle', 'idle', 2000));
+        assert.equal(isSteamHoldActive(closed), true);
         const again = chartModeFor(closed, frame('steam', 'pouring', 3000));
         assert.equal(again.holdUntil, null);
         assert.equal(again.poured, true);
