@@ -3,7 +3,7 @@
  */
 
 import { createStore } from './store.js';
-import { CHART_MODE, STEAM_CHANNELS } from '../lib/steam-chart.js';
+import { CHART_MODE, STEAM_CHANNELS, isSteamFlowing } from '../lib/steam-chart.js';
 
 export const STEAM_SAMPLE_CAP = 2000;
 
@@ -35,6 +35,18 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
 
     let series = null;
 
+    /* THE QUIET TAIL IS HELD, NOT PUBLISHED. The machine keeps reporting `pouring` for
+     * about 6.5 s after the steam flow stops on the automatic stop, and the graph drew
+     * every one of those frames as a fall to zero. A frame below `STEAM_MIN_FLOW` waits
+     * here instead. The next flowing frame flushes the whole wait, so a dip inside a
+     * session keeps its shape; the end of the session simply drops it. */
+    let pending = [];
+
+    const append = (seconds, row) => {
+        t.push(seconds);
+        STEAM_CHANNELS.forEach((key, index) => columns[key].push(row[index]));
+    };
+
     const publish = () => store.set(Object.freeze({
         ok: t.length > 0,
         reason: t.length > 0 ? null : 'noSamples',
@@ -52,6 +64,7 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
         originMs = null;
         t = [];
         columns = Object.fromEntries(STEAM_CHANNELS.map((key) => [key, []]));
+        pending = [];
         dropped = 0;
         series = Object.freeze(Object.fromEntries(
             STEAM_CHANNELS.map((key) => [key, Object.freeze({ x: t, y: columns[key] })]),
@@ -88,16 +101,22 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
             if (stale && originMs !== null) reset();
             stale = false;
             if (originMs === null) originMs = at;
-            if (t.length >= STEAM_SAMPLE_CAP) {
+            if (t.length + pending.length >= STEAM_SAMPLE_CAP) {
                 dropped += 1;
                 return dropped === 1 ? publish() : store.get();
             }
             const seconds = (at - originMs) / 1000;
-            t.push(seconds);
-            for (const key of STEAM_CHANNELS) {
+            const row = STEAM_CHANNELS.map((key) => {
                 const value = key === 'milkTemperature' ? milk : machine[key];
-                columns[key].push(typeof value === 'number' && Number.isFinite(value) ? value : null);
+                return typeof value === 'number' && Number.isFinite(value) ? value : null;
+            });
+            if (!isSteamFlowing(machine.flow)) {
+                pending.push({ seconds, row });
+                return store.get();
             }
+            for (const held of pending) append(held.seconds, held.row);
+            pending = [];
+            append(seconds, row);
             return publish();
         },
 

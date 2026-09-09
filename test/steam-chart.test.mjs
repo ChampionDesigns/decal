@@ -8,10 +8,13 @@ import assert from 'node:assert/strict';
 import {
     CHART_MODE, STEAM_HOLD_MS, STEAM_CHANNELS, STEAM_CHANNEL_SPECS,
     STEAM_Y_RANGE, STEAM_Y2_RANGE, STEAM_Y2_CHANNELS, STEAM_MIN_X_RANGE,
-    chartModeFor, initialChartMode, isSteamHoldActive, isSteamPouring,
-    steamHoldRemainingMs, steamRangeMaxForTime,
+    STEAM_MIN_FLOW, STEAM_GUARD_DELAY_MS, STEAM_PUFF_SUBSTATE,
+    chartModeFor, initialChartMode, initialSteamGuard, isSteamFlowing, isSteamHoldActive,
+    isSteamPouring, steamGuardFor, steamGuardRemainingMs, steamHoldRemainingMs,
+    steamRangeMaxForTime,
 } from '../src/lib/steam-chart.js';
 import { createSteamBuffer, STEAM_SAMPLE_CAP } from '../src/stores/steam-buffer.js';
+import { AUTO_STOP, MANUAL_STOP } from './fixtures/steam-sessions.js';
 
 const frame = (state, substate, now) => ({ state, substate, now });
 
@@ -260,5 +263,150 @@ describe('the session buffer', () => {
         buffer.clear();
         assert.equal(buffer.get().counts.samples, 0);
         assert.equal(buffer.get().ok, false);
+    });
+});
+
+/* THE TWO RECORDED SESSIONS, replayed frame by frame through the same fold and the same
+ * buffer the screen uses. Every figure below is read from the recording, never chosen. */
+function replay(frames) {
+    const buffer = createSteamBuffer({});
+    let mode = initialChartMode();
+    let guard = initialSteamGuard();
+    let guardShownAt = null;
+    let puffFrom = null;
+    for (const [ms, substate, flow] of frames) {
+        mode = chartModeFor(mode, frame('steam', substate, ms));
+        guard = steamGuardFor(guard, { state: 'steam', substate, now: ms });
+        if (substate === STEAM_PUFF_SUBSTATE && puffFrom === null) puffFrom = ms;
+        if (guard.shown && guardShownAt === null) guardShownAt = ms;
+        buffer.take({
+            mode: mode.mode,
+            pouring: substate === 'pouring',
+            machine: { ok: true, flow, pressure: 1, targetFlow: 1.2, steamTemperature: 150 },
+            at: ms,
+        });
+    }
+    return { buffer, mode, guard, guardShownAt, puffFrom };
+}
+
+/** The last moment in the recording that carries real steam flow, in seconds. */
+function lastFlowingSecond(frames) {
+    const flowing = frames.filter(([, substate, flow]) => substate === 'pouring' && flow >= STEAM_MIN_FLOW);
+    return flowing[flowing.length - 1][0] / 1000;
+}
+
+describe('the flow rule, against the two recorded sessions', () => {
+    test('the threshold is the flow the wand stops making steam below', () => {
+        assert.equal(STEAM_MIN_FLOW, 0.2);
+        assert.equal(isSteamFlowing(0.2), true);
+        assert.equal(isSteamFlowing(0.19), false);
+        for (const other of [null, undefined, NaN, 'x']) {
+            assert.equal(isSteamFlowing(other), false, String(other));
+        }
+    });
+
+    test('the machine ends a session about six seconds after the steam stops', () => {
+        const pour = AUTO_STOP.filter(([, substate]) => substate === 'pouring');
+        const span = (pour[pour.length - 1][0] - pour[0][0]) / 1000;
+        const tail = pour[pour.length - 1][0] / 1000 - lastFlowingSecond(AUTO_STOP);
+        assert.ok(Math.abs(span - 21.9) < 0.1, `pour span ${span}`);
+        assert.ok(Math.abs(tail - 6.5) < 0.1, `dead tail ${tail}`);
+    });
+
+    test('and it ends a HAND-STOPPED session with no tail at all', () => {
+        const pour = MANUAL_STOP.filter(([, substate]) => substate === 'pouring');
+        const tail = pour[pour.length - 1][0] / 1000 - lastFlowingSecond(MANUAL_STOP);
+        assert.equal(tail, 0, 'the hand stop is the measurement that says the tail is the machine');
+    });
+
+    test('the graph of the automatic session stops where the steam stopped', () => {
+        const { buffer } = replay(AUTO_STOP);
+        const t = buffer.get().axis.t;
+        const origin = AUTO_STOP.find(([, substate]) => substate === 'pouring')[0];
+        const last = t[t.length - 1] + origin / 1000;
+        assert.ok(Math.abs(last - lastFlowingSecond(AUTO_STOP)) < 0.05,
+            `the graph ends at ${last}, the steam at ${lastFlowingSecond(AUTO_STOP)}`);
+        /* 329 pour frames arrive and 231 are drawn: the 98 the machine sent after the
+         * steam stopped are the six seconds the graph used to hold at zero. */
+        const pour = AUTO_STOP.filter(([, substate]) => substate === 'pouring').length;
+        assert.equal(pour, 329);
+        assert.equal(buffer.get().counts.samples, 231);
+    });
+
+    test('the hand-stopped session loses NOTHING — the rule costs a good graph nothing', () => {
+        const { buffer } = replay(MANUAL_STOP);
+        const drawn = MANUAL_STOP.filter(([, substate]) => substate === 'pouring').length;
+        assert.equal(buffer.get().counts.samples, drawn);
+    });
+
+    test('a dip inside a session keeps its shape — the wait is flushed, not dropped', () => {
+        const buffer = createSteamBuffer({});
+        const at = (i, flow) => buffer.take({
+            mode: CHART_MODE.STEAM, pouring: true, at: 1000 + i * 100,
+            machine: { ok: true, flow, pressure: 1, targetFlow: 1.2, steamTemperature: 150 },
+        });
+        at(0, 3.9); at(1, 0.0); at(2, 0.1); at(3, 3.8);
+        assert.deepEqual([...buffer.get().axis.t], [0, 0.1, 0.2, 0.3], 'the dip is drawn');
+        assert.deepEqual([...buffer.get().series.flow.y], [3.9, 0, 0.1, 3.8]);
+        at(4, 0.0); at(5, 0.0);
+        assert.equal(buffer.get().counts.samples, 4, 'the tail after the last flow is not drawn');
+    });
+});
+
+describe('the puff guard', () => {
+    const puff = (now) => ({ state: 'steam', substate: STEAM_PUFF_SUBSTATE, now });
+
+    test('nothing is armed until the machine enters the puff', () => {
+        const guard = initialSteamGuard();
+        assert.equal(guard.armedAt, null);
+        assert.equal(guard.shown, false);
+        assert.equal(steamGuardRemainingMs(guard, 1000), null);
+    });
+
+    test('it arms on the puff and appears ten seconds later, not before', () => {
+        let guard = steamGuardFor(initialSteamGuard(), puff(1000));
+        assert.equal(guard.armedAt, 1000);
+        assert.equal(guard.shown, false, 'the user gets the delay to stop it themselves');
+        assert.equal(steamGuardRemainingMs(guard, 1000), STEAM_GUARD_DELAY_MS);
+
+        guard = steamGuardFor(guard, puff(1000 + STEAM_GUARD_DELAY_MS - 1));
+        assert.equal(guard.shown, false);
+
+        guard = steamGuardFor(guard, puff(1000 + STEAM_GUARD_DELAY_MS));
+        assert.equal(guard.shown, true);
+        assert.equal(guard.armedAt, 1000, 'the arming moment does not move under it');
+        assert.equal(steamGuardRemainingMs(guard, 1000 + STEAM_GUARD_DELAY_MS), null);
+    });
+
+    test('leaving the puff clears it, which is the ONLY way it clears', () => {
+        let guard = steamGuardFor(initialSteamGuard(), puff(1000));
+        guard = steamGuardFor(guard, puff(1000 + STEAM_GUARD_DELAY_MS));
+        assert.equal(guard.shown, true);
+        for (const [state, substate] of [['steam', 'pouringDone'], ['busy', 'idle'], ['idle', 'idle']]) {
+            const cleared = steamGuardFor(guard, { state, substate, now: 99000 });
+            assert.equal(cleared.shown, false, `${state}/${substate}`);
+            assert.equal(cleared.armedAt, null);
+        }
+    });
+
+    test('a puff reached from outside the steam state does not arm it', () => {
+        const guard = steamGuardFor(initialSteamGuard(),
+            { state: 'idle', substate: STEAM_PUFF_SUBSTATE, now: 1000 });
+        assert.equal(guard.armedAt, null);
+    });
+
+    test('the recorded automatic session shows it, ten seconds into its puff', () => {
+        const { guard, guardShownAt, puffFrom } = replay(AUTO_STOP);
+        assert.ok(puffFrom !== null, 'the recording has a puff');
+        assert.ok(guardShownAt !== null, 'the guard appeared');
+        const delay = (guardShownAt - puffFrom) / 1000;
+        assert.ok(delay >= 10 && delay < 10.2, `the guard appeared ${delay} s into the puff`);
+        assert.equal(guard.shown, false, 'and it is gone by the end, because the puff ended');
+    });
+
+    test('the recorded hand-stopped session never shows it — there was no puff', () => {
+        const { guardShownAt, puffFrom } = replay(MANUAL_STOP);
+        assert.equal(puffFrom, null);
+        assert.equal(guardShownAt, null);
     });
 });

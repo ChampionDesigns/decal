@@ -19,8 +19,8 @@ import { DEFAULT_CLOCK_FORMAT, normaliseClockFormat } from 'src/lib/wall-clock.j
 
 import { READINGS_MIN_MS, presenceOf, readingsDue } from 'src/lib/readings-rate.js';
 import {
-    CHART_MODE, chartModeFor, initialChartMode, isSteamHoldActive, isSteamPouring,
-    steamHoldRemainingMs,
+    CHART_MODE, chartModeFor, initialChartMode, initialSteamGuard, isSteamHoldActive,
+    isSteamPouring, steamGuardFor, steamGuardRemainingMs, steamHoldRemainingMs,
 } from 'src/lib/steam-chart.js';
 import { createSteamBuffer } from 'src/stores/steam-buffer.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
@@ -130,8 +130,10 @@ export class LiveWiring {
         this.estimator = null;
 
         this.chartMode = initialChartMode();
+        this.steamGuard = initialSteamGuard();
         this.steam = createSteamBuffer({ logger: null });
         this.#steamHold = null;
+        this.#steamGuardTimer = null;
 
         this.presets = null;
         this.keyBindings = null;
@@ -200,6 +202,7 @@ export class LiveWiring {
         this.host.steamDerivation = this.chartMode.mode === CHART_MODE.STEAM
             ? this.steam.get() : null;
         this.host.steamSettled = isSteamHoldActive(this.chartMode);
+        this.host.steamGuard = this.steamGuard.shown;
         this.host.milkPresent = Boolean(this.milk && this.milk.status !== FEED_STATUS.STALE
             && valueOf(this.milk)?.ok === true
             && hasReading(valueOf(this.milk).temperature));
@@ -570,6 +573,9 @@ export class LiveWiring {
     /** The timer that ends the steam hold when machine frames stop arriving. */
     #steamHold = null;
 
+    /** The timer that shows the puff guard when machine frames stop arriving. */
+    #steamGuardTimer = null;
+
     /** The last frame's state and substate, so a repeat costs nothing. */
     #lastState = null;
 
@@ -591,6 +597,7 @@ export class LiveWiring {
         const at = Date.now();
         const next = chartModeFor(this.chartMode, { state, substate, now: at });
         this.chartMode = next;
+        this.steamGuard = steamGuardFor(this.steamGuard, { state, substate, now: at });
 
         this.steam.take({
             mode: next.mode,
@@ -611,6 +618,24 @@ export class LiveWiring {
                 this.#foldChartMode();
                 this.host.requestUpdate();
             }, remaining + 16);
+        }
+
+        /* THE GUARD KEEPS A CLOCK OF ITS OWN, so it still appears when the machine frames
+         * stop arriving. A frame folds it too, and the two agree because both read the
+         * one armed moment against the clock rather than counting frames. */
+        const untilGuard = steamGuardRemainingMs(this.steamGuard, at);
+        if (this.#steamGuardTimer !== null) {
+            clearTimeout(this.#steamGuardTimer);
+            this.#steamGuardTimer = null;
+        }
+        if (untilGuard !== null) {
+            this.#steamGuardTimer = setTimeout(() => {
+                this.#steamGuardTimer = null;
+                this.steamGuard = steamGuardFor(this.steamGuard, {
+                    state: this.#lastState, substate: this.#lastSubstate, now: Date.now(),
+                });
+                this.host.requestUpdate();
+            }, untilGuard + 16);
         }
     }
 
@@ -812,7 +837,12 @@ export class LiveWiring {
             clearTimeout(this.#steamHold);
             this.#steamHold = null;
         }
+        if (this.#steamGuardTimer !== null) {
+            clearTimeout(this.#steamGuardTimer);
+            this.#steamGuardTimer = null;
+        }
         this.chartMode = initialChartMode();
+        this.steamGuard = initialSteamGuard();
         this.#lastState = null;
         this.#lastSubstate = null;
         this.steam.clear();

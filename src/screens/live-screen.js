@@ -48,6 +48,7 @@ import 'src/components/ui-preset-bank.js';
 import 'src/components/ui-stepper.js';
 import 'src/components/ui-numeric-keypad.js';
 import 'src/screens/live-expanded-chart.js';
+import 'src/components/ui-steam-guard.js';
 import 'src/components/ui-stop-button.js';
 import 'src/components/ui-menu.js';
 import 'src/components/ui-data-grid.js';
@@ -200,6 +201,9 @@ export class LiveScreen extends UiElement {
         /** The steam session has stopped and is in its settle window, so the chart may
          *  draw its end labels. `LiveWiring` reads the fold; this screen only paints. */
         steamSettled: { type: Boolean, attribute: false },
+
+        /** The puff after a steam session is still running and the guard is on screen. */
+        steamGuard: { type: Boolean, attribute: false },
 
         milkPresent: { type: Boolean, attribute: false },
 
@@ -700,6 +704,7 @@ export class LiveScreen extends UiElement {
         this.compliance = null;
         this.steamDerivation = null;
         this.steamSettled = false;
+        this.steamGuard = false;
         this.milkPresent = false;
         this.readings = null;
         this.weather = null;
@@ -1580,6 +1585,7 @@ export class LiveScreen extends UiElement {
                 profile-name=${this.profileName ?? ''}
                 @expanded-close=${() => { this._expanded = false; }}
             ></live-expanded-chart>
+            <ui-steam-guard id="steam-guard" ?open=${this.steamGuard}></ui-steam-guard>
             ${this.#renderHoldMenu()}
             ${this.#renderNotes()}
             ${this.#renderWeatherModal()}

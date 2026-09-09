@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "0c74c096d41de8af14414c563b06decc883c3ef1642bc7b38d2e056368be2768",
+  "sourceSha256": "fd72357758bb66ec2563adba8524293192aea2e0e37bb3adda2e63d990a5261a",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -431,6 +431,7 @@
     "Presence Detection": "Presence Detection",
     "Presets": "Presets",
     "Press a key…": "Press a key…",
+    "Press stop to purge and clean it.": "Press stop to purge and clean it.",
     "Press the stop button on the group head to override, then tap Start again.": "Press the stop button on the group head to override, then tap Start again.",
     "Pressure": "Pressure",
     "Pressure (bar)": "Pressure (bar)",
@@ -567,6 +568,7 @@
     "State": "State",
     "Steam": "Steam",
     "Steam chart": "Steam chart",
+    "Steam is still on": "Steam is still on",
     "Steam purge mode": "Steam purge mode",
     "Steam stop": "Steam stop",
     "Steam temperature": "Steam temperature",
@@ -574,6 +576,7 @@
     "Step": "Step",
     "Step actions": "Step actions",
     "The limiters": "The limiters",
+    "The wand puffs quietly, so it is easy to miss.": "The wand puffs quietly, so it is easy to miss.",
     "{n}. {name}": "{n}. {name}",
     "Start measuring the drink at": "Start measuring the drink at",
     "The scale tares here, and stop at weight cannot end the shot before it. Steps above this one do not count toward the drink.": "The scale tares here, and stop at weight cannot end the shot before it. Steps above this one do not count toward the drink.",
