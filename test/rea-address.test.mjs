@@ -277,7 +277,7 @@ describe('stored shots — absence is permanent', () => {
         sensors: { [ESTIMATOR_ID]: { rev: 3, flags: 9, r1: 4.1, r2: 2.05, confidence: 0.8, lagConfidence: 0.4, sigmaQ: 0.1 } },
     });
 
-    /** A record written before 2b047d02: no `sensors` key anywhere, and no scale. */
+    /** A record written before the `sensors` key existed: none anywhere, and no scale. */
     const legacy = () => ({ machine: gatedOn(), scale: null, volume: 22.5 });
 
     test('a recorded sensors map replays the estimator exactly as live saw it', () => {

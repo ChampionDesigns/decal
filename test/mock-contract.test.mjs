@@ -196,11 +196,15 @@ print(json.dumps({f"{v} {p}": [mock_rea.write_response(p, v)[0],
             `${route} still answers with the canned success shape ReaPrime sends on no route`);
     }
     // Quoting the handler, where the row states the whole body …
-    assert.deepEqual(replies['POST /api/v1/machine/settings'], [202, '']);
     assert.deepEqual(replies['PUT /api/v1/machine/cupWarmer'], [200, '{"status": "accepted"}']);
     assert.deepEqual(replies['POST /api/v1/store/decal/k'], [200, '{}']);
     assert.deepEqual(replies['PUT /api/v1/devices/disconnect'], [200, 'null']);
-    // … and refusing where it does not, rather than inventing a ProfileRecord.
+    /* … and refusing where it does not, rather than inventing a ProfileRecord — or, for
+     * POST /machine/settings, a per-field write report. That route answered `jsonAccepted()`
+     * with NO body at the old pin and answers `{results: report.toJson()}` now
+     * (de1handler.dart:500), so the mock must refuse rather than serve the empty body it
+     * used to be able to quote. */
+    assert.equal(replies['POST /api/v1/machine/settings'][0], 501);
     assert.equal(replies['POST /api/v1/profiles'][0], 501);
     assert.equal(replies['PUT /api/v1/nonesuch'][0], 501);
 });

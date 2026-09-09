@@ -19,7 +19,9 @@ import {
 } from '../src/data/machine-state.js';
 import { readMachineSnapshot } from '../src/data/rea-address.js';
 
-const PINNED_COMMIT = '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3';
+/* THE PIN IS READ, NEVER RESTATED. A literal here is a second authority, and a
+ * re-pin then leaves it asserting the commit the tree has moved off. */
+import { PINNED_COMMIT } from '../scripts/lib/rea-source.js';
 
 describe('the enum comes from ReaPrime', () => {
     test('the artifact stamps the pinned commit and the file it was generated from', () => {

@@ -330,10 +330,46 @@ describe('PUT /workflow invalidates the settings caches', () => {
         const handler = readFileSync(join(REA_ROOT, 'lib/src/services/webserver/workflow_handler.dart'), 'utf8');
         assert.match(handler, /_de1controller\.updateWorkflowSettings\(/);
         const controller = readFileSync(join(REA_ROOT, 'lib/src/controllers/de1_controller.dart'), 'utf8');
-        const body = controller.slice(controller.indexOf('Future<void> updateWorkflowSettings('));
-        for (const call of ['_writeFlushSettings', '_writeSteamSettings', '_writeHotWaterSettings']) {
-            assert.ok(body.slice(0, 2000).includes(call), `updateWorkflowSettings dispatches ${call}`);
+        const body = controller.slice(controller.indexOf('Future<void> updateWorkflowSettings(')).slice(0, 2000);
+        /* THE DISPATCH GAINED A HOP; IT DID NOT GO AWAY. updateWorkflowSettings used to call
+         * _writeFlushSettings / _writeSteamSettings / _writeHotWaterSettings inline, inside one
+         * runDeviceWrite(retryOnReplacement: true). It now awaits the three PUBLIC wrappers in a
+         * Future.wait, and each wrapper is a runReplaceableDeviceWrite carrying its own coalescing
+         * key. So the chain is pinned in BOTH halves — wrapper reached, and private write still
+         * reached from it — rather than at the single point the old shape allowed. */
+        const CHAIN = {
+            updateFlushSettings: '_writeFlushSettings',
+            updateSteamSettings: '_writeSteamSettings',
+            updateHotWaterSettings: '_writeHotWaterSettings',
+        };
+        for (const [wrapper, write] of Object.entries(CHAIN)) {
+            assert.ok(body.includes(`${wrapper}(`), `updateWorkflowSettings dispatches ${wrapper}`);
+            /* THE WINDOW MUST END WHERE THE WRAPPER ENDS. A fixed 600-character slice off the
+             * signature runs past the closing brace and straight into the private writer's own
+             * declaration — `_writeHotWaterSettings` is declared two lines below the wrapper
+             * that calls it — so `includes(write)` would go green on the DECLARATION even if
+             * the call inside the wrapper were deleted. Cut at the method's closing brace. */
+            const from = controller.indexOf(`Future<void> ${wrapper}(`);
+            assert.ok(from > -1, `${wrapper} is gone from de1_controller`);
+            const close = controller.indexOf('\n  }\n', from);
+            assert.ok(close > -1, `${wrapper} has no closing brace at method indentation`);
+            const wrapperBody = controller.slice(from, close);
+            assert.match(wrapperBody, /runReplaceableDeviceWrite\(/,
+                `${wrapper} writes through the replaceable-write path`);
+            assert.ok(wrapperBody.includes(write), `${wrapper} still reaches ${write}`);
         }
+        /* THE ORDER CHECK MUST NOT PASS ON AN ABSENCE. indexOf answers -1 for a symbol that is
+         * gone, and -1 is below every real index, so a bare `guard < wait` goes GREEN the day
+         * the capacity guard is deleted — precisely the regression it is here to catch. Both
+         * positions are required to be real before they are compared. */
+        const guardAt = body.indexOf('_ensureReplaceableDeviceWriteCapacity');
+        const waitAt = body.indexOf('Future.wait');
+        assert.ok(guardAt > -1,
+            'the capacity guard is gone from updateWorkflowSettings — a coalescing key could '
+            + 'now be admitted after its own write was launched');
+        assert.ok(waitAt > -1, 'the three writes are no longer launched together');
+        assert.ok(guardAt < waitAt,
+            'the three coalescing keys are admitted before any of them is written');
         for (const setter of ['setFlushTimeout', 'setFlushFlow', 'setFlushTemperature', 'setSteamFlow', 'setHotWaterFlow']) {
             assert.ok(controller.includes(setter), `de1_controller writes ${setter}`);
         }

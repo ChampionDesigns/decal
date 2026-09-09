@@ -95,8 +95,16 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
         assert.ok(decodeAt > -1 && guardAt > -1);
         assert.ok(decodeAt < guardAt, 'the null guard now precedes jsonDecode — re-read the row');
         assert.ok(!/try\s*\{[\s\S]{0,120}jsonDecode\(value\)/.test(post), 'jsonDecode is now guarded — re-read the row');
-        // The contrast that makes it a finding rather than a preference.
-        assert.match(de1, /try\s*\{\s*json = jsonDecode\(await r\.readAsString\(\)\);\s*\}\s*catch/);
+        /* THE CONTRAST THAT MAKES IT A FINDING RATHER THAN A PREFERENCE — and it SHARPENED
+         * at this pin. Both handlers now read the body through readBoundedRequestBodyString,
+         * so the KV write is no longer the unbounded one. What still separates them is the
+         * try: de1handler wraps its jsonDecode and turns an undecodable body into a 400,
+         * rethrowing only the body-read failure so it can become its own 413/408. The KV
+         * handler's jsonDecode (kv_store_handler.dart:45) sits bare after the bounded read,
+         * so the same body is still a 500 there. */
+        assert.match(de1, /try \{\s*json = jsonDecode\(\s*await readBoundedRequestBodyString\(\s*r,\s*maxBytes: smallRequestBodyBytes,\s*timeout: smallRequestBodyTimeout,\s*\),\s*\);\s*\} on RequestBodyReadException \{\s*rethrow;\s*\} catch \(e\) \{\s*return jsonBadRequest\(\{'error': 'Invalid JSON body'\}\);\s*\}/);
+        assert.match(kv, /final value = await readBoundedRequestBodyString\(/,
+            'the KV read is bounded too now — the finding is the missing try, not the missing bound');
         const gates = row('postStoreByNamespaceByKey').gates.map((g) => g.kind);
         assert.ok(gates.includes('undecodable-body-is-500'), 'the finding lost its gate');
     });
@@ -124,25 +132,49 @@ describe('1. KV store — kv_store_handler.dart:7-51, read as written', () => {
     });
 });
 
-describe('2. /machine/ledStrip x4 — de1handler.dart:186,:202,:221,:230', () => {
-    test('exactly four ledStrip routes, at the paths and verbs the rows claim', () => {
-        assert.match(de1, /app\.get\('\/api\/v1\/machine\/ledStrip'/);
-        assert.match(de1, /app\.put\('\/api\/v1\/machine\/ledStrip'/);
-        assert.match(de1, /app\.post\('\/api\/v1\/machine\/ledStrip\/commit'/);
-        assert.match(de1, /app\.post\('\/api\/v1\/machine\/ledStrip\/reset'/);
-        const registered = [...de1.matchAll(/app\.\w+\('\/api\/v1\/machine\/ledStrip[^']*'/g)].length;
-        assert.equal(registered, 4, `${registered} ledStrip routes registered, expected 4`);
+describe('2. /machine/ledStrip x6 — de1handler.dart:208,:224,:261,:302,:311,:320', () => {
+    /* CB BUG 3 IS FIXED UPSTREAM. At the old pin there were FOUR routes and no preview at
+     * all, and the skin had to fake one by PUTting the stored palette. POST /ledStrip/preview
+     * and POST /ledStrip/preview/clear are real handlers at this pin (:261, :302), so the
+     * count is six and EXCLUDED.md no longer forbids them. The count is still asserted
+     * exactly — a seventh route must break this, not slip in. */
+    test('exactly six ledStrip routes, at the paths and verbs the rows claim', () => {
+        const expected = [
+            ['get', '/api/v1/machine/ledStrip'],
+            ['put', '/api/v1/machine/ledStrip'],
+            ['post', '/api/v1/machine/ledStrip/preview'],
+            ['post', '/api/v1/machine/ledStrip/preview/clear'],
+            ['post', '/api/v1/machine/ledStrip/commit'],
+            ['post', '/api/v1/machine/ledStrip/reset'],
+        ];
+        const registered = [...de1.matchAll(/app\.(\w+)\('(\/api\/v1\/machine\/ledStrip[^']*)'/g)]
+            .map((m) => [m[1], m[2]]);
+        assert.deepEqual(registered, expected,
+            `${registered.length} ledStrip routes registered, expected ${expected.length}`);
     });
 
-    test('THERE IS NO /preview AND NO /preview/clear — CB BUG 3', () => {
-        assert.doesNotMatch(de1, /ledStrip\/preview/);
-        assert.ok(!TABLE.rest.some((r) => /ledStrip\/preview/.test(r.path)), 'a preview row appeared');
+    test('THE PREVIEW PAIR EXISTS NOW, and both carry a row — CB BUG 3 is fixed upstream', () => {
+        // The live colour is kept apart from the stored palette, which is the whole point:
+        // a picker can show an ASLEEP colour on an awake machine, which a stored write cannot.
+        assert.match(de1, /await \(de1 as BengleInterface\)\.previewLedStrip\(/);
+        assert.match(de1, /await \(de1 as BengleInterface\)\.clearLedStripPreview\(\);\s*return jsonAccepted\(\);/);
+        // A body naming neither strip is a 400, not a silent no-op.
+        assert.match(de1, /'error': 'name at least one of frontStrip or backStrip',/);
+        for (const id of ['postMachineLedStripPreview', 'postMachineLedStripPreviewClear']) {
+            assert.match(row(id).responseShape, /202, no body/, `${id} lost its row`);
+        }
+        assert.equal(TABLE.rest.filter((r) => /ledStrip\/preview/.test(r.path)).length, 2);
     });
 
-    test('PUT answers 200 {status:accepted}; commit answers 202 with NO BODY', () => {
-        assert.match(de1, /await \(de1 as BengleInterface\)\.setLedStrip\(state\);\s*return jsonOk\(\{'status': 'accepted'\}\);/);
+    test('PUT answers 200 with the READ-BACK state, not {status:accepted}; commit is 202 no body', () => {
+        /* THE WRITE NOW READS ITSELF BACK. setLedStrip is still the write, but the handler
+         * then does getLedStripState() and answers with the STORED value — {status:'accepted'}
+         * survives only as the fallback for a read that comes back null. So a caller sees what
+         * the firmware kept (8-bit-quantised, frontSwitch derived), not an echo of what it sent. */
+        assert.match(de1, /await \(de1 as BengleInterface\)\.setLedStrip\(state\);\s*final stored = await de1\.getLedStripState\(\);\s*return jsonOk\(stored\?\.toJson\(\) \?\? \{'status': 'accepted'\}\);/);
         assert.match(de1, /await \(de1 as BengleInterface\)\.commitLedStrip\(\);\s*return jsonAccepted\(\);/);
-        assert.match(row('putMachineLedStrip').responseShape, /200 \{status:'accepted'\}/);
+        assert.match(row('putMachineLedStrip').responseShape, /200 LedStripState\.toJson/);
+        assert.match(row('putMachineLedStrip').responseShape, /read-back/);
         assert.match(row('postMachineLedStripCommit').responseShape, /202, no body/);
     });
 
@@ -233,13 +265,26 @@ describe('5. /machine/capabilities — A3, and the fail-closed consequence', () 
         assert.doesNotMatch(de1, /model.*contains\('bengle'\)/i);
     });
 
-    test('WITH NO MACHINE the answer is 500 with a Dart stack, not 404 and not 503', () => {
-        assert.match(de1, /Future<Response> withDe1\(Future<Response> Function\(De1Interface\) call\) async \{\s*try \{\s*var de1 = _controller\.connectedDe1\(\);/);
+    test('WITH NO MACHINE the answer is 500 — {error} ALONE now, not 404 and not 503', () => {
+        /* withDe1 LOST ITS OWN try. It is a thin delegator now (de1handler.dart:750-755) to
+         * _mapDe1WriteErrors (:757-786), which has SEVEN typed branches where the old wrapper
+         * mapped only MachineReplacementTimeoutException. The throw is unchanged —
+         * connectedDe1() still raises DeviceNotConnectedException.machine() — but it now lands
+         * on that exception's OWN branch (:781-782), which answers jsonError({'error'}) with
+         * NO 'st'. The catch-all still carries {error, st} for anything else; a missing machine
+         * simply no longer reaches it. Still 500 either way: jsonError is
+         * Response.internalServerError, so this is not 404 and not 503. */
+        assert.match(de1, /Future<Response> withDe1\(Future<Response> Function\(De1Interface\) call\) \{\s*return _mapDe1WriteErrors\(\(\) async \{\s*final de1 = _controller\.connectedDe1\(\);/);
+        assert.match(de1, /\} on DeviceNotConnectedException catch \(e\) \{\s*return jsonError\(\{'error': e\.toString\(\)\}\);/);
         assert.match(de1, /\} catch \(e, st\) \{\s*return jsonError\(\{'error': e\.toString\(\), 'st': st\.toString\(\)\}\);/);
+        const helpers = readReaFile('lib/src/services/webserver/json_response.dart').text;
+        assert.match(helpers, /Response jsonError\(Object\? data\) =>\s*Response\.internalServerError\(/);
         const controller = readReaFile('lib/src/controllers/de1_controller.dart').text;
         assert.match(controller, /De1Interface connectedDe1\(\) \{\s*if \(_de1 == null\) \{\s*throw const DeviceNotConnectedException\.machine\(\);/);
         const gates = row('getMachineCapabilities').gates.map((g) => g.kind);
         assert.ok(gates.includes('no-machine-is-500-not-503'), 'the finding lost its gate');
+        assert.match(row('getMachineCapabilities').responseShape,
+            /500 \{error\} when no machine is connected/, 'the row must carry the stackless 500');
     });
 
     test('the feature gate for a non-Bengle is 404 — the feature-absent signal', () => {

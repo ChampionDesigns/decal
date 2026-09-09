@@ -2,7 +2,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { readReaFile, resolveReaCommit, PINNED_COMMIT } from '../scripts/lib/rea-source.js';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { readReaFile, resolveReaCommit, PINNED_COMMIT, REA_ROOT } from '../scripts/lib/rea-source.js';
 import { parseEnum } from '../scripts/generate-machine-state.js';
 import {
     CONNECTION_PHASE,
@@ -131,7 +134,18 @@ describe('capabilities-store.js — the seven the handler actually adds', () => 
 
     test('the check reads the handler, not a second copy of the list in a test', () => {
         const source = readReaFile(DE1_HANDLER);
-        assert.match(source.path, /rea-reanchor-v3/);
+        /* WHERE THE BYTES CAME FROM, NOT WHAT THE DIRECTORY IS CALLED. This asserted
+         * /rea-reanchor-v3/ — the worktree that held the OLD pin — so a re-pin into a
+         * new worktree failed a test about provenance for a reason that has nothing to
+         * do with provenance, and the same assertion would have passed on a stale
+         * checkout that still carried the old name. The claim is that the handler is
+         * read out of the pinned ReaPrime checkout REA_ROOT resolves to, and never out
+         * of this repo, so that is what is checked. */
+        assert.equal(resolve(source.path), resolve(join(REA_ROOT, DE1_HANDLER)),
+            'the handler was not read from the pinned worktree REA_ROOT names');
+        const skinRepo = resolve(fileURLToPath(new URL('../', import.meta.url)));
+        assert.ok(!resolve(source.path).startsWith(`${skinRepo}/`),
+            'the served list is being read from a copy inside the skin repo');
         assert.ok(servedCapabilities(source.text).includes('wakeSchedule'));
     });
 });

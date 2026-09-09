@@ -107,7 +107,7 @@ the `try`, and `entries.first`) are re-proved rather than cited.
   "old", a malformed message is not a frame, and no channel is ever recomputed locally.
 * **Evidence at the pin** — `feed-readers.test.mjs` re-derives `ShotState`,
   `ShotDecisionKind`, `ShotDecisionReason`, `AppUpdatePhase` and every `toJson` key from the
-  Dart at `2b047d02`, plus the three premises the shot buffer stands on (idle is not
+  Dart at `42f67f69`, plus the three premises the shot buffer stands on (idle is not
   published from the state stream; an idle frame IS published at cleanup with no `shotId`;
   the socket is seeded so a late subscriber learns the current shot). `time-axis.test.mjs`
   pins the justification: both parsers stamp `DateTime.now()`, and `sampleTime` is decoded

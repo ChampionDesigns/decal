@@ -7,7 +7,7 @@ import { join } from 'node:path';
 /** The ReaPrime checkout the contract is generated from. Set REA_ROOT to point at one. */
 export const REA_ROOT = process.env.REA_ROOT || '../reaprime';
 
-export const PINNED_COMMIT = '2b047d02e42e29bf2d96a2aa964ef94e4a4daba3';
+export const PINNED_COMMIT = '42f67f69334197a08cc0f4138ca05302616e977a';
 
 /**
  * Whether REA_ROOT resolves to a checkout. The suites that read Dart source are a

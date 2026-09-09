@@ -196,13 +196,34 @@ function describeRequestBody(spec, requestBody) {
     };
 }
 
-function describeParam(param) {
-    const schema = param.schema || {};
+/**
+ * A $ref a parameter may follow WITHOUT a person reading it first: a plain string
+ * enum and nothing else. Its meaning is the list, there is no nesting to flatten and
+ * no shape to get wrong, so resolving it cannot be a guess. Everything else still
+ * refuses — the refusal is there because a parameter's type is what a caller builds
+ * a request from, and inventing one is how a client and a handler drift apart.
+ */
+function plainStringEnum(spec, ref) {
+    const { schema } = resolveRef(spec, ref);
+    if (!schema || typeof schema !== 'object') return null;
+    const keys = Object.keys(schema).filter((k) => k !== 'description');
+    const isPlain = schema.type === 'string'
+        && Array.isArray(schema.enum)
+        && keys.every((k) => k === 'type' || k === 'enum');
+    return isPlain ? schema : null;
+}
+
+function describeParam(param, spec) {
+    let schema = param.schema || {};
     if (schema.$ref) {
-        throw new GenerateRoutesError(
-            `parameter "${param.name}" uses $ref ${schema.$ref}; resolve it deliberately after checking the `
-            + 'referenced schema against the handler, do not let the generator assume it',
-        );
+        const resolved = spec ? plainStringEnum(spec, schema.$ref) : null;
+        if (!resolved) {
+            throw new GenerateRoutesError(
+                `parameter "${param.name}" uses $ref ${schema.$ref}; resolve it deliberately after checking the `
+                + 'referenced schema against the handler, do not let the generator assume it',
+            );
+        }
+        schema = { ...resolved, default: param.schema.default };
     }
     const out = { name: param.name, required: Boolean(param.required), type: schema.type || null };
     if (schema.type === 'array' && schema.items?.type) out.itemsType = schema.items.type;
@@ -273,7 +294,7 @@ export function extractRest(spec, text) {
                 summary: op.summary || null,
                 tags: op.tags || [],
                 pathParams: templateParams,
-                query: query.map(describeParam),
+                query: query.map((param) => describeParam(param, spec)),
                 body: describeRequestBody(spec, op.requestBody),
                 statuses,
                 successStatus,

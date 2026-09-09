@@ -52,7 +52,7 @@ Retired for want of a caller, each reachable by id through `callRoute`: `sensors
 ## Three rows do not match the document, deliberately
 
 The handler body is the authority — not `rest_v1.yml`, not any
-JSDoc. Where they disagree at `2b047d02`, the generator applies a **named exception** and
+JSDoc. Where they disagree at `42f67f69`, the generator applies a **named exception** and
 the table states the handler's truth. Each exception carries its handler evidence, and each
 **hard-fails the generator the moment the document is fixed**, so it deletes itself instead of
 rotting. All three are upstream asks; none is worked around at a call site.

@@ -40,7 +40,7 @@
  * * `GET /api/v1/profiles` answers the RECORDED 147-record listing plus whatever this
  * session created. The recording is untouched; the additions are appended.
  * * `POST /api/v1/profiles` is `ProfileController.create` as this tree already documents
- * it (`profile-editor-store.js`, read off the handler at pin 2b047d02): the body is
+ * it (`profile-editor-store.js`, read off the handler at pin 42f67f69): the body is
  * wrapped, a NEW record is stored, `parentId` is carried through, the answer is 201
  * with the whole ProfileRecord. That is the lineage path, and the default.
  * * Everything else falls through to the measurement, and a path with no recording answers

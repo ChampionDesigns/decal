@@ -2,7 +2,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 import {
     check,
@@ -89,6 +90,14 @@ describe('the generator fails loudly rather than producing half an answer', () =
     });
 
     test('REA_ROOT points at the pinned reference worktree, read-only', () => {
-        assert.equal(REA_ROOT.includes('rea-reanchor-v3'), true);
+        /* ASSERTED MECHANICALLY, NEVER BY DIRECTORY NAME. A name match would pass against
+         * any checkout someone happened to call the right thing, and it fails the moment
+         * the reference worktree is placed somewhere else. The commit check above does not
+         * separate the candidates either: a working checkout can sit at PINNED_COMMIT and
+         * then move under a running gate. A LINKED worktree carries a .git FILE; a main
+         * checkout carries a .git DIRECTORY. That is the property that makes this source
+         * a fixed reference rather than a tree with a branch checked out. */
+        assert.equal(statSync(join(REA_ROOT, '.git')).isFile(), true,
+            'REA_ROOT is a main checkout, not a linked reference worktree');
     });
 });

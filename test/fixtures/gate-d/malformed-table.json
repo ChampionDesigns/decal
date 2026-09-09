@@ -1,6 +1,6 @@
 {
   "$canary": "INTEGRITY. Four ways the table itself can rot: a missing column, a status outside the three the table defines, a row claiming a caller it does not name, and a declared route builder pointing at a file nobody has — the old colour guard's exact failure mode.",
-  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "pinnedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
   "statusMeanings": { "consumed": "", "declared": "", "recorded": "" },
   "constructedRouteBuilders": [
     { "file": "src/data/no-such-builder.js", "builds": ["notARow"], "why": "", "convergeTo": null }
@@ -17,7 +17,7 @@
       "requestFields": { "query": [], "body": null },
       "handlerSymbol": "ShotsHandler._getShots",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "guessed",
       "consumedBy": [],
       "gates": [],
@@ -33,7 +33,7 @@
       "responseShape": "200 array of {id, info}",
       "handlerSymbol": "SensorsHandler.addRoutes",
       "handlerFile": "lib/src/services/webserver/sensors_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [],
       "gates": [],

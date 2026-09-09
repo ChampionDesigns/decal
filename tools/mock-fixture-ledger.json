@@ -1,7 +1,7 @@
 {
   "$schema": "Every fixture tools/mock_rea.py can serve that the contract table does not vouch for, and why. tools/check_mock_contract.py re-derives every entry each run: an entry that stops reproducing FAILS the build (ledger-stale). It is evidence, not a suppression list.",
   "wave": "5.4",
-  "pinnedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+  "pinnedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
   "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — read, never restated",
   "reaRoot": "${REA_ROOT}",
   "authority": "The handler body AS WRITTEN at the pinned commit, same as src/data/CONTRACTS.json. A recorded fixture is evidence and never authority: when the two disagree the handler decides which is stale, and the fixture is never edited to agree.",
@@ -23,8 +23,8 @@
       },
       "handlerSymbol": "De1Handler._handleSnapshot",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/machine/snapshot', sws.webSocketHandler(_handleSnapshot))` — registered as a GET, but shelf_web_socket answers a request with no upgrade headers 404 'Only WebSocket connections are supported.' The recorded body IS that page. Serving it 200 application/json, as the mock did, turns a recorded truth into a manufactured one."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/machine/snapshot', admittedWebSocketHandler(_handleSnapshot))` (de1handler.dart:190-193) — still an unconditional GET, and the wrapper only takes an admission slot before delegating: admission_control.dart:168 builds `(webSocketHandlerBuilder ?? sws.webSocketHandler)(…)` with no builder passed, and :204-206 returns that handler's response verbatim. shelf_web_socket is 3.0.0, sha256 3632775c… in pubspec.lock at this pin and the last, and its web_socket_handler.dart:41-44 -> :117-118 -> :136-148 still answers a request with no `upgrade` token 404 text/html 'Only WebSocket connections are supported.' The recorded 226 bytes ARE that page, ending `</html>\\n    `. Serving it 200 application/json, as the mock did, turns a recorded truth into a manufactured one. NOTE the derivation now spans two files: the 404 comes from admission_control.dart (new at this pin, `part` at webserver_service.dart:124), not from de1handler.dart. The wrapper also gives this route one answer it never had — 429 {error:'client_admission_limit'} or 503 {error:'global_admission_limit'}, retry-after 1, above 32 concurrent or 32 accepted per second from one client, 128 globally (admission_control.dart:115-121, :216-225). That is a limit, not a shape, and no recording of it exists."
     },
     {
       "fixture": "ws__v1__machine__shotSettings.json",
@@ -36,8 +36,8 @@
       },
       "handlerSymbol": "De1Handler._handleShotSettings",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/machine/shotSettings', sws.webSocketHandler(_handleShotSettings))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/machine/shotSettings', admittedWebSocketHandler(_handleShotSettings))` (de1handler.dart:194-197) — still a GET, but the wrapper is now `admittedWebSocketHandler` (admission_control.dart:145), which takes an admission slot and delegates to the same library call `(webSocketHandlerBuilder ?? sws.webSocketHandler)` (:168), returning its response unchanged (:204-206). shelf_web_socket is pinned 3.0.0, same sha256 at both pins, and its web_socket_handler.dart:117-118 still answers a request with no upgrade headers 404 text/html 'Only WebSocket connections are supported.' — the 226 recorded bytes. Nothing in the pipeline touches a /ws path. New at this pin: over the gate's limits the reply is 429/503 JSON instead of the page."
     },
     {
       "fixture": "ws__v1__machine__shotState.json",
@@ -49,8 +49,8 @@
       },
       "handlerSymbol": "De1Handler._handleShotState",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/machine/shotState', sws.webSocketHandler(_handleShotState))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/machine/shotState', admittedWebSocketHandler(_handleShotState))` (de1handler.dart:203-206; the line read `sws.webSocketHandler(...)` before the re-pin, and `webSocketHandler` no longer appears in this file at all). admittedWebSocketHandler (admission_control.dart:145-214) only meters the request against _webSocketAdmissionGate and then delegates to `sws.webSocketHandler` (:168, response returned at :204), so a request with no upgrade headers still gets shelf_web_socket 3.0.0's `_notFound()` — the same 404 'Only WebSocket connections are supported.' page; the recorded body IS that page. New at this pin: ≥32 /ws GETs per second from one client are rejected 429 application/json before reaching it."
     },
     {
       "fixture": "ws__v1__machine__waterLevels.json",
@@ -62,8 +62,8 @@
       },
       "handlerSymbol": "De1Handler._handleWaterLevels",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/machine/waterLevels', sws.webSocketHandler(_handleWaterLevels))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/machine/waterLevels', admittedWebSocketHandler(_handleWaterLevels))` (de1handler.dart:198-201); the wrapper delegates to `sws.webSocketHandler` (admission_control.dart:168 — a file new at this pin, `part` at webserver_service.dart:124) and returns its answer unchanged (:204-206), so the recorded body is the same 404 page shelf_web_socket 3.0.0 (sha256 3632775c…, unchanged across the pin move) emits from web_socket_handler.dart:136-148. Byte-identical to ws__v1__machine__snapshot.json. Same caveat as that entry: the wrapper adds a 429/503 admission answer this route never gave before (admission_control.dart:115-121, :216-225), unrecorded."
     },
     {
       "fixture": "ws__v1__devices.json",
@@ -75,8 +75,8 @@
       },
       "handlerSymbol": "DevicesHandler._handleDevicesSocket",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/devices', sws.webSocketHandler(_handleDevicesSocket))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/devices', admittedWebSocketHandler(_handleDevicesSocket))` (devices_handler.dart:259); the wrapper (admission_control.dart:145) delegates to the same `sws.webSocketHandler` (:168) and returns its response verbatim (:204-206), so the recorded body is the same 404 page."
     },
     {
       "fixture": "ws__v1__display.json",
@@ -88,7 +88,7 @@
       },
       "handlerSymbol": "DisplayHandler._handleWebSocket",
       "handlerFile": "lib/src/services/webserver/display_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "`app.get('/ws/v1/display', _handleWebSocket)`; the recorded body is the same 404 page."
     },
     {
@@ -101,8 +101,8 @@
       },
       "handlerSymbol": "ScaleHandler._handleSnapshot",
       "handlerFile": "lib/src/services/webserver/scale_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/scale/snapshot', sws.webSocketHandler(_handleSnapshot))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/scale/snapshot', admittedWebSocketHandler(_handleSnapshot))` (scale_handler.dart:74); the wrapper delegates to `sws.webSocketHandler` (admission_control.dart:168, a file new at this pin) and returns its answer unchanged (:204-206), so the recorded body is the same 404 page from shelf_web_socket 3.0.0 (sha256 3632775c…, unchanged across the pin move), web_socket_handler.dart:136-148. Byte-identical to ws__v1__machine__snapshot.json. ScaleHandler._handleSnapshot is unchanged (old 75-140 == new 77-142, byte for byte). Same caveat: the wrapper adds an unrecorded 429/503 admission answer (admission_control.dart:115-121, :216-225)."
     },
     {
       "fixture": "ws__v1__update.json",
@@ -114,8 +114,8 @@
       },
       "handlerSymbol": "UpdateHandler._handleSocket",
       "handlerFile": "lib/src/services/webserver/update_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
-      "evidence": "`app.get('/ws/v1/update', sws.webSocketHandler(_handleSocket))`; the recorded body is the same 404 page."
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
+      "evidence": "`app.get('/ws/v1/update', admittedWebSocketHandler(_handleSocket))` (update_handler.dart:11); the wrapper (admission_control.dart:145) delegates to the same `sws.webSocketHandler` (:168), so the recorded body is the same 404 page. The `canCheck` refusal added to `handleCommand` is a post-upgrade message path and does not touch the plain GET. `updateHandler?.addRoutes` is conditional, as it already was at the old pin."
     },
     {
       "fixture": "ws__v1__plugins__time-to-ready.reaplugin__timeToReady.json",
@@ -127,7 +127,7 @@
       },
       "handlerSymbol": "PluginsHandler._handlePluginSocketEndpoint",
       "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "`app.get('/ws/v1/plugins/<id>/<endpoint>', _handlePluginSocketEndpoint)`; recorded for id=time-to-ready.reaplugin, endpoint=timeToReady. The same 404 page."
     }
   ],
@@ -152,7 +152,7 @@
       ],
       "handlerSymbol": "De1Handler.addRoutes",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "the inline `app.get('/api/v1/machine/cupWarmer', …)` answers exactly `{'temperature': t.toInt(), 'enabled': await bengle.getCupWarmerEnabled(), 'currentTemperature': await bengle.getCupWarmerCurrentTemperature()}`. Three keys. The recording has no `enabled` at all and carries three `prewarm*` keys the handler never writes — pre-heat moved to its own route, GET /api/v1/machine/cupWarmer/preheat, whose CupWarmerPreheatState.toJson is {enabled, leadMinutes, active}.",
       "retires": ". `prewarmEnabled|prewarmLeadMinutes` is a forbiddenSpelling in the contract table: is the previous skin's `resolvePrewarm` reading prewarm* off THIS route and concluding, permanently, that the firmware had no pre-warm. `gate-d` scans the client for that spelling. Nothing scanned the frames the client is developed against — and this is one of them.",
       "why": "The fixture predates the pre-heat split. It is a recording of an older ReaPrime, not of the server at the pin.",
@@ -169,7 +169,7 @@
       "restoreCommand": "git show 5705362:review/tools/rea-fixtures/api__v1__shots__latest.json",
       "handlerSymbol": "ShotsHandler._getLatestShot",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "The bytes copied were the previous skin's UNCOMMITTED working-tree edit: 221203 B, md5 ab6b9472…, byte-identical to api__v1__shots__cd020a51-….json, i.e. the by-id response pasted over this route's file — 426 measurements on a route whose handler is `jsonOk(shot?.toJsonWithoutMeasurements())`. The committed blob at 5705362 is 1984 B with keys [annotations, id, stopReason, timestamp, workflow] and no `measurements` key: a recording of THIS route, of the shot d5139a1f that was latest when it was taken. Swapping in the committed blob is not editing a fixture — it replaces a paste with a recording, which is what the contract check asks for.",
       "consequence": "getShotsLatest went from 410-with-evidence (and a `no-fixture` coverage note reading 'only a REFUTED recording') to a served 200. tools/FIXTURES.sha256 moved for this file: 1c03ea7c… → the hash of the committed blob."
     },
@@ -182,7 +182,7 @@
       "restoreCommand": "git show '5705362:review/tools/rea-fixtures/api__v1__shots~limit=20~offset=0~order=desc'",
       "handlerSymbol": "ShotsHandler._getShots",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "The copied bytes had 21 items for limit=20, with one shot cd020a51 PREPENDED to a recorded 12–13 Aug page — a frame `shot_dao.getShotsPaginated`'s SQL LIMIT cannot produce. The committed blob at 5705362 has items=20, limit=20, offset=0, total=321: the page as recorded. Same uncommitted the previous skin working-tree edit as the latest-shot one, same swap.",
       "consequence": "The `invariant` finding stops reproducing, so the ledger entry that declared it had to go with it (an entry that no longer reproduces is `ledger-stale`, by design). tools/FIXTURES.sha256 moved for this file: 7b9c9f9d… → the hash of the committed blob."
     },
@@ -195,7 +195,7 @@
       "restoreCommand": "git show HEAD:tools/rea-fixtures/api__v1__machine__ledStrip.json",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/ledStrip)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "RE-RECORDED FROM THE RUNNING MACHINE, read-only: GET http://192.0.2.10:8080/api/v1/machine/ledStrip -> 200 The old bytes are a real recording and were never edited; what changed is that they disagree with the machine about the 16-bit spelling. Recorded: frontStrip/backStrip/frontSwitch all sleeping 4A4A2B2B0000, awake FFFFC1C18080 -- every channel BYTE-REPLICATED. Machine, now: sleeping 400022000000; awake FF00D900A000 (front strip and front switch) and FF00D3008E00 (back strip) -- every channel SHIFTED INTO THE HIGH BYTE, and the two strips no longer identical. The awake values match the end-to-end run. earlier run/the end-to-end notes section 3.5 exactly, which read FF00D900A000 and FF00D3008E00 off the tablet before writing anything, so this is the same machine state an earlier run measured and not a one-off. Same byte length as the file it replaces, no trailing newline either side.",
       "consequence": "The fixture now agrees with the machine that audit F-044 already made the skin agree with. F-044 (FIXLOG S-6, 29 Aug) changed led8to16 from replication to a high-byte shift on the strength of the machine over this recording -- ': the machine is the truth teller' -- and deliberately did NOT edit the fixture, because a recording is evidence. replaces the recording with a newer recording, which is a different act from editing one. led-colour.js's decode path takes the high byte and ignores the low one, so both spellings still decode identically and nothing that reads this fixture changes meaning; test/settings-bespoke.test.mjs asserts exactly that (ledColour16ToHex8('FFFFC1C18080') === ledColour16ToHex8('FF00C1008000')). tools/FIXTURES.sha256 moved for this file: 3900117e827ed6e04e146b65279e69ead85408252a24aada05dbad90bf8657d9 -> 27142cbb449b9fcdcf6605bde8db7d0dceb50a4180812aa3361efecde4e377ef. mock-contract and gate-d re-run green after the swap."
     }
@@ -213,7 +213,7 @@
       "declaredBy": "fix run 6 — the History power page",
       "handlerSymbol": "MachineSnapshot.toJson (through ShotRecord.toJson / ShotSnapshot.toJson, served by ShotsHandler._getShot)",
       "handlerFile": "lib/src/models/device/machine.dart",
-      "checkedCommit": "2b047d02e42e29bf2d96a2aa964ef94e4a4daba3",
+      "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "evidence": "machine.dart:64-140 — the three derived channels are 'computed on read from the raw [pressure] and [flow] fields — never stored — so already-recorded history shots gain these channels with zero migration ([fromJson] does not read them; [toJson] recomputes them)'. toJson (:176-186) writes puckResistanceDerived / loadImpedanceDerived / hydraulicPowerDerived conditionally; _derivedOrNull (:70-76) is the gate. ShotSnapshot.toJson calls machine.toJson() per measurement and ShotsHandler._getShot answers jsonOk(shot.toJson()), so a ReaPrime at the pin serves these keys on EVERY recorded shot wherever the gate passes.",
       "observed": "The three recorded shot fixtures carry 923 measurements between them and ZERO *Derived keys (and zero `sensors` maps). They are recordings of an older ReaPrime, taken before the getters existed — an incomplete recording, not a server without the feature.",
       "transform": "For each measurement, with p = machine.pressure and f = machine.flow: write puckResistanceDerived = p/(f*f), loadImpedanceDerived = p/f and hydraulicPowerDerived = 0.1*p*f only when f >= 0.3 and p >= 0.3 and every input and result is finite. Keys are OMITTED below the gate, never written null — key presence IS the validity signal (src/data/rea-names.js:48-53). Measured over the three fixtures: 34/50, 317/336 and 124/136 in-shot samples gain the keys.",

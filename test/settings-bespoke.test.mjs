@@ -141,13 +141,18 @@ describe('led-colour: the four converters, and only the four', () => {
 });
 
 describe('D7: pendingColour, one write in flight, latest-wins — and no clock', () => {
-    /** A store over a transport whose PUTs park until they are released. */
+    /** A store over a transport whose PREVIEWS park until they are released. */
     function slowStore() {
         const parked = [];
         const transport = transportOf(({ key, body }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
-            if (key === 'PUT /machine/ledStrip') {
-                return new Promise((resolve) => parked.push(() => resolve(ok({ status: 'accepted' }, 200))));
+            if (key === 'POST /machine/ledStrip/preview') {
+                return new Promise((resolve) => parked.push(
+                    () => resolve(reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' }))));
+            }
+            if (key === 'PUT /machine/ledStrip') return ok({ status: 'accepted' }, 200);
+            if (key === 'POST /machine/ledStrip/preview/clear') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
             }
             if (key === 'POST /machine/ledStrip/commit') {
                 return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
@@ -167,7 +172,7 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
 
         /* Seven intents, and the wire has one. Nothing is queued: the six that arrived
          * while the first was in flight overwrote each other in `pendingColour`. */
-        assert.equal(parked.length, 1, 'one PUT on the wire');
+        assert.equal(parked.length, 1, 'one preview on the wire');
         assert.equal(store.counters().intents, 7);
         assert.equal(store.counters().sent, 1);
 
@@ -179,8 +184,8 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         await Promise.all(drain);
         await store.settled();
 
-        const puts = transport.calls.filter((c) => c.method === 'PUT');
-        assert.equal(puts.length, 2, 'seven intents, two writes');
+        const previews = transport.calls.filter((c) => c.path.endsWith('/ledStrip/preview'));
+        assert.equal(previews.length, 2, 'seven intents, two writes');
         assert.equal(store.counters().peakInFlight, 1, 'never two writes at once');
         assert.equal(store.counters().dropped, 5);
     });
@@ -198,14 +203,21 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         await Promise.all(drain);
         await store.settled();
 
-        const last = transport.calls.filter((c) => c.method === 'PUT').pop();
-        assert.equal(last.body.backStrip.awake, ledHex8ToColour16('#7a3ff2'),
+        const last = transport.calls.filter((c) => c.path.endsWith('/ledStrip/preview')).pop();
+        assert.equal(last.body.backStrip, ledHex8ToColour16('#7a3ff2'),
             'the machine is left wearing the colour the user stopped on');
         assert.equal(store.hex('backStrip', 'awake'), '#7a3ff2');
-        /* AND THE UNTOUCHED ZONES ARE UNTOUCHED. PUT takes the whole state, so a preview
-         * that dropped a zone would blank it. */
-        assert.equal(last.body.frontStrip.awake, LED_BODY.frontStrip.awake);
-        assert.equal(last.body.backStrip.sleeping, LED_BODY.backStrip.sleeping);
+        /* THE OTHER STRIP IS SENT AS IT STANDS, never dropped: a body that named only
+         * the strip that moved would leave the other one to the firmware, and a body
+         * that sent it black would darken it. */
+        assert.equal(last.body.frontStrip, LED_BODY.frontStrip.awake);
+        /* THE BODY IS EXACTLY THE TWO STRIPS. The old assertion also pinned an untouched
+         * `backStrip.sleeping`, which the flat preview body has no room for; the shape
+         * itself is pinned instead, so a body that grew a bank, or started sending
+         * `frontSwitch` (which has no live register at all), fails here. */
+        assert.deepEqual(Object.keys(last.body).sort(), ['backStrip', 'frontStrip']);
+        /* AND NOTHING WAS STORED. The stored palette moves only on save. */
+        assert.equal(transport.calls.filter((c) => c.method === 'PUT').length, 0);
     });
 
     test('THE PATH CONTAINS NO TIMER — asserted against the source, all four spellings', () => {
@@ -230,7 +242,11 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         assert.equal(store.get().status, LED_STATUS.UNAVAILABLE);
         assert.equal(await store.preview('frontStrip', 'awake', '#ffaa55'), false);
         assert.equal(store.get().refusal, LED_REFUSAL.NO_STATE);
-        assert.equal(transport.calls.filter((c) => c.method === 'PUT').length, 0);
+        /* NO WRITE OF ANY METHOD. This counted PUTs while PUT was the only write; now
+         * that the drag previews on POST and the save still PUTs, counting one method
+         * would let the other through. "Refused before the wire" means nothing but the
+         * read ever left. */
+        assert.deepEqual(transport.calls.filter((c) => c.method !== 'GET'), []);
     });
 
     test('a zone or bank the machine does not have is refused before the wire', async () => {
@@ -241,7 +257,7 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         assert.equal(await store.preview('sideStrip', 'awake', '#ffaa55'), false);
         assert.equal(await store.preview('frontStrip', 'dozing', '#ffaa55'), false);
         assert.equal(store.get().refusal, LED_REFUSAL.BAD_TARGET);
-        assert.equal(transport.calls.filter((c) => c.method === 'PUT').length, 0);
+        assert.deepEqual(transport.calls.filter((c) => c.method !== 'GET'), []);
     });
 
     test('404 is the feature gate; 503 on the read is transient and stays transient', async () => {
@@ -258,6 +274,9 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
     test('commit survives the 202 with a null body, and reset takes the returned state', async () => {
         const transport = transportOf(({ key }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            /* THE SAVE IS THE PUT, and commit follows it. The route writes the four
+             * stored registers; the 202 below is the no-op that trails it. */
+            if (key === 'PUT /machine/ledStrip') return ok({ status: 'accepted' }, 200);
             if (key === 'POST /machine/ledStrip/commit') {
                 /* jsonAccepted() with no data: 202, EMPTY body, application/json. */
                 return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
@@ -268,6 +287,10 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         const store = createLedStripStore({ transport });
         await store.load();
         assert.equal(await store.commit(), true, 'a null body on a 2xx is success, not a decode failure');
+        /* The save went out, carrying the whole palette, before the commit no-op. */
+        const saves = transport.calls.filter((c) => c.method === 'PUT');
+        assert.equal(saves.length, 1, 'commit SAVES; it is not a bare no-op');
+        assert.equal(saves[0].body.frontStrip.awake, LED_BODY.frontStrip.awake);
         assert.equal(await store.reset(), true);
         assert.equal(store.get().status, LED_STATUS.READY);
         /* The reset reply IS the new state — no second GET. */
@@ -956,13 +979,16 @@ describe('Q14: #56 dissolved into #5, and the screen is the confirmation', () =>
 describe('every route this cluster calls has a row, and the row names this caller', () => {
     const rest = new Map(CONTRACTS.rest.map((row) => [row.id, row]));
 
+    /* TWELVE SINCE THE RE-PIN: the two ledStrip preview routes exist now and the strip
+     * store calls both. See the last test in this block for what they replaced. */
     const ADOPTED = [
         'getMachineLedStrip', 'putMachineLedStrip', 'postMachineLedStripCommit',
-        'postMachineLedStripReset', 'getMachineScaleCalibration', 'putMachineScaleCalibration',
+        'postMachineLedStripReset', 'postMachineLedStripPreview', 'postMachineLedStripPreviewClear',
+        'getMachineScaleCalibration', 'putMachineScaleCalibration',
         'getMachineCalibration', 'postMachineCalibration', 'getWebuiSkins', 'getWebuiSkinsDefault',
     ];
 
-    test('all ten are `consumed` and pinned at the table’s own commit', () => {
+    test('all twelve are `consumed` and pinned at the table’s own commit', () => {
         for (const id of ADOPTED) {
             const row = rest.get(id);
             assert.ok(row, `${id} has no contract row`);
@@ -997,11 +1023,50 @@ describe('every route this cluster calls has a row, and the row names this calle
         }
     });
 
-    test('the two forbidden ledStrip routes are in EXCLUDED.md and in no source', () => {
+    test('the two ledStrip preview routes are NO LONGER forbidden — they exist, and the store calls them', () => {
+        /* THIS TEST USED TO ASSERT THE OPPOSITE, and the truth under it moved at the
+         * re-pin rather than the test going wrong.
+         *
+         * `POST /machine/ledStrip/preview` and `.../preview/clear` did not exist in the
+         * app at 2b047d02 — EXCLUDED.md's row cited `de1handler.dart addRoutes` for the
+         * fact that the only ledStrip routes were GET, PUT, commit and reset, and the
+         * row said in as many words that the resolution was an upstream feature ask.
+         * The ask landed: both handlers are in `de1handler.dart` at 42f67f69, so the
+         * row was removed and `led-strip-store.js` now previews on the preview route
+         * instead of writing the four stored registers on every drag frame.
+         *
+         * So the standing claim is inverted, and it is asserted from BOTH ends — the
+         * exclusion is gone AND the routes are consumed rows this cluster addresses —
+         * because either half alone would pass on a row that was simply deleted. */
         const excluded = read('src/data/EXCLUDED.md');
-        assert.match(excluded, /ledStrip\/preview/);
-        for (const code of Object.values(CODE)) {
-            assert.doesNotMatch(code, /preview\/clear/);
+        assert.doesNotMatch(excluded, /ledStrip\/preview/,
+            'a route the app serves and this skin calls is listed as deliberately not built');
+
+        for (const id of ['postMachineLedStripPreview', 'postMachineLedStripPreviewClear']) {
+            const row = rest.get(id);
+            assert.ok(row, `${id} has no contract row`);
+            assert.equal(row.status, 'consumed');
+            assert.equal(row.checkedCommit, CONTRACTS.pinnedCommit);
+        }
+        assert.equal(rest.get('postMachineLedStripPreview').route, '/machine/ledStrip/preview');
+        assert.equal(rest.get('postMachineLedStripPreviewClear').route, '/machine/ledStrip/preview/clear');
+
+        /* THE CALLER, BY ID. The paths still come from the generated table — the
+         * clause that stopped this cluster spelling one is the test above, and it
+         * still holds for these two. */
+        const store = CODE['src/stores/led-strip-store.js'];
+        assert.match(store, /'postMachineLedStripPreview'/,
+            'preview() no longer addresses the preview route');
+        assert.match(store, /'postMachineLedStripPreviewClear'/,
+            'nothing ends a preview, so a previewed colour stands until the next sleep or wake');
+        /* AND NO LEDSTRIP PATH IS SPELLED, ABSOLUTE OR RELATIVE. The banned spelling
+         * used to be `preview/clear` in any form; narrowing the ban to an `/api/v1`
+         * literal would make it a strict subset of the NO PATH IS SPELLED test above
+         * and let a relative '/machine/ledStrip/preview/clear' through. Both forms are
+         * refused, so these two routes stay addressed by id like the other ten. */
+        for (const [path, code] of Object.entries(CODE)) {
+            assert.doesNotMatch(code, /['"`][^'"`]*\/machine\/ledStrip/,
+                `${path} spells a ledStrip path instead of addressing the route by id`);
         }
     });
 });
