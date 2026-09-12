@@ -484,6 +484,7 @@ describe('app-boot', () => {
 
         await boot.workflowSettled();
         await boot.cupWarmerSettled();
+        await boot.sensorsSettled();
 
         assert.deepEqual(fetchImpl.calls, [
             { url: 'http://127.0.0.1:8080/api/v1/plugins', method: 'GET' },
@@ -494,6 +495,7 @@ describe('app-boot', () => {
             { url: 'http://127.0.0.1:8080/api/v1/shots?limit=25&offset=0&order=desc', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/settings', method: 'GET' },
             { url: 'http://127.0.0.1:8080/api/v1/machine/cupWarmer', method: 'GET' },
+            { url: 'http://127.0.0.1:8080/api/v1/sensors', method: 'GET' },
         ]);
         assert.equal(boot.capabilities.state.status, 'ready');
         assert.equal(boot.capabilities.offers('cupWarmer'), true);
@@ -642,6 +644,8 @@ describe('app-boot', () => {
         // The mat's read CHAINS on the capability read, so it settles a turn after it.
         await boot.cupWarmerSettled();
         await boot.cupWarmerSettled();
+        await boot.sensorsSettled();
+        await boot.sensorsSettled();
     }
 
     test('a machine that connects AFTER the app opened re-reads both answers (the GHC strip appears)', async () => {
@@ -661,7 +665,7 @@ describe('app-boot', () => {
         devices.emit('message', { data: JSON.stringify(machineFrame('m-1')) });
         await settle(boot);
 
-        assert.equal(fetchImpl.calls.length, 12,
+        assert.equal(fetchImpl.calls.length, 13,
             'the four MACHINE answers were re-asked, and exactly once each — the rail\'s '
             + 'targets belong to the machine that is here now, so a swap re-reads them too');
         assert.equal(boot.machineInfo.get().status, 'ready');
@@ -693,7 +697,7 @@ describe('app-boot', () => {
         assert.equal(boot.capabilities.groupHeadController().capability, 'unknown',
             'the departed machine\'s GHC flag was kept — the stale answer forget() exists to prevent');
         assert.equal(boot.capabilities.offers('cupWarmer'), false, 'and its capability set with it');
-        assert.equal(fetchImpl.calls.length, 12, 'nothing is asked of a machine that is not there');
+        assert.equal(fetchImpl.calls.length, 13, 'nothing is asked of a machine that is not there');
 
         // A DIFFERENT machine arrives: it gets its own answers, not the first one's.
         fetchImpl.state.connected = true;
@@ -725,6 +729,92 @@ describe('app-boot', () => {
         assert.equal(boot.capabilities.groupHeadController().capability, 'present',
             'a socket blip is not a machine going away, and must not wipe the answer');
         assert.equal(fetchImpl.calls.length, asked, 'nor re-ask for a machine nothing said had changed');
+        boot.destroy();
+    });
+
+    function workflowFetch() {
+        const state = {
+            targetYield: 36,
+            info: { version: '1293', model: 'x', serialNumber: '1', GHC: true, extra: {} },
+            /** Set to a promise factory to hold the NEXT GET /workflow open. */
+            holdGet: null,
+            puts: [],
+            /** Set true to make the next PUT /workflow refuse. */
+            refusePut: false,
+        };
+        const doc = () => ({
+            name: 'a workflow',
+            description: '',
+            profile: { title: 'a profile', steps: [{ temperature: 92 }] },
+            context: { targetDoseWeight: 18, targetYield: state.targetYield },
+        });
+        const ok = (body) => ({
+            ok: true, status: 200, headers: { get: () => null }, text: async () => JSON.stringify(body),
+        });
+        const impl = fakeFetch(async (url, options = {}) => {
+            const method = options.method ?? 'GET';
+            if (url.includes('/api/v1/workflow')) {
+                if (method === 'PUT') {
+                    const sent = JSON.parse(options.body);
+                    state.puts.push(sent);
+                    if (state.refusePut) {
+                        return { ok: false, status: 400, headers: { get: () => null }, text: async () => '{"error":"no"}' };
+                    }
+                    if (sent.context && sent.context.targetYield !== undefined) {
+                        state.targetYield = sent.context.targetYield;
+                    }
+                    return ok(doc());
+                }
+                /* Snapshotted before the hold: a read describes the document as it was
+                 * when it left, not as the backend holds it at release. */
+                const snapshot = doc();
+                if (state.holdGet) await state.holdGet();
+                return ok(snapshot);
+            }
+            if (url.includes('/machine/capabilities')) return ok({ capabilities: [] });
+            return ok(state.info);
+        });
+        impl.state = state;
+        return impl;
+    }
+
+    /** Drive one machine onto the shell and let every boot read settle. */
+    async function connectedShell(fetchImpl) {
+        const { boot, createSocket } = bootWith({ fetchImpl });
+        await boot.start();
+        const devices = devicesSocket(createSocket);
+        devices.emit('open', {});
+        devices.emit('message', { data: JSON.stringify(machineFrame('m-1')) });
+        await settle(boot);
+        await boot.workflowSettled();
+        return { boot, devices };
+    }
+
+    test('a socket that came back over the SAME machine re-reads the workflow', async () => {
+        const fetchImpl = workflowFetch();
+        const { boot, devices } = await connectedShell(fetchImpl);
+        assert.equal(boot.workflow.targets().drinkWeight, 36, 'the boot read did not reach the rail');
+        assert.equal(boot.machineInfo.get().info.serialNumber, '1');
+
+        /* The browser goes offline and another client moves the target. */
+        devices.emit('close', {});
+        await settle(boot);
+        fetchImpl.state.targetYield = 48;
+        fetchImpl.state.info = { ...fetchImpl.state.info, serialNumber: '2' };
+        assert.equal(boot.workflow.targets().drinkWeight, 36, 'a close must not re-read anything by itself');
+
+        /* And it comes back. The frame is the one it was holding, so the machine ID has
+         * not moved and `machineChanged` is not the event that fires here. */
+        devices.emit('open', {});
+        await boot.workflowSettled();
+        await boot.machineInfoSettled();
+
+        assert.equal(boot.workflow.targets().drinkWeight, 48,
+            'the rail kept the number the machine held before the outage');
+        assert.equal(boot.machineInfo.get().info.serialNumber, '2',
+            'the machine document was not re-read on the reconnection');
+        assert.equal(boot.workflow.get().workflow.context.targetYield, 48,
+            'and the document behind the rail is the one Settings shares');
         boot.destroy();
     });
 

@@ -245,6 +245,32 @@ test('a failed write does not fan out', async () => {
     assert.deepEqual(seen, []);
 });
 
+test('a READ that failed is announced, and still answers with the fallback', async () => {
+    const backends = Object.fromEntries(LIVE_LAYERS.map((layer) => [layer, createMemoryBackend()]));
+    backends.local = { get() { throw new Error('storage is wedged'); }, set() {}, remove() {} };
+    const logger = recordingLogger();
+    const router = createStorageRouter({ backends, logger });
+    const seen = [];
+    const off = router.onReadFailure((event) => seen.push(event));
+    router.onReadFailure(() => { throw new Error('listener exploded'); });
+    assert.equal(await router.get('theme', { fallback: 'dark' }), 'dark',
+        'a broken read must still answer');
+    assert.deepEqual(seen.map((e) => [e.key, e.layer]), [['theme', 'local']]);
+    assert.equal(seen[0].error.message, 'storage is wedged');
+    assert.ok(logger.lines.some(([level, message]) => level === 'error' && /listener threw/.test(message)));
+    off();
+    await router.get('theme');
+    assert.equal(seen.length, 1, 'unsubscribing did not stop delivery');
+});
+
+test('a read that merely found NOTHING is not a failure', async () => {
+    const { router } = fixture();
+    const seen = [];
+    router.onReadFailure((event) => seen.push(event));
+    assert.equal(await router.get('theme', { fallback: 'dark' }), 'dark');
+    assert.deepEqual(seen, [], 'an absent key was reported as a broken backend');
+});
+
 test('describe() reports the whole table, layer and physical key included', () => {
     const { router } = fixture();
     const rows = router.describe();

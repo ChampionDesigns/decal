@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
     computeFit, applyFit, installFit, effectivePixelRatio, readScale,
     FIT_EVENT, MIN_DESIGN_HEIGHT, MIN_DESIGN_WIDTH, MIN_SCALE, MAX_SCALE,
+    MIN_GLASS_HIT, HIT_FLOOR_PROPERTY,
 } from '../src/lib/app-fit.js';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -130,6 +131,26 @@ test('the three properties are published in design units', () => {
     assert.ok(win.props.get('--ui-app-w').endsWith('px'));
 });
 
+test('the hit floor is published as the design length that renders as the floor', () => {
+    for (const [width, height, scale] of [[1281, 801, 0.6675], [1000, 600, 0.5], [1920, 1200, 1]]) {
+        const win = fakeWindow(width, height);
+        applyFit(win.document, computeFit({ width, height }));
+        const published = parseFloat(win.props.get(HIT_FLOOR_PROPERTY));
+        assert.ok(Number.isFinite(published), `${width}x${height} published no hit floor`);
+        near(published * scale, MIN_GLASS_HIT, 0.02);
+    }
+});
+
+test('the floor is the token, not a second opinion about a fingertip', () => {
+    assert.equal(MIN_GLASS_HIT, 48);
+});
+
+test('a hand-built fit with no scale publishes a length, not Infinity', () => {
+    const win = fakeWindow(1281, 801);
+    applyFit(win.document, { scale: 0, designWidth: 1280, designHeight: 1200 });
+    assert.equal(win.props.get(HIT_FLOOR_PROPERTY), `${MIN_GLASS_HIT}px`);
+});
+
 test('the canvas backing factor is dpr TIMES the scale', () => {
     const win = fakeWindow(1281, 801);
     installFit(win);
@@ -191,7 +212,7 @@ test('a keyboard shrink stays refused after the field it belonged to has gone', 
     win.blurField();
     win.document.fire('focusout');
     assert.equal(scaleOf(win), 0.6675,
-        `focusout with the keyboard still up refitted to ${scaleOf(win)} — 0.4 is the measured collapse`);
+        `focusout with the keyboard still up refitted to ${scaleOf(win)}, taking the keyboard height for the screen`);
 
     /* And any resize that arrives at the same shrunken height is the same hole. */
     win.fire('resize');
@@ -237,6 +258,158 @@ test('the latch is narrow: it never fires without a field, and never blocks a gr
     assert.equal(scaleOf(win), 1, 'the panel did not return when the keyboard closed under focus');
 });
 
+function timedWindow(width, height) {
+    const win = keyboardWindow(width, height);
+    const timers = new Map();
+    let next = 1;
+    win.setTimeout = (fn, ms) => { timers.set(next, { fn, ms }); return next++; };
+    win.clearTimeout = (id) => { timers.delete(id); };
+    win.pending = () => timers.size;
+    /** Fire every armed timer once, in order. */
+    win.tick = () => {
+        for (const [id, timer] of [...timers]) { timers.delete(id); timer.fn(); }
+    };
+    return win;
+}
+
+const appWidth = (win) => parseFloat(win.props.get('--ui-app-w')) * scaleOf(win);
+
+/** The three fit properties as published on the document. */
+const publishedFit = (win) => ({
+    scale: parseFloat(win.props.get('--ui-app-scale')),
+    designWidth: parseFloat(win.props.get('--ui-app-w')),
+    designHeight: parseFloat(win.props.get('--ui-app-h')),
+});
+
+test('a resize that changes the WIDTH is never a keyboard, focused or not', () => {
+    /* A keyboard takes height off the bottom of the layout viewport and touches nothing
+     * else, so a width that moved is proof this is a different screen. */
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    assert.equal(scaleOf(win), 0.6675);
+
+    win.focusField();
+    win.innerWidth = 1000; win.innerHeight = 600;
+    win.fire('resize');
+
+    assert.deepEqual(publishedFit(win), computeFit({ width: 1000, height: 600 }),
+        'the fit is not the one this viewport computes');
+    assert.ok(appWidth(win) <= 1000 + 0.5,
+        `the app is ${appWidth(win)} CSS px wide inside a 1000 px window`);
+
+    win.blurField();
+    win.document.fire('focusout');
+    assert.deepEqual(publishedFit(win), computeFit({ width: 1000, height: 600 }));
+    assert.equal(win.pending(), 0, 'a settle was armed for a latch that was never taken');
+});
+
+test('an orientation change while a field has focus refits at once', () => {
+    /* Portrait is not a supported layout, but the fit must still be the one this
+     * viewport computes rather than the landscape one it was holding. */
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    win.focusField();
+    win.innerWidth = 801; win.innerHeight = 1281;
+    win.fire('resize');
+    assert.deepEqual(publishedFit(win), computeFit({ width: 801, height: 1281 }),
+        'a rotation under a focused field was taken for a keyboard');
+});
+
+test('a same-width shrink IS latched, and editing ending releases it on a settled frame', () => {
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    win.focusField();
+    win.innerHeight = 600;
+    win.fire('resize');
+    assert.equal(scaleOf(win), 0.6675, 'a shrink under a focused field was not refused');
+    assert.equal(win.pending(), 0, 'a settle was armed while the field still had focus');
+
+    /* Editing ends. Nothing is decided in the handler — the settle is armed. */
+    win.blurField();
+    win.document.fire('focusout');
+    assert.equal(scaleOf(win), 0.6675,
+        `focusout refitted to ${scaleOf(win)} in the handler instead of arming the settle`);
+    assert.equal(win.pending(), 1, 'editing ended under a short viewport and nothing was armed');
+
+    /* The window really is 600 high, and it still is when the settle fires. */
+    win.tick();
+    assert.deepEqual(publishedFit(win), computeFit({ width: 1281, height: 600 }),
+        'the latch never released — the app is stuck at a size the window does not have');
+    assert.ok(appWidth(win) <= 1281 + 0.5);
+});
+
+test('a keyboard that closes inside the settle window does not collapse the panel', () => {
+    /* `focusout` can arrive with the keyboard still up. The settle re-measures, so a
+     * keyboard that has gone by the time it fires reads as the full height. */
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    win.focusField();
+    win.innerHeight = 430;
+    win.fire('resize');
+    win.blurField();
+    win.document.fire('focusout');
+    assert.equal(scaleOf(win), 0.6675, 'the panel collapsed in the focusout handler');
+
+    /* The keyboard closes. No resize is delivered — only the height is back. */
+    win.innerHeight = 801;
+    win.tick();
+    assert.equal(scaleOf(win), 0.6675, 'the panel did not come back when the keyboard closed');
+    assert.deepEqual(publishedFit(win), computeFit({ width: 1281, height: 801 }));
+});
+
+test('a viewport still moving when the settle fires is measured again, not believed', () => {
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    win.focusField();
+    win.innerHeight = 430;
+    win.fire('resize');
+    win.blurField();
+    win.document.fire('focusout');
+
+    /* Mid-animation: the height has moved since the settle was armed. */
+    win.innerHeight = 560;
+    win.tick();
+    assert.equal(scaleOf(win), 0.6675, 'a frame mid-animation was taken for the settled size');
+    assert.equal(win.pending(), 1, 'the settle did not re-arm — the latch is now stuck');
+
+    /* It stops moving. */
+    win.tick();
+    assert.deepEqual(publishedFit(win), computeFit({ width: 1281, height: 560 }));
+});
+
+test('a field focused again during the settle keeps the latch', () => {
+    const win = timedWindow(1281, 801);
+    installFit(win);
+    win.focusField();
+    win.innerHeight = 430;
+    win.fire('resize');
+    win.blurField();
+    win.document.fire('focusout');
+
+    /* The person taps the next field. The keyboard never went. */
+    win.focusField();
+    win.tick();
+    assert.equal(scaleOf(win), 0.6675, 'the panel shrank while the keyboard was being typed on');
+});
+
+test('the settle does not outlive the stop function', () => {
+    const win = timedWindow(1281, 801);
+    const stop = installFit(win);
+    win.focusField();
+    win.innerHeight = 600;
+    win.fire('resize');
+    win.blurField();
+    win.document.fire('focusout');
+    assert.equal(win.pending(), 1);
+    stop();
+    assert.equal(win.pending(), 0, 'a settle was left armed on a window nothing is fitting any more');
+});
+
+/**
+ * Pull the fit's inline script out of index.html and run it against a fake window.
+ * Located by the properties it writes rather than by position, so adding a third
+ * inline script above it does not silently start testing the wrong one.
+ */
 function runInlineFit(win) {
     const html = readFileSync(path.join(REPO, 'index.html'), 'utf8');
     const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);

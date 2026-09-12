@@ -27,8 +27,8 @@ export const hitArea = css`
         position: absolute;
         inset-block-start: 50%;
         inset-inline-start: 50%;
-        inline-size: var(--_ui-hit-inline, max(100%, var(--ui-hit-min)));
-        block-size: var(--_ui-hit-block, max(100%, var(--ui-hit-min)));
+        inline-size: var(--_ui-hit-inline, max(100%, var(--_ui-hit-floor, var(--ui-hit-min))));
+        block-size: var(--_ui-hit-block, max(100%, var(--_ui-hit-floor, var(--ui-hit-min))));
         transform: translate(-50%, -50%);
     }
 

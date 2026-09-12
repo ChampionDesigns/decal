@@ -61,5 +61,6 @@ export function summaryTerms(derivation, badge = null) {
 }
 
 export function shotIdentity(derivation, { profileName = '' } = {}) {
+    if (!derivation || derivation.ok !== true) return '';
     return typeof profileName === 'string' ? profileName.trim() : '';
 }

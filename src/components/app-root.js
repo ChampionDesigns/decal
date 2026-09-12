@@ -2,7 +2,7 @@
  * The application shell: the router, the theme, and the one mount point every screen renders into.
  */
 
-import { css, html } from 'lit';
+import { css, html, nothing } from 'lit';
 
 import { UiElement } from 'src/components/base.js';
 import { I18nController } from 'src/lib/i18n.js';
@@ -13,8 +13,12 @@ import { applyDensity, normaliseDensity, DENSITY_KEY } from 'src/lib/density.js'
 import { createStorageRouter } from 'src/lib/storage-router.js';
 import { createWebStorageBackend, createMemoryBackend } from 'src/lib/storage-backends.js';
 import { LAYERS } from 'src/lib/storage-routes.js';
-import { routeIdFromHash, hashFor, DEFAULT_ROUTE_ID } from 'src/lib/app-routes.js';
+import {
+    routeIdFromHash, hashFor, DEFAULT_ROUTE_ID,
+    createLeaveContract, LEAVE_KIND, LEAVE_ACTION,
+} from 'src/lib/app-routes.js';
 import { installFit } from 'src/lib/app-fit.js';
+import { startupFailureDetails, canOpenDashboard, openDashboard } from 'src/lib/startup-recovery.js';
 import { intentFor, INTENT_EVENTS } from 'src/lib/app-intents.js';
 import { logger as appLogger } from 'src/lib/logger.js';
 
@@ -24,6 +28,7 @@ import 'src/components/ui-screensaver.js';
 import { attachScreensaver } from 'src/components/ui-screensaver.js';
 import { FEED } from 'src/stores/live-stores.js';
 import { MACHINE_STATE } from 'src/data/machine-state.js';
+import { REQUEST_STATUS } from 'src/stores/machine-state-store.js';
 import { valueOf } from 'src/stores/feed-store.js';
 import { deriveSleepButtonAction } from 'src/lib/screensaver-policy.js';
 
@@ -51,6 +56,9 @@ export class AppRoot extends UiElement {
 
         /** Internal: the boot state, so `render()` reads one object. */
         _boot: { state: true },
+
+        _recoveryCopy: { state: true },
+        _recoveryFailure: { state: true },
     };
 
     static styles = [css`
@@ -63,15 +71,58 @@ export class AppRoot extends UiElement {
 
         .booting {
             display: grid;
-            place-items: center;
+            align-items: center;
+            justify-items: stretch;
+            text-align: center;
             padding: var(--ui-space-6);
             min-block-size: 0;
         }
+
+        .recovery {
+            inline-size: min(100%, var(--ui-measure-wide));
+            box-sizing: border-box;
+            justify-self: center;
+            padding: var(--ui-space-7);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius-xl);
+            background: var(--ui-surface);
+            text-align: start;
+            font-size: var(--ui-text-lg);
+        }
+
+        .recovery h1 { font-size: var(--ui-display-md); margin: 0 0 var(--ui-space-5); }
+        .recovery p { margin: 0 0 var(--ui-space-5); }
+        .recovery-actions { display: flex; flex-wrap: wrap; gap: var(--ui-space-4); margin-block: var(--ui-space-6); }
+
+        .recovery button {
+            box-sizing: border-box;
+            min-block-size: var(--ui-control-h);
+            padding: var(--ui-space-3) var(--ui-space-5);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background: var(--ui-surface);
+            color: var(--ui-text);
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .recovery .reload { background: var(--ui-steel); color: var(--ui-on-primary); border-color: var(--ui-steel); }
+
+        .recovery button:focus-visible, .recovery summary:focus-visible {
+            outline: var(--ui-border-w-strong) solid var(--ui-steel);
+            outline-offset: var(--ui-space-1);
+        }
+
+        .recovery details { border-block-start: var(--ui-border-w) solid var(--ui-line); padding-block-start: var(--ui-space-5); }
+        .recovery summary { cursor: pointer; min-block-size: var(--ui-control-sm); }
+        .recovery pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; max-block-size: calc(var(--ui-control-h) * 3); font: inherit; }
+        .recovery .recovery-status { margin-block-start: var(--ui-space-4); }
 
         /* The error case is a strip, not a card: ui-alert-banner carries its own
          * measured treatment (component #49) and this only decides how wide it may be. */
         .booting ui-alert-banner {
             inline-size: min(100%, 860px);
+            justify-self: center;
         }
     `];
 
@@ -84,6 +135,13 @@ export class AppRoot extends UiElement {
 
     /** The hash listener, held for the same reason (bug S10: a duplicated listener). */
     #onHashChange = null;
+
+    /** The route-leave guards. One registration, forwarding to whatever screen is mounted. */
+    #leave = createLeaveContract({ logger: appLogger });
+
+    #unguardScreen = null;
+
+    #onBeforeUnload = null;
 
     /** The theme controller, if this element built one. */
     #theme = null;
@@ -109,6 +167,8 @@ export class AppRoot extends UiElement {
         this.phase = BOOT_PHASE.IDLE;
         this.route = null;
         this._boot = null;
+        this._recoveryCopy = null;
+        this._recoveryFailure = null;
     }
 
     connectedCallback() {
@@ -131,9 +191,31 @@ export class AppRoot extends UiElement {
 
         this.#unwatchBoot = this.boot.subscribe((state) => this.#onBootState(state));
 
+        this.#unguardScreen = this.#leave.guard(
+            (details) => this.#screen?.canLeaveRoute?.(details) ?? true,
+        );
+
+        this.#onBeforeUnload = (event) => {
+            const answer = this.#leave.request({ from: this.route, to: null, kind: LEAVE_KIND.UNLOAD });
+            if (answer.action === LEAVE_ACTION.LEAVE) return;
+            event.preventDefault();
+            event.returnValue = '';
+        };
+        globalThis.addEventListener?.('beforeunload', this.#onBeforeUnload);
+
         this.#onHashChange = () => {
             const id = this.#routeFromLocation();
-            if (this._boot && this._boot.route && this._boot.route.id === id) return;
+            const from = this._boot?.route?.id ?? null;
+            if (from === id) return;
+            const answer = this.#leave.request({ from, to: id, kind: LEAVE_KIND.HISTORY });
+            /* The address has already moved, so a refusal owes a correction. replaceState,
+             * or the correction becomes a history entry of its own and Back stops working. */
+            if (answer.action === LEAVE_ACTION.RESTORE) {
+                globalThis.history?.replaceState?.(null, '', hashFor(answer.restoreTo));
+                this.#leave.request({ from: answer.restoreTo, to: answer.restoreTo, kind: LEAVE_KIND.HISTORY });
+                return;
+            }
+            if (answer.action !== LEAVE_ACTION.LEAVE) return;
             this.boot.goto(id);
         };
         globalThis.addEventListener?.('hashchange', this.#onHashChange);
@@ -153,6 +235,10 @@ export class AppRoot extends UiElement {
         this.#stopFit = null;
         if (this.#onHashChange) globalThis.removeEventListener?.('hashchange', this.#onHashChange);
         this.#onHashChange = null;
+        if (this.#onBeforeUnload) globalThis.removeEventListener?.('beforeunload', this.#onBeforeUnload);
+        this.#onBeforeUnload = null;
+        this.#unguardScreen?.();
+        this.#unguardScreen = null;
         this.#unwatchBoot?.();
         this.#unwatchBoot = null;
         this.#unwatchSaver?.();
@@ -201,8 +287,15 @@ export class AppRoot extends UiElement {
         return routeIdFromHash(globalThis.location?.hash) ?? DEFAULT_ROUTE_ID;
     }
 
-    #onWake = () => {
-        this.boot?.machineState?.request(MACHINE_STATE.IDLE);
+    #onWake = async () => {
+        const store = this.boot?.machineState;
+        if (!store) return;
+        const state = await store.request(MACHINE_STATE.IDLE);
+        const saver = this.renderRoot?.querySelector?.('#screensaver');
+        if (!saver) return;
+        const failed = state?.status === REQUEST_STATUS.FAILED
+            || state?.status === REQUEST_STATUS.REFUSED;
+        saver.wakeError = failed ? this.#i18n.t('The machine did not wake. Press again.') : '';
     };
 
     #onSaverDim = (event) => {
@@ -225,6 +318,7 @@ export class AppRoot extends UiElement {
     }
 
     #onBootState(state) {
+        if (this._boot?.error !== state.error) { this._recoveryCopy = null; this._recoveryFailure = null; }
         this._boot = state;
         this.phase = state.phase;
         this.route = state.route ? state.route.id : null;
@@ -276,6 +370,8 @@ export class AppRoot extends UiElement {
                 ? library.recordFor(loadedId)
                 : null)
                 ?? (namedId ? null
+                    : (typeof library?.activeDraft === 'function' ? library.activeDraft() : null))
+                ?? (namedId ? null
                     : (typeof library?.selected === 'function' ? library.selected() : null));
             if (!editor || !record) {
                 appLogger.warn('edit: no profile record to seat — staying on the current route');
@@ -296,12 +392,16 @@ export class AppRoot extends UiElement {
         }
     }
 
+    /** Navigate, unless a guard refuses. Answers whether the route change was allowed. */
     goto(routeId, { invoker = null } = {}) {
+        const asked = this.#leave.request({ from: this.route ?? null, to: routeId, kind: LEAVE_KIND.NAVIGATE });
+        if (asked.action !== LEAVE_ACTION.LEAVE) return false;
         this.#returnFocus = invoker && this.route
             ? { route: this.route, invoker: String(invoker), pushed: true }
             : null;
         if (globalThis.location) globalThis.location.hash = hashFor(routeId);
         else this.boot?.goto(routeId);
+        return true;
     }
 
     back() {
@@ -354,12 +454,28 @@ export class AppRoot extends UiElement {
     /** The branch under the saver. Three shapes, no saver in any of them. */
     #body(phase, state) {
         if (phase === BOOT_PHASE.ERROR) {
-            return html`<div class="app"><div class="booting" role="alert">
-                <ui-alert-banner
-                    >${this.#i18n.t('Decal could not start')}<span slot="remedy"
-                        >${this.#i18n.t('The screen module could not be loaded. Reload the page; if it happens again the app files did not all reach the tablet.')}</span
-                    ></ui-alert-banner
-                >
+            const t = this.#i18n.t;
+            const win = this.ownerDocument?.defaultView;
+            return html`<div class="app"><div class="booting">
+                <section class="recovery" aria-labelledby="recovery-heading">
+                    <h1 id="recovery-heading">${t('Decal could not start')}</h1>
+                    <p role="alert">${t('The screen could not be loaded. Reload Decal to try again.')}</p>
+                    <p>${t('If this keeps happening, reopen the skin from Decaid or reinstall its app files.')}</p>
+                    <div class="recovery-actions">
+                        <button id="recovery-reload" class="reload" @click=${this.#reload}>${t('Reload Decal')}</button>
+                        ${canOpenDashboard(win) ? html`<button id="recovery-dashboard" @click=${this.#openDashboard}
+                            >${t('Open dashboard')}</button>` : nothing}
+                    </div>
+                    <details id="recovery-details">
+                        <summary>${t('Technical details')}</summary>
+                        <pre id="recovery-error" tabindex="0">${startupFailureDetails(state.error)}</pre>
+                        <button id="recovery-copy" ?disabled=${this._recoveryCopy === 'pending'} @click=${this.#copyRecovery}
+                            >${t('Copy details')}</button>
+                        ${this._recoveryCopy && this._recoveryCopy !== 'pending' ? html`<p class="recovery-status" role="status"
+                            >${t(this._recoveryCopy === 'copied' ? 'Copied' : 'Could not copy. Select the details to copy them.')}</p>` : nothing}
+                    </details>
+                    ${this._recoveryFailure ? html`<p class="recovery-status" role="status">${t(this._recoveryFailure)}</p>` : nothing}
+                </section>
             </div></div>`;
         }
 
@@ -378,6 +494,28 @@ export class AppRoot extends UiElement {
             <main class="app" @navigate=${this.#onNavigate}>${this.#screen}</main>
         `;
     }
+
+    #reload = () => {
+        try { this.ownerDocument.defaultView.location.reload(); }
+        catch { this._recoveryFailure = 'Reload failed. Open the skin again from Decaid.'; }
+    };
+
+    #openDashboard = () => {
+        if (!openDashboard(this.ownerDocument?.defaultView)) this._recoveryFailure = 'The dashboard could not be opened.';
+    };
+
+    #copyRecovery = async () => {
+        const error = this._boot?.error;
+        this._recoveryCopy = 'pending';
+        try {
+            const clipboard = this.ownerDocument?.defaultView?.navigator?.clipboard;
+            if (typeof clipboard?.writeText !== 'function') throw new Error('Clipboard unavailable');
+            await clipboard.writeText(startupFailureDetails(error));
+            if (this._boot?.error === error) this._recoveryCopy = 'copied';
+        } catch {
+            if (this._boot?.error === error) this._recoveryCopy = 'failed';
+        }
+    };
 
     #bootMessage(state) {
         const t = this.#i18n.t;

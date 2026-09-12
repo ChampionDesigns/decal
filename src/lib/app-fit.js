@@ -12,6 +12,10 @@ export const MAX_DESIGN_HEIGHT = 1600;
 export const MIN_SCALE = 0.4;
 export const MAX_SCALE = 2;
 
+/** The smallest hit target, in rendered px, and the property applyFit publishes it on. */
+export const MIN_GLASS_HIT = 48;
+export const HIT_FLOOR_PROPERTY = '--_ui-hit-floor';
+
 /**
  * Fired on `window` when the scale changes, so anything holding a number DERIVED from
  * the scale can refresh it. One listener today: ui-chart-card's backing store.
@@ -19,6 +23,8 @@ export const MAX_SCALE = 2;
 export const FIT_EVENT = 'ui-app-fit';
 
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+
+const SETTLE_MS = 250;
 
 export function computeFit({ width, height }) {
     if (!(width > 0) || !(height > 0)) {
@@ -57,6 +63,8 @@ export function applyFit(doc, fit) {
     root.style.setProperty('--ui-app-scale', String(fit.scale));
     root.style.setProperty('--ui-app-w', `${fit.designWidth}px`);
     root.style.setProperty('--ui-app-h', `${fit.designHeight}px`);
+    root.style.setProperty(HIT_FLOOR_PROPERTY,
+        `${MIN_GLASS_HIT / (fit.scale > 0 ? fit.scale : 1)}px`);
     return fit;
 }
 
@@ -66,9 +74,13 @@ export function installFit(win = globalThis) {
 
     let announced = null;
     let lastHeight = null;
-    /* The height the keyboard rule below is protecting, or null when no keyboard is up.
-     * See "THE LATCH" there — this is the whole of its state. */
+    let lastWidth = null;
+    /* The viewport a keyboard is covering, or null when none is. The width is half of
+     * it: a shrink that also changes the width is not a keyboard. */
     let protectedHeight = null;
+    let protectedWidth = null;
+    let settleTimer = null;
+    let settleHeight = null;
 
     const typing = () => {
         let node = doc.activeElement;
@@ -79,17 +91,49 @@ export function installFit(win = globalThis) {
         return tag === 'INPUT' || tag === 'TEXTAREA';
     };
 
+    const cancelSettle = () => {
+        if (settleTimer === null) return;
+        win.clearTimeout?.(settleTimer);
+        settleTimer = null;
+        settleHeight = null;
+    };
+
+    /* Editing can end while the viewport is still short, with the keyboard's closing
+     * animation still running: refit on two equal measurements, not in the handler. */
+    const settleLater = () => {
+        if (typeof win.setTimeout !== 'function') return;
+        settleHeight = win.innerHeight;
+        if (settleTimer !== null) return;
+        settleTimer = win.setTimeout(() => {
+            settleTimer = null;
+            if (protectedHeight === null) return;
+            if (typing()) return;
+            if (win.innerHeight !== settleHeight) { settleLater(); return; }
+            protectedHeight = null;
+            protectedWidth = null;
+            refit();
+        }, SETTLE_MS);
+    };
+
     const refit = () => {
         const height = win.innerHeight;
+        const width = win.innerWidth;
         if (protectedHeight !== null) {
-            if (height < protectedHeight) return null;
+            if (width === protectedWidth && height < protectedHeight) {
+                if (!typing()) settleLater();
+                return null;
+            }
             protectedHeight = null;
-        } else if (lastHeight !== null && height < lastHeight && typing()) {
+            protectedWidth = null;
+        } else if (lastHeight !== null && height < lastHeight && width === lastWidth && typing()) {
             protectedHeight = lastHeight;
+            protectedWidth = lastWidth;
             return null;
         }
+        cancelSettle();
         lastHeight = height;
-        const fit = applyFit(doc, computeFit({ width: win.innerWidth, height }));
+        lastWidth = width;
+        const fit = applyFit(doc, computeFit({ width, height }));
         if (fit.scale !== announced) {
             announced = fit.scale;
             win.dispatchEvent?.(new CustomEvent(FIT_EVENT, { detail: fit }));
@@ -106,6 +150,7 @@ export function installFit(win = globalThis) {
     doc.addEventListener?.('focusout', refit);
 
     return () => {
+        cancelSettle();
         win.removeEventListener('resize', refit);
         win.visualViewport?.removeEventListener('resize', refit);
         doc.removeEventListener?.('focusout', refit);

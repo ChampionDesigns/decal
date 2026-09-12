@@ -563,6 +563,20 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     () => document.querySelector('app-root').shadowRoot.querySelector('.booting').getAttribute('role'),
                 );
                 assert.equal(role, 'status');
+                const boot = await page.evalFn(() => {
+                    const root = document.querySelector('app-root').shadowRoot;
+                    const band = root.querySelector('.booting');
+                    const empty = root.querySelector('ui-empty-state');
+                    return {
+                        band: band.getBoundingClientRect().width,
+                        empty: empty.getBoundingClientRect().width,
+                        lines: Math.round(empty.getBoundingClientRect().height),
+                    };
+                });
+                assert.ok(boot.empty > 0,
+                    `the boot message has no width at all (${boot.empty}px inside ${boot.band}px)`);
+                assert.ok(boot.empty > boot.band / 2,
+                    `the boot message shrink-wrapped to ${boot.empty}px of a ${boot.band}px surface`);
 
                 state = await page.evalFn(() => window.__shell.releaseScreen());
                 assert.equal(state.phase, 'ready');
@@ -581,16 +595,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(state.ariaBusy, 'true');
                 assert.equal(state.screenTag, null);
 
-                assert.ok(await page.exists('app-root >>> ui-alert-banner'),
-                    'the refusal SURFACE is the library\'s banner — it takes a message, it does not know one');
+                assert.ok(await page.exists('app-root >>> #recovery-reload'));
                 const text = await page.evalFn(
-                    () => document.querySelector('app-root').shadowRoot.querySelector('ui-alert-banner').textContent.trim(),
+                    () => document.querySelector('app-root').shadowRoot.querySelector('.recovery [role="alert"]').textContent.trim(),
                 );
-                assert.ok(text.length > 0, 'the banner is not empty');
-                const role = await page.evalFn(
-                    () => document.querySelector('app-root').shadowRoot.querySelector('ui-alert-banner').getAttribute('role'),
-                );
-                assert.equal(role, 'alert');
+                assert.ok(text.length > 0, 'the failure is explained');
+                assert.ok(await page.exists('app-root >>> #recovery-details'));
+                assert.ok(await page.exists('app-root >>> #recovery-copy'));
             },
             { screens: 'failing' },
         ));

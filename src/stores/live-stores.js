@@ -118,7 +118,24 @@ export function createLiveStores({
 
     let detachers = [];
 
+    /* Held apart from `detachers` so a machine swap can drop the sensor feeds and take
+     * them again without touching the seven channels that did not move. */
+    let sensorDetachers = [];
+
     const channelFor = (row) => sockets.channel({ key: row.key, path: row.path, channel: row });
+
+    const attachSensors = () => {
+        if (!sensorDiscovery || sensorDetachers.length > 0) return;
+        sensorDetachers = [
+            feeds[FEED.ESTIMATOR].attach(sensorSource(sensorDiscovery, SENSOR_KIND.PUCK_ESTIMATOR)),
+            feeds[FEED.MILK_PROBE].attach(sensorSource(sensorDiscovery, SENSOR_KIND.MILK_PROBE)),
+        ];
+    };
+
+    const detachSensors = () => {
+        for (const detach of sensorDetachers) detach();
+        sensorDetachers = [];
+    };
 
     let displayChannel = null;
 
@@ -156,13 +173,8 @@ export function createLiveStores({
                 })(),
                 feeds[FEED.WATER].attach(channelFor(WS_CHANNELS.waterLevels)),
             ];
-            if (sensorDiscovery) {
-                detachers.push(
-                    feeds[FEED.ESTIMATOR].attach(sensorSource(sensorDiscovery, SENSOR_KIND.PUCK_ESTIMATOR)),
-                    feeds[FEED.MILK_PROBE].attach(sensorSource(sensorDiscovery, SENSOR_KIND.MILK_PROBE)),
-                );
-                sensorDiscovery.start();
-            }
+            attachSensors();
+            if (sensorDiscovery) sensorDiscovery.start();
             detachers.push(attachShotBuffer({
                 buffer: shot,
                 machine: feeds[FEED.MACHINE],
@@ -177,9 +189,18 @@ export function createLiveStores({
         detachAll() {
             for (const detach of detachers) detach();
             detachers = [];
+            detachSensors();
             displayChannel = null;
             updateChannel = null;
             if (sensorDiscovery) sensorDiscovery.stop();
+            return live;
+        },
+
+        /** Drop every sensor attachment and take it again, for a machine that has changed. */
+        invalidateSensors() {
+            if (!sensorDiscovery || sensorDetachers.length === 0) return live;
+            detachSensors();
+            attachSensors();
             return live;
         },
 

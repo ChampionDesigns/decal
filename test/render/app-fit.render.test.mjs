@@ -168,8 +168,8 @@ describe('the browser cannot leave the panel zoomed with no way back', () => {
     });
 });
 
-describe('a keyboard that is dismissed by navigating does not resize the panel', () => {
-    test('focus, keyboard, navigate away — the fit holds', async () => {
+describe('keyboard navigation holds the blur frame and recovers after closure', () => {
+    test('focus, keyboard, navigate away — the blur frame holds and closure restores the fit', async () => {
         const page = await browser.newPage({ geometry: BENCH });
         try {
             await page.goto('/index.html');
@@ -180,22 +180,34 @@ describe('a keyboard that is dismissed by navigating does not resize the panel',
                 parseFloat(getComputedStyle(document.querySelector('app-root')).zoom));
             assert.ok(Math.abs(await zoomNow() - 0.6675) < 0.0005, 'the bench fit did not apply');
 
-            /* A field, wherever the selector keeps it — reached through the shadow roots,
-             * because `document.activeElement` cannot see past `<app-root>`. */
-            const focused = await page.evalFn(() => {
-                const found = [];
-                const walk = (root) => {
-                    for (const el of root.querySelectorAll('*')) {
-                        if (el.tagName === 'INPUT' && el.type === 'text') found.push(el);
-                        if (el.shadowRoot) walk(el.shadowRoot);
-                    }
-                };
-                walk(document);
-                if (!found.length) return false;
-                found[0].focus();
-                return true;
+            /* The selector module arrives asynchronously, and a hidden dialog field
+             * cannot establish the keyboard precondition: wait for a focusable filter
+             * rather than for a fixed number of frames. */
+            const ready = await page.evalFn(async () => {
+                const deadline = performance.now() + 5000;
+                while (performance.now() < deadline) {
+                    const app = document.querySelector('app-root');
+                    const selector = app?.shadowRoot?.querySelector('selector-screen');
+                    const field = selector?.shadowRoot?.querySelector('#filter')
+                        ?.field?.shadowRoot?.querySelector('input');
+                    if (app?.phase === 'ready' && field?.isConnected && !field.disabled
+                        && field.getBoundingClientRect().height > 0) return true;
+                    await new Promise(requestAnimationFrame);
+                }
+                return false;
             });
-            assert.ok(focused, 'the selector has no text field to type into — this test needs one');
+            assert.ok(ready, 'the selector filter did not become visible within 5 seconds');
+            await page.settle(4);
+            const focused = await page.evalFn(() => {
+                const field = document.querySelector('app-root')?.shadowRoot
+                    ?.querySelector('selector-screen')?.shadowRoot?.querySelector('#filter')
+                    ?.field?.shadowRoot?.querySelector('input');
+                field?.focus();
+                let active = document.activeElement;
+                while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+                return Boolean(field && active === field);
+            });
+            assert.ok(focused, 'the visible profile filter did not accept focus');
 
             /* The keyboard opens: the layout viewport loses its height. */
             await page.setGeometry({ ...BENCH, height: 430 });
@@ -203,18 +215,38 @@ describe('a keyboard that is dismissed by navigating does not resize the panel',
             assert.ok(Math.abs(await zoomNow() - 0.6675) < 0.0005,
                 'the keyboard shrank the whole panel — the refusal in installFit is gone');
 
-            /* And the person taps Save. `focusout`, with the keyboard still up. */
-            await page.evalFn(() => { globalThis.location.hash = '#/live'; return true; });
-            await page.settle(8);
-            const after = await page.evalFn(() => {
-                const app = document.querySelector('app-root');
-                return { zoom: parseFloat(getComputedStyle(app).zoom), designWidth: app.offsetWidth };
+            /* The person taps Cancel. Capture the focusout frame itself, before the
+             * settled-height release or route loading can elapse. */
+            await page.evalFn(() => {
+                window.__fitBlur = null;
+                document.addEventListener('focusout', (event) => {
+                    queueMicrotask(() => {
+                        const app = document.querySelector('app-root');
+                        window.__fitBlur = {
+                            zoom: parseFloat(getComputedStyle(app).zoom),
+                            designWidth: app.offsetWidth,
+                        };
+                    });
+                }, { once: true });
+                return true;
             });
-            assert.ok(Math.abs(after.zoom - 0.6675) < 0.0005,
-                `navigating away with the keyboard up collapsed the panel to ${after.zoom} `
-                + `at ${after.designWidth} design units (0.4 / 2400 is the measured failure)`);
-
-            /* The keyboard closes. The fit is still the screen's, and still announced. */
+            await page.click('app-root >>> selector-screen >>> #cancel >>> #btn');
+            const blurred = await page.evalFn(() => window.__fitBlur);
+            assert.ok(blurred, 'Cancel did not produce a focusout frame');
+            assert.ok(Math.abs(blurred.zoom - 0.6675) < 0.0005,
+                `focusout immediately collapsed the panel to ${blurred.zoom} at ${blurred.designWidth} design units`);
+            const navigated = await page.evalFn(async () => {
+                const deadline = performance.now() + 5000;
+                while (performance.now() < deadline) {
+                    const app = document.querySelector('app-root');
+                    if (app?.route === 'live' && app.shadowRoot?.querySelector('live-screen')) return true;
+                    await new Promise(requestAnimationFrame);
+                }
+                return false;
+            });
+            assert.ok(navigated, 'navigation did not replace the focused selector with Live');
+            /* The emulated keyboard closes after navigation. Either ordering against
+             * the settled-height release must restore the fit. */
             await page.setGeometry(BENCH);
             await page.settle(4);
             assert.ok(Math.abs(await zoomNow() - 0.6675) < 0.0005,

@@ -81,6 +81,8 @@ export function createSensorDiscovery({
     let running = false;
     let timer = null;
     let discovering = false;
+    /** The pass in flight, so a re-check that arrives mid-pass waits for it. */
+    let inPass = null;
     let lastListing = null;
     /** The delay the NEXT re-discovery is armed at. Reset by a frame, doubled by a retry. */
     let rediscoverDelayMs = REDISCOVERY_BACKOFF_MS.first;
@@ -112,6 +114,7 @@ export function createSensorDiscovery({
                 attachedId: null,
                 gateOpen: null,      // null = not asked yet; the gate is never assumed
                 lastError: null,
+                recheck: false,
             };
             kinds.set(kind, state);
         }
@@ -166,6 +169,29 @@ export function createSensorDiscovery({
         note('info', `sensor ${state.kind} attached: ${sensorId}`);
     }
 
+    /* An attached kind is compared against the listing again only when it was marked, so
+     * an id replaced under an unchanged machine is not invisible to every later pass. */
+    const wantsPass = (state) => state.fanout.size() > 0 && (!state.attachedId || state.recheck);
+
+    /** Mark one kind, or every kind, for the next pass. Returns how many were marked. */
+    function mark(kind) {
+        if (kind === null || kind === undefined) {
+            for (const state of kinds.values()) state.recheck = true;
+            return kinds.size;
+        }
+        if (!SENSOR_ID_SUFFIX[kind]) throw new Error(`sensors: unknown kind "${kind}"`);
+        const state = kinds.get(kind);
+        if (!state) return 0;
+        state.recheck = true;
+        return 1;
+    }
+
+    function runPass() {
+        if (inPass) return inPass;
+        inPass = Promise.resolve(discover()).finally(() => { inPass = null; });
+        return inPass;
+    }
+
     async function gateFor(state) {
         try {
             const allowed = await capabilityGate(state.kind);
@@ -183,12 +209,13 @@ export function createSensorDiscovery({
         if (discovering) return;
         discovering = true;
         try {
-            const wanted = [...kinds.values()].filter((s) => s.fanout.size() > 0 && !s.attachedId);
+            const wanted = [...kinds.values()].filter(wantsPass);
             if (wanted.length === 0) return;
 
             const gated = [];
             for (const state of wanted) {
-                if (await gateFor(state)) gated.push(state);
+                if (await gateFor(state)) { gated.push(state); continue; }
+                if (state.gateOpen === false) state.recheck = false;
             }
             if (gated.length === 0) return;
 
@@ -204,6 +231,7 @@ export function createSensorDiscovery({
             }
             lastListing = listing;
             for (const state of gated) {
+                state.recheck = false;
                 const id = findSensorId(response.data, state.kind);
                 if (!id) continue;                          // not registered yet; poll again
                 attach(state, id);
@@ -219,14 +247,14 @@ export function createSensorDiscovery({
         if (timer !== null) timers.clearTimeout(timer);
         timer = timers.setTimeout(() => {
             timer = null;
-            discover();
+            runPass();
         }, delay);
     }
 
     /** Rule 1's other half: the poll runs only while something is missing AND wanted. */
     function reschedule() {
         if (!running) return;
-        const outstanding = [...kinds.values()].some((s) => s.fanout.size() > 0 && !s.attachedId);
+        const outstanding = [...kinds.values()].some(wantsPass);
         if (!outstanding) {
             if (timer !== null) timers.clearTimeout(timer);
             timer = null;
@@ -243,7 +271,7 @@ export function createSensorDiscovery({
         start() {
             if (running) return;
             running = true;
-            discover();
+            runPass();
             return this;
         },
 
@@ -279,7 +307,17 @@ export function createSensorDiscovery({
 
         /** Force a pass now — after a machine connect, say. Returns the pass's promise. */
         discoverNow() {
-            return discover();
+            return runPass();
+        },
+
+        /**
+         * Mark a kind — or every kind, when none is named — to be compared against the
+         * listing again, and run a pass. Resolves when that pass has finished.
+         */
+        invalidate(kind = null) {
+            const marked = mark(kind);
+            if (marked === 0 || !running) return Promise.resolve();
+            return inPass ? inPass.then(() => runPass()) : runPass();
         },
 
         /** The id currently attached for a kind, or null. */

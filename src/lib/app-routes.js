@@ -119,3 +119,98 @@ export function assertRouteTable(routes = ROUTES) {
     }
     return routes;
 }
+
+/** How the leave was asked for. NAVIGATE and UNLOAD are asked before the address moves. */
+export const LEAVE_KIND = Object.freeze({
+    NAVIGATE: 'navigate',
+    HISTORY: 'history',
+    UNLOAD: 'unload',
+});
+
+/** What the shell must do about the answer. STAY leaves the address alone; RESTORE puts it back. */
+export const LEAVE_ACTION = Object.freeze({
+    LEAVE: 'leave',
+    STAY: 'stay',
+    RESTORE: 'restore',
+});
+
+/**
+ * The guards a screen registers to refuse a route change, and the one place their answers
+ * become an action. A guard answers `false`, or `{allow: false, reason}` to have the
+ * refusal reported in words; anything else allows the leave.
+ */
+export function createLeaveContract({ logger = null } = {}) {
+    const guards = new Set();
+    let armed = null;
+
+    /** Register a guard. Returns its own removal. */
+    function guard(fn) {
+        if (typeof fn !== 'function') return () => {};
+        guards.add(fn);
+        return () => { guards.delete(fn); };
+    }
+
+    /* A guard that throws ALLOWS the navigation: a broken guard that refused would lock
+     * the app on one screen. */
+    function ask(details) {
+        for (const fn of guards) {
+            let answer;
+            try {
+                answer = fn(details);
+            } catch (error) {
+                logger?.warn?.('a route-leave guard threw; the navigation is allowed', error);
+                continue;
+            }
+            if (answer === false) return { refused: true, reason: null };
+            if (answer && typeof answer === 'object' && answer.allow === false) {
+                return {
+                    refused: true,
+                    reason: typeof answer.reason === 'string' && answer.reason !== '' ? answer.reason : null,
+                };
+            }
+        }
+        return { refused: false, reason: null };
+    }
+
+    /**
+     * May we leave `from` for `to`? Answers an action, the reason a guard gave, and the
+     * address a RESTORE must be corrected back to.
+     */
+    function request({ from = null, to = null, kind = LEAVE_KIND.NAVIGATE } = {}) {
+        const base = { kind, from, to, reason: null, restoreTo: null, consulted: false };
+
+        /* Our own correction arriving back as an event. Consumed first, and it disarms
+         * itself, or the correction loops. */
+        if (armed !== null && kind === LEAVE_KIND.HISTORY && to === armed) {
+            armed = null;
+            return { ...base, action: LEAVE_ACTION.LEAVE };
+        }
+
+        /* Re-asserting the address we are already on is not a leave, and asking a guard
+         * about it would have a screen refuse its own address. */
+        if (from !== null && from === to) {
+            return { ...base, action: LEAVE_ACTION.LEAVE };
+        }
+
+        armed = null;
+
+        const { refused, reason } = ask({ from, to, kind });
+        if (!refused) return { ...base, action: LEAVE_ACTION.LEAVE, consulted: true };
+
+        /* Only a traversal owes a correction: the address has already moved. */
+        if (kind === LEAVE_KIND.HISTORY && typeof from === 'string' && from !== '') {
+            armed = from;
+            return {
+                ...base, action: LEAVE_ACTION.RESTORE, reason, restoreTo: from, consulted: true,
+            };
+        }
+        return { ...base, action: LEAVE_ACTION.STAY, reason, consulted: true };
+    }
+
+    return Object.freeze({
+        guard,
+        request,
+        pendingRestore: () => armed,
+        size: () => guards.size,
+    });
+}

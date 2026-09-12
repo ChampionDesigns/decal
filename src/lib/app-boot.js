@@ -2,11 +2,15 @@
  * the boot sequence, assembled, with no DOM in it.
  */
 
-import { createReaTransport, reaBaseUrl, reaSocketBase } from '../data/rea-transport.js';
+import { createReaTransport, reaBaseUrl, reaSocketBase, DEFAULT_TIMEOUT_MS } from '../data/rea-transport.js';
+import { REA_ERROR, ReaError, reaFailure } from '../data/rea-errors.js';
 import { createReaRoutes } from '../data/rea-routes.js';
 import { createReaSockets } from '../data/rea-sockets.js';
 import { createDevicesLink } from '../data/rea-devices.js';
+import { createSensorDiscovery } from '../data/rea-sensors.js';
+import { createShotSourceSelector } from '../stores/shot-source-selector.js';
 import { createLiveStores, FEED } from '../stores/live-stores.js';
+import { SHOT_STATE } from '../stores/feed-readers.js';
 import { createWeatherStore } from '../stores/weather-store.js';
 import { createCapabilitiesStore } from '../stores/capabilities-store.js';
 import { createMachineInfoStore } from '../stores/machine-info-store.js';
@@ -24,12 +28,26 @@ import { createAppSettingsStore } from '../stores/app-settings-store.js';
 import { createStore } from '../stores/store.js';
 import { createReaKvBackend } from '../data/rea-kv-backend.js';
 import { createStorageRouter } from './storage-router.js';
+import { numericHistory } from './numeric-input-history.js';
 import { createMemoryBackend, createWebStorageBackend } from './storage-backends.js';
 import { LAYERS, KV_NAMESPACES, STORAGE_PREFIX } from './storage-routes.js';
 import { ROUTES, DEFAULT_ROUTE_ID, assertRouteTable, resolveRoute, hashFor } from './app-routes.js';
 
 /** Where the shell is in its own life. Rendered by `<app-root>`, asserted by the suites. */
 const SHOTS_PAGE = 25;
+
+const STALENESS_TICK_MS = 500;
+
+/** Whether the record for the shot that has just finished has reached the history yet. */
+export const SAVED_SHOT = Object.freeze({
+    IDLE: 'idle',
+    WAITING: 'waiting',
+    READY: 'ready',
+    UNAVAILABLE: 'unavailable',
+});
+
+export const SAVED_SHOT_ATTEMPTS = 6;
+export const SAVED_SHOT_RETRY_MS = 500;
 
 export const BOOT_PHASE = Object.freeze({
     /** Built, nothing opened. Nothing in this layer starts itself. */
@@ -60,6 +78,11 @@ export function createAppBoot({
     route: initialRouteId = DEFAULT_ROUTE_ID,
     logger = null,
     clock = () => Date.now(),
+    wait = (ms) => new Promise((done) => { setTimeout(done, ms); }),
+    repeat = (fn, ms) => {
+        const id = setInterval(fn, ms);
+        return () => clearInterval(id);
+    },
     timeoutMs = undefined,
     backends = null,
     proxyToken = null,
@@ -85,8 +108,22 @@ export function createAppBoot({
      * `createLiveStores` attaches the connection feed to `devicesLink.channel` when a
      * link is injected (`live-stores.js:212-214`). */
     const devices = createDevicesLink({ sockets, transport, logger });
-    const live = createLiveStores({ sockets, devicesLink: devices, clock, logger });
     const capabilities = createCapabilitiesStore({ routes: api, logger, now: clock });
+    const sensors = createSensorDiscovery({
+        transport,
+        sockets,
+        capabilityGate: capabilities.sensorGate,
+        logger,
+    });
+    const sourceSelector = createShotSourceSelector({ now: clock });
+    const live = createLiveStores({
+        sockets,
+        devicesLink: devices,
+        sensorDiscovery: sensors,
+        sourceSelector,
+        clock,
+        logger,
+    });
     const weather = createWeatherStore({ sockets, logger });
     const machineInfo = createMachineInfoStore({ transport, logger, now: clock });
 
@@ -99,13 +136,68 @@ export function createAppBoot({
     const profileEditor = createProfileEditorStore({ transport, logger, now: clock });
 
     const kvBase = reaBaseUrl(location);
+    const kvDeadlineMs = timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : timeoutMs;
+
+    /* The KV backend is handed `fetch` directly, so it is the one read path that does not
+     * inherit the transport's deadline. The deadline is disarmed when the body is read,
+     * not when the response arrives. */
+    const kvFetch = async (target, options = {}) => {
+        const controller = new AbortController();
+        let timedOut = false;
+        let disarmed = false;
+        const timer = kvDeadlineMs
+            ? setTimeout(() => { timedOut = true; controller.abort(); }, kvDeadlineMs)
+            : null;
+        const disarm = () => {
+            if (disarmed) return;
+            disarmed = true;
+            if (timer) clearTimeout(timer);
+        };
+        const failure = (cause) => new ReaError(reaFailure(
+            timedOut ? REA_ERROR.TIMEOUT : REA_ERROR.NETWORK,
+            {
+                message: timedOut
+                    ? `timed out after ${kvDeadlineMs} ms`
+                    : String((cause && cause.message) || cause),
+                method: options.method ?? 'GET',
+                url: String(target),
+                cause: cause instanceof Error ? cause : null,
+            },
+        ));
+        let response;
+        try {
+            response = await fetchImpl(target, { ...options, signal: controller.signal });
+        } catch (cause) {
+            disarm();
+            throw failure(cause);
+        }
+        if (!response || response.ok !== true || (options.method ?? 'GET') !== 'GET') {
+            disarm();
+            return response;
+        }
+        return {
+            ok: true,
+            status: response.status,
+            headers: response.headers,
+            async json() {
+                try {
+                    return await response.json();
+                } catch (cause) {
+                    throw failure(cause);
+                } finally {
+                    disarm();
+                }
+            },
+        };
+    };
+
     const storage = createStorageRouter({
         backends: {
             [LAYERS.kv]: createReaKvBackend({
-                namespace: KV_NAMESPACES[LAYERS.kv], fetch: fetchImpl, baseUrl: kvBase, logger,
+                namespace: KV_NAMESPACES[LAYERS.kv], fetch: kvFetch, baseUrl: kvBase, logger,
             }),
             [LAYERS.kvNumpad]: createReaKvBackend({
-                namespace: KV_NAMESPACES[LAYERS.kvNumpad], fetch: fetchImpl, baseUrl: kvBase, logger,
+                namespace: KV_NAMESPACES[LAYERS.kvNumpad], fetch: kvFetch, baseUrl: kvBase, logger,
             }),
             [LAYERS.local]: createMemoryBackend(),
             [LAYERS.session]: createMemoryBackend(),
@@ -113,6 +205,8 @@ export function createAppBoot({
         },
         ...(logger ? { logger } : null),
     });
+
+    const detachNumericHistory = numericHistory.attach(storage);
 
     const scaleTare = createScaleTareStore({
         transport,
@@ -176,6 +270,23 @@ export function createAppBoot({
 
     const shots = createShotsStore({ transport, logger });
 
+    /* The shot that has just finished, and the profile it was pulled with. The machine
+     * reports FINISHED before the record exists, so both are filled by the shell. */
+    const savedShot = createStore({
+        shotId: null,
+        status: SAVED_SHOT.IDLE,
+        attempts: 0,
+    }, { label: 'savedShot', logger: log });
+
+    const shotProfile = createStore({
+        shotId: null,
+        profileName: '',
+        record: null,
+    }, { label: 'shotProfile', logger: log });
+
+    let finishedShotId = null;
+    let unwatchShotState = null;
+
     const plugins = createPluginsStore({ transport, logger });
 
     const settings = createSettingsStore({ storage, capabilities, logger: logger ?? undefined });
@@ -200,7 +311,9 @@ export function createAppBoot({
     }, { label: 'boot', logger: log });
 
     let unwatchConnection = null;
+    let stopStalenessClock = null;
     let capabilitiesRead = null;
+    let sensorsRead = null;
     let machineInfoRead = null;
     let workflowRead = null;
     let appSettingsRead = null;
@@ -209,6 +322,8 @@ export function createAppBoot({
     let cupWarmerRead = null;
     /** The id of the connected machine on the last readable devices frame, or null. */
     let machineId = null;
+    /** Whether the connection feed's own source was open on the last frame. */
+    let sourceLinked = false;
     let destroyed = false;
 
     const patch = (fields) => store.set({ ...store.get(), ...fields });
@@ -222,6 +337,12 @@ export function createAppBoot({
             .catch((error) => {
                 note('warn', `the capability read threw: ${error && error.message}`);
                 if (!destroyed) patch({ capabilities: 'error' });
+                return null;
+            });
+        sensorsRead = capabilitiesRead
+            .then(() => (destroyed ? null : sensors.discoverNow()))
+            .catch((error) => {
+                note('warn', `the sensor discovery pass threw: ${error && error.message}`);
                 return null;
             });
         return capabilitiesRead;
@@ -246,6 +367,15 @@ export function createAppBoot({
         workflowRead = workflow.load()
             .catch((error) => {
                 note('warn', `the workflow read threw: ${error && error.message}`);
+                return null;
+            });
+        return workflowRead;
+    }
+
+    function refreshWorkflow() {
+        workflowRead = workflow.refresh()
+            .catch((error) => {
+                note('warn', `the workflow re-read threw: ${error && error.message}`);
                 return null;
             });
         return workflowRead;
@@ -283,6 +413,69 @@ export function createAppBoot({
         return shotsRead;
     }
 
+    function armedProfileName() {
+        const document_ = workflow.get().workflow;
+        const title = document_ && document_.profile ? document_.profile.title : null;
+        return typeof title === 'string' ? title : '';
+    }
+
+    /* The armed profile is copied at the moment a shot gets its id, because the document
+     * behind it can be rearmed before the record for that shot ever arrives. */
+    function watchShotState() {
+        if (unwatchShotState) return;
+        const feed = live.feed(FEED.SHOT_STATE);
+        unwatchShotState = feed.subscribe((state) => {
+            const frame = state ? state.value : null;
+            if (!frame || frame.ok !== true) return;
+            const id = typeof frame.shotId === 'string' && frame.shotId !== '' ? frame.shotId : null;
+            if (id !== null && shotProfile.get().shotId !== id) {
+                const profileName = armedProfileName();
+                const steps = workflow.get().workflow?.profile?.steps;
+                const record = Object.freeze({ workflow: Object.freeze({ profile: Object.freeze({
+                    title: profileName,
+                    steps: Array.isArray(steps) ? Object.freeze(steps.map(step => Object.freeze({
+                        name: typeof step?.name === 'string' ? step.name : '',
+                    }))) : null,
+                }) }) });
+                shotProfile.set({ shotId: id, profileName, record });
+            }
+            if (frame.state !== SHOT_STATE.FINISHED) return;
+            if (id === null || id === finishedShotId) return;
+            finishedShotId = id;
+            collectSavedShot(id);
+        });
+    }
+
+    async function collectSavedShot(id) {
+        for (let attempt = 1; attempt <= SAVED_SHOT_ATTEMPTS; attempt += 1) {
+            if (destroyed || finishedShotId !== id) return null;
+            savedShot.set({ shotId: id, status: SAVED_SHOT.WAITING, attempts: attempt });
+            let state = null;
+            try {
+                state = await shots.readPage({ limit: SHOTS_PAGE, offset: 0 });
+            } catch (error) {
+                note('warn', `the shots re-read after shot ${id} threw: ${error && error.message}`);
+            }
+            if (destroyed || finishedShotId !== id) return null;
+            const items = state && state.items ? state.items : [];
+            if (items.some((item) => item && item.id === id)) {
+                try {
+                    await shots.loadShot(id);
+                } catch (error) {
+                    note('warn', `the record for shot ${id} threw: ${error && error.message}`);
+                }
+                if (destroyed || finishedShotId !== id) return null;
+                savedShot.set({ shotId: id, status: SAVED_SHOT.READY, attempts: attempt });
+                return savedShot.get();
+            }
+            if (attempt < SAVED_SHOT_ATTEMPTS) await wait(SAVED_SHOT_RETRY_MS);
+        }
+        if (destroyed || finishedShotId !== id) return null;
+        note('warn', `shot ${id} finished but its record did not appear in the list`);
+        savedShot.set({ shotId: id, status: SAVED_SHOT.UNAVAILABLE, attempts: SAVED_SHOT_ATTEMPTS });
+        return savedShot.get();
+    }
+
     function askCupWarmer() {
         cupWarmerRead = Promise.resolve(capabilitiesRead)
             .catch(() => null)
@@ -294,11 +487,18 @@ export function createAppBoot({
         return cupWarmerRead;
     }
 
+    /** Called when the machine is replaced, so a store holding per-machine state drops it. */
+    const machineForgetters = new Set();
+
     function machineChanged(id) {
         capabilities.forget();
         machineInfo.forget();
         workflow.forget();
         cupWarmer.invalidate();
+        live.invalidateSensors();
+        for (const forget of machineForgetters) {
+            try { forget(); } catch (error) { log?.error?.('a machine forgetter threw', error); }
+        }
         if (id === null) return;
         askCapabilities();
         /* The rail's targets belong to the machine that is here now. A swap re-reads them
@@ -307,6 +507,19 @@ export function createAppBoot({
         askWorkflow();
         askMachineInfo();
         askCupWarmer();
+    }
+
+    /* The same machine, over a link that dropped and came back. Nothing was forgotten, so
+     * only the two documents that can have moved meanwhile are re-read. */
+    function machineRecovered() {
+        note('info', 'the connection came back — re-reading the machine and workflow documents');
+        refreshWorkflow();
+        askMachineInfo();
+        sensorsRead = sensors.invalidate()
+            .catch((error) => {
+                note('warn', `the sensor re-check threw: ${error && error.message}`);
+                return null;
+            });
     }
 
     function watchConnection() {
@@ -318,13 +531,26 @@ export function createAppBoot({
 
             const frame = state ? state.value : null;
             const id = frame && frame.machine ? frame.machine.id ?? null : null;
-            if (id === machineId) return;
-            machineId = id;
-            machineChanged(id);
+            const linked = state ? state.sourceOpen === true : false;
+            const relinked = linked && !sourceLinked;
+            sourceLinked = linked;
+            if (id !== machineId) {
+                machineId = id;
+                machineChanged(id);
+                return;
+            }
+            if (relinked && machineId !== null) machineRecovered();
         });
     }
 
     const boot = {
+        /** Register a forgetter for per-machine state. Returns its own removal. */
+        onMachineForget(forget) {
+            if (typeof forget !== 'function') return () => {};
+            machineForgetters.add(forget);
+            return () => machineForgetters.delete(forget);
+        },
+
         transport,
         /** The generated client. Named `api` because `routes` is the route TABLE here. */
         api,
@@ -345,6 +571,8 @@ export function createAppBoot({
         /** Asking the machine for a state — today, the screensaver's wake. */
         machineState,
         shotHistory: shots,
+        shotProfile,
+        savedShot,
         plugins,
         proxyToken,
         cupWarmer,
@@ -366,8 +594,12 @@ export function createAppBoot({
             patch({ phase: BOOT_PHASE.CONNECTING, step: BOOT_STEP.STORES, error: null });
 
             live.attachAll();
+            if (stopStalenessClock === null) {
+                stopStalenessClock = repeat(() => live.refreshStaleness(clock()), STALENESS_TICK_MS);
+            }
             weather.attach();
             watchConnection();
+            watchShotState();
 
             /* The plugin listing is read at launch rather than by whichever screen
                happens to want it first. Started, not awaited: the store records its own
@@ -435,6 +667,8 @@ export function createAppBoot({
         /** The machine-info read's promise — the other half of `capabilitiesSettled()`,
          *  and what a test waits on before asking a gate that answers from machineInfo. */
         machineInfoSettled() { return machineInfoRead ?? Promise.resolve(null); },
+        /** The discovery pass that follows the capability read. */
+        sensorsSettled() { return sensorsRead ?? Promise.resolve(null); },
         /** The rail's document, for a test that wants its numbers before asserting. */
         workflowSettled() { return workflowRead ?? Promise.resolve(null); },
         /** ReaPrime's preferences, for a test that wants the rail's hot-water stop
@@ -445,8 +679,12 @@ export function createAppBoot({
         cupWarmerSettled() { return cupWarmerRead ?? Promise.resolve(null); },
 
         stop() {
+            if (stopStalenessClock) stopStalenessClock();
+            stopStalenessClock = null;
             if (unwatchConnection) unwatchConnection();
             unwatchConnection = null;
+            if (unwatchShotState) unwatchShotState();
+            unwatchShotState = null;
             live.detachAll();
             weather.detach();
             return boot;
@@ -454,6 +692,7 @@ export function createAppBoot({
 
         destroy() {
             destroyed = true;
+            detachNumericHistory();
             boot.stop();
             capabilities.stop();
             machineInfo.stop();
@@ -466,6 +705,8 @@ export function createAppBoot({
             unwatchEditorSave();
             profileEditor.stop();
             live.destroy();
+            savedShot.destroy();
+            shotProfile.destroy();
             store.destroy();
         },
     };

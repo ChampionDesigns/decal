@@ -37,6 +37,7 @@ const NOOP_LOGGER = Object.freeze({
 export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, logger = NOOP_LOGGER } = {}) {
     const log = logger.scope ? logger.scope('storage') : logger;
     const listeners = new Set();
+    const readFailureListeners = new Set();
 
     function resolve(key, params) {
         if (typeof key !== 'string' || key.length === 0) {
@@ -94,12 +95,21 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
     return {
         async get(key, { params, fallback } = {}) {
             const { row, physical, backend } = resolve(key, params);
+            const scope = params ? Object.freeze({ ...params }) : null;
             try {
                 const value = await backend.get(physical);
                 if (value === undefined || value === null) return fallback;
                 return value;
             } catch (error) {
                 log.error(`read failed for '${key}' on layer '${row.layer}'`, error);
+                for (const listener of readFailureListeners) {
+                    try {
+                        listener(Object.freeze({ key, layer: row.layer, error,
+                            ...(scope ? { params: scope, physical } : null) }));
+                    } catch (own) {
+                        log.error('a read-failure listener threw', own);
+                    }
+                }
                 return fallback;
             }
         },
@@ -128,6 +138,12 @@ export function createStorageRouter({ backends = {}, routes = STORAGE_ROUTES, lo
         onChange(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
+        },
+
+        /** Called with {key, layer, error} — and {params, physical} when the route takes them. */
+        onReadFailure(listener) {
+            readFailureListeners.add(listener);
+            return () => readFailureListeners.delete(listener);
         },
 
         /** The row behind a key, for diagnostics. Undefined for an unknown key. */
