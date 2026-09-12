@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the type roles, which are classes on ordinary markup and so have
+ * no element of their own. It seats the shared fixture instead, in three states: every
+ * role as a specimen, then the same specimen in a narrow and a wide host, because only
+ * the display step resolves against its container.
  */
 
 export const entry = {

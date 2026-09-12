@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the bank of favourite slots. Its states are the header row as it
+ * is used, the arrangement that first showed the defect, the same rules with two dials
+ * moved, a full bank where the names give way before the row does, the row at its
+ * ergonomic floor, and the bank disabled beside the empty slots it always had.
  */
 
 const LIVE_ROW = JSON.stringify([

@@ -1,5 +1,9 @@
 /**
- * One.
+ * Saving a profile leaves one row on the list and its history behind it.
+ *
+ * Two content saves do not make two entries in the library. The previous-versions dialog is
+ * where the history lives: it lists what came before, says what changed, and restores a
+ * chosen version.
  */
 
 import { test, describe, before, after } from 'node:test';

@@ -1,5 +1,9 @@
 /**
- * The.
+ * The editor's add-step door is reachable without joining the step table.
+ *
+ * Every child of the table is a row and the door is not among them, so the table keeps its
+ * row count, its headers, its cells and its one accessible name. The door is still in the
+ * tree and still named, sitting outside the table rather than inside it.
  */
 
 import { test, describe, before, after } from 'node:test';

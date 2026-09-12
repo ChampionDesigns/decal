@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the chart legend. Its states are the live channel set fully drawn,
+ * one series turned off, one isolated, a cursor readout beside the keys, ten entries at
+ * the expanded count, the same ten in a narrow host, and the legend in the row the chart
+ * card reserves for it.
  */
 
 const LIVE = [

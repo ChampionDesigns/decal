@@ -1,5 +1,7 @@
 /**
- * The gallery's loader for.
+ * A gallery entry names one module, so an entry whose states mount more than one custom
+ * element points at a loader instead of at a component. This one registers the menu and
+ * the button that triggers it, which every open state needs.
  */
 
 import '../../../src/components/ui-menu.js';

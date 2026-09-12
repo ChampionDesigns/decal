@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the keycap. Its states are a single binding, the rows of the
+ * shortcuts screen, a numpad face built from caps, both focus-ring offsets, disabled and
+ * hidden, a grid of caps at the hit floor, and a host smaller than one cap.
  */
 
 export const entry = {

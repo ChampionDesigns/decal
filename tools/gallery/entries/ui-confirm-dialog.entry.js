@@ -1,5 +1,7 @@
 /**
- * Gallery entry for.
+ * The gallery entry for the confirm dialog. Its states are the destructive and affirmative
+ * treatments, the smallest shape of a bare question, a slotted body that itemises the
+ * consequence, and a wide card, which is the one measurement a screen may open.
  */
 
 export const entry = {

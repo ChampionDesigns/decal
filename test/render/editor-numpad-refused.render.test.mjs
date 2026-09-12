@@ -1,5 +1,8 @@
 /**
- * A.
+ * A refused keypad reaches the person through the screen's notice surface.
+ *
+ * The surface starts empty. A field the door refuses deliberately raises a notice, and so
+ * does a field nobody declared, so neither press is silently swallowed.
  */
 
 import { test, describe, before, after } from 'node:test';

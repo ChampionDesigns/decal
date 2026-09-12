@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the button. Its states are the resting default, the four variants
+ * together, the tall header height, disabled, and a host narrow enough to squeeze the
+ * label.
  */
 
 export const entry = {

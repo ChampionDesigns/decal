@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the row of colour presets. Its states are the row with nothing
+ * active, one preset seated, no colour arrived at all, a leaf too narrow to hold the row
+ * on one line, one preset unavailable, the whole row disabled, and the row with the
+ * theme dials moved.
  */
 
 const LED_PRESETS = JSON.stringify([

@@ -1,5 +1,9 @@
 /**
- * The.
+ * Reading the board marker out of a firmware image.
+ *
+ * The word sits at a fixed offset in the header and is little-endian. A marker with the
+ * top bit set is still a positive board number, and a file too short to hold a header has
+ * no marker at all rather than a marker of zero.
  */
 
 import { test, describe } from 'node:test';

@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the banner that states a condition and offers the remedy beside
+ * it. Its states cover the full shape and the headline-only refusal, three kinds of alert
+ * under one treatment, placement as an overlay, and the banner in hosts from a wide
+ * screen down to a phone-width column.
  */
 
 export const entry = {

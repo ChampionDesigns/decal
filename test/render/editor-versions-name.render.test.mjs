@@ -1,5 +1,9 @@
 /**
- * The.
+ * Every version in the editor's history dialog is a named control.
+ *
+ * The dialog lists the other versions of the open profile, each with a name that carries
+ * the date so two versions of one profile can be told apart. The name a row shows is the
+ * name it is announced by; there is no second string to drift from it.
  */
 
 import { test, describe, before, after } from 'node:test';

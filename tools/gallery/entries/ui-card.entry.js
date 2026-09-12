@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the card. Its states are the plain box, the three insets side by
+ * side, a labelled group, a bounded scroll region, and the card in a host narrower than
+ * its content.
  */
 
 export const entry = {

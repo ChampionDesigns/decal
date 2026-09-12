@@ -1,5 +1,9 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the hairline, which is a set of classes over a grid gap rather
+ * than an element. Its states put the utility where screens use it — a nav and pane
+ * split, a column of settings rows, ruled editor columns, the three weights side by side,
+ * a rail edge — and two more state what it is not: an unpainted grid, and an enclosure
+ * that stays a border. The markup and the host box of each state live with the state.
  */
 
 const CELL = 'padding: var(--ui-space-4); color: var(--ui-text); font-size: var(--ui-text-base)';

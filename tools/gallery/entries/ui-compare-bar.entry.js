@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the compare bar. Its states are two shots aligned at zero, one
+ * slid later, the slide at its limit, a single shot with nothing to compare, the bar
+ * without a slotted key, and the bar in a host narrow enough to wrap it.
  */
 
 const KEY = `<span slot="key" aria-hidden="true" style="

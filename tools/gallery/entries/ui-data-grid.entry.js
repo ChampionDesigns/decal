@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the data grid. Its states are the phase table, a shot with
+ * readings missing, a shot list with its controls slotted in, the same list in a track
+ * short enough to scroll, a host too narrow for the columns, and an empty grid that keeps
+ * its header.
  */
 
 const AB = (key) => '<button slot="cell-' + key + '-ab" style="min-block-size:44px;'

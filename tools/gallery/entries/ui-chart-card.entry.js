@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the chart card. Its states are a recorded shot, the same shot with
+ * a legend row beneath it, the card in a narrow host, and the state before any shot has
+ * arrived. The loader it names registers the card and everything the plot inside it needs.
  */
 
 /** The card's own box. Block size only — the width is whatever the host gives it. */

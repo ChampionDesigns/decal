@@ -1,5 +1,9 @@
 /**
- * One.
+ * `supersededIds` — which records in a list have been replaced by another in the same list.
+ *
+ * One pass over records already in hand: a record another names as its parent is
+ * superseded, order is irrelevant because the answer is a set, and a record naming itself
+ * as its own parent is not superseded by anything.
  */
 
 import { test, describe } from 'node:test';

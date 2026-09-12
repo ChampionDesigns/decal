@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the rail of keys under a step column. Its states walk a profile
+ * from the first step to the last, so the two arrows are seen both live and out; then a
+ * one-step profile with neither arrow, the whole rail unavailable, and the rail in a
+ * narrow and a wide host. Each state carries its own markup and the note beside it.
  */
 
 export const entry = {

@@ -1,5 +1,8 @@
 /**
- * A.
+ * The empty step area is a door, not a gap.
+ *
+ * A profile with no steps offers a way to add one where the steps would be, and pressing it
+ * creates a step rather than leaving the area inert.
  */
 
 import { test, describe, before, after } from 'node:test';

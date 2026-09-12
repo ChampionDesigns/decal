@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the definition card. Its states are a full information leaf, rows
+ * with no heading, a heading with no action, absence rendered against zero, a value with
+ * nowhere to break, the tight inset, a card capped from outside and scrolling inside, and
+ * the card in a narrow and a wide host.
  */
 
 const MACHINE_INFO = JSON.stringify([

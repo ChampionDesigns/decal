@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the small status marker. Its states are the resting count, the
+ * three variants together, the marker on a row as it is actually used, counts of one to
+ * three digits, and a host too narrow to hold it. Each state owns its markup and the note
+ * printed beside it; the entry paints nothing itself.
  */
 
 export const entry = {

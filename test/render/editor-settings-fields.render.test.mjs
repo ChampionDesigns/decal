@@ -1,5 +1,8 @@
 /**
- * The.
+ * The editor's Settings tab, bound to the profile it was opened on.
+ *
+ * Six fields on the glass, each reading the open profile rather than a default, and typing
+ * in one moves the draft and counts towards the unsaved change count.
  */
 
 import { test, describe, before, after } from 'node:test';

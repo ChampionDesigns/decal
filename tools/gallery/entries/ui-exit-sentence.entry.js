@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the exit sentence a profile step carries. Its states are a
+ * threshold beside a volume, an exit that can never be satisfied, nothing set at all,
+ * a slot offered only when the machine reports the capability, all three slots occupied,
+ * disabled, and the sentence in hosts narrow enough to ellipsise it and wide enough not to.
  */
 
 const PRESSURE_STEP = JSON.stringify({

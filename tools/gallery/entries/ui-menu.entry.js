@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the menu. Its states are the closed trigger, the menu anchored
+ * below it, the flip above when there is no room below, the danger, disabled and separator
+ * rows, a long list bounded and scrolling, a plain button as the trigger, and the popover
+ * half with slotted content and no rows at all.
  */
 
 /** Items travel through the attribute, JSON-parsed by Lit — the static-markup path. */

@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the segmented bank. Its states run the three spellings it can
+ * take — radio, tablist, toolbar — then five segments at full width, one dial moved, all
+ * three spellings driven by one turn, a disabled item against a disabled bank, and rich
+ * cells through the per-item slot.
  */
 
 export const entry = {

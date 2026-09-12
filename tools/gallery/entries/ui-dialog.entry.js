@@ -1,5 +1,7 @@
 /**
- * Gallery entry for.
+ * The gallery entry for the dialog shell. Its states are the smallest confirm, a sheet
+ * header with a way out, a bounded and scrolling body, a body with no header or footer at
+ * all, and a card narrow enough to cross the container query the shell carries.
  */
 
 export const entry = {

@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the list row. Its states are the resting row, a list with the seam
+ * between rows, a selected row beside an unselected neighbour, a fully furnished row, a
+ * list with no row actions at all, and a host narrow enough to squeeze the title.
  */
 
 const LIST_OPEN =

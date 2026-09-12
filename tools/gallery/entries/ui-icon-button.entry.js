@@ -1,5 +1,7 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the icon button. Its states are the two sizes alone and shoulder
+ * to shoulder, a text glyph in place of an icon, disabled, the inset focus ring a clipping
+ * band needs, and a slot smaller than the button's own hit floor.
  */
 
 const GLYPH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '

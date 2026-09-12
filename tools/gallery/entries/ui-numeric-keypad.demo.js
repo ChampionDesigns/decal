@@ -1,5 +1,8 @@
 /**
- * The gallery's loader for.
+ * The keypad takes its hint, its step and its permitted range from a machine limits table,
+ * so the gallery cannot show it without one. This loader builds the three tables a state
+ * may need and defines one subclass per field, each pinned to a heading, a limit key, a
+ * unit and a starting value, so a state can be written as a single element.
  */
 
 import { limitsFor } from '../../../src/lib/machine-limits.js';

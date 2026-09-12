@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the box that shows a value the machine decides. Its states are the
+ * box at the editor column width, the sentence it carries when a target is held, the box
+ * beside the stepper it shares a column with, a bare reading named for a screen reader,
+ * the focus ring inside a clipping band, dimmed, and a narrow and a wide host.
  */
 
 export const entry = {

@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the empty state. Its states are the plain block the settings
+ * screens use, the dashed well with a glyph and prose, an action in the slot, the block
+ * with no glyph, the block under the shell rules that push it left, and a host narrow
+ * enough to wrap the prose.
  */
 
 export const entry = {

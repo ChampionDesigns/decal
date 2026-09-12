@@ -1,5 +1,7 @@
 /**
- * The gallery's loader for.
+ * A gallery entry names one module, so an entry whose states mount more than one custom
+ * element points at a loader instead of at a component. This one registers the tile and
+ * the button a state slots into its value row.
  */
 
 import '../../../src/components/ui-stat-tile.js';

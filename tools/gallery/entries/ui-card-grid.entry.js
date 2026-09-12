@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the auto-fitting card grid. Its states hold the cards still and
+ * move the host instead: two up, ragged content made equal by construction, the width
+ * where the columns change over, the collapse to one, and a stated single column. The
+ * loader it names registers the grid and the cards inside it.
  */
 
 export const entry = {

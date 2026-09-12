@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for the navigation row. Its states are the resting row, a full
+ * category column, the current row beside a resting neighbour, category and sub-category
+ * columns side by side, a category that is not available, and a column narrow enough to
+ * squeeze the label.
  */
 
 const column = (rows, { width = '260px' } = {}) =>

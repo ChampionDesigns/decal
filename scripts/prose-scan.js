@@ -40,7 +40,20 @@ const RULES = [
     ['a date', /\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}\b|\b20\d\d-\d\d-\d\d\b/],
 ];
 
-/** Matches that are the thing itself, not a reference to something a reader cannot see. */
+/**
+ * Tried at any length, unlike RULES. Each is narrow enough that a variable name or a
+ * label cannot satisfy it: a spelled month with a year, or a bracketed decision id.
+ */
+const SHORT_RULES = [
+    ['a date', /\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}\b|\b20\d\d-\d\d-\d\d\b/],
+    ['a decision id', /\b(?:[A-Z]\d{1,2}|F-\d{2,3})\s*[:.]\s/],
+];
+
+/**
+ * Matches that are the thing itself, not a reference to something a reader cannot see.
+ * A pattern is tried against the match and against the whole unit, so a rule that fires
+ * on one word of a product string can be answered with the string.
+ */
 const ALLOW = [
     /^render\.test\.mjs$/,           // the naming pattern for a rendering suite, not a file
     /^desc\.json$/,                   // the tail of a recorded fixture's query string
@@ -49,6 +62,8 @@ const ALLOW = [
     /^P0$/,                           // a lever step's initial pressure
     /^F([1-9]|1[0-2])$/,              // keyboard function keys
     /^E[1-9]\d?$/,                    // an element index in a measurement
+    /^Slate Blue$/,                   // an LED colour on the palette, not the other skin
+    /^A8$/,                           // the gate naming itself in its own output
 ];
 
 const allTracked = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'],
@@ -77,6 +92,10 @@ const tracked = allTracked.filter((f) => !SELF.includes(f) && !SKIP.some((re) =>
 /**
  * A string is prose only when it reads like a sentence. One line at a time, so a
  * tagged template is a set of units rather than one unit the size of a stylesheet.
+ *
+ * SHORT_RULES are tried at any length. The length floor exists to keep identifiers and
+ * fragments out; a bare date or a decision id is short, unmistakable, and exactly what the
+ * floor was hiding.
  */
 const PROSE_MIN = 25;
 
@@ -85,7 +104,9 @@ function jsStrings(source) {
     for (const literal of strings(source)) {
         literal.text.split('\n').forEach((raw, offset) => {
             const text = raw.trim();
-            if (text.length >= PROSE_MIN && text.includes(' ')) {
+            const longEnough = text.length >= PROSE_MIN && text.includes(' ');
+            const aimed = SHORT_RULES.some(([, re]) => re.test(text));
+            if (longEnough || aimed) {
                 out.push({ line: literal.line + offset, text });
             }
         });
@@ -123,8 +144,9 @@ function prose(file) {
     }
     if (/\.json$/.test(file)) {
         const out = [];
+        const quoted = new RegExp(`"([^"\\\\]{${PROSE_MIN},}(?:\\\\.[^"\\\\]*)*)"`, 'g');
         source.split('\n').forEach((l, i) => {
-            for (const m of l.matchAll(/"([^"\\]{25,}(?:\\.[^"\\]*)*)"/g)) {
+            for (const m of l.matchAll(quoted)) {
                 if (m[1].includes(' ')) out.push({ line: i + 1, text: m[1] });
             }
         });
@@ -137,11 +159,11 @@ const findings = [];
 for (const file of tracked) {
     for (const unit of prose(file)) {
         currentUnit = unit.text;
-        for (const [rule, pattern, extra] of RULES) {
+        for (const [rule, pattern, extra] of [...RULES, ...SHORT_RULES]) {
             const global = new RegExp(pattern.source, `${pattern.flags.replace('g', '')}g`);
             let hit = null;
             for (const m of unit.text.matchAll(global)) {
-                if (ALLOW.some((re) => re.test(m[0]))) continue;
+                if (ALLOW.some((re) => re.test(m[0]) || re.test(unit.text))) continue;
                 if (extra && !extra(m[0])) continue;
                 hit = m[0];
                 break;

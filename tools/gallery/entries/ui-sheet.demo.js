@@ -1,5 +1,7 @@
 /**
- * The gallery's loader for.
+ * A gallery entry names one module, so an entry whose states mount more than one custom
+ * element points at a loader instead of at a component. This one registers the sheet body,
+ * the dialog it sits inside, and the three controls its field stack is built from.
  */
 
 import '../../../src/components/ui-sheet.js';

@@ -1,14 +1,20 @@
 {
   "_rule": "Every prose finding this tree already carries, so the gate passes on what is here and fails on anything added. An entry is a file, a rule, the matched words, and a digest of the unit holding them. The list may only shrink: rewrite it with --baseline after cleaning, never to quieten something new.",
   "entries": {
+    "index.html": {
+      "a decision id": [
+        "S11: :e9f84fa34e25"
+      ]
+    },
     "scripts/a8-source-text.js": {
       "a date": [
         "24 Aug 2026:1708f7a29547"
       ],
       "a decision id": [
         "A3:49d73e0f72d5",
-        "A8:bf4cf1e9e87a",
-        "A8:fe2dc9281c5e",
+        "A8: :51fd6cd9d78a",
+        "A8: :bf4cf1e9e87a",
+        "A8: :fe2dc9281c5e",
         "B2:73196f649d93",
         "B2:aa2eb0a6d496",
         "B7:ba45c1770224",
@@ -66,6 +72,11 @@
         "Gate C:ce9b7a65d2f0"
       ]
     },
+    "src/components/app-root.js": {
+      "a decision id": [
+        "S10: :2902307ba7cc"
+      ]
+    },
     "src/components/ui-select.js": {
       "a spec section": [
         "spec:5d0181812615"
@@ -79,6 +90,16 @@
         "spec:c5b69447e0ae",
         "spec:e6945f62c1c8",
         "spec:f0b79f2e2065"
+      ]
+    },
+    "src/data/CONTRACTS.json": {
+      "a decision id": [
+        "R3. :08f70ae5b4ec"
+      ]
+    },
+    "src/data/adapters-r.js": {
+      "a decision id": [
+        "R2: :f8849dc1ac4e"
       ]
     },
     "src/data/rea-routes.generated.js": {
@@ -101,7 +122,18 @@
     "src/lib/editor-commit.js": {
       "a decision id": [
         "DQ-629:04915fefbfa6",
-        "DQ-629:ece017f79a2a"
+        "DQ-629:ece017f79a2a",
+        "R8. :ef60981224b1"
+      ]
+    },
+    "src/lib/shot-summary.js": {
+      "a decision id": [
+        "R5. :119d25da6096",
+        "R5. :478a7ac50269",
+        "R5. :491010c7d394",
+        "R5. :491010c7d394",
+        "R5. :491010c7d394",
+        "R5. :e292452bfec8"
       ]
     },
     "src/lib/storage-routes.js": {
@@ -117,12 +149,19 @@
         "the rewrite:e6a9b21fb9bf"
       ]
     },
+    "src/screens/history-header.js": {
+      "a decision id": [
+        "H3.\n:d1c24c257a4b"
+      ]
+    },
+    "src/stores/profile-library-store.js": {
+      "a date": [
+        "25 August 2026:1c8aef6b2313"
+      ]
+    },
     "test/a8-source-text.test.mjs": {
       "a decision id": [
-        "A8:1c9f31e57a81",
-        "A8:c23067d0c946",
-        "A8:cd70b3813d2a",
-        "A8:defa282185a4"
+        "A8: :defa282185a4"
       ],
       "a file not in this repo": [
         "api__v1__profiles.json:9dd409d258db"
@@ -171,7 +210,9 @@
       "a decision id": [
         "A3:420d496747c0",
         "A7:1a9539f5004e",
-        "B2:fa99259c2b2e"
+        "B2:fa99259c2b2e",
+        "R2: :9e19985b802b",
+        "R2: :bc32ac57018e"
       ]
     },
     "test/chart-axis.test.mjs": {
@@ -286,6 +327,17 @@
         "Slate:73fb4c3028cb"
       ]
     },
+    "test/fixtures/live-selector-carry-fixture.js": {
+      "a decision id": [
+        "F-038. :294a9025aab8"
+      ]
+    },
+    "test/fixtures/settings-shell-fixture.js": {
+      "a decision id": [
+        "F-035. :2710bdc61d56",
+        "F-035. :89c2aa1b2960"
+      ]
+    },
     "test/fixtures/type-roles-fixture.js": {
       "a decision id": [
         "T11:83cd9a8c6784"
@@ -329,6 +381,10 @@
       ]
     },
     "test/gate-wire.test.mjs": {
+      "a date": [
+        "2026-08-29:84e3610edbae",
+        "2026-08-29:84e3610edbae"
+      ],
       "a file not in this repo": [
         "x.js:7ef0988a1cb5"
       ]
@@ -355,6 +411,9 @@
       ]
     },
     "test/harness/editor.js": {
+      "a decision id": [
+        "E8: :814c1c946cb5"
+      ],
       "a spec section": [
         "§2.4:97b39fee8710"
       ]
@@ -437,6 +496,7 @@
         "B9:cf6219f5029a",
         "B9:dccb611602d4",
         "D2:79f585375455",
+        "L11:77633e3c107d",
         "L11:b6754ec61332",
         "L11:cab861bd5477",
         "L8:aa455e036f96"
@@ -473,7 +533,8 @@
         "L1:5515660e641e",
         "L5:2f5830808115",
         "L5:7859b6d28cea",
-        "L5:80ab168044cb"
+        "L5:80ab168044cb",
+        "M3: :1f1fd742c16f"
       ],
       "a spec section": [
         "§4.1:3b3a684cf2b9"
@@ -676,6 +737,10 @@
       ]
     },
     "test/rea-routes.test.mjs": {
+      "a date": [
+        "2026-08-17:4d043a0363dc",
+        "2026-08-17:b33b08e1a5c1"
+      ],
       "a decision id": [
         "A7:935f9334ebdb",
         "B8:2780b45cb17c"
@@ -728,6 +793,7 @@
     },
     "test/render/dialog-body-integration.render.test.mjs": {
       "a decision id": [
+        "H9: :a569a96a6a11",
         "O6:4252f54ef3c3",
         "O6:66e8c4a56fce",
         "O6:f39ebfc271a0",
@@ -746,12 +812,15 @@
     },
     "test/render/dialog-contract.render.test.mjs": {
       "a decision id": [
+        "H9: :42bf8121a95f",
         "O6:245d482d11d3",
         "O7:79c73b8fcf7a",
         "O7:dae2d7058f26",
         "O8:1def51a10b63",
         "O8:e507137c8815",
-        "P13:e3c2e8109592"
+        "P13:e3c2e8109592",
+        "S7: :7d1665dbd3d4",
+        "S8: :7826838d054f"
       ],
       "a file not in this repo": [
         "overlays.md:128748b0860a"
@@ -785,6 +854,12 @@
         "C5:492c13439504",
         "C6:796ab55832e9",
         "C6:9771074b7695",
+        "E12: :0836c3033c30",
+        "E12: :6253063c7521",
+        "E12: :9716e0ea77e5",
+        "E12: :a4aad1cecd9d",
+        "E12: :a960a411f07e",
+        "E4: :75bef758a49f",
         "O10:33a6b8ece40b",
         "O10:9d48a00b5701",
         "O10:e0149d1eef9a",
@@ -817,6 +892,8 @@
         "B10:8774a943f164",
         "B11:b2416419c6b6",
         "B11:f90947733eaa",
+        "D11:6c27ac4c332c",
+        "D11:6c27ac4c332c",
         "DQ-629:3ed1ada0ed12"
       ]
     },
@@ -826,7 +903,19 @@
         "B11:2d02bbe7a38d",
         "D11:724feff4b9a4",
         "D11:8545fa5120d9",
+        "E10: :117e1643f133",
+        "E10: :68b4d5bb711d",
+        "E10: :c6af910dcffa",
+        "E4: :b5e9ad1fc4eb",
+        "E6: :2e53930bb870",
+        "E6: :f0e20e60e794",
+        "E9: :1f2d5a78b7a1",
+        "E9: :1ffe36fc064c",
+        "E9: :26a0ced8d250",
+        "E9: :605d47f261ce",
+        "E9: :e336ad082c0e",
         "L22:9ad53ebe31c8",
+        "M10: :72359bd5b3dc",
         "P9:0a13bd4d851f"
       ],
       "a spec section": [
@@ -857,7 +946,10 @@
         "B5:2a42c1d9dff4",
         "C2:19c212d828d3",
         "C7:3f3f9d7b073c",
-        "C7:8fbdb1f496aa"
+        "C7:8fbdb1f496aa",
+        "H8: :23b1fc4e86a2",
+        "H8: :2e8597c59385",
+        "H8: :acc026726429"
       ],
       "another skin": [
         "Slate:93ce881c042e",
@@ -904,12 +996,18 @@
       ]
     },
     "test/render/history-route.render.test.mjs": {
+      "a decision id": [
+        "H9: :385777b55366"
+      ],
       "a spec section": [
         "§4.5:8b41410cae6c"
       ]
     },
     "test/render/history-skeleton.render.test.mjs": {
       "a decision id": [
+        "H3: :887466e4e770",
+        "H6: :e1d369e40d30",
+        "H9: :402ff3486b6f",
         "L22:a616fdad0cc5",
         "T9:2e2e376ff613"
       ],
@@ -1112,7 +1210,6 @@
     },
     "test/render/overlay-surfaces.render.test.mjs": {
       "a decision id": [
-        "A8:d296d2d16360",
         "D10:9585bd16fdf5",
         "D10:ac5ffc99e3bf",
         "D10:b2ba36d5f885",
@@ -1269,6 +1366,10 @@
         "A7:78e081393e0f",
         "A7:908c1b763891",
         "A7:ba0675a58e48",
+        "F-035: :8987525d4f6b",
+        "F-043: :c77f9180d051",
+        "F-045: :40a1931946c7",
+        "F-045: :7e2977585990",
         "T11:ccddf8b19757",
         "T1:0d596601b8f2",
         "T1:177d40c39c22",
@@ -1307,6 +1408,11 @@
         "D4:442ab9e2913a",
         "D8:c94cb34c30a0",
         "D8:ec043782ad8a",
+        "F-021: :04675c7338d7",
+        "F-042: :708b709858ac",
+        "F-047: :2e98b205e3c2",
+        "F-047: :9c5458e813a6",
+        "M9: :3b23db68dae6",
         "O8:e5457c01a3ff",
         "T10:396f9f3a0297",
         "T10:a6ddc423ab5f",
@@ -1343,6 +1449,7 @@
         "C4:443354aaf703",
         "C4:dd89c61acdbd",
         "D11:724feff4b9a4",
+        "O4:13b997d9cdd8",
         "P15:aaf3c21ebcd7",
         "T15:de6e91c35207",
         "T19:3a4e06655f59",
@@ -1377,6 +1484,14 @@
         "C7:b6f444264588",
         "C8:2e38a006c583",
         "D2:c96bcd76b629",
+        "E14: :728569516b7f",
+        "E14: :913080d2abf0",
+        "E14: :e92225a8e2d8",
+        "E15: :aeeb4476a88b",
+        "E16: :2e9ea04cbb18",
+        "E19: :94422cce05c7",
+        "E1: :4f4a21e33c07",
+        "E7: :062c72afb8cd",
         "T16:1f993d3317ee"
       ],
       "a spec section": [
@@ -1484,6 +1599,8 @@
     "test/render/ui-bank.render.test.mjs": {
       "a decision id": [
         "DQ-216:984de2e4cdbc",
+        "E10: :2b629b4208c7",
+        "E10: :cbe5c31f752b",
         "L8:fdcfa0518e97",
         "T5:affd1e0abc7d",
         "T5:c3732a122220"
@@ -1653,6 +1770,12 @@
       ]
     },
     "test/render/ui-compare-bar.render.test.mjs": {
+      "a decision id": [
+        "H8: :273d80531814",
+        "H8: :3a431e4e1260",
+        "H8: :8f6359fbcf91",
+        "H8: :90db2fb22860"
+      ],
       "a spec section": [
         "Appendix 15:d8f97063017b",
         "spec:ea48349a73ce"
@@ -1789,7 +1912,12 @@
         "O13:e5a29f6e784d",
         "O6:123340e46f75",
         "O6:c0f4aa978bb2",
-        "P13:87344dc14b36"
+        "P13:87344dc14b36",
+        "S7: :5f254943c352",
+        "S7: :74d017ace15c",
+        "S8: :745e1e9633db",
+        "S8: :ab09a9d867bb",
+        "S8: :c45dc008d8af"
       ],
       "a spec section": [
         "Appendix 13:94b82e3455e5",
@@ -1844,7 +1972,8 @@
         "B2:19737ab5638c",
         "B2:cbdd74c7168e",
         "C8:19ed8899538c",
-        "C8:76c436674c94"
+        "C8:76c436674c94",
+        "E16: :34307600cbcf"
       ],
       "a spec section": [
         "Appendix 9:36990fdba803",
@@ -2001,6 +2130,7 @@
       "a decision id": [
         "L23:ed52c61262e6",
         "L24:f8174a70d616",
+        "O11:56699b33b800",
         "O11:8eebe696da55",
         "O2:90c9ac1e30c3",
         "O2:a5d5c6b96350",
@@ -2065,6 +2195,11 @@
     },
     "test/render/ui-notes-editor.render.test.mjs": {
       "a decision id": [
+        "F-007: :45fb80420b88",
+        "F-007: :9df2dae101ed",
+        "F-016: :0e4d69a46484",
+        "F-037: :e80dc3fa2fbf",
+        "F-037: :fb96795d8033",
         "L24:5a86ffa95e95",
         "O11:5e3ad98cd2c3",
         "O11:845bb9cd20a6",
@@ -2085,6 +2220,9 @@
         "B3:b92976d3cfce",
         "B3:be616c1255d3",
         "B3:f0d3d228b552",
+        "F-021: :8e79c28000c7",
+        "F-021: :ffb98282e4ef",
+        "F-047: :f2d0d04604f9",
         "L24:bc3734cbf1f2",
         "O10:268b1efccfe1",
         "O10:36d169b8edd4",
@@ -2266,6 +2404,7 @@
     },
     "test/render/ui-search-field.render.test.mjs": {
       "a decision id": [
+        "E14: :7188a20b9af8",
         "L12:52b30628b73e",
         "L12:a936dc967377",
         "L24:09ff3439478c",
@@ -2447,7 +2586,6 @@
     },
     "test/render/ui-stat-tile.render.test.mjs": {
       "a decision id": [
-        "A8:9b5cd11dbc43",
         "D11:776c6a78cc08",
         "D2:543cce46665d",
         "L12:cf6331e61c28",
@@ -2844,9 +2982,11 @@
     "test/settings-skeleton.test.mjs": {
       "a decision id": [
         "C4:2c8932576d89",
+        "C4:30a812e02b28",
         "C4:9a9acce11c0c",
         "C5:70fd5965543e",
         "D11:6b7371e967db",
+        "M18: :e2ab466a2ee4",
         "T16:bfcb246cb09f",
         "T18:643ba6ffd7ae",
         "T2:b2dd199722b3",

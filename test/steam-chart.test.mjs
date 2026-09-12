@@ -1,5 +1,9 @@
 /**
- * What.
+ * Which picture the live chart is showing, and what moves it.
+ *
+ * The chart boots on espresso and stays there through everything that is not steam.
+ * Pressing steam takes the canvas before any sample is plotted, so the empty axes appear
+ * at once rather than after the first frame.
  */
 
 import { test, describe } from 'node:test';

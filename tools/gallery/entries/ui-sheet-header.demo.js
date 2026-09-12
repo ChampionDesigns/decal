@@ -1,5 +1,8 @@
 /**
- * The gallery's loader for.
+ * A gallery entry names one module, so an entry whose states mount more than one custom
+ * element points at a loader instead of at a component. This one registers the header and
+ * the two controls it puts in the trail, and adopts the seam classes, because the rule
+ * under the header is the parent's seam rather than a border of its own.
  */
 
 import '../../../src/components/ui-sheet-header.js';

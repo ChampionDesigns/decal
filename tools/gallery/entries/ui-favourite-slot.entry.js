@@ -1,5 +1,8 @@
 /**
- * The gallery entry for.
+ * The gallery entry for one favourite slot. Its states separate occupancy from selection,
+ * show the same rules with the theme dials moved, put the ink and the hit floor apart,
+ * draw the focus ring at both offsets, and cover disabled, hidden, and a host smaller than
+ * the slot itself.
  */
 
 export const entry = {
