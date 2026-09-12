@@ -390,7 +390,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('every channel styles/chart-channels.css declares reaches the plot through this host', () => mounted(async (page) => {
             await page.evalFn(async (s) => window.__h.need(s).ready, '#p');
             const got = await page.eval(`(async () => {
-                const { CHANNELS, SURFACE_PARTS } = await import('/src/lib/chart-tokens.js');
+                const { CHANNELS: base, COMPARISON_CHANNELS, SURFACE_PARTS } = await import('/src/lib/chart-tokens.js');
+                const CHANNELS = [...base, ...COMPARISON_CHANNELS];
                 const t = document.getElementById('p').chartTokens;
                 const values = CHANNELS.map((name) => t.channels[name]);
                 return {

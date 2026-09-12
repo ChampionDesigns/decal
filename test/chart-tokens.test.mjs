@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 
 import {
     CHANNELS,
+    COMPARISON_CHANNELS,
     FONT_FAMILY_TOKEN,
     GEOMETRY_TOKENS,
     SURFACE_PARTS,
@@ -49,7 +50,8 @@ describe('the token names are written in exactly one place', () => {
         const declared = new Set(
             [...CHANNEL_CSS.matchAll(/--ui-channel-([a-z0-9-]+)\s*:/g)].map((m) => m[1]),
         );
-        assert.equal(CHANNELS.length, declared.size, `JS names ${CHANNELS.length}, CSS declares ${declared.size}`);
+        assert.equal(CHANNELS.length + COMPARISON_CHANNELS.length, declared.size,
+            `JS names ${CHANNELS.length + COMPARISON_CHANNELS.length}, CSS declares ${declared.size}`);
         assert.deepEqual([...SURFACE_PARTS], ['well', 'grid', 'axis', 'label']);
         assert.equal(new Set(CHANNELS).size, CHANNELS.length, 'and no name is listed twice');
     });
@@ -72,7 +74,8 @@ describe('freshness — every name this module states is DECLARED in a styleshee
         const declared = new Set(
             [...CHANNEL_CSS.matchAll(/--ui-channel-([a-z0-9-]+)\s*:/g)].map((m) => m[1]),
         );
-        const orphans = [...declared].filter((name) => !CHANNELS.includes(name));
+        const named = [...CHANNELS, ...COMPARISON_CHANNELS];
+        const orphans = [...declared].filter((name) => !named.includes(name));
         assert.deepEqual(orphans, [],
             'a colour the sheet declares and the reader never asks for is the drift A6 ends '
             + '(bug C4: a documented value that had already drifted from the constant it documented)');

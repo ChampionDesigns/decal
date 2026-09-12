@@ -174,7 +174,7 @@
     --ui-settings-leaf-min-h: calc(var(--ui-control-h) + var(--ui-text-lg) * 1.3);
 
     --ui-editor-field-min-h: calc(var(--ui-control-h) + var(--ui-text-note) * 1.5 + var(--ui-space-2));
-    --ui-editor-review-min-h: calc(var(--ui-text-note) * 1.5 + var(--ui-text-base) * 1.5 + var(--ui-space-2));
+    --ui-editor-review-min-h: calc(var(--ui-text-note) * 1.5 + var(--ui-text-base) * 1.5 + var(--ui-space-3));
 
     /* A ceiling, not a floor: the review chart grows to this and no further, and stops
        at the chart card's own minimum in a column too short for it. */
@@ -217,6 +217,9 @@
 
     --ui-status-ok: #007540;
     --ui-status-danger: #b51c23;
+    --ui-status-attention: #0052d4;
+    --ui-status-busy: #965400;
+    --ui-status-asleep: #7046b5;
     --ui-tint-flow: #0052d4;
     --ui-tint-power: #965400;
     --ui-tint-lever: #7046b5;
@@ -267,6 +270,9 @@
 
     --ui-status-ok: #00d4ab;
     --ui-status-danger: #e66661;
+    --ui-status-attention: #468ef6;
+    --ui-status-busy: #e5a50e;
+    --ui-status-asleep: #a88be1;
     --ui-tint-flow: #468ef6;
     --ui-tint-power: #e5a50e;
     --ui-tint-lever: #a88be1;

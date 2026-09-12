@@ -26,6 +26,13 @@ export const CHANNELS = Object.freeze([
 /** The four chart surface parts: the well, its grid, its axis line, its tick labels. */
 export const SURFACE_PARTS = Object.freeze(['well', 'grid', 'axis', 'label']);
 
+/** The extra shades a comparison uses. A single-shot consumer need not supply them;
+ *  resolving a comparison series stays strict. */
+export const COMPARISON_CHANNELS = Object.freeze([
+    'pressure', 'flow', 'group-temperature', 'mix-temperature', 'weight-flow',
+    'power', 'resistance', 'impedance',
+].map((name) => `compare-b-${name}`));
+
 /** `pressure` -> `--ui-channel-pressure`. The only place that prefix is written. */
 export function channelToken(name) {
     return `--ui-channel-${name}`;
@@ -125,6 +132,10 @@ export function readChartTokens(element, { read, strict = true } = {}) {
 
     const channels = {};
     for (const name of CHANNELS) channels[name] = take(channelToken(name));
+    for (const name of COMPARISON_CHANNELS) {
+        const colour = value(channelToken(name));
+        if (colour) channels[name] = colour;
+    }
 
     const surface = {};
     for (const part of SURFACE_PARTS) surface[part] = take(surfaceToken(part));

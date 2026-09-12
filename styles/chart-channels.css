@@ -151,6 +151,17 @@
     --ui-channel-steam-temperature: #b13933;
     --ui-channel-milk-temperature: #ee8632;
 
+    /* Comparison shot B: darker on light, paler on dark. A target reuses its
+       shot's measured shade; solid against dashed carries the role. */
+    --ui-channel-compare-b-pressure: #007346;
+    --ui-channel-compare-b-flow: #004b98;
+    --ui-channel-compare-b-group-temperature: #92161e;
+    --ui-channel-compare-b-mix-temperature: #775d00;
+    --ui-channel-compare-b-weight-flow: #513b29;
+    --ui-channel-compare-b-power: #945200;
+    --ui-channel-compare-b-resistance: #423075;
+    --ui-channel-compare-b-impedance: #783779;
+
     /* -- Chart surface: light ------------------------------------------- *
      * The well the traces sit on, its grid, its axis line and its tick
      * labels — one source for the embedded Live plot, both expanded pages,
@@ -202,6 +213,14 @@
 }
 
 [data-theme="dark"] {
+    --ui-channel-compare-b-pressure: #b5ffd2;
+    --ui-channel-compare-b-flow: #bfdcff;
+    --ui-channel-compare-b-group-temperature: #ffc7c5;
+    --ui-channel-compare-b-mix-temperature: #fff5c7;
+    --ui-channel-compare-b-weight-flow: #d9c2b0;
+    --ui-channel-compare-b-power: #ffe0b5;
+    --ui-channel-compare-b-resistance: #d8ccff;
+    --ui-channel-compare-b-impedance: #f4cff5;
     /* -- The eighteen data channels: dark ------------------------------- *
      * Byte-identical to the light set today. Written out rather than
      * inherited so that guard 4 passes and so that a fork has one obvious
