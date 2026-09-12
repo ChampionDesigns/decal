@@ -152,7 +152,7 @@ export const viewportUnitGuard = {
         + 'its own container and never the viewport — the fit '
         + 'is that rule reaching the last two declarations that broke it.',
     exempt: ['tools/gallery/index.html'],
-    exemptWhy: 'the two instrument host pages, whose stage IS the viewport — they are what '
+    exemptWhy: 'the instrument host page, whose stage IS the viewport — it is what '
         + 'app-root is mounted INTO for a capture, so a viewport unit there is the ground '
         + 'being stated rather than the app reading it',
     check(blocks) {

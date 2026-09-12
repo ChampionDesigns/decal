@@ -1,0 +1,4234 @@
+{
+  "_rule": "Every prose finding this tree already carries, so the gate passes on what is here and fails on anything added. An entry is a file, a rule, the matched words, and a digest of the unit holding them. The list may only shrink: rewrite it with --baseline after cleaning, never to quieten something new.",
+  "entries": {
+    "scripts/a8-source-text.js": {
+      "a date": [
+        "24 Aug 2026:1708f7a29547"
+      ],
+      "a decision id": [
+        "A3:49d73e0f72d5",
+        "A8:bf4cf1e9e87a",
+        "A8:fe2dc9281c5e",
+        "B2:73196f649d93",
+        "B2:aa2eb0a6d496",
+        "B7:ba45c1770224",
+        "T12:f7860bdf1602",
+        "T22:54db1adec5fa"
+      ],
+      "a spec section": [
+        "§2:eab365713098"
+      ],
+      "another skin": [
+        "the old skin:cd9439cedb49"
+      ],
+      "the work, not the code": [
+        "Gate C:23146cac75d5",
+        "Gate C:df20c6efb01a",
+        "Gate C:e90e9f55f148"
+      ]
+    },
+    "scripts/gate-d.js": {
+      "a spec section": [
+        "§7:525e1bc97184"
+      ],
+      "the work, not the code": [
+        "Gate D:0d6cfb8203a0",
+        "Gate D:f8e8874850f6"
+      ]
+    },
+    "scripts/gate-wire.js": {
+      "a spec section": [
+        "spec:e3fa4e158eeb"
+      ]
+    },
+    "scripts/generate-machine-state.js": {
+      "the work, not the code": [
+        "Wave 0:0d249ad99a7a"
+      ]
+    },
+    "scripts/generate-rea-routes.js": {
+      "a spec section": [
+        "spec:02598d1a2f26",
+        "spec:a0e2aa62e556",
+        "spec:a9511381e5cd",
+        "spec:c0a8ed325039"
+      ]
+    },
+    "scripts/guards.js": {
+      "a decision id": [
+        "L12:35d106465dc5"
+      ],
+      "another skin": [
+        "old sheet:973dbf557e42"
+      ],
+      "the work, not the code": [
+        "Gate C:308f6ee48ad3",
+        "Gate C:ce9b7a65d2f0"
+      ]
+    },
+    "src/components/ui-select.js": {
+      "a spec section": [
+        "spec:5d0181812615"
+      ]
+    },
+    "src/components/uplot-plot.js": {
+      "a spec section": [
+        "spec:3896880245d2",
+        "spec:4f4d6a40a1d2",
+        "spec:a90f0b7229b8",
+        "spec:c5b69447e0ae",
+        "spec:e6945f62c1c8",
+        "spec:f0b79f2e2065"
+      ]
+    },
+    "src/data/rea-routes.generated.js": {
+      "a spec section": [
+        "spec:02598d1a2f26",
+        "spec:a0e2aa62e556"
+      ]
+    },
+    "src/data/rea-sensors.js": {
+      "the work, not the code": [
+        "Gate 4:b3f3e756b1b6"
+      ]
+    },
+    "src/data/rea-ws-channels.js": {
+      "a file not in this repo": [
+        "socket-slot.js:a97e76d87489",
+        "waterTank.js:c642ef1e5d28"
+      ]
+    },
+    "src/lib/editor-commit.js": {
+      "a decision id": [
+        "DQ-629:04915fefbfa6",
+        "DQ-629:ece017f79a2a"
+      ]
+    },
+    "src/lib/storage-routes.js": {
+      "a file not in this repo": [
+        "idb.js:5c31d1aa674c"
+      ],
+      "another skin": [
+        "the old skin:c88befb5108c",
+        "the old skin:d4d67ff234b2"
+      ],
+      "the work, not the code": [
+        "Gate 3:74a0a1849e5e",
+        "the rewrite:e6a9b21fb9bf"
+      ]
+    },
+    "test/a8-source-text.test.mjs": {
+      "a decision id": [
+        "A8:1c9f31e57a81",
+        "A8:c23067d0c946",
+        "A8:cd70b3813d2a",
+        "A8:defa282185a4"
+      ],
+      "a file not in this repo": [
+        "api__v1__profiles.json:9dd409d258db"
+      ],
+      "the work, not the code": [
+        "Gate C:bdc10d98c4e6",
+        "this wave:1dc74d1019a9",
+        "wave 5:363648f1d2f0"
+      ]
+    },
+    "test/adapters-r.test.mjs": {
+      "a decision id": [
+        "A3:9a8c17a91b78",
+        "A3:9bb121cff84f",
+        "A7:2f0e67a2383a",
+        "A7:b755f3636501"
+      ]
+    },
+    "test/alignment-offset.test.mjs": {
+      "another skin": [
+        "Slate:1efca2bf3ad9"
+      ]
+    },
+    "test/app-fit.test.mjs": {
+      "the work, not the code": [
+        "the oracle:c3e7adbb532c",
+        "the oracle:cae83d4f48d4"
+      ]
+    },
+    "test/app-shell.test.mjs": {
+      "a decision id": [
+        "B8:73a961dbd965",
+        "B8:aa90b3caf6b8",
+        "Q13:0a36e8e0d847"
+      ]
+    },
+    "test/base-conventions.test.mjs": {
+      "a spec section": [
+        "spec:28537734555a"
+      ],
+      "another skin": [
+        "Slate:a0bb89192304"
+      ]
+    },
+    "test/capabilities-store.test.mjs": {
+      "a decision id": [
+        "A3:420d496747c0",
+        "A7:1a9539f5004e",
+        "B2:fa99259c2b2e"
+      ]
+    },
+    "test/chart-axis.test.mjs": {
+      "a spec section": [
+        "§6.2:725d91673767"
+      ]
+    },
+    "test/chart-feed.test.mjs": {
+      "a decision id": [
+        "A7:82563559973a",
+        "B4:b93519c41c86",
+        "B4:ebd63b9a7781",
+        "C13:88e11b72815d",
+        "C9:83faac60d293"
+      ]
+    },
+    "test/chart-tokens.test.mjs": {
+      "a decision id": [
+        "A6:b37e0a39c73d",
+        "C12:fa54087e0783",
+        "C4:6c69b858d0c3",
+        "C9:8cdaf8b92161"
+      ]
+    },
+    "test/cup-warmer-store.test.mjs": {
+      "a spec section": [
+        "spec:ce2ecc3066a2"
+      ]
+    },
+    "test/editor-contract.test.mjs": {
+      "a decision id": [
+        "B10:d0413fcdda31"
+      ]
+    },
+    "test/editor-draft-limiter.test.mjs": {
+      "a decision id": [
+        "E07:2f70ba506e75",
+        "E07:ee59faad7ec9",
+        "E08:357713ce60f0"
+      ]
+    },
+    "test/editor-ranges.test.mjs": {
+      "a date": [
+        "27 August 2026:d260dedd5dd0"
+      ],
+      "a decision id": [
+        "A3:3c599acd221e",
+        "B2:a95cea94f232",
+        "B2:dfba6dae5f33",
+        "B3:f29b1d6298ac"
+      ]
+    },
+    "test/editor-save-semantics.test.mjs": {
+      "a decision id": [
+        "B10:30ef978ae141",
+        "B10:a2b475f1384e",
+        "B10:e9deec73efbd",
+        "B11:3e9b01fb5282",
+        "B11:579670b8446f",
+        "B11:83c2d69dc89e",
+        "B9:5a2ba5cb032a",
+        "B9:f04bd4f66c70",
+        "D11:6255e4376571",
+        "Q7:87a89158ca0f"
+      ],
+      "another skin": [
+        "the old skin:0ea0728c58d9"
+      ]
+    },
+    "test/editor-visibility-writer.test.mjs": {
+      "a decision id": [
+        "D20:3cdb1eb4e4e3"
+      ]
+    },
+    "test/estimator-link-store.test.mjs": {
+      "a decision id": [
+        "B6:e761282a95df"
+      ]
+    },
+    "test/exit-sentence.test.mjs": {
+      "a decision id": [
+        "B2:48b41aab4c56",
+        "C8:f98faa6abedb",
+        "O5:7274dc103834",
+        "O5:89baa1290fd3"
+      ],
+      "a spec section": [
+        "Appendix 9:f7d5d62b8caf"
+      ],
+      "another skin": [
+        "Slate:02ea979b3f3f"
+      ],
+      "the work, not the code": [
+        "Gate 2:da89ee82e71e",
+        "the oracle:ea1b2eebac83"
+      ]
+    },
+    "test/firmware-image.test.mjs": {
+      "a decision id": [
+        "A7:a09b1ef219ae",
+        "B2:597f70e611c5"
+      ]
+    },
+    "test/fixtures/base-fixture.js": {
+      "a decision id": [
+        "L24:197a171b7e53"
+      ],
+      "a spec section": [
+        "§2.1:5cd7210c3bad"
+      ],
+      "another skin": [
+        "Slate:73fb4c3028cb"
+      ]
+    },
+    "test/fixtures/type-roles-fixture.js": {
+      "a decision id": [
+        "T11:83cd9a8c6784"
+      ],
+      "another skin": [
+        "Slate:dce7adf3145a"
+      ]
+    },
+    "test/folder-disclosure-deleted.test.mjs": {
+      "a date": [
+        "30 Aug 2026:95cab0ded2aa"
+      ],
+      "a decision id": [
+        "D10:0656e15b14c0",
+        "D10:9891a63da487"
+      ]
+    },
+    "test/gate-d.test.mjs": {
+      "a decision id": [
+        "A7:438bf54a5bf9",
+        "B9:b82b0eb863cc",
+        "CB-05:2b392a4f6ab8",
+        "CB-06:a905fe01e5c1",
+        "CB-10:61ae501f872e",
+        "CB-15:d590bade4255",
+        "CB-17:2bd5557e8a24",
+        "CB-21:008de0195c17",
+        "CB-22:367a692b5443",
+        "CB-23:40d975bb9cd0",
+        "CB-27:39c57c7d11c2"
+      ],
+      "a spec section": [
+        "§7:3d1b2cceffdc"
+      ],
+      "another skin": [
+        "the old skin:f775e025edc3"
+      ],
+      "the work, not the code": [
+        "Gate D:94e3f3763310",
+        "Gate D:e05abb32ebae"
+      ]
+    },
+    "test/gate-wire.test.mjs": {
+      "a file not in this repo": [
+        "x.js:7ef0988a1cb5"
+      ]
+    },
+    "test/guards.test.mjs": {
+      "the work, not the code": [
+        "Gate C:21124c9b9698"
+      ]
+    },
+    "test/harness-selftest.test.mjs": {
+      "a decision id": [
+        "L24:0c5863213b67"
+      ]
+    },
+    "test/harness/assertions.js": {
+      "a decision id": [
+        "L24:4f5161c32850",
+        "P4:d99c1573edfe"
+      ],
+      "a spec section": [
+        "spec:5fda09609da4",
+        "spec:a214bf2ac247",
+        "§2:558279333ae4"
+      ]
+    },
+    "test/harness/editor.js": {
+      "a spec section": [
+        "§2.4:97b39fee8710"
+      ]
+    },
+    "test/harness/page-helpers.js": {
+      "a decision id": [
+        "L24:d64893ab44b1",
+        "L24:f9f4ef24d89a"
+      ],
+      "a spec section": [
+        "§13:1d13249350ef"
+      ],
+      "another skin": [
+        "Slate:652cb392c22c"
+      ],
+      "the work, not the code": [
+        "wave 0:225385794b08"
+      ]
+    },
+    "test/harness/server.js": {
+      "the work, not the code": [
+        "Gate A:802fd9b058b6"
+      ]
+    },
+    "test/history-contract.test.mjs": {
+      "the work, not the code": [
+        "this wave:129c1758e300"
+      ]
+    },
+    "test/history-power.test.mjs": {
+      "a decision id": [
+        "A6:0ad9790ca038",
+        "A7:5dde6d55f804",
+        "A7:9ddfed96731f",
+        "Q16:f545714dc283"
+      ],
+      "another skin": [
+        "Slate:7f32ceddaed7",
+        "Slate:9779a78fa2fd",
+        "Slate:e55e389f7733"
+      ]
+    },
+    "test/history-series.test.mjs": {
+      "a decision id": [
+        "D1:dfedeed444e0",
+        "D2:f1c82ccad267"
+      ],
+      "a spec section": [
+        "§6.2:86fd724c145c"
+      ],
+      "another skin": [
+        "Slate:14ef7b0f0dd9"
+      ]
+    },
+    "test/history-viewer.test.mjs": {
+      "a spec section": [
+        "spec:277b4806989c"
+      ]
+    },
+    "test/i18n-authored-keys.test.mjs": {
+      "a decision id": [
+        "D20:27dda55a51b9",
+        "D20:423323354d8e",
+        "D20:b2655748d826"
+      ]
+    },
+    "test/i18n-freshness.test.js": {
+      "a decision id": [
+        "D2:0da6c8ec5e7f"
+      ]
+    },
+    "test/live-connection-gates.test.mjs": {
+      "a decision id": [
+        "A3:39f91949315b",
+        "B8:10b51fb3a004",
+        "B8:346115e3106f",
+        "B9:18c3a4ca128d",
+        "B9:2424c1c3fe68",
+        "B9:c4e0427dc142",
+        "B9:cf6219f5029a",
+        "B9:dccb611602d4",
+        "D2:79f585375455",
+        "L11:b6754ec61332",
+        "L11:cab861bd5477",
+        "L8:aa455e036f96"
+      ],
+      "a document not in this repo": [
+        "SCOPE:8e523c19d0e8"
+      ],
+      "another skin": [
+        "Slate:4519e2dfe6c6"
+      ]
+    },
+    "test/live-contract.test.mjs": {
+      "a decision id": [
+        "A3:0ec2a774b2e4",
+        "A3:eabf90025080",
+        "A3:fbe4931b9ca0",
+        "B8:085b3ceba62e",
+        "B8:6f489ac4c5f6",
+        "B8:9a31afc3315c",
+        "B8:cf0b49f2f8a5",
+        "B9:468bd31a498f",
+        "B9:6af29b17eca0",
+        "B9:d9a955ddcff1",
+        "L11:90b7e97fafad"
+      ],
+      "the work, not the code": [
+        "this wave:8f0ec8fda522"
+      ]
+    },
+    "test/live-screen.test.mjs": {
+      "a decision id": [
+        "D2:45037412f4d4",
+        "D2:54ad24dcdb73",
+        "L1:5515660e641e",
+        "L5:2f5830808115",
+        "L5:7859b6d28cea",
+        "L5:80ab168044cb"
+      ],
+      "a spec section": [
+        "§4.1:3b3a684cf2b9"
+      ]
+    },
+    "test/live-stores.test.mjs": {
+      "a decision id": [
+        "B6:91c93aadf985",
+        "B6:c77447470462",
+        "B8:3231d126ee62",
+        "B8:472d3de4e07b"
+      ]
+    },
+    "test/live-targets.test.mjs": {
+      "a decision id": [
+        "A7:315221761dec",
+        "A7:ae2897c211bd",
+        "D1:015dc05ea3e9",
+        "D1:64af327dbbf3",
+        "L25:21ba4e947458",
+        "L8:681496e432f5",
+        "L8:d4e2ae129401",
+        "L8:ddece6bfbd2a"
+      ],
+      "a spec section": [
+        "Appendix 15:c137aed2e289"
+      ],
+      "another skin": [
+        "Slate:399d51d59d33",
+        "Slate:3d3038ede621",
+        "Slate:53d04a83a356",
+        "Slate:75b230eb1c82",
+        "Slate:de1c54cdbc19",
+        "Slate:e50631a6909b"
+      ],
+      "the work, not the code": [
+        "the oracle:f5dd247ce29c"
+      ]
+    },
+    "test/machine-control.test.mjs": {
+      "another skin": [
+        "Slate:43e0ec8249c3",
+        "Slate:6b872a0f692f",
+        "Slate:84488847a385",
+        "Slate:c08af8dd5e0f",
+        "Slate:f30995555a93",
+        "Slate:fbac206f0c16"
+      ]
+    },
+    "test/machine-limits.test.mjs": {
+      "a decision id": [
+        "A7:41bffc58a622",
+        "B2:1cc4fb1ea7ec",
+        "B2:d4487a0b9179",
+        "B3:0d0e37860888",
+        "B3:bcd3a0551adf",
+        "B3:d9dcb739f5fa"
+      ],
+      "a file not in this repo": [
+        "Skins.md:45974807f635"
+      ],
+      "another skin": [
+        "Slate:270f18a5e712"
+      ]
+    },
+    "test/machine-state-freshness.test.mjs": {
+      "the work, not the code": [
+        "Wave 0:fc9e32f2bff8"
+      ]
+    },
+    "test/mock-contract.test.mjs": {
+      "a decision id": [
+        "CB-18:c47550a5e739"
+      ],
+      "the work, not the code": [
+        "Gate D:bb8c7e7cfce9",
+        "Gate D:ef969ad9542d"
+      ]
+    },
+    "test/mock-ws.test.mjs": {
+      "a decision id": [
+        "B8:0650b392343b",
+        "B8:9ba7913a6e44",
+        "CB-08:b91761b7f696"
+      ],
+      "a spec section": [
+        "spec:8056df99cd3f"
+      ]
+    },
+    "test/overlay-hygiene.test.mjs": {
+      "a decision id": [
+        "D10:fabeddbba374",
+        "O13:0139fff37e57",
+        "O13:b5ad2ca7218b",
+        "O15:73d1ced83974",
+        "O15:a6727c6ffeff",
+        "O1:971cbe166aae",
+        "O1:dbdf5db14cd1",
+        "Q13:54580f4259a8"
+      ],
+      "a document not in this repo": [
+        "SCOPE:8ae5545c1700"
+      ],
+      "a spec section": [
+        "§7.7:31c94562f64a"
+      ],
+      "the work, not the code": [
+        "Gate C:3ac2909b58c8",
+        "Gate C:7c1ebe599546",
+        "Gate C:a5ef547ed5fb",
+        "Gate D:dbc05232d03a"
+      ]
+    },
+    "test/profile-add.test.mjs": {
+      "a decision id": [
+        "D2:cc87189906df"
+      ],
+      "another skin": [
+        "Slate:56de032a9d0c"
+      ]
+    },
+    "test/profile-library-store.test.mjs": {
+      "a decision id": [
+        "A7:3e0ebde49357",
+        "A7:9578db067b13",
+        "B11:b784196e2ed0",
+        "B9:69631079ba20",
+        "D6:2de431ba5088",
+        "D6:473277db41ec",
+        "P12:6f5b1c418c7a"
+      ]
+    },
+    "test/profile-modes.test.mjs": {
+      "a decision id": [
+        "A7:8c003feb5c49",
+        "B2:27a1d63d78a4",
+        "B2:66aea586de91",
+        "B2:a4160f0816b8",
+        "D2:4dcf3a1808ea"
+      ]
+    },
+    "test/profile-rules.test.mjs": {
+      "a decision id": [
+        "A7:f1a08c335151",
+        "D6:7aebc0246299",
+        "D6:e1e12c7a83ae"
+      ],
+      "the work, not the code": [
+        "the corpus:9b25698f00a8"
+      ]
+    },
+    "test/profile-totals.test.mjs": {
+      "a decision id": [
+        "D2:c43b612214d0"
+      ],
+      "another skin": [
+        "Slate:072fd5335557",
+        "Slate:bb2c05c4f1e9"
+      ],
+      "the work, not the code": [
+        "the oracle:ec28d3f3c653"
+      ]
+    },
+    "test/profile-versions.test.mjs": {
+      "a decision id": [
+        "A7:e34d8d05abe5",
+        "A7:f6d686e8d632",
+        "D6:4c1e04aa0b55"
+      ],
+      "the work, not the code": [
+        "the corpus:131b5823025d"
+      ]
+    },
+    "test/rea-address.test.mjs": {
+      "a decision id": [
+        "A7:476675c06e84"
+      ]
+    },
+    "test/rea-caches.test.mjs": {
+      "a document not in this repo": [
+        "SCOPE:2e588eb8e574"
+      ]
+    },
+    "test/rea-names.test.mjs": {
+      "another skin": [
+        "the old skin:9a651b67369d"
+      ],
+      "the work, not the code": [
+        "Wave 0:f6c32a794d4e"
+      ]
+    },
+    "test/rea-profile.test.mjs": {
+      "a decision id": [
+        "B9:2c780ad6ea20"
+      ]
+    },
+    "test/rea-routes-freshness.test.mjs": {
+      "a spec section": [
+        "spec:a57b00627107"
+      ]
+    },
+    "test/rea-routes.test.mjs": {
+      "a decision id": [
+        "A7:935f9334ebdb",
+        "B8:2780b45cb17c"
+      ],
+      "a spec section": [
+        "spec:01bb0de0aae6",
+        "spec:0387bf241023",
+        "spec:07b2f747338e",
+        "spec:11fd5a13b528",
+        "spec:19c3f33614e2",
+        "spec:2df78de802e6",
+        "spec:688c70fcf9d6",
+        "spec:b1c889b1253f",
+        "spec:baf57e3c2feb"
+      ],
+      "another skin": [
+        "Slate:89dece66c393"
+      ],
+      "the work, not the code": [
+        "Gate D:c7091294b22c"
+      ]
+    },
+    "test/rea-shot-record.test.mjs": {
+      "a decision id": [
+        "B5:5e76dd002773"
+      ],
+      "another skin": [
+        "the old skin:a9bd78bfd6e8"
+      ],
+      "the work, not the code": [
+        "Gate 6:4a5df5bd5317"
+      ]
+    },
+    "test/rea-sockets.test.mjs": {
+      "a spec section": [
+        "spec:8a3379a91507",
+        "spec:d966a75d60d2"
+      ]
+    },
+    "test/render/app-fit.render.test.mjs": {
+      "the work, not the code": [
+        "the oracle:4e20e2027353"
+      ]
+    },
+    "test/render/app-shell.render.test.mjs": {
+      "a spec section": [
+        "§2.4:b6edb74b2b82",
+        "§4.1:bdecc72f07bc"
+      ]
+    },
+    "test/render/dialog-body-integration.render.test.mjs": {
+      "a decision id": [
+        "O6:4252f54ef3c3",
+        "O6:66e8c4a56fce",
+        "O6:f39ebfc271a0",
+        "O8:5dd567136d48"
+      ],
+      "a spec section": [
+        "§2.4:690cc83e4060",
+        "§4.6:09f7057300bc",
+        "§4.6:3de5ce3fbbae",
+        "§4.6:9c07aa0ca5bf",
+        "§4.6:9d97c479e11e",
+        "§4.6:b2f8d87f38d5",
+        "§4.6:c78f17ed9100",
+        "§4.6:ca1b5868eec2"
+      ]
+    },
+    "test/render/dialog-contract.render.test.mjs": {
+      "a decision id": [
+        "O6:245d482d11d3",
+        "O7:79c73b8fcf7a",
+        "O7:dae2d7058f26",
+        "O8:1def51a10b63",
+        "O8:e507137c8815",
+        "P13:e3c2e8109592"
+      ],
+      "a file not in this repo": [
+        "overlays.md:128748b0860a"
+      ],
+      "a spec section": [
+        "Appendix 13:6bc8672a6033",
+        "§4.6:3a47b55b9eba",
+        "§4.6:3feeb1fc35eb",
+        "§4.6:5c1ea95a9be1",
+        "§4.6:5ccd8f223f57",
+        "§4.6:625b1da9986a",
+        "§4.6:bb7823c3a252",
+        "§4.6:f97ff7f50b46",
+        "§7.7:2cc6cd1c8781"
+      ]
+    },
+    "test/render/editor-add-step-aria.render.test.mjs": {
+      "a decision id": [
+        "D05:6e357039699b"
+      ]
+    },
+    "test/render/editor-editing.render.test.mjs": {
+      "a decision id": [
+        "A6:34956e17ea9e",
+        "A7:26bb50265666",
+        "A7:f59a5c4036a9",
+        "B2:cc2717c81d21",
+        "B2:cdad50a39992",
+        "B2:f54c261d2501",
+        "C5:1d74d51ce09c",
+        "C5:492c13439504",
+        "C6:796ab55832e9",
+        "C6:9771074b7695",
+        "O10:33a6b8ece40b",
+        "O10:9d48a00b5701",
+        "O10:e0149d1eef9a",
+        "O5:83c9c3771f2b",
+        "O5:8943855d370f",
+        "O5:d23c66b234e8",
+        "O5:d5e47d9524a0",
+        "O6:2fe10603e615",
+        "O6:5db895b5d29c",
+        "O8:0fab71f40d74",
+        "O8:149e31bb7ebf",
+        "O8:510708829a7d",
+        "O8:5f088ab7b231",
+        "O9:06871067a62d",
+        "O9:5ebe70d6d272",
+        "O9:e0cba752fa8e",
+        "P9:7fb2fe76c3dc"
+      ],
+      "a spec section": [
+        "§4.6:f03282f7c987"
+      ]
+    },
+    "test/render/editor-hidden-switch.render.test.mjs": {
+      "a decision id": [
+        "D20:842eafd83f09"
+      ]
+    },
+    "test/render/editor-save-loop.render.test.mjs": {
+      "a decision id": [
+        "B10:8774a943f164",
+        "B11:b2416419c6b6",
+        "B11:f90947733eaa",
+        "DQ-629:3ed1ada0ed12"
+      ]
+    },
+    "test/render/editor-skeleton.render.test.mjs": {
+      "a decision id": [
+        "B11:14736f5c2322",
+        "B11:2d02bbe7a38d",
+        "D11:724feff4b9a4",
+        "D11:8545fa5120d9",
+        "L22:9ad53ebe31c8",
+        "P9:0a13bd4d851f"
+      ],
+      "a spec section": [
+        "spec:ab9a0681e72f",
+        "§13:7e3e0fb0f13a",
+        "§4.3:3ef7c13be9ff",
+        "§4.3:5d178241cb24",
+        "§5:3007181b2594"
+      ],
+      "another skin": [
+        "Slate:17885d989b5c",
+        "Slate:5e438fcc45d2"
+      ]
+    },
+    "test/render/editor-step-actions.render.test.mjs": {
+      "a date": [
+        "27 August 2026:23673d7464ff",
+        "27 August 2026:aa7fbe269aea"
+      ]
+    },
+    "test/render/editor-versions.render.test.mjs": {
+      "the work, not the code": [
+        "the corpus:c51fd107876c"
+      ]
+    },
+    "test/render/history-compare.render.test.mjs": {
+      "a decision id": [
+        "B5:2a42c1d9dff4",
+        "C2:19c212d828d3",
+        "C7:3f3f9d7b073c",
+        "C7:8fbdb1f496aa"
+      ],
+      "another skin": [
+        "Slate:93ce881c042e",
+        "Slate:f550df75b944"
+      ]
+    },
+    "test/render/history-pages.render.test.mjs": {
+      "a decision id": [
+        "C7:29533d082a13"
+      ],
+      "a spec section": [
+        "§2.4:9d92d39b1e50",
+        "§3.8:20d89d43b6a5",
+        "§9:c2e7cdf4c07f"
+      ],
+      "another skin": [
+        "Slate:0c5212a7aa6e",
+        "Slate:13b813105a3c",
+        "Slate:4f534335ffc3",
+        "Slate:dbd15a573408"
+      ]
+    },
+    "test/render/history-power.render.test.mjs": {
+      "a decision id": [
+        "A6:c33fe2149098",
+        "A7:ff355efc38f4",
+        "C7:4c9be53a55d3",
+        "Q16:4463d8b6d6de",
+        "Q16:df69a185ac1b"
+      ],
+      "a spec section": [
+        "§4.5:040060c7a50b",
+        "§4.5:332b27d60b1f",
+        "§9:52f7437a9441"
+      ],
+      "another skin": [
+        "Slate:532a18a25ceb",
+        "Slate:58ca1392a8c3",
+        "Slate:7551772504ad",
+        "Slate:98c8cef9d1ce",
+        "Slate:e120dbe7f8ec",
+        "Slate:e1e42f7d56e1",
+        "Slate:eaa72d2e0ab1"
+      ]
+    },
+    "test/render/history-route.render.test.mjs": {
+      "a spec section": [
+        "§4.5:8b41410cae6c"
+      ]
+    },
+    "test/render/history-skeleton.render.test.mjs": {
+      "a decision id": [
+        "L22:a616fdad0cc5",
+        "T9:2e2e376ff613"
+      ],
+      "another skin": [
+        "Slate:632cf1d1dd93",
+        "Slate:770b721c8954",
+        "Slate:e9a76c4ff016",
+        "slate:60f408cbad14",
+        "slate:af8c3a2a1d5b"
+      ],
+      "the work, not the code": [
+        "ORACLE:585c0871889f",
+        "provenance corpus:b7f452eac174"
+      ]
+    },
+    "test/render/live-bands.render.test.mjs": {
+      "a decision id": [
+        "A7:bff404b5264a",
+        "B3:5c6dc9ff986a",
+        "B7:be9ba3597ccb",
+        "D1:17def2c66f95",
+        "D1:5b964ff9baa1",
+        "DQ-0:16279adac518",
+        "L1:b6e012a7675d",
+        "L21:8526e5c9f1fb",
+        "L21:a15a1b810f33",
+        "L22:8dfafee32a82",
+        "L22:b3fb7cdb03a9",
+        "L23:c3b57278562b",
+        "L23:de34108b58ba",
+        "L24:5f4669b19f6e",
+        "L25:3764bef988d9",
+        "L25:836b516dd8d3",
+        "L25:85027f7989a4",
+        "L25:97ec7c75b2b9",
+        "L25:e6a8e1cc0157",
+        "L2:6ff2cb4bf494",
+        "L2:7932615dd913",
+        "L8:63b78f35df85",
+        "L8:832d15fbedde"
+      ],
+      "a spec section": [
+        "§4.1:0316e233ed10",
+        "§4.1:612acd933c22"
+      ],
+      "another skin": [
+        "Slate:154f1af6fbcf",
+        "Slate:27a554b2d3d6",
+        "Slate:2a20ccc9ece6",
+        "Slate:2e71ad419bc7",
+        "Slate:61096db3393f",
+        "Slate:712699e37e1f",
+        "Slate:77e0cdb1bce1",
+        "Slate:7c9189a19ed9",
+        "Slate:7f4bbda6df03",
+        "Slate:9441530e623b",
+        "Slate:c0e32fa0f5e5",
+        "Slate:c4eeacc5b00d",
+        "Slate:e14e04e01d96",
+        "Slate:ecaca7a490c7",
+        "slate:39cb053238ad"
+      ],
+      "the work, not the code": [
+        "the oracle:485d8f987655"
+      ]
+    },
+    "test/render/live-chart.render.test.mjs": {
+      "a decision id": [
+        "A6:ecf9ee1f5a70",
+        "A6:fddf72a73b94",
+        "A7:728e9e225d5f",
+        "B4:01f9c0591141",
+        "B6:62185f111ce4",
+        "B6:db9932376e09",
+        "C10:132ab82ceba0",
+        "C10:3642b1fff17d",
+        "C10:63640beda8b8",
+        "C11:ce720cc42f70",
+        "C12:fa2d79f8d97b",
+        "C13:23bd6b894404",
+        "C14:3ed2dce21498",
+        "C14:c87f84bdc75c",
+        "C14:ea7079a7c05a",
+        "C14:f4ec1b64b6d3",
+        "C1:5a84aa684fb4",
+        "C2:f2c932beeb9e",
+        "C9:95ba64fd49f4",
+        "L2:e20823a8c566"
+      ],
+      "a spec section": [
+        "§4.1:077038f3c330",
+        "§6.1:e010b12b4d0a",
+        "§6.2:a541010800b7",
+        "§7.8:18a3acdb0c91",
+        "§7.8:f76bde5b1d0f"
+      ],
+      "another skin": [
+        "Slate:30c87ecb60e2",
+        "Slate:dfff7124dbc9"
+      ]
+    },
+    "test/render/live-connection-gates.render.test.mjs": {
+      "a decision id": [
+        "L11:eb9f72a7df6f",
+        "L1:17808e2ede57",
+        "L1:2ef2b246938b",
+        "L1:9b6d3b917d84"
+      ]
+    },
+    "test/render/live-favourite-carry.render.test.mjs": {
+      "a decision id": [
+        "D01:9f2a5d0c61fd",
+        "D13:207599dbf8fa",
+        "D15:5c65eaa847af"
+      ]
+    },
+    "test/render/live-loop.render.test.mjs": {
+      "a decision id": [
+        "L11:9e0ac0f9d357"
+      ],
+      "a spec section": [
+        "Appendix 15:196e08389370"
+      ]
+    },
+    "test/render/live-preset-press-mid-shot.render.test.mjs": {
+      "the work, not the code": [
+        "Wave 1:f9658fe67cab",
+        "Wave 3:71f9c53f1230",
+        "Wave 3:c9634125b4a2",
+        "Wave 3:ec3cb5355cfd"
+      ]
+    },
+    "test/render/live-screen.render.test.mjs": {
+      "a decision id": [
+        "C1:6c77148b322a",
+        "C1:b01a301c4175",
+        "C1:e1891ab70271",
+        "C2:cfe2fe585fa4",
+        "C2:ec68555cb448",
+        "DQ-0:bc4b09989b17",
+        "DQ-541:13e9949b08f7",
+        "DQ-541:8e0d21ceee2b",
+        "DQ-541:b1f610d1644d",
+        "L1:9b6d3b917d84",
+        "L1:f2ab2d8e7071",
+        "L2:1c6b206ced40",
+        "L2:3ff66e23c417",
+        "L2:b06b72aadb65",
+        "L2:eff4b14c4a3b",
+        "L5:1cb69206d990",
+        "L5:2b3953b11615",
+        "L5:3e1d28ba1ab0",
+        "L5:99e88c630510",
+        "L5:b7a80881e3cf",
+        "L5:e0c7b9bb2ef5"
+      ],
+      "a spec section": [
+        "§1.4:046cb8ef371b",
+        "§2.4:4f265736033e",
+        "§2.4:749ed1cf67f1",
+        "§2.4:8b27773d8dba",
+        "§2.4:a2736252e42d",
+        "§4.1:1ef557d88c7d",
+        "§4.1:2e393aaf5ce2",
+        "§4.1:f37aa5f10668"
+      ]
+    },
+    "test/render/live-shot-panel.render.test.mjs": {
+      "a decision id": [
+        "D14:372aadbe7289",
+        "D14:610b79971639",
+        "D14:62cebd2abb96",
+        "D14:67f0a968f0d2",
+        "D14:83c66e38aea2",
+        "D14:84e75a064f94"
+      ]
+    },
+    "test/render/numpad-container-query.render.test.mjs": {
+      "a decision id": [
+        "O10:522dfd0e358a",
+        "O10:c8217f3e273a",
+        "O10:dea60d0eb20f",
+        "O9:407f8964a121",
+        "O9:5d02f62b955d",
+        "O9:cd2945c67d92",
+        "O9:f0f49ad6469b"
+      ],
+      "a spec section": [
+        "§4.6:698a0ca10225",
+        "§4.6:dfe9b7780d93"
+      ],
+      "another skin": [
+        "Slate:143d6b9d70c9",
+        "Slate:87038ee16e52",
+        "Slate:89775fc2b2a9"
+      ],
+      "the work, not the code": [
+        "Gate A:12103ae1b7f5"
+      ]
+    },
+    "test/render/overlay-surfaces.render.test.mjs": {
+      "a decision id": [
+        "A8:d296d2d16360",
+        "D10:9585bd16fdf5",
+        "D10:ac5ffc99e3bf",
+        "D10:b2ba36d5f885",
+        "D10:daf9199b0d83",
+        "D10:e58243671ffa",
+        "DQ-565:596dd7fd3e2f",
+        "DQ-565:7c0ea6127813",
+        "DQ-565:fae8d2bd93e9",
+        "O11:45220a6c30d1"
+      ],
+      "another skin": [
+        "Slate:1d4578d703f2",
+        "Slate:67657f066b41",
+        "Slate:b3fb78635daf",
+        "Slate:ed0e883fdef8"
+      ]
+    },
+    "test/render/plot-surface.render.test.mjs": {
+      "a decision id": [
+        "A6:46b2df1be269"
+      ],
+      "a spec section": [
+        "spec:1eed87144c96",
+        "spec:684f2fe3cf6c",
+        "spec:c3161ff7c863",
+        "§12:fbcfed86ebb5",
+        "§3:9c1930c450b7",
+        "§3:a8ac32d76df4",
+        "§6.1:a01d1215d7d5"
+      ]
+    },
+    "test/render/seams.render.test.mjs": {
+      "a decision id": [
+        "T19:52c6c6257988",
+        "T19:b30c0aaedb8c",
+        "T2:1905c17a47bd"
+      ],
+      "another skin": [
+        "slate:9fd6352e427d"
+      ],
+      "the work, not the code": [
+        "the oracle:c83758e2f915"
+      ]
+    },
+    "test/render/selector-core-loop.render.test.mjs": {
+      "a date": [
+        "25 Aug 2026:5c322f46d485"
+      ],
+      "a decision id": [
+        "B11:2398c9e9e9bf",
+        "B11:8c5dfbafea57",
+        "B9:f95b84eea92c",
+        "C3:4c75fc8715a0",
+        "C3:fa4f5f1ad41b",
+        "D11:a0153a29d66c",
+        "D21:a93a36e1d6f6",
+        "D6:6f989eb07082",
+        "D6:75df411acda8",
+        "D6:a1396b6c6d0d",
+        "P12:09819d2efa92",
+        "P12:19235fc58eb2",
+        "P12:69b69ad63fc2",
+        "P12:8f42129a25d3",
+        "P12:a90f559d7db1",
+        "P13:d9321036bc4a",
+        "P4:27b8cecff2b3",
+        "P4:90dc0d334697",
+        "P6:00abc6d20d03",
+        "P6:e14dae8a3519",
+        "P8:0e2ecc5d4562"
+      ],
+      "a file not in this repo": [
+        "DEFERRED_QUESTIONS_core-loop.md:66bc036cc5ef",
+        "profile-selector.json:d2681b673cc8"
+      ],
+      "a spec section": [
+        "§4.2:4700bf58d88a",
+        "§4.2:b4a4fd30ee48",
+        "§4.2:c70998f469e7",
+        "§7.3:607fffc7da07",
+        "§7.3:7f2efc590541",
+        "§7.3:aee2c05b1ae3",
+        "§7.3:b1827ef86126",
+        "§7.3:e633914150cc"
+      ],
+      "another skin": [
+        "Slate:37ee8b4fa1ae",
+        "Slate:521649936709",
+        "Slate:6a26abf0d297",
+        "the old skin:7ec04e84d5ce"
+      ]
+    },
+    "test/render/selector-row-actions-name.render.test.mjs": {
+      "a decision id": [
+        "D21:0bca9780aea5",
+        "D21:51a4c999a23a",
+        "D21:7440d0a1917f",
+        "P12:931102cbef3d"
+      ]
+    },
+    "test/render/selector-skeleton.render.test.mjs": {
+      "a decision id": [
+        "C3:345028757428",
+        "P10:f5d785b542a1",
+        "P11:7c727ed6cdf6",
+        "P14:11614181df90",
+        "P14:5ffc7d5bdb37",
+        "P15:345cc4d2a6a0",
+        "P15:6b1faa476c8c",
+        "P16:99e205bf6241",
+        "P17:b28a12554b35",
+        "P17:c33b210a2526",
+        "P1:f6395ccc7522",
+        "P2:a4375c3765c4",
+        "P3:751b1bf9bee5",
+        "P5:5a4bbfb72d31",
+        "P7:15843e029ab7",
+        "P7:74fbd8eaee02",
+        "P8:bf486655a7da",
+        "P9:52fddfee813c",
+        "P9:bebc6a0fc780",
+        "Q8:dc4c1e374e86"
+      ],
+      "a file not in this repo": [
+        "selector.md:c9e018d88140"
+      ],
+      "a spec section": [
+        "spec:ab9a0681e72f",
+        "§13:7e3e0fb0f13a",
+        "§13:fed66d6a844d",
+        "§3.3:2e162979c23e",
+        "§4.2:057d43894226",
+        "§4.2:171a647ccb64",
+        "§4.2:2391cdd13d45",
+        "§4.2:66f2609e9ecf",
+        "§4.2:8a0c4d41a773",
+        "§4.2:90c6874c1373",
+        "§4.2:adc74d50d386",
+        "§4.2:c9820387e971",
+        "§4.2:e8d68a450c0d",
+        "§4.2:f9d1eca0b66f",
+        "§7.3:836a250dfb6b"
+      ],
+      "another skin": [
+        "Slate:4bccf9b68a2e"
+      ],
+      "the work, not the code": [
+        "Gate A:9c1da7c5b56c",
+        "Gate C:cd76d9f52bf7"
+      ]
+    },
+    "test/render/settings-bespoke.render.test.mjs": {
+      "a decision id": [
+        "A7:78e081393e0f",
+        "A7:908c1b763891",
+        "A7:ba0675a58e48",
+        "T11:ccddf8b19757",
+        "T1:0d596601b8f2",
+        "T1:177d40c39c22",
+        "T1:3281d3a36317",
+        "T21:1aa5432f3303"
+      ],
+      "a spec section": [
+        "§4.4:0186d92a3cf9"
+      ],
+      "another skin": [
+        "Slate:0fb1bc0c7673",
+        "Slate:6375ce2dfbe6",
+        "Slate:6cb97ae58250",
+        "Slate:7ac1fec524f8",
+        "Slate:82ed56d7dcc5",
+        "Slate:90a8b95f9f99",
+        "Slate:9562aff56175",
+        "Slate:b1f5f90e2477",
+        "Slate:b2ea9fc94ad3",
+        "Slate:b6640d857ff6",
+        "Slate:bc24e6608b57",
+        "Slate:cb1f38347368",
+        "Slate:ef0654898425",
+        "Slate:fba3b8ef900a",
+        "Slate:ff6aa2db4c56"
+      ]
+    },
+    "test/render/settings-leaves.render.test.mjs": {
+      "a decision id": [
+        "A7:188a359de02e",
+        "A7:e6cf45622cd0",
+        "C6:135cdd99a4c8",
+        "C6:9ab6bde4db85",
+        "D11:c1f852b8fcbb",
+        "D4:2c2f1e79678e",
+        "D4:442ab9e2913a",
+        "D8:c94cb34c30a0",
+        "D8:ec043782ad8a",
+        "O8:e5457c01a3ff",
+        "T10:396f9f3a0297",
+        "T10:a6ddc423ab5f",
+        "T13:3436fad2ec67",
+        "T13:826da466858f",
+        "T14:0fa6bf9838ac",
+        "T15:86c491bbd4bc",
+        "T15:8bf596d33787",
+        "T15:afd9609ca456",
+        "T2:f18f3ed4b3df",
+        "T7:a232210ff481",
+        "T9:00edd7a61bc9",
+        "T9:46608c53ff2c",
+        "T9:e1ff020f9df1",
+        "T9:f505cca7fa3c"
+      ],
+      "another skin": [
+        "Slate:d16c394ef54d"
+      ],
+      "the work, not the code": [
+        "the oracle:4bb5c51ae01c",
+        "the oracle:eebcc1cde985"
+      ]
+    },
+    "test/render/settings-pending-switch.render.test.mjs": {
+      "a decision id": [
+        "D08:1d1f3bd910c3",
+        "D08:c29925f799b1",
+        "D08:c9335802fcb1"
+      ]
+    },
+    "test/render/settings-skeleton.render.test.mjs": {
+      "a decision id": [
+        "C4:443354aaf703",
+        "C4:dd89c61acdbd",
+        "D11:724feff4b9a4",
+        "P15:aaf3c21ebcd7",
+        "T15:de6e91c35207",
+        "T19:3a4e06655f59",
+        "T1:25d4dfb80e70",
+        "T2:6491ddda5bce",
+        "T3:6f457582de19",
+        "T4:5eeb5e62937c",
+        "T4:c221e218e7e3",
+        "T4:ffa23a32a088",
+        "T5:05480b26b75f",
+        "T6:14f77839b1c8",
+        "T6:84934a462fbe"
+      ],
+      "a spec section": [
+        "spec:ab9a0681e72f",
+        "§13:7e3e0fb0f13a",
+        "§4.4:7b316222410b",
+        "§4.4:dc6102d8495b",
+        "§4:332669de571d"
+      ],
+      "another skin": [
+        "Slate:1b112b01a025",
+        "the old skin:86056dc96e8a"
+      ],
+      "the work, not the code": [
+        "the corpus:3167f8842959"
+      ]
+    },
+    "test/render/step-matrix.render.test.mjs": {
+      "a decision id": [
+        "A7:6f39e1d24735",
+        "C7:b6f444264588",
+        "C8:2e38a006c583",
+        "D2:c96bcd76b629",
+        "T16:1f993d3317ee"
+      ],
+      "a spec section": [
+        "Appendix 9:92f3bc6dbe1e",
+        "§2.4:1c64d6f7dfc4"
+      ],
+      "another skin": [
+        "Slate:1546db757365",
+        "Slate:36d9d13187ad",
+        "Slate:3d9a959fa7d5",
+        "Slate:5028f802f995"
+      ],
+      "the work, not the code": [
+        "ORACLE:2e5bd9f336ef",
+        "ORACLE:e73cc3f8e503",
+        "the oracle:4ae3538e7e62"
+      ]
+    },
+    "test/render/type-roles.render.test.mjs": {
+      "a decision id": [
+        "T11:3fb4ad454426",
+        "T11:c1712efbaaf9",
+        "T11:f0604b58f438"
+      ],
+      "a spec section": [
+        "spec:a7b06a0e853a"
+      ],
+      "another skin": [
+        "Slate:047cd1300f61",
+        "Slate:295e13efd6a4",
+        "Slate:e12512719e44",
+        "Slate:eebaf93a0d76"
+      ]
+    },
+    "test/render/ui-action-key-rail.render.test.mjs": {
+      "a decision id": [
+        "C7:5a7bca0fa2df",
+        "C7:c1206e3164d1",
+        "C7:ca7b00986c94",
+        "L9:6526bc90bce0",
+        "P10:43c7befe6aa9",
+        "T9:bd41c208d54a"
+      ],
+      "a spec section": [
+        "§4:c89a35ed9b51"
+      ],
+      "another skin": [
+        "Slate:51299627a6c3",
+        "Slate:5b2d0248a4f2",
+        "Slate:7b6c2e71eeb0",
+        "Slate:999ca4ab2e6f",
+        "Slate:b3aba6245a5a",
+        "Slate:c1c1343c1a23",
+        "Slate:cd841f94ab12"
+      ],
+      "the work, not the code": [
+        "the oracle:8f54fd847fae",
+        "the oracle:b9925a66e832"
+      ]
+    },
+    "test/render/ui-alert-banner.render.test.mjs": {
+      "a decision id": [
+        "L12:3c4f142b240a",
+        "L24:87b3c273e66f",
+        "L24:b7e4f9f55e00",
+        "L24:d9dfbeb4009e",
+        "P8:96786acef5b9"
+      ],
+      "the work, not the code": [
+        "Gate A:2c4b5e051407",
+        "the oracle:15447caee19d",
+        "the oracle:2cc1fe73bbc4",
+        "the oracle:5fe5ada48bc7",
+        "the oracle:62b96c83b5c7",
+        "the oracle:6848ae5e7ca4",
+        "the oracle:b3733d26fed3",
+        "the oracle:e932184333b2"
+      ]
+    },
+    "test/render/ui-badge.render.test.mjs": {
+      "a decision id": [
+        "L24:15b5149e0052",
+        "P8:d6136d12fd4a"
+      ],
+      "a spec section": [
+        "spec:8ae5d806004b",
+        "spec:b0e8b067281f"
+      ],
+      "another skin": [
+        "Slate:0c41efc97923",
+        "Slate:548f883751b5",
+        "Slate:629868e59f8d",
+        "Slate:8e20c88f3f89",
+        "Slate:eb7e13908481"
+      ],
+      "the work, not the code": [
+        "the oracle:2a7ff41e89bc",
+        "the oracle:47b740e4b713",
+        "the oracle:54ab7d4d652e",
+        "the oracle:9110165dfccf",
+        "the oracle:e932184333b2",
+        "the rewrite:7701aaa1c259"
+      ]
+    },
+    "test/render/ui-bank.render.test.mjs": {
+      "a decision id": [
+        "DQ-216:984de2e4cdbc",
+        "L8:fdcfa0518e97",
+        "T5:affd1e0abc7d",
+        "T5:c3732a122220"
+      ],
+      "a spec section": [
+        "Appendix 10:c979bd594ea6",
+        "Appendix 15:718407672ead",
+        "spec:181e9aba22fd",
+        "§12:3a0a917d49be"
+      ],
+      "another skin": [
+        "Slate:2bf982525ce1",
+        "Slate:563b71f9377b",
+        "Slate:88f13dbc7b73",
+        "Slate:926f8b2cae81",
+        "slate:615f5a10662b",
+        "slate:93742081cba9"
+      ],
+      "the work, not the code": [
+        "the oracle:1d39c6957774",
+        "the oracle:76d9d635f5fc",
+        "the oracle:c42d949ae4e1"
+      ]
+    },
+    "test/render/ui-button.render.test.mjs": {
+      "a decision id": [
+        "L24:15b5149e0052",
+        "P8:2d2da9e53f26",
+        "P8:3e7c9be1a70a",
+        "P8:57f4ae04ee32",
+        "P8:98332432bee8",
+        "P8:c835da96e813",
+        "P8:da95bfa1cea3"
+      ],
+      "a spec section": [
+        "spec:b0e8b067281f"
+      ],
+      "another skin": [
+        "Slate:2e5a6296be1a",
+        "slate:e736f80a148a"
+      ],
+      "the work, not the code": [
+        "Gate A:d49e74ee4f42",
+        "the oracle:e932184333b2"
+      ]
+    },
+    "test/render/ui-card-grid.render.test.mjs": {
+      "a decision id": [
+        "T20:3f2668f2f3c2"
+      ],
+      "a spec section": [
+        "Appendix 14:9489b484ce49"
+      ],
+      "another skin": [
+        "Radian:dd358b40a7fa",
+        "Slate:1dd32b93af99",
+        "Slate:be9155909106",
+        "Streamline:284fe3def9b7",
+        "Streamline:a264363e02a6"
+      ],
+      "the work, not the code": [
+        "the oracle:e43644537cef"
+      ]
+    },
+    "test/render/ui-card.render.test.mjs": {
+      "a decision id": [
+        "L24:01bb2b77d99f",
+        "L24:12d0cbaa4707",
+        "L24:239b2ebf0e30",
+        "L24:760ab5d334ee",
+        "L24:b1fc094842c5",
+        "L24:b9200339659e",
+        "P8:81563334c5bc"
+      ],
+      "a spec section": [
+        "spec:14551bc0d634",
+        "spec:4cc3e0ee6b3f",
+        "spec:f49343cc6d79",
+        "§2:07a67e2a5baa"
+      ],
+      "another skin": [
+        "Slate:ba558e8f0b21"
+      ],
+      "the work, not the code": [
+        "Gate A:1dbcee98def8",
+        "the oracle:446c4d840bfb",
+        "the oracle:e2effe6dbd1a",
+        "the oracle:e932184333b2"
+      ]
+    },
+    "test/render/ui-chart-card.render.test.mjs": {
+      "a decision id": [
+        "A6:096838172fd6",
+        "C10:2ed15fa049c4",
+        "C10:4f6d20adf875",
+        "C10:da0195b57917",
+        "C11:db212e526272",
+        "C12:233ec73d8f11",
+        "C12:84aa9d10aacc",
+        "C12:bd06e4e10b05",
+        "C2:f68df79195d9",
+        "C3:da2712b7ddcd",
+        "O3:0b8e9dedcc71",
+        "O3:290ab1fe23f1"
+      ],
+      "a file not in this repo": [
+        "state.html:3b438c911bb7"
+      ],
+      "a spec section": [
+        "spec:f21cba431a79",
+        "§12:48f8cb22141f",
+        "§3.8:28cc21f46a42",
+        "§3.8:4452fda6536a",
+        "§3:931a667da88c",
+        "§3:accbc3ba6a6b",
+        "§6.1:8b2ec5bb2afb",
+        "§6.1:967cfdf47a30",
+        "§6.1:f7d9c3769501"
+      ],
+      "another skin": [
+        "Slate:89cec1c07db1",
+        "Slate:e8de7b2ed111"
+      ]
+    },
+    "test/render/ui-chart-legend.render.test.mjs": {
+      "a decision id": [
+        "C10:28c45a546d37",
+        "C10:37bce955858e",
+        "C7:d6a363162ba4"
+      ],
+      "a spec section": [
+        "§2.4:26079c332d64",
+        "§6.1:7b77ab5d2b18"
+      ],
+      "another skin": [
+        "Slate:13df9f78ddc2",
+        "Slate:2da682e026a5",
+        "Slate:4155cd0d6a65",
+        "Slate:44a901ef3f5c",
+        "Slate:5117108daf05",
+        "Slate:a3cab905bdf4",
+        "Slate:bd23badfacb3",
+        "Slate:dcfea9f58fa7",
+        "Slate:fdb97d6112b2",
+        "slate:7a8f62713277"
+      ],
+      "the work, not the code": [
+        "the oracle:92a3aa58fb84",
+        "the oracle:cf9740a10988"
+      ]
+    },
+    "test/render/ui-colour-swatch-row.render.test.mjs": {
+      "a decision id": [
+        "A7:a0ea9c8802cd",
+        "P30:ae61a84bd7aa"
+      ],
+      "a spec section": [
+        "spec:181e9aba22fd"
+      ],
+      "another skin": [
+        "Slate:0da323cecb46",
+        "Slate:1c964af66344",
+        "Slate:7e92122b9fe3",
+        "Slate:93acc2013ebf",
+        "Slate:acf8f1e489e4",
+        "slate:290f0811c0f7"
+      ]
+    },
+    "test/render/ui-compare-bar.render.test.mjs": {
+      "a spec section": [
+        "Appendix 15:d8f97063017b",
+        "spec:ea48349a73ce"
+      ],
+      "another skin": [
+        "Slate:1a5160e5ec61",
+        "Slate:27189111e815",
+        "Slate:a2765738704b",
+        "Slate:b0e214a6df4c",
+        "Slate:ea3f9a9b9c1f",
+        "slate:2443b5970096"
+      ]
+    },
+    "test/render/ui-confirm-dialog.render.test.mjs": {
+      "a decision id": [
+        "D2:b16c04755780",
+        "P13:5825e233ac38",
+        "P13:ca71fdf2a35a",
+        "P13:cbabb291545e",
+        "P13:cefe9af201ef",
+        "P13:dfe3c862c93e",
+        "P8:2f4b352f8a10",
+        "P8:c2841288a3d3"
+      ],
+      "a spec section": [
+        "spec:6222946e5b1c",
+        "§2.1:46cdc0edb1d1",
+        "§2:d7b944a3e1e4",
+        "§4.6:584c015f9353",
+        "§4.6:849c5eaa741b"
+      ],
+      "another skin": [
+        "Slate:1b2b0e5492a1",
+        "Slate:426c4fa4ed07",
+        "Slate:566a2a6bf466",
+        "slate:2cc85ad5ca0d",
+        "slate:93f2557f2360"
+      ],
+      "the work, not the code": [
+        "ORACLE:089edaed6c68",
+        "ORACLE:1a023c57ca70",
+        "ORACLE:24022afe0fd6",
+        "ORACLE:797823979ba3",
+        "ORACLE:89bb5cda080a",
+        "ORACLE:91d1a4dd73ea",
+        "ORACLE:cbfb09fbcf59"
+      ]
+    },
+    "test/render/ui-data-grid.render.test.mjs": {
+      "a decision id": [
+        "A7:86f100abc68f",
+        "C2:da68e8822bc0",
+        "L10:616f46973c51",
+        "L12:b4751b3aa1a2",
+        "L20:ac3d91f8673c",
+        "L23:3c8f2ba5b3da",
+        "L23:e7790735d8d7",
+        "L24:00b8f5ae49c6",
+        "L24:f90137b99e21"
+      ],
+      "a spec section": [
+        "spec:04530e5388fc",
+        "spec:2a494c18f897",
+        "spec:51325185b540",
+        "§13:25e27fe4bb5b",
+        "§13:fcac9f98bbbc",
+        "§2.1:0a8aac19a190",
+        "§3.3:97498ef9a2b2",
+        "§4.5:0c28caa2e233",
+        "§4.5:2e6bd59e3074",
+        "§4.5:6e21a24f254a",
+        "§4.5:930561011099",
+        "§7:dd421b8f89f1"
+      ],
+      "another skin": [
+        "Slate:0a500d4f60b9",
+        "Slate:1e013f355a4b",
+        "Slate:2c9afcbefaff",
+        "Slate:432349f50b11",
+        "Slate:45014479e074",
+        "Slate:4c835578da31",
+        "Slate:6c7f6b79c93d",
+        "Slate:e1ab36491e44",
+        "Slate:ef5f8b9fa4d7",
+        "Slate:fa3bf0a95f59",
+        "slate:138aa3537e87",
+        "slate:413c22528aa7",
+        "slate:495a1888eb42",
+        "slate:5aaffc068191",
+        "slate:9a991f4c267b",
+        "slate:b9abdf2a6452",
+        "slate:bee71246eff7",
+        "slate:c69724538c5b",
+        "slate:d9307adf101a"
+      ],
+      "the work, not the code": [
+        "the oracle:e932184333b2",
+        "the oracle:fb79a6d63847"
+      ]
+    },
+    "test/render/ui-definition-card.render.test.mjs": {
+      "a decision id": [
+        "A7:9113c85cd42c",
+        "T2:be11a3e7767b"
+      ],
+      "a spec section": [
+        "spec:63a4c6d3bed9"
+      ],
+      "another skin": [
+        "Slate:22fe05a21d65",
+        "Slate:3f851b8aa9a3",
+        "Slate:60740ae0dc2c",
+        "Slate:83797b512f24",
+        "Slate:e082a8a36cb9",
+        "slate:44674ee40d24",
+        "slate:8c267b4870f1",
+        "slate:a531df2f2ada",
+        "slate:aaf0fc941d4e",
+        "slate:b27543d623a0",
+        "slate:b61fdb585043",
+        "slate:c0c426e545f5",
+        "slate:e47158eb8ed6",
+        "slate:e9fe4ec0d97b"
+      ],
+      "the work, not the code": [
+        "the oracle:77d78c15949a",
+        "the oracle:e97d294d8b07"
+      ]
+    },
+    "test/render/ui-dialog.render.test.mjs": {
+      "a decision id": [
+        "O13:9df3a0868f74",
+        "O13:de8cef48bf9a",
+        "O13:e5a29f6e784d",
+        "O6:123340e46f75",
+        "O6:c0f4aa978bb2",
+        "P13:87344dc14b36"
+      ],
+      "a spec section": [
+        "Appendix 13:94b82e3455e5",
+        "Appendix 13:b1810288d942",
+        "Appendix 13:bbbb7bbbed07",
+        "spec:4e7705149e4a",
+        "§11:fb53fef2f8ee",
+        "§13:feeeb6c96593",
+        "§4.6:0c05b6a7a6ef",
+        "§4.6:12ea15dfb8bb",
+        "§4.6:1b5b09825331",
+        "§4.6:3de5ce3fbbae",
+        "§4.6:66fa17fca7b9",
+        "§4.6:7080df50408c",
+        "§4.6:e2b386fe6798"
+      ],
+      "the work, not the code": [
+        "ORACLE:0c76823f0804",
+        "ORACLE:12ec3c889e43",
+        "ORACLE:a3fc93421761",
+        "wave 3:0314af5425f1"
+      ]
+    },
+    "test/render/ui-empty-state.render.test.mjs": {
+      "a decision id": [
+        "P21:c5fe8f833bab",
+        "T11:0b184c60bca8",
+        "T11:0de25ca5fe31",
+        "T11:15100aa84aac",
+        "T11:268666454ef4",
+        "T11:28ea1b4f3b4d",
+        "T11:301502898586",
+        "T11:78a5513798d4",
+        "T11:82cade653a26",
+        "T11:e7281005086f",
+        "T11:ed370cb03ee5"
+      ],
+      "another skin": [
+        "Slate:316471cc6c60",
+        "Slate:90436435d273",
+        "slate:7b2f1de3bd72",
+        "slate:cc70857bef9f"
+      ],
+      "the work, not the code": [
+        "the oracle:56a11b0a2e12",
+        "the oracle:67f53b48dfdf",
+        "the oracle:ba4c544ba86c"
+      ]
+    },
+    "test/render/ui-exit-sentence.render.test.mjs": {
+      "a decision id": [
+        "B2:19737ab5638c",
+        "B2:cbdd74c7168e",
+        "C8:19ed8899538c",
+        "C8:76c436674c94"
+      ],
+      "a spec section": [
+        "Appendix 9:36990fdba803",
+        "Appendix 9:b289338692d5",
+        "spec:d878a1613320",
+        "spec:dbf36be5f9e0"
+      ],
+      "another skin": [
+        "Slate:0671edcc379f",
+        "Slate:0d34eaafe46b",
+        "Slate:4007688c9935",
+        "Slate:822eb6a030ca"
+      ],
+      "the work, not the code": [
+        "the oracle:7b484ea18db3"
+      ]
+    },
+    "test/render/ui-favourite-slot.render.test.mjs": {
+      "a decision id": [
+        "L8:e549f7bd3a26",
+        "P4:2717cf1d9584",
+        "P4:a12800187d9d",
+        "P4:aaf997ed47ff",
+        "P4:d287540ab35b",
+        "P4:e6deec7e64a7",
+        "P4:fa5417a63eca"
+      ],
+      "a spec section": [
+        "spec:03bc4f8864da",
+        "§4:1b715c2dc2da"
+      ],
+      "another skin": [
+        "Radian:79e9d98d8b17",
+        "Slate:186f17034234",
+        "Slate:6fa7952f9330"
+      ]
+    },
+    "test/render/ui-favourites-bank.render.test.mjs": {
+      "a decision id": [
+        "L23:a8e3f6db9ffe",
+        "L24:111bc082cbc8",
+        "L7:910ae97bc5a6",
+        "L7:91a05676c20b",
+        "L7:ac13042a849a",
+        "L7:dd971f915628",
+        "L7:fa85040f4ef2",
+        "L8:0c6f8a4b89af",
+        "L8:11af40777558",
+        "L8:13a723e5c6d4",
+        "L8:72f2b183317a",
+        "L8:850b7698419f",
+        "L8:b2eab7201ab2",
+        "L8:c3a28a97a0d6",
+        "L8:ca4a09afbea8",
+        "P25:12664ffd1b24",
+        "P4:3a749c901882"
+      ],
+      "a spec section": [
+        "Appendix 10:cd738acf4789",
+        "spec:76d15b6512b1",
+        "spec:7b01a4557e48"
+      ],
+      "another skin": [
+        "Slate:33e8f76eeb87",
+        "Slate:433e2c4377e4",
+        "Slate:49ec4ee573ae",
+        "Slate:72d16e3a5378",
+        "Slate:a3fb56b76f79",
+        "Slate:ae3038499860",
+        "Slate:c75a93f6ec4a",
+        "slate:2910064713f4"
+      ]
+    },
+    "test/render/ui-icon-button.render.test.mjs": {
+      "a decision id": [
+        "L12:ed3f3bfa924d",
+        "L22:f27abe3c03e9",
+        "L24:21dc10c944f6",
+        "P4:1aeefd4e0c45",
+        "T9:81a0dd66ff8d"
+      ],
+      "a spec section": [
+        "spec:b0e8b067281f"
+      ],
+      "another skin": [
+        "Slate:ecd507e80cbc"
+      ]
+    },
+    "test/render/ui-keycap.render.test.mjs": {
+      "a decision id": [
+        "L22:0274be4d204a",
+        "L22:042f40ce06b7",
+        "L22:928d016aa752",
+        "L24:721d4a6b5c05",
+        "L24:fdcf4b7c0ca3"
+      ],
+      "a spec section": [
+        "§1:9d3c77055b61",
+        "§4:301f86aa8e97"
+      ],
+      "another skin": [
+        "Slate:1c7228a936b5"
+      ]
+    },
+    "test/render/ui-list-row.render.test.mjs": {
+      "a decision id": [
+        "D11:2ee613434ee5",
+        "D11:45878cb1c7ab",
+        "D11:6cf091ab525d",
+        "D11:b83d960d6a44",
+        "L24:2ae9a6c0f4b3",
+        "P12:81582a1a6b7b",
+        "P12:b4a0dc7b8d5e",
+        "P6:6793e02c1212",
+        "P6:7ac75f9d3be7",
+        "P8:f3770fb7a2d3",
+        "T2:5e4194b889a0"
+      ],
+      "a spec section": [
+        "spec:8ae5d806004b",
+        "spec:96b6b1834769",
+        "§13:9fc128a41a77",
+        "§13:b74d7defd44c"
+      ],
+      "another skin": [
+        "Slate:21fdf5e5d7ae",
+        "Slate:25e71df2ae8d",
+        "Slate:3cc2b04f8f0a",
+        "Slate:41d5adbb8a17",
+        "Slate:7c5f13993292",
+        "Slate:a1a68d39a492",
+        "slate:41fcff063545"
+      ],
+      "the work, not the code": [
+        "the oracle:00717b9b0224"
+      ]
+    },
+    "test/render/ui-locked-value.render.test.mjs": {
+      "a decision id": [
+        "L12:661a61d18917"
+      ],
+      "a spec section": [
+        "spec:09cc6049ab20",
+        "§5:30ebc4aa81a6"
+      ],
+      "another skin": [
+        "Slate:9efd1e49500b",
+        "Slate:bcd5d836e359",
+        "slate:86ce1a0130dd",
+        "slate:932f42caf217"
+      ]
+    },
+    "test/render/ui-menu.render.test.mjs": {
+      "a decision id": [
+        "L23:ed52c61262e6",
+        "L24:f8174a70d616",
+        "O11:8eebe696da55",
+        "O2:90c9ac1e30c3",
+        "O2:a5d5c6b96350",
+        "P4:a0f219e42432"
+      ],
+      "a spec section": [
+        "spec:216429663e8d",
+        "spec:445318c9137f",
+        "spec:6601284512de",
+        "spec:f7a227df7724",
+        "§13:baee96b4ec2a"
+      ],
+      "another skin": [
+        "Slate:6b9a5a928816",
+        "Slate:aba13e226868",
+        "slate:1c1611952417",
+        "slate:2252f2dbb91e",
+        "slate:74e9cfc21281",
+        "slate:7a34235ea12b",
+        "slate:aa9ce1d25b98",
+        "slate:fc683beb40eb"
+      ]
+    },
+    "test/render/ui-nav-row.render.test.mjs": {
+      "a decision id": [
+        "C4:50353d51f4ef",
+        "L24:83a44aac827e",
+        "T2:13f748fc2fdc",
+        "T2:a7481802175b",
+        "T2:c1f63f97418a",
+        "T5:25a648d1930e",
+        "T5:b9a2223f2b02",
+        "T5:bcd3b2f31fbb"
+      ],
+      "a spec section": [
+        "spec:8ae5d806004b",
+        "spec:b76ae08afdd6",
+        "§13:b74d7defd44c",
+        "§13:be498b670681",
+        "§13:e3927fce96a0",
+        "§2:bec5960f357c",
+        "§4:170ad32e51aa",
+        "§4:ef3361f8c287",
+        "§5:ebfd3ac6a25d"
+      ],
+      "another skin": [
+        "Slate:51ec4f395c66",
+        "Slate:5390df5e0920",
+        "Slate:6bc1d556a75a",
+        "Slate:7eae8a15c48c",
+        "Slate:846ac8d66355",
+        "Slate:9db5426f2776",
+        "Slate:e841c8aadf5b",
+        "Slate:f3bf69720190",
+        "slate:9adfb4f695be",
+        "slate:9dc5127ac6ec",
+        "slate:c34f50d0fd75"
+      ],
+      "the work, not the code": [
+        "the oracle:bae071fd28a1"
+      ]
+    },
+    "test/render/ui-notes-editor.render.test.mjs": {
+      "a decision id": [
+        "L24:5a86ffa95e95",
+        "O11:5e3ad98cd2c3",
+        "O11:845bb9cd20a6",
+        "O7:515839200960",
+        "O7:e039e73c6f91",
+        "O8:4173967eb6f6",
+        "T13:1cad45558ef8"
+      ]
+    },
+    "test/render/ui-numeric-keypad.render.test.mjs": {
+      "a decision id": [
+        "A7:3a0d362dd2d5",
+        "A7:e7b8f8692e6d",
+        "B2:7a52926e257b",
+        "B2:a7e988b23d29",
+        "B3:15881654382a",
+        "B3:638b512c469a",
+        "B3:b92976d3cfce",
+        "B3:be616c1255d3",
+        "B3:f0d3d228b552",
+        "L24:bc3734cbf1f2",
+        "O10:268b1efccfe1",
+        "O10:36d169b8edd4",
+        "O10:538ab099b1fc",
+        "O10:8569c734583b",
+        "O10:9d549dd434ee",
+        "O9:407f8964a121",
+        "O9:5d02f62b955d",
+        "O9:7f0358912a6e",
+        "O9:9f4c6123596a",
+        "O9:f373c54a3c5f"
+      ],
+      "a file not in this repo": [
+        "Skins.md:cfc41e41939d"
+      ],
+      "a spec section": [
+        "Appendix 13:264cdbb9375d",
+        "Appendix 13:4519b1a85d8a",
+        "§4.6:1149845224be"
+      ],
+      "another skin": [
+        "Slate:2d078e91db32",
+        "Slate:8f21c4069e36"
+      ]
+    },
+    "test/render/ui-page-header.render.test.mjs": {
+      "a decision id": [
+        "D11:1bedaf29596c",
+        "D11:5e25f233c192",
+        "D11:7f86337019fe",
+        "D11:8596a57350b9",
+        "D11:c1f6ccfc2305",
+        "D11:d62cf7e2d440",
+        "D11:e0d686ed831e",
+        "P17:0da519af1d35",
+        "P17:2ced1ca564f3",
+        "P17:2ec5a6c596cc",
+        "P17:431aac714770",
+        "P17:809a7c184810",
+        "P17:8ba12d091661"
+      ],
+      "a spec section": [
+        "spec:50dcd6670861",
+        "§2:a3dd9fe7074c"
+      ],
+      "another skin": [
+        "Slate:092351b7024e",
+        "Slate:18a9c76da54c",
+        "slate:da6efaed53b4"
+      ],
+      "the work, not the code": [
+        "the oracle:1b289777bfc1",
+        "the oracle:43ee7ff8f41e",
+        "the oracle:dc8e44932400",
+        "the oracle:f5111c820633"
+      ]
+    },
+    "test/render/ui-pick-disc.render.test.mjs": {
+      "a spec section": [
+        "spec:181e9aba22fd",
+        "spec:220be4b22eca",
+        "spec:32aa689a5aa7",
+        "§11:430d7140a3ef",
+        "§11:7238c121b3cd",
+        "§2:d857715534de",
+        "§5:0e5f706c7e5b"
+      ],
+      "another skin": [
+        "Slate:003c7df54b98",
+        "Slate:7231f4ce2f2b",
+        "Slate:75d752b387d4",
+        "Slate:92472804a910",
+        "Slate:bf15b569d14d",
+        "Slate:eb03e1e69d4c",
+        "slate:6cc0f1959b06",
+        "slate:820fc31cf0e3",
+        "slate:83cbf1061dad",
+        "slate:84c0b9cfe75f",
+        "slate:84c0b9cfe75f",
+        "slate:8f1f5e882ed9"
+      ],
+      "the work, not the code": [
+        "ORACLE:0b3b5e4d599a",
+        "ORACLE:287ad6d7ba8a",
+        "ORACLE:637c6a794be8",
+        "ORACLE:6cc80a1ac4fe",
+        "ORACLE:ad51e5cd94a5",
+        "ORACLE:aee8ad43b742",
+        "ORACLE:dd608e181f37",
+        "the oracle:1dc4f3fca8df",
+        "the oracle:2504b837a588",
+        "the oracle:914cfb50a17d",
+        "the oracle:b463eed3a136",
+        "the oracle:cbe2d9aadaaa",
+        "the rewrite:769937c83cfb",
+        "this wave:984497efbbcd"
+      ]
+    },
+    "test/render/ui-preset-bank.render.test.mjs": {
+      "a decision id": [
+        "A7:2c34288bd0a6",
+        "B3:eb8886e4198f",
+        "L23:6fd2f4b705a3"
+      ],
+      "a spec section": [
+        "spec:09de2c7e2fe1",
+        "spec:181e9aba22fd"
+      ],
+      "another skin": [
+        "Slate:155099222aac",
+        "Slate:7eaecee94bc9",
+        "Slate:a92f6b81f1dd",
+        "Slate:cf57f09a93cd",
+        "Slate:fa0983467cd2",
+        "slate:1f08ce9d3380",
+        "slate:c8d5d0d7e99f"
+      ],
+      "the work, not the code": [
+        "the audit:8486cf2a8fd5"
+      ]
+    },
+    "test/render/ui-progress-track.render.test.mjs": {
+      "a decision id": [
+        "L24:87575146dc0a",
+        "L24:e314343b9a09",
+        "T22:a835b8503976"
+      ],
+      "a spec section": [
+        "§11:ed377ae659ff",
+        "§3.7:4c0968c7d154"
+      ],
+      "another skin": [
+        "Slate:13f6d2b18ae8",
+        "Slate:f82209d2d256",
+        "slate:1bd7a54118c0",
+        "slate:987cc628e983",
+        "slate:aa34cf818870",
+        "slate:c71c63697bf4"
+      ],
+      "the work, not the code": [
+        "the oracle:ce6166ac7621"
+      ]
+    },
+    "test/render/ui-rating-control.render.test.mjs": {
+      "a decision id": [
+        "L23:bca4a33f4a88",
+        "L24:20853044517f",
+        "L4:108945345de2",
+        "L4:21b3e35ee1e7",
+        "L4:c3b6bdd63bd9",
+        "L4:f61320e45503"
+      ],
+      "a spec section": [
+        "spec:48fbe1a4a370",
+        "§2.1:f1c574b45b74",
+        "§2.2:d4b2f035d92d",
+        "§2.4:8151e69dcc65",
+        "§2.5:f3646e118441"
+      ],
+      "another skin": [
+        "Slate:1fc1f5ab998a",
+        "Slate:5613602c4116",
+        "Slate:65aa072611ea",
+        "Slate:cd7f38cfd2bd"
+      ]
+    },
+    "test/render/ui-screensaver.render.test.mjs": {
+      "a decision id": [
+        "A7:1a8bbf3f99e5",
+        "A7:26d17808bcf2",
+        "A7:9cde1ebcdcd3",
+        "D10:a23a6c5189e0",
+        "D10:e745d6c9b149",
+        "Q13:cc3e37ef1f58"
+      ],
+      "a spec section": [
+        "§6:c188bf90e360"
+      ]
+    },
+    "test/render/ui-search-field.render.test.mjs": {
+      "a decision id": [
+        "L12:52b30628b73e",
+        "L12:a936dc967377",
+        "L24:09ff3439478c",
+        "L24:5007ea635d63",
+        "T15:214ef5a9d351",
+        "T15:961c4c09dc9b"
+      ],
+      "a spec section": [
+        "spec:95c2707581a4",
+        "spec:99ec538e1880",
+        "spec:a76d1ef97f19",
+        "§11:42cb3f27ba20"
+      ]
+    },
+    "test/render/ui-section-header.render.test.mjs": {
+      "a decision id": [
+        "L12:b4751b3aa1a2",
+        "O11:960d400a7cf0",
+        "O11:aad79232d115",
+        "P8:6a77d3136c8f"
+      ],
+      "a spec section": [
+        "spec:8ae5d806004b",
+        "spec:b0e8b067281f",
+        "§13:737d866a9a38",
+        "§13:b7cb7c1b728b"
+      ],
+      "another skin": [
+        "Slate:315f3a7e8e6c",
+        "Slate:6dcf6b176c08",
+        "Slate:7776f21531eb",
+        "Slate:84779502d38b",
+        "Slate:c8c0faa5e896",
+        "Slate:d108aaa859e6",
+        "slate:23083b3282f5",
+        "slate:3d04b8971c9e",
+        "slate:487fb1185837",
+        "slate:6feb2afa41d5",
+        "slate:771398467d58",
+        "slate:a890d25c0d85",
+        "slate:db390003af4b",
+        "slate:e8d0b0952a40",
+        "slate:f112d3d2a8ac"
+      ],
+      "the work, not the code": [
+        "the corpus:9e902c471cec",
+        "the oracle:e932184333b2",
+        "the oracle:eecba1f01098"
+      ]
+    },
+    "test/render/ui-select.render.test.mjs": {
+      "a decision id": [
+        "L24:f6e1267ca600",
+        "T9:43519fb650fa",
+        "T9:7f754538f2be",
+        "T9:a8fa641250fa",
+        "T9:cb91496d6354",
+        "T9:f5d5650c5a2a"
+      ],
+      "a spec section": [
+        "spec:66a555648e0a"
+      ],
+      "the work, not the code": [
+        "the oracle:2ae8c677c85b",
+        "the oracle:59a45f83ceef"
+      ]
+    },
+    "test/render/ui-settings-row.render.test.mjs": {
+      "a decision id": [
+        "T13:229d4743d5b6",
+        "T13:241189fd7f5d",
+        "T13:29aa49c0585f",
+        "T13:2ca2e7525129",
+        "T13:46be69900cc3",
+        "T13:726e3babd19b",
+        "T13:9214020d984b",
+        "T13:96fa750d4b52",
+        "T13:a32789efdbdf",
+        "T15:1693123cd8f7",
+        "T15:36e73fc2ace0",
+        "T15:4a65dd1210d6",
+        "T16:4b9d108dddcf",
+        "T20:331271af9354",
+        "T9:a111df9f5ab9"
+      ],
+      "a spec section": [
+        "spec:e4d36b673fce",
+        "§13:3735aaf9781a",
+        "§13:7a420ea7065f",
+        "§2.4:331d378f46a2",
+        "§2.4:6f894b64b459",
+        "§2.4:d8a882ff6bc0"
+      ],
+      "another skin": [
+        "Slate:3271c9c92ca6",
+        "Slate:34e5c0ae2bfb",
+        "slate:0678d4de925d",
+        "slate:19d3d2e1bbe0",
+        "slate:27a2dc0ce6fb",
+        "slate:3827cde3c590",
+        "slate:533b4228c868",
+        "slate:56c1e41629a7",
+        "slate:8800e3939b70",
+        "slate:b1331c982a03",
+        "slate:ef8282335a33"
+      ],
+      "the work, not the code": [
+        "the oracle:00717b9b0224",
+        "this wave:4626826b7c2d"
+      ]
+    },
+    "test/render/ui-sheet-header.render.test.mjs": {
+      "a decision id": [
+        "A10:277aa27e8e75",
+        "A10:cacf71ce6ba1",
+        "A10:ff02826d447c",
+        "O13:7ba184750588",
+        "O13:a65635cf8880",
+        "O13:c782e5488e54",
+        "O13:fe99801eef10",
+        "O1:cdbbe9b861a6"
+      ],
+      "a spec section": [
+        "spec:119546ab4318",
+        "§4:9e7e626c3218"
+      ],
+      "another skin": [
+        "slate:4f3331f07e99",
+        "slate:77139d977674",
+        "slate:78a985bd647e"
+      ],
+      "the work, not the code": [
+        "the oracle:b72c31bd0ba1"
+      ]
+    },
+    "test/render/ui-sheet.render.test.mjs": {
+      "a decision id": [
+        "O13:05c178522fa5",
+        "O13:1a3237d59352",
+        "O13:4461938ae1d6",
+        "O13:6ca642eb80b0",
+        "O13:bdddde85470e"
+      ],
+      "a spec section": [
+        "§2.1:79e947948105",
+        "§3.5:918b4e2321a4",
+        "§4:77454b289cbb"
+      ],
+      "another skin": [
+        "Slate:06775656c3f7",
+        "Slate:6588a1f2eafd",
+        "slate:8e43dc674468",
+        "slate:a37c9fc0beef",
+        "slate:b59e85df8bdb"
+      ],
+      "the work, not the code": [
+        "the oracle:0bdebd65b41d",
+        "the oracle:a3c2cfeaadf4"
+      ]
+    },
+    "test/render/ui-slider.render.test.mjs": {
+      "a decision id": [
+        "L24:323e2a6bf906",
+        "T22:1389d27573de",
+        "T22:8fe2953fa2e4",
+        "T22:a7695136fa53"
+      ],
+      "a spec section": [
+        "spec:6eff556da0d8",
+        "§4:d7efa7bb517b"
+      ],
+      "another skin": [
+        "Slate:a8edc0a2d872",
+        "Slate:f1292e40c673"
+      ],
+      "the work, not the code": [
+        "the oracle:6b6e8bffd8d4"
+      ]
+    },
+    "test/render/ui-stat-tile.render.test.mjs": {
+      "a decision id": [
+        "A8:9b5cd11dbc43",
+        "D11:776c6a78cc08",
+        "D2:543cce46665d",
+        "L12:cf6331e61c28",
+        "L2:333c0755ddfa",
+        "L2:c3a9bb97b29e",
+        "L2:eb8ea61696f4",
+        "L3:7205d20eeecf"
+      ],
+      "a spec section": [
+        "Appendix 15:7abcfe3bcd41",
+        "Appendix 15:fec360cf9a09",
+        "spec:3272e4926fb0",
+        "spec:416d7363a229",
+        "§3:a798a07d2927",
+        "§4:82e8c282916a"
+      ],
+      "another skin": [
+        "Slate:0a2c5b53edb7",
+        "Slate:13a572c252f1",
+        "Slate:30bfb76eae55",
+        "Slate:92ca43d8ad9d",
+        "Slate:b05e42b318e6",
+        "Slate:c175afdf6f57",
+        "the old skin:2447710c2f8c"
+      ],
+      "the work, not the code": [
+        "this wave:ed67eac129bf"
+      ]
+    },
+    "test/render/ui-status-chip.render.test.mjs": {
+      "a decision id": [
+        "L13:a15ed7c38961",
+        "L13:c8273f019c6d",
+        "L13:f30976aef55b"
+      ],
+      "a spec section": [
+        "spec:e50575b0d381",
+        "§2.4:3489945841f8",
+        "§2:344f8bfb90f5",
+        "§2:a2442c473bd5"
+      ],
+      "another skin": [
+        "Slate:725842af3228",
+        "Slate:a8729a10904c",
+        "Slate:b2bdf5ac187b",
+        "slate:2335f3019e57",
+        "slate:be581e32fe9a",
+        "slate:e9220f3c081b"
+      ],
+      "the work, not the code": [
+        "the audit:c8d51d7ecc5d",
+        "the oracle:1bf6b4e527c3",
+        "the oracle:372e350934fa",
+        "the oracle:735b16b92e10",
+        "the oracle:a140a8d70133",
+        "the oracle:b2fe4c258ac1",
+        "the oracle:d39b947face8"
+      ]
+    },
+    "test/render/ui-stepper.render.test.mjs": {
+      "a decision id": [
+        "B2:072cd31b459b",
+        "B2:7d719890f9b9",
+        "B2:872c0fe90538",
+        "B2:db79c7debde9",
+        "B2:f69c3d6dd2a6",
+        "C3:7086ea6f0291",
+        "C3:cb25c68b5515",
+        "C3:d51c8bfdd9d6",
+        "L22:82df660b4f15",
+        "L9:4baf29d19781"
+      ],
+      "a spec section": [
+        "Appendix 5:966fff6f229e",
+        "Appendix 5:a6d1993fe1f0"
+      ],
+      "another skin": [
+        "Slate:056740114d71",
+        "Slate:0be5a338797a",
+        "Slate:835e406c0b36",
+        "Slate:9fc5971515f1",
+        "slate:7819fdcbb75e"
+      ],
+      "the work, not the code": [
+        "the corpus:d07064a0a43c",
+        "the oracle:464ccff77f61",
+        "the oracle:9e8236d8520b"
+      ]
+    },
+    "test/render/ui-stop-button.render.test.mjs": {
+      "a decision id": [
+        "D2:1c56e3071c15",
+        "D2:fe6ef49983e5",
+        "L11:fbc43967208c",
+        "L23:377416986a23",
+        "L24:a852f4568170"
+      ],
+      "a spec section": [
+        "§11:23907249e2c6",
+        "§5.:d7c38cd6216d"
+      ],
+      "another skin": [
+        "Slate:33f371eb23d6",
+        "Slate:37e67fe4e41c",
+        "Slate:76bf10cea4cd",
+        "Slate:78d9129a02c1",
+        "Slate:d250071e352c",
+        "slate:69a191462065"
+      ]
+    },
+    "test/render/ui-subnav-row.render.test.mjs": {
+      "a decision id": [
+        "L24:947eae3c9887",
+        "T2:1b662f14cc82",
+        "T2:23e4fdbf71f9",
+        "T2:29ebd72fd3bf",
+        "T2:4dea5e49555a",
+        "T2:5f854e3bf6bd",
+        "T2:e5e06a47ba33",
+        "T3:32413f31f473",
+        "T3:adf504678097",
+        "T5:97f23a932584"
+      ],
+      "a spec section": [
+        "spec:4fb89c9de016",
+        "spec:b351e26ebe5b",
+        "spec:be54d40b2193"
+      ],
+      "another skin": [
+        "Slate:00c99812d31c",
+        "Slate:61aca3a2d0e5",
+        "Slate:aadab6c11ca0",
+        "Slate:bcde3fff5755",
+        "Slate:bfee8c6a9e85",
+        "Slate:ca80bc8770c6",
+        "Slate:e8400df72065",
+        "Slate:fb3492534c47",
+        "Slate:ff594e826a7b"
+      ],
+      "the work, not the code": [
+        "Gate A:09645ee15816",
+        "the audit:2e17b44d6443"
+      ]
+    },
+    "test/render/ui-switch.render.test.mjs": {
+      "a decision id": [
+        "T15:a7f3238fae76",
+        "T17:083ae9fa680f",
+        "T17:09a01c23dffe",
+        "T17:40c2cee34601",
+        "T17:73ae2a4afdbc",
+        "T17:78b9cd152676",
+        "T17:99bc2603f871",
+        "T17:b5125909f7d4",
+        "T17:cf1c2aa3ccae",
+        "T9:28f016b50903"
+      ],
+      "a spec section": [
+        "Appendix 10:c97691e5a2cd",
+        "spec:181e9aba22fd",
+        "§4:f6407a984207"
+      ],
+      "another skin": [
+        "slate:12840a55afbb",
+        "slate:15abb21bdf75",
+        "slate:24afacba3f23",
+        "slate:6c8a0162e150",
+        "slate:8566d4836b19",
+        "slate:8bda10d753b3",
+        "slate:ba5b072f27ed",
+        "slate:e1d0b13838f6",
+        "slate:ea22e0660891"
+      ],
+      "the work, not the code": [
+        "ORACLE:3185d4edeae9",
+        "ORACLE:363f84cc21a3",
+        "ORACLE:4f47465dae34",
+        "ORACLE:7abcc339a7a6",
+        "ORACLE:7e060e67ede2",
+        "ORACLE:8bdb46909da3",
+        "ORACLE:a6ea239e3cc3",
+        "ORACLE:d7afb92bdaec",
+        "ORACLE:ec7d409ca09e",
+        "the oracle:797cc69d4fef",
+        "the oracle:835a004fdaa1",
+        "the oracle:c2b1e1b0612f"
+      ]
+    },
+    "test/render/ui-tab-bar.render.test.mjs": {
+      "a decision id": [
+        "DQ-2:e5d40b1cb72e",
+        "L23:13c5c84e691b",
+        "L23:19bd94af88a9",
+        "L23:d7fbefa8d195",
+        "L8:819a4ba8922e",
+        "L8:a56a3175a039",
+        "L8:f5cd039b4329",
+        "P13:164a40a8de79"
+      ],
+      "a spec section": [
+        "Appendix 10:481de6dcccb1",
+        "Appendix 15:ac8f0b5e3384",
+        "Appendix 7:972e61451594",
+        "spec:181e9aba22fd",
+        "spec:e992617754cd",
+        "§4.3:fecbe38968b9"
+      ],
+      "another skin": [
+        "Slate:062c256d4dc0",
+        "Slate:88f13dbc7b73",
+        "Slate:8f09f1ee5340",
+        "slate:18ab4ae1508e"
+      ],
+      "the work, not the code": [
+        "the oracle:020694013505",
+        "the oracle:1074041960f3",
+        "the oracle:210cdcb3bf76",
+        "the oracle:34edd4463245",
+        "the oracle:47c4da9261be"
+      ]
+    },
+    "test/render/ui-text-field.render.test.mjs": {
+      "a decision id": [
+        "L24:1f7b58053bfb",
+        "T15:79704bf88c9d"
+      ],
+      "a spec section": [
+        "spec:4925a2acc079",
+        "spec:52c1299b75c0",
+        "spec:67f6d75e2936",
+        "spec:cc674f4af84e",
+        "spec:e45ec3723866",
+        "§4:30a25ae40e55"
+      ],
+      "another skin": [
+        "Slate:6928f9e76414"
+      ],
+      "the work, not the code": [
+        "the oracle:1e4083ad1717",
+        "the oracle:88f2441d3a9c"
+      ]
+    },
+    "test/render/ui-tile-grid.render.test.mjs": {
+      "the work, not the code": [
+        "Gate A:8db4ec4c3f5d",
+        "the oracle:564629087e98"
+      ]
+    },
+    "test/render/ui-time-picker.render.test.mjs": {
+      "a decision id": [
+        "O16:342757a07077",
+        "O16:43946c433c55"
+      ],
+      "a spec section": [
+        "Appendix 10:1db411d2eb61",
+        "§2.2:87acdc2c410f",
+        "§4.6:903390449a88"
+      ],
+      "another skin": [
+        "Slate:19ff0817810f",
+        "slate:579cac8b42f9"
+      ]
+    },
+    "test/render/ui-toast.render.test.mjs": {
+      "a spec section": [
+        "spec:6192ca902e0b",
+        "§2:6aebc6b9898e",
+        "§6:f5aa60bdc58e"
+      ],
+      "another skin": [
+        "Slate:02458d161377",
+        "Slate:06bf714b7b32",
+        "Slate:b824389b4171"
+      ]
+    },
+    "test/render/ui-wizard-column.render.test.mjs": {
+      "a decision id": [
+        "L24:d0e039e44628",
+        "T1:006a06d5eca1",
+        "T1:153d690c43a1",
+        "T1:2dbc06962262",
+        "T1:881f056b2a5c",
+        "T1:b84417f92a5a",
+        "T1:c57b92ca8008",
+        "T1:dc3b965816ec",
+        "T1:f9a2e0e249b5"
+      ],
+      "a spec section": [
+        "§3:adb624d31a3d"
+      ]
+    },
+    "test/screensaver-policy.test.mjs": {
+      "a decision id": [
+        "D10:804f568458ea"
+      ]
+    },
+    "test/settings-bespoke.test.mjs": {
+      "a decision id": [
+        "A3:0a60d22934de",
+        "A3:3c6d27443fcd",
+        "A3:f03ba5b79568",
+        "CB-15:279ee1fbc41b",
+        "D11:b0b8774d7d46",
+        "D7:c04c7c8a3dea",
+        "D9:30d533de790e",
+        "D9:d90a648b0412",
+        "DQ-610:6f923bb18a03",
+        "Q14:84ba7c41fbf7",
+        "T21:10ac095222e8"
+      ],
+      "a spec section": [
+        "§4.4:82c5a60a4943"
+      ],
+      "another skin": [
+        "Slate:3b85a5d61f22"
+      ]
+    },
+    "test/settings-contract.test.mjs": {
+      "a decision id": [
+        "A3:26f1ae882d41"
+      ],
+      "a spec section": [
+        "spec:462859d540c3",
+        "spec:ff11a6191e1f"
+      ],
+      "another skin": [
+        "the old skin:3dd01ac64626"
+      ]
+    },
+    "test/settings-leaves.test.mjs": {
+      "a decision id": [
+        "A3:38fff20f726e",
+        "A7:6e91bb8105fb",
+        "B2:624622c14866",
+        "B2:d41c0df990b5",
+        "B7:845460e7705e",
+        "C6:49194e458aaa",
+        "C6:6f21318b678a",
+        "C6:cbab25597e20",
+        "D11:10434297faa2",
+        "D11:a2a581e41379",
+        "D11:e1413a03d41c",
+        "D4:18e4d50a6f8c",
+        "D4:78eb4a04bb91",
+        "D4:e88f99768655",
+        "D5:b1ebe90ad392",
+        "D5:c72b1a770166",
+        "D6:50c62b41e58d",
+        "D8:4e1c9afd12c1",
+        "D8:a135c098cf16",
+        "D8:fa1b80a7f861",
+        "Q1:5ca69ad7fdcb",
+        "T13:55b61ebfb548",
+        "T13:63e01ae55dcd",
+        "T17:ee9aa97f7341",
+        "T1:43a6d5443334",
+        "T20:3ad963fa09ea",
+        "T7:0bc37cf8ab59",
+        "T7:845abc812bc5",
+        "T7:e15578ab802d",
+        "T7:fb829b0d4fcb"
+      ],
+      "a spec section": [
+        "spec:9597dec7dbb4",
+        "spec:fc56ffff3817",
+        "§5:5248130dc4ba"
+      ],
+      "another skin": [
+        "Slate:2a51e42e4928",
+        "Slate:2d8a5e0386f9",
+        "Slate:71f8aae5cc3a"
+      ]
+    },
+    "test/settings-nav.test.mjs": {
+      "a decision id": [
+        "T12:7a2d55cbb542",
+        "T12:c5a67a5111aa"
+      ],
+      "a spec section": [
+        "§4:02b2d7435855"
+      ]
+    },
+    "test/settings-routing.test.mjs": {
+      "a decision id": [
+        "A3:75682582695b",
+        "A9:7ec827940c1c"
+      ],
+      "another skin": [
+        "slate:3c8e104f4ef6",
+        "slate:d7407a988a21",
+        "the old skin:b123903e231d"
+      ]
+    },
+    "test/settings-skeleton.test.mjs": {
+      "a decision id": [
+        "C4:2c8932576d89",
+        "C4:9a9acce11c0c",
+        "C5:70fd5965543e",
+        "D11:6b7371e967db",
+        "T16:bfcb246cb09f",
+        "T18:643ba6ffd7ae",
+        "T2:b2dd199722b3",
+        "T4:29b54384c87a"
+      ],
+      "a spec section": [
+        "spec:1998e0c9c882",
+        "spec:b925485334ac",
+        "§11:21cb63bc21b8",
+        "§4:2ff9787be84c"
+      ]
+    },
+    "test/settings-store.test.mjs": {
+      "a decision id": [
+        "A3:93516c794f32",
+        "D7:4f864faf9ad7"
+      ]
+    },
+    "test/settings-stores.test.mjs": {
+      "a date": [
+        "26 Aug 2026:885d7b7eebf6"
+      ],
+      "a decision id": [
+        "B7:c37fc3e20677"
+      ],
+      "a spec section": [
+        "spec:1845cbd480f0"
+      ],
+      "another skin": [
+        "Slate:9fae6f4fdab2"
+      ]
+    },
+    "test/settings-zero-switch-memory.test.mjs": {
+      "a decision id": [
+        "D09:8faf7a1199dc",
+        "D09:a43884e22573",
+        "D09:fa6f35ede398"
+      ]
+    },
+    "test/shot-buffer.test.mjs": {
+      "a decision id": [
+        "B5:ba86164a73e4",
+        "B6:4307a6203ac3",
+        "B6:bb20a816a722"
+      ]
+    },
+    "test/shot-derivation.test.mjs": {
+      "a decision id": [
+        "A7:b44118a6edf5",
+        "B4:0f6d5e9344c7",
+        "B6:73cbb37d5c7f",
+        "B6:c4412da1fce6"
+      ],
+      "the work, not the code": [
+        "the corpus:2cfb378a957e"
+      ]
+    },
+    "test/shot-mirror.test.mjs": {
+      "a decision id": [
+        "A10:8a300cd1d8b9"
+      ]
+    },
+    "test/shot-source-selector.test.mjs": {
+      "a decision id": [
+        "B6:15f188390856"
+      ]
+    },
+    "test/shot-summary.test.mjs": {
+      "a decision id": [
+        "C13:2bfbd0298196",
+        "D2:de8212e4774b"
+      ],
+      "another skin": [
+        "Slate:55c354b894ef"
+      ]
+    },
+    "test/stale-key-fixtures.test.mjs": {
+      "a file not in this repo": [
+        "fused.js:3a65615648cc"
+      ]
+    },
+    "test/steam-chart.test.mjs": {
+      "another skin": [
+        "the old skin:ff38c8988146"
+      ]
+    },
+    "test/step-matrix-rows.test.mjs": {
+      "a decision id": [
+        "A7:07f77accd240",
+        "A7:d293f09583ab",
+        "B2:54ff66e333dc",
+        "B2:56f6bd8a6ee9",
+        "D2:c3eb269e1b8f"
+      ],
+      "another skin": [
+        "Slate:10f927a69f68",
+        "Slate:3351bdd72d50",
+        "Slate:65d3a3773475",
+        "Slate:77458b297f08",
+        "Slate:ad66d0ea7a19"
+      ],
+      "the work, not the code": [
+        "ORACLE:065e21906eb4",
+        "ORACLE:49fd76b49cb3",
+        "ORACLE:6699e0647258",
+        "ORACLE:6b40552c8e8f",
+        "ORACLE:ca83790d4b03"
+      ]
+    },
+    "test/storage-router.test.mjs": {
+      "another skin": [
+        "the old skin:b9f802802fb8"
+      ]
+    },
+    "test/storage-routes.test.mjs": {
+      "a decision id": [
+        "A9:9fe8c8ebfea2"
+      ],
+      "another skin": [
+        "the old skin:8be16bbbe5b8"
+      ]
+    },
+    "test/tank-volume.test.mjs": {
+      "another skin": [
+        "Slate:00a3aac962d6"
+      ]
+    },
+    "test/type-roles-gallery-entry.test.mjs": {
+      "a spec section": [
+        "§3.5:79a1f891f3c8"
+      ]
+    },
+    "test/ui-chart-card-gallery-entry.test.mjs": {
+      "a spec section": [
+        "spec:1d42006c4afc"
+      ]
+    },
+    "test/ui-chart-legend-gallery-entry.test.mjs": {
+      "a decision id": [
+        "C10:6bbe637850df"
+      ],
+      "a spec section": [
+        "spec:1d42006c4afc"
+      ]
+    },
+    "test/ui-data-grid-gallery-entry.test.mjs": {
+      "a spec section": [
+        "spec:04b555476f00"
+      ]
+    },
+    "test/ui-empty-state-gallery-entry.test.mjs": {
+      "a decision id": [
+        "T11:085282f83ee5",
+        "T11:368d57216c4a"
+      ],
+      "the work, not the code": [
+        "Gate C:7e257e876bd9"
+      ]
+    },
+    "test/ui-favourites-bank-gallery-entry.test.mjs": {
+      "a decision id": [
+        "L8:1794e420ee4a"
+      ]
+    },
+    "test/ui-locked-value-gallery-entry.test.mjs": {
+      "the work, not the code": [
+        "the oracle:9a1791c53d47"
+      ]
+    },
+    "test/ui-progress-track-gallery-entry.test.mjs": {
+      "a spec section": [
+        "spec:1d812a80e46e"
+      ]
+    },
+    "test/ui-rating-control-gallery-entry.test.mjs": {
+      "a decision id": [
+        "L4:63ba20b7e47a",
+        "L4:e2778db8feb3"
+      ],
+      "another skin": [
+        "Slate:25ceb64388dc",
+        "Slate:3274fd0c5945",
+        "Slate:71f4297c3096",
+        "Slate:f1941089569c"
+      ]
+    },
+    "test/ui-screensaver-tokens.test.mjs": {
+      "a decision id": [
+        "D10:366c02942077"
+      ]
+    },
+    "test/ui-settings-row-gallery-entry.test.mjs": {
+      "a decision id": [
+        "B3:35ff33147c19",
+        "B3:3de75250f406",
+        "T13:35528e2382d7",
+        "T13:649a93dc9b15"
+      ],
+      "a spec section": [
+        "spec:96de4102464f"
+      ],
+      "another skin": [
+        "Slate:a79b8135d1fe"
+      ]
+    },
+    "test/ui-sheet-gallery-entry.test.mjs": {
+      "a decision id": [
+        "O13:2d86918c39da"
+      ]
+    },
+    "test/ui-slider-thumb-parity.test.mjs": {
+      "a decision id": [
+        "T22:0ae4cee02606",
+        "T22:2750732ea8cf",
+        "T22:32cfd1434d8b",
+        "T22:38043d35305a",
+        "T22:811679e41e5a",
+        "T22:94676b243b84",
+        "T22:e2202f1cbaa2"
+      ],
+      "a spec section": [
+        "spec:228729947e91"
+      ],
+      "another skin": [
+        "Slate:5220febc3edb"
+      ]
+    },
+    "test/ui-tile-grid-gallery-entry.test.mjs": {
+      "another skin": [
+        "Slate:478f5dccecfc"
+      ]
+    },
+    "test/ui-wizard-column-gallery-entry.test.mjs": {
+      "a decision id": [
+        "T1:c42e41b2fca2"
+      ],
+      "another skin": [
+        "Slate:aa603e3a4743"
+      ]
+    },
+    "tools/gallery/entries.js": {
+      "the work, not the code": [
+        "Wave 0:0c972aa03cfe"
+      ]
+    },
+    "tools/gallery/entries/plot-surface.entry.js": {
+      "a spec section": [
+        "§3:bae04538c02b"
+      ],
+      "the work, not the code": [
+        "Gate 5:65c9e9beef7d",
+        "Gate B:3edad2f84a7d"
+      ]
+    },
+    "tools/gallery/entries/seams.entry.js": {
+      "a decision id": [
+        "C1:9c571e65b54f",
+        "C5:3613eb9b216a",
+        "C5:d1e6d883c488",
+        "Q3:5c16d9cfb672",
+        "T19:3da1d4208882",
+        "T19:b89266041453",
+        "T2:babd2795104a"
+      ],
+      "a spec section": [
+        "Appendix 2:2f3df0ec58f5",
+        "Appendix 2:a422de79e6ba",
+        "Appendix 8:b38a681e114a",
+        "spec:20073a839a6a",
+        "spec:4fbe0e6b9897",
+        "spec:60b651be91a0",
+        "spec:69459d0fe47c",
+        "§13.:f42a73c21b6a",
+        "§13:c2a9d0595304",
+        "§4.4:8e563405acd0"
+      ],
+      "another skin": [
+        "old sheet:def1569ab3b6",
+        "slate:08f6769b0c93",
+        "slate:2156f333cbd4",
+        "slate:2ea874daceba",
+        "slate:6be6197d5795",
+        "slate:7a44619d9540",
+        "slate:7a53db78cd51",
+        "slate:abe861007d26",
+        "slate:ba3ce75254db",
+        "slate:c8151ef54025",
+        "slate:d0ee50b14e2e",
+        "slate:d888c63109cf",
+        "slate:dae9df319c10",
+        "the reference skin:ab7eecd73ac6",
+        "the reference skin:f9c695b245c1"
+      ],
+      "the work, not the code": [
+        "the oracle:0a80676f5bb1",
+        "the oracle:615d1015e28b"
+      ]
+    },
+    "tools/gallery/entries/type-roles.entry.js": {
+      "a spec section": [
+        "spec:2d092d6f8cb7",
+        "§3.5:e3684add1fc1"
+      ],
+      "another skin": [
+        "the reference skin:4b2565810cab"
+      ]
+    },
+    "tools/gallery/entries/ui-action-key-rail.entry.js": {
+      "a decision id": [
+        "C7:df9780674ba9",
+        "L9:2c4d63845ff7"
+      ],
+      "a spec section": [
+        "spec:806d407167d6",
+        "spec:843db3a0970c",
+        "§13:ef8b72ddf5f6"
+      ],
+      "another skin": [
+        "the reference skin:234658aa6785",
+        "the reference skin:40ad30a0b9b0",
+        "the reference skin:41c9b18e6d34",
+        "the reference skin:4b7d09cf30c2",
+        "the reference skin:8a800ceb4f6c",
+        "the reference skin:bea1723e55bf",
+        "the reference skin:ccee683d85fb",
+        "the reference skin:f83eaf10d888"
+      ],
+      "the work, not the code": [
+        "Wave 4:5b7bc38c23fa",
+        "Wave 5:57842631e0f0",
+        "the corpus:3965067875bc",
+        "the oracle:ca833ff7aafa",
+        "the oracle:f5327041c737"
+      ]
+    },
+    "tools/gallery/entries/ui-alert-banner.entry.js": {
+      "a decision id": [
+        "B9:4100c6bc9db7"
+      ],
+      "a file not in this repo": [
+        "ui.js:6784e5a4063c"
+      ],
+      "a spec section": [
+        "spec:1b3ef4ecf2ad",
+        "spec:97509a9bd08d",
+        "spec:9c5c60bff9c9"
+      ],
+      "another skin": [
+        "slate:45e4096cf53f",
+        "the reference skin:0fc74f09bfe8",
+        "the reference skin:28fd1425ba04",
+        "the reference skin:9388e9d42849",
+        "the reference skin:960cfa9dc5f9",
+        "the reference skin:b4dcaf06d75e",
+        "the reference skin:dba1432945e3"
+      ],
+      "the work, not the code": [
+        "the oracle:9163ef769fb2"
+      ]
+    },
+    "tools/gallery/entries/ui-badge.entry.js": {
+      "a spec section": [
+        "spec:34ddd4f59044"
+      ],
+      "another skin": [
+        "slate:3874928daafa",
+        "the reference skin:5a542b4231f3",
+        "the reference skin:cc319cfa2a54"
+      ],
+      "the work, not the code": [
+        "wave 2:4e5380a51b0d"
+      ]
+    },
+    "tools/gallery/entries/ui-bank.entry.js": {
+      "a decision id": [
+        "L8:4e3280144df5",
+        "L8:b099f9e58f8b",
+        "L8:c86d476c1fc2"
+      ],
+      "a spec section": [
+        "spec:265d96c0edcd"
+      ],
+      "another skin": [
+        "Radian:70d4a3c1f138",
+        "slate:48f4c8266fc2",
+        "the reference skin:3de8f139f6fa",
+        "the reference skin:4d203ea9d056",
+        "the reference skin:769c50355952",
+        "the reference skin:d183a30be347"
+      ]
+    },
+    "tools/gallery/entries/ui-button.entry.js": {
+      "a decision id": [
+        "P8:f34b010e1da6"
+      ],
+      "a spec section": [
+        "spec:7be0086076d6",
+        "spec:99b4a50bf0c5",
+        "spec:a20df77f579a"
+      ],
+      "another skin": [
+        "slate:0e13c6859a8a",
+        "the reference skin:ab62b84d4972"
+      ]
+    },
+    "tools/gallery/entries/ui-card-grid.entry.js": {
+      "a decision id": [
+        "T14:e9df4ee979aa",
+        "T20:5e06b7d0a2e3"
+      ],
+      "a spec section": [
+        "Appendix 14:bfbeb967c6d4"
+      ],
+      "another skin": [
+        "Radian:b4335b882184",
+        "Radian:b4335b882184",
+        "Streamline:31295cbd73aa",
+        "Streamline:31295cbd73aa",
+        "Streamline:31295cbd73aa",
+        "Streamline:514456bca673",
+        "Streamline:a3a1b4dcecd6",
+        "Streamline:ea18adb5d139",
+        "the reference skin:0d37ce6db720",
+        "the reference skin:2af251da4779",
+        "the reference skin:2fd4f5de286f"
+      ],
+      "the work, not the code": [
+        "the oracle:415fe95ac05c"
+      ]
+    },
+    "tools/gallery/entries/ui-card.entry.js": {
+      "a decision id": [
+        "L24:4359539b353d"
+      ],
+      "a spec section": [
+        "spec:812b672368f4",
+        "spec:a84629630f42",
+        "spec:d4f1010101aa"
+      ],
+      "another skin": [
+        "the reference skin:4a8732238b29",
+        "the reference skin:b7173b2599b7",
+        "the reference skin:b790b33b5628"
+      ]
+    },
+    "tools/gallery/entries/ui-chart-card.entry.js": {
+      "a decision id": [
+        "A6:17e11e26d984",
+        "C10:b4e6d8db94e4",
+        "O3:42c26bba03e1"
+      ]
+    },
+    "tools/gallery/entries/ui-chart-legend.entry.js": {
+      "a decision id": [
+        "A6:8d3f2357293a",
+        "C10:3a8626e594da"
+      ],
+      "a spec section": [
+        "spec:1f4270c2f30f",
+        "spec:61f402698a8d",
+        "spec:8d57429e98bf",
+        "§6.1:3b5200f78980",
+        "§6.1:8d29f2cb219a"
+      ],
+      "another skin": [
+        "slate:a9f3438e597b",
+        "the reference skin:0ce3fa757a62"
+      ]
+    },
+    "tools/gallery/entries/ui-colour-swatch-row.entry.js": {
+      "a decision id": [
+        "A7:7562682a8998"
+      ],
+      "a file not in this repo": [
+        "settings.js:bfaf33dbc89e"
+      ],
+      "a spec section": [
+        "spec:67775e7811c8",
+        "spec:683dc4a5721e",
+        "spec:9135a8918b5a"
+      ],
+      "another skin": [
+        "Radian:490272c4fe21",
+        "Radian:4c848328ace2",
+        "slate:283fbf7e0503",
+        "slate:74517d13c667",
+        "slate:97acff1981d1",
+        "slate:9bc5e1ea8117",
+        "slate:a13b50d509c9",
+        "slate:dbf574eb4448",
+        "the reference skin:69f6fbdebe2e",
+        "the reference skin:c33f49d11e77",
+        "the reference skin:d5e069e36711"
+      ],
+      "the work, not the code": [
+        "Wave 4:11c8c0223696"
+      ]
+    },
+    "tools/gallery/entries/ui-compare-bar.entry.js": {
+      "a spec section": [
+        "spec:d307d8022298"
+      ],
+      "another skin": [
+        "the reference skin:b5c16ccd0e7d"
+      ],
+      "the work, not the code": [
+        "Gate 7:1760cc27adc5",
+        "the corpus:fd02630e9dc2",
+        "wave 5:7ed0673464ea"
+      ]
+    },
+    "tools/gallery/entries/ui-confirm-dialog.entry.js": {
+      "a decision id": [
+        "P8:92795f60519f",
+        "P8:f22471211fba"
+      ],
+      "a file not in this repo": [
+        "app.css:04215ededc9c"
+      ],
+      "another skin": [
+        "the reference skin:abb06fd3f1e8"
+      ],
+      "the work, not the code": [
+        "ORACLE:08df8c11f955",
+        "ORACLE:7a52e7c6cc07"
+      ]
+    },
+    "tools/gallery/entries/ui-data-grid.entry.js": {
+      "a decision id": [
+        "A7:9c802fed65d7",
+        "L20:5490653c6992"
+      ],
+      "a spec section": [
+        "spec:0ea8680a6111",
+        "spec:12fde96dcc28",
+        "spec:2ae613650922",
+        "§13:26f6eda76a20"
+      ],
+      "another skin": [
+        "the reference skin:39394956dd40"
+      ]
+    },
+    "tools/gallery/entries/ui-definition-card.entry.js": {
+      "a decision id": [
+        "A7:3b5fe35eebf9",
+        "A7:835b66593fb9",
+        "T2:9b550bff976c"
+      ],
+      "a spec section": [
+        "spec:4cdbd8b7f8e8",
+        "spec:b37f498a2d34",
+        "§13:cf5536cf20ee",
+        "§2.4:5529f87544a7",
+        "§2.4:7c7d93496401"
+      ],
+      "another skin": [
+        "slate:63e3b99beab8",
+        "slate:c079671346ff",
+        "the reference skin:2562a56bf9b9",
+        "the reference skin:2c6b7cd82ec2",
+        "the reference skin:35a6ec77fe22",
+        "the reference skin:7b93dc84a070"
+      ],
+      "the work, not the code": [
+        "the oracle:951f90f4140c"
+      ]
+    },
+    "tools/gallery/entries/ui-dialog.entry.js": {
+      "a decision id": [
+        "O13:ef7c38e8d3c0"
+      ],
+      "a spec section": [
+        "spec:3b788f36a839",
+        "§4.6:26f37b7c6779"
+      ]
+    },
+    "tools/gallery/entries/ui-empty-state.entry.js": {
+      "a decision id": [
+        "P21:1a09c912aa25",
+        "P21:9d7b0095bab3"
+      ],
+      "a file not in this repo": [
+        "settings.js:229f4d241cbc"
+      ],
+      "a spec section": [
+        "spec:210077bfd993",
+        "spec:274c2e4c2d3e"
+      ],
+      "another skin": [
+        "slate:192721df2307",
+        "the reference skin:1762b69eb4f3",
+        "the reference skin:539ca619d51e",
+        "the reference skin:8406f9d384e8",
+        "the reference skin:a70dc62ea94a"
+      ],
+      "the work, not the code": [
+        "provenance corpus:b11ce9703b0d",
+        "the oracle:f99f82452fac"
+      ]
+    },
+    "tools/gallery/entries/ui-exit-sentence.entry.js": {
+      "a decision id": [
+        "B2:cc8b82de7613",
+        "B9:c31b9f54a4ce",
+        "O5:68186d540d67",
+        "OQ-10:e7c2c5e72c02"
+      ],
+      "a spec section": [
+        "Appendix 9:4a0b5cc362d7",
+        "Appendix 9:9e5de83ba9c3",
+        "Appendix 9:e907ab8bfd01",
+        "§4:1bea003bd419"
+      ],
+      "another skin": [
+        "slate:09268064c5f5",
+        "slate:39fe47cf29d1",
+        "the reference skin:1cf8fe91678a",
+        "the reference skin:b9805c3906ae",
+        "the reference skin:f9f7af2f8a1c"
+      ],
+      "the work, not the code": [
+        "Wave 4:978592a47216",
+        "the oracle:c4c2b1818735"
+      ]
+    },
+    "tools/gallery/entries/ui-favourite-slot.entry.js": {
+      "a decision id": [
+        "L24:2f83817cd41a",
+        "L8:5be4d0420f4f",
+        "P4:45d2510694a7"
+      ],
+      "a document not in this repo": [
+        "SCOPE:f6f5655773e5"
+      ],
+      "a file not in this repo": [
+        "prov_query.py:4b574381d467"
+      ],
+      "a spec section": [
+        "Appendix 5:96ed554104a2",
+        "Appendix 5:e33298568971",
+        "spec:0f82e62df5ad",
+        "spec:f70b75c07db7"
+      ],
+      "another skin": [
+        "Radian:b5e5dc507e11",
+        "old sheet:252442dbceef",
+        "slate:b490923a3e4f",
+        "the reference skin:0446e3ad6ec3",
+        "the reference skin:470ba0c6eca4",
+        "the reference skin:9e353c45ed4c",
+        "the reference skin:cfeb7b96a404",
+        "the reference skin:da73df5f522d",
+        "the reference skin:ded5fc0ce3ee",
+        "the reference skin:fd6c58e1b9db"
+      ],
+      "the work, not the code": [
+        "the corpus:5535af832de8",
+        "the oracle:67e4c850b437"
+      ]
+    },
+    "tools/gallery/entries/ui-favourites-bank.entry.js": {
+      "a decision id": [
+        "L6:d555d62de006",
+        "L7:113aa34cce8b",
+        "L7:7a73e313dd29",
+        "L8:143bda117feb"
+      ],
+      "a spec section": [
+        "spec:6d255b2e3528",
+        "spec:d6b2989135ce",
+        "spec:e5538ae3f087"
+      ],
+      "another skin": [
+        "Radian:5cfe4dbdfe87",
+        "Radian:940d155cf49e",
+        "slate:9cb2db4ed173",
+        "slate:d7029d7be88f",
+        "the reference skin:13e4e9d6ba42",
+        "the reference skin:1428c0714f6c",
+        "the reference skin:64a3de7ced35",
+        "the reference skin:96833b9926cc",
+        "the reference skin:bc1624fe84dd"
+      ],
+      "the work, not the code": [
+        "Wave 4:1fef870aadd2",
+        "the audit:a4a70f07280c",
+        "the oracle:41fa02c1bc12"
+      ]
+    },
+    "tools/gallery/entries/ui-icon-button.entry.js": {
+      "a decision id": [
+        "L22:54507cfdb888",
+        "L24:b5492136b8ec",
+        "T9:476f03818235"
+      ],
+      "another skin": [
+        "the reference skin:21746dd635cb",
+        "the reference skin:3128c4b480bc",
+        "the reference skin:d0c4771b209e"
+      ],
+      "the work, not the code": [
+        "ORACLE:38012ef474d5",
+        "ORACLE:bf4064146515",
+        "Wave 1:0f18604857d4",
+        "the corpus:b95862157442"
+      ]
+    },
+    "tools/gallery/entries/ui-keycap.entry.js": {
+      "a decision id": [
+        "L22:30393be38613",
+        "L22:3b49da9472a4",
+        "L22:d341514194d9",
+        "L24:d3dbdb03c057"
+      ],
+      "a spec section": [
+        "spec:178a0c88adee",
+        "spec:87b20cbbd602",
+        "spec:9e3233ddeef0",
+        "spec:a0c315739738"
+      ],
+      "another skin": [
+        "old sheet:45eb4112b5bb",
+        "slate:6a153dc7c9e1",
+        "slate:ee34b7ed6dbc",
+        "the reference skin:29bbc350bac1",
+        "the reference skin:3cafb421cc4c",
+        "the reference skin:776dd312761f",
+        "the reference skin:9cedde8bde50",
+        "the reference skin:b4d301c17487",
+        "the reference skin:c75808d4f716"
+      ],
+      "the work, not the code": [
+        "Wave 4:1a4f59e33203",
+        "Wave 4:1f841e9f526e",
+        "Wave 4:557c870473b2",
+        "the oracle:3bea11cbd882",
+        "the oracle:7e1e9f9321f4"
+      ]
+    },
+    "tools/gallery/entries/ui-list-row.entry.js": {
+      "a date": [
+        "30 August 2026:da0dc30344b3"
+      ],
+      "a decision id": [
+        "D11:261468903d7e",
+        "P6:389f206f743d",
+        "T2:429f6f2bb82e"
+      ],
+      "a spec section": [
+        "§13:270e14f4008b"
+      ],
+      "another skin": [
+        "the reference skin:08024eb41265",
+        "the reference skin:163cafa0f6ae",
+        "the reference skin:2260e1688679"
+      ],
+      "the work, not the code": [
+        "the oracle:db68189d54ff"
+      ]
+    },
+    "tools/gallery/entries/ui-locked-value.entry.js": {
+      "a decision id": [
+        "L24:c4a8ae7bfd7b"
+      ],
+      "a document not in this repo": [
+        "SCOPE:0b88fa374ff6"
+      ],
+      "a spec section": [
+        "spec:8d63abb20c5f"
+      ],
+      "another skin": [
+        "slate:783da1c225d1",
+        "the reference skin:0029549a96a2",
+        "the reference skin:3e3c512c179b",
+        "the reference skin:882bd78605f8"
+      ]
+    },
+    "tools/gallery/entries/ui-menu.entry.js": {
+      "a decision id": [
+        "O11:110c479271f6",
+        "O11:672689ce5bfa",
+        "O2:83d0315c638b",
+        "O2:845c8857c79e"
+      ],
+      "another skin": [
+        "the reference skin:0c4d07cf4e77",
+        "the reference skin:ba9ebcfbe026",
+        "the reference skin:e33fbb8d6e3f"
+      ],
+      "the work, not the code": [
+        "Wave 3:b6290572c799"
+      ]
+    },
+    "tools/gallery/entries/ui-nav-row.entry.js": {
+      "a decision id": [
+        "C4:c7e56498374b",
+        "T2:0a7eefbd0e25",
+        "T2:91c143590d54",
+        "T3:01a5afa80af3"
+      ],
+      "a spec section": [
+        "§13:eb3abf89ba6e",
+        "§4:6e4e15de0f0a"
+      ],
+      "another skin": [
+        "slate:4795e95b4469",
+        "the reference skin:29b4066deb44",
+        "the reference skin:769bc0b373d4",
+        "the reference skin:bec667eda84a",
+        "the reference skin:d7d2a0a76506",
+        "the reference skin:dc7ea737d75c",
+        "the reference skin:f7a9abba5f76"
+      ],
+      "the work, not the code": [
+        "the oracle:abb6d3ddce3e"
+      ]
+    },
+    "tools/gallery/entries/ui-notes-editor.entry.js": {
+      "a decision id": [
+        "O11:26090c089bf9",
+        "T13:3959167ba52b"
+      ],
+      "a spec section": [
+        "§4:1670b8314303"
+      ],
+      "another skin": [
+        "old modal:5bd1fbb7af0e",
+        "old modal:cdc0942c8810",
+        "old modal:d677a570c225",
+        "old modal:f289ab12f029"
+      ]
+    },
+    "tools/gallery/entries/ui-numeric-keypad.entry.js": {
+      "a decision id": [
+        "A7:029cad496fbd",
+        "B2:70d0febd95a2",
+        "B3:30533b97a620",
+        "O9:2891644a2f82",
+        "O9:8bd8f1a29623"
+      ],
+      "a file not in this repo": [
+        "Skins.md:0c13ca6f56e2"
+      ],
+      "a spec section": [
+        "spec:140546633651"
+      ],
+      "another skin": [
+        "old modal:ec90f4776a29",
+        "the reference skin:181cd91d65f9",
+        "the reference skin:cc1a52cac989",
+        "the reference skin:e204da49355b",
+        "the reference skin:f1eba54c37ec"
+      ],
+      "the work, not the code": [
+        "ORACLE:9b3a85544e46",
+        "the oracle:dcaeab6b2e6c",
+        "the oracle:e6180ef0e790"
+      ]
+    },
+    "tools/gallery/entries/ui-page-header.entry.js": {
+      "a decision id": [
+        "D11:a15c1126e981",
+        "D11:c6a6ef96eac8",
+        "D11:f21ae980e9a6",
+        "L9:b33514586bf8",
+        "P17:52f916ae15ce",
+        "P17:d34f7c361087"
+      ],
+      "a file not in this repo": [
+        "settings.js:75caff28c796"
+      ],
+      "a spec section": [
+        "Appendix 12:e03141059a4b",
+        "Appendix 7:311765a9d5ba",
+        "spec:1d44748388da",
+        "spec:80b6bf2b3351",
+        "spec:cf8f91514c78",
+        "spec:efcba9a315de",
+        "§13:f8fbabc1fc45"
+      ],
+      "another skin": [
+        "slate:346f26cb8272",
+        "slate:37dc0433002a",
+        "slate:4697808352bc",
+        "slate:659908def635",
+        "slate:ae49bcc6dc56",
+        "slate:b714bbea52c1",
+        "the reference skin:f72cf45db788"
+      ],
+      "the work, not the code": [
+        "the corpus:5eb8c632d9e4",
+        "the oracle:d8f6190c1958"
+      ]
+    },
+    "tools/gallery/entries/ui-pick-disc.entry.js": {
+      "a document not in this repo": [
+        "SCOPE:a3d644df9da8"
+      ],
+      "a spec section": [
+        "§11:05cc0d17abf9"
+      ],
+      "another skin": [
+        "Radian:4c848328ace2",
+        "Radian:de7cab3ebd3d",
+        "slate:744fc9ec3038",
+        "the reference skin:18b7c632c718",
+        "the reference skin:628acf37af3c",
+        "the reference skin:8c6978e2917a",
+        "the reference skin:e764e4f20af8",
+        "the reference skin:e7ff5e0a4187"
+      ],
+      "the work, not the code": [
+        "the oracle:cfa47fb04575",
+        "this wave:723b4f886eb5"
+      ]
+    },
+    "tools/gallery/entries/ui-preset-bank.entry.js": {
+      "a decision id": [
+        "B2:180dff41928c"
+      ],
+      "a spec section": [
+        "spec:0f7f565f6285",
+        "spec:c4a327edf1c6"
+      ],
+      "another skin": [
+        "Radian:4c848328ace2",
+        "Radian:83452bd6dad6",
+        "slate:05c155a8398e",
+        "slate:2a20e87c18b9",
+        "slate:4d768d503eb1",
+        "the reference skin:853ca6827168",
+        "the reference skin:c937860b3ea2"
+      ],
+      "the work, not the code": [
+        "Wave 4:39992cb38648",
+        "the audit:5b28373414d9"
+      ]
+    },
+    "tools/gallery/entries/ui-progress-track.entry.js": {
+      "a decision id": [
+        "D4:6c3c3da7f2d5"
+      ],
+      "a file not in this repo": [
+        "prov_query.py:f03cf4f59f68",
+        "settings.js:1a712cdf5f2f",
+        "settings.js:fec37f52e539"
+      ],
+      "a spec section": [
+        "§12:8c2d7e6d3d6a",
+        "§2.1:5e3e0509256e"
+      ],
+      "another skin": [
+        "slate:05d8c7f9b259",
+        "the reference skin:9f4a155b32e4",
+        "the reference skin:cb7ab4b36a73"
+      ],
+      "the work, not the code": [
+        "Wave 1:7222b2642157",
+        "the oracle:2f22aaa5d26b"
+      ]
+    },
+    "tools/gallery/entries/ui-rating-control.entry.js": {
+      "a date": [
+        "29 Aug 2026:bf1ff8c7fd27"
+      ],
+      "a decision id": [
+        "L4:1578bc794b72",
+        "L4:b50563fe60d7"
+      ],
+      "a spec section": [
+        "spec:b881bdfc5c58"
+      ],
+      "another skin": [
+        "the reference skin:3b6778b46a45",
+        "the reference skin:8994240a1b14",
+        "the reference skin:98e7c9c943cd",
+        "the reference skin:a3f67c3425d6",
+        "the reference skin:b572e6853cd1"
+      ]
+    },
+    "tools/gallery/entries/ui-screensaver.entry.js": {
+      "another skin": [
+        "Slate:a794d0433532",
+        "Slate:d730866c034e",
+        "Slate:efac3185b3b3"
+      ]
+    },
+    "tools/gallery/entries/ui-search-field.entry.js": {
+      "a decision id": [
+        "T9:8989f66139b4"
+      ],
+      "a spec section": [
+        "spec:6b6edf236284",
+        "spec:a4d1e265ef4d"
+      ],
+      "another skin": [
+        "the reference skin:1686902a3af1",
+        "the reference skin:de415a0976ef"
+      ]
+    },
+    "tools/gallery/entries/ui-section-header.entry.js": {
+      "a spec section": [
+        "spec:ecde646c144c",
+        "§13:5fc194565967"
+      ],
+      "another skin": [
+        "the reference skin:29246387584b",
+        "the reference skin:769bc0b373d4"
+      ],
+      "the work, not the code": [
+        "wave 3:e2a6345a013a"
+      ]
+    },
+    "tools/gallery/entries/ui-select.entry.js": {
+      "a decision id": [
+        "T9:55d2aa788da7",
+        "T9:85493c584d95"
+      ],
+      "another skin": [
+        "the reference skin:bb2d4980a6d2"
+      ]
+    },
+    "tools/gallery/entries/ui-settings-row.entry.js": {
+      "a decision id": [
+        "A7:c9161d0a9a28",
+        "T13:bc9d822efcb2",
+        "T13:f94e9802f95e",
+        "T13:faaaaa72cb94",
+        "T9:920d7b4efbf2",
+        "T9:be1fae67426c"
+      ],
+      "a document not in this repo": [
+        "SCOPE:e3a9e3ea7ca9"
+      ],
+      "a file not in this repo": [
+        "settings.js:db504a70b0f1"
+      ],
+      "a spec section": [
+        "spec:5617096c9d0a",
+        "spec:d1c171833f42",
+        "§13:df0d17bffea9",
+        "§4.4:82237f97ae30"
+      ],
+      "another skin": [
+        "slate:03356c7bde07",
+        "slate:55ad5c8d6797",
+        "slate:c045ccf42e4b",
+        "the reference skin:64aa7a8bd83f",
+        "the reference skin:66d248fd74d1",
+        "the reference skin:b94e32df9562",
+        "the reference skin:f1df61af89d9"
+      ]
+    },
+    "tools/gallery/entries/ui-sheet-header.entry.js": {
+      "a decision id": [
+        "A10:1d5c61d29130",
+        "O13:56512e858146",
+        "O13:a64a2f4790cd",
+        "O1:0d70ab0886c9",
+        "T2:c7f27011573c"
+      ],
+      "a spec section": [
+        "spec:a0ad31c3120a",
+        "§4:d661c5126b45"
+      ],
+      "another skin": [
+        "old sheet:7d4d4dc67bae",
+        "old sheet:f141ff780560",
+        "slate:2410b1a91fe4",
+        "slate:259f91d0030e",
+        "slate:48b4e15869e5",
+        "slate:73a49fd78c56",
+        "slate:a28ae3802c3f",
+        "slate:cea35ae5c979",
+        "slate:f3ad39332fa2",
+        "the reference skin:1b200565ebe6",
+        "the reference skin:28f9d92a22f1"
+      ],
+      "the work, not the code": [
+        "ORACLE:982cf222fe02",
+        "the corpus:42df9174faf5",
+        "wave 3:ceeace712ccd"
+      ]
+    },
+    "tools/gallery/entries/ui-sheet.entry.js": {
+      "a file not in this repo": [
+        "settings.md:1ca1d3c233bb",
+        "settings.md:1feeed71d08a",
+        "settings.md:c63ec5bc18ad"
+      ],
+      "a spec section": [
+        "§2.1:4e867230171d",
+        "§4.6:784acd5441f3"
+      ],
+      "another skin": [
+        "old sheet:fe9e4a73748f",
+        "slate:0992683dc935",
+        "slate:cf950423fcff",
+        "slate:ed946322eb08",
+        "the reference skin:35e32b5e853e",
+        "the reference skin:55d97093b1ab",
+        "the reference skin:c264010864be"
+      ]
+    },
+    "tools/gallery/entries/ui-slider.entry.js": {
+      "a decision id": [
+        "T22:2ffc85b51532"
+      ],
+      "a spec section": [
+        "§2:88b2e4388582",
+        "§5:2b94b1d4e202"
+      ],
+      "another skin": [
+        "the reference skin:76762ca0ef0a",
+        "the reference skin:f82e1ca84bb1",
+        "the reference skin:fe1068facfbf"
+      ],
+      "the work, not the code": [
+        "the oracle:24d6c0b78595"
+      ]
+    },
+    "tools/gallery/entries/ui-stat-tile.entry.js": {
+      "a decision id": [
+        "L24:09f9a921232d",
+        "L2:116815516ebf",
+        "L2:4da6d3bdba36",
+        "L2:a037e15b15e1",
+        "L2:bd9e52188c5d"
+      ],
+      "a spec section": [
+        "spec:333338abda51",
+        "spec:b8b2a31ede19"
+      ],
+      "another skin": [
+        "slate:5a53541d4207",
+        "slate:608388eb20d0",
+        "slate:a321ef4c4c1c",
+        "slate:d8a819d544b5",
+        "slate:fa9f9c006332",
+        "the reference skin:0029549a96a2",
+        "the reference skin:618904703787",
+        "the reference skin:66b20fcdd1e2",
+        "the reference skin:8ef5a951b8f5",
+        "the reference skin:b996b444956a",
+        "the reference skin:e68c2aec9cf8"
+      ]
+    },
+    "tools/gallery/entries/ui-status-chip.entry.js": {
+      "a decision id": [
+        "L13:f86de04aee6b",
+        "L24:79ee110927ae"
+      ],
+      "a spec section": [
+        "Appendix 5:bfd9aadf54b2",
+        "§2.4:8051a8723679"
+      ],
+      "another skin": [
+        "old sheet:89bed8bcda21",
+        "slate:045291b498c8",
+        "slate:2329409235fe",
+        "slate:41ade2611a8a",
+        "slate:ec742bdfc3e0",
+        "the reference skin:3eac4c5144b8",
+        "the reference skin:d5df5d9f6145"
+      ],
+      "the work, not the code": [
+        "Wave 1:ace7413d0303",
+        "the oracle:bb032326aa1e"
+      ]
+    },
+    "tools/gallery/entries/ui-stepper.entry.js": {
+      "a decision id": [
+        "B2:305e70186a11",
+        "B2:e9001459b00f",
+        "C3:df0ba61f3c2d",
+        "C3:ef11c5b8306d",
+        "OQ-4:ac64f6035ca4"
+      ],
+      "another skin": [
+        "slate:bd963f7f645f",
+        "the reference skin:3386c9c07d38",
+        "the reference skin:43da828ae72e"
+      ],
+      "the work, not the code": [
+        "the oracle:27a3e86b4a78"
+      ]
+    },
+    "tools/gallery/entries/ui-stop-button.entry.js": {
+      "a decision id": [
+        "D2:9b9d977c534b",
+        "L11:f5f7afd2f3e6"
+      ],
+      "another skin": [
+        "old sheet:b05111d4d56e",
+        "slate:4ec8a36b672b",
+        "slate:7475cd178b47",
+        "slate:7d93b4dbd837",
+        "slate:aa106061e8e8",
+        "slate:cbf20a8e0770",
+        "slate:d25b4099e7b3",
+        "slate:d6c5d995c23e",
+        "the reference skin:07d04740eac4",
+        "the reference skin:1552fd034f38",
+        "the reference skin:703a41dda82d",
+        "the reference skin:f3eb85aa0489"
+      ],
+      "the work, not the code": [
+        "Wave 4:85da0c3797e5"
+      ]
+    },
+    "tools/gallery/entries/ui-subnav-row.entry.js": {
+      "a spec section": [
+        "spec:c4024ed501da"
+      ],
+      "another skin": [
+        "Slate:001a70c9ce16",
+        "Slate:199f61e7a0a0",
+        "Slate:3141d158c500",
+        "Slate:3772f54da7d5",
+        "Slate:6293e2190e76",
+        "Slate:75108ee33612",
+        "Slate:87e34c50baab",
+        "Slate:b9e557ce14fb",
+        "Slate:ca5ba50abe40",
+        "Slate:d33214d067f8",
+        "slate:0f43155db373"
+      ],
+      "the work, not the code": [
+        "the oracle:5a177f211423"
+      ]
+    },
+    "tools/gallery/entries/ui-switch.entry.js": {
+      "a decision id": [
+        "Q14:e328427aca27"
+      ],
+      "a file not in this repo": [
+        "prov_query.py:247bdfcfdb7d",
+        "settings.js:b84496f5063b"
+      ],
+      "a spec section": [
+        "spec:e60da8be9d50",
+        "§3.1:ddddb5f900cc",
+        "§3.4:32ec5fae2344"
+      ],
+      "another skin": [
+        "the reference skin:773ddc18165e",
+        "the reference skin:eb13803d0a00"
+      ],
+      "the work, not the code": [
+        "Wave 1:3f60e114842c",
+        "the oracle:d5878073c7f2"
+      ]
+    },
+    "tools/gallery/entries/ui-tab-bar.entry.js": {
+      "a decision id": [
+        "L23:2ba18292ba6b",
+        "L23:5731caa1392a",
+        "L23:f6b9e510e4a9",
+        "L8:14308ccdad7e"
+      ],
+      "a spec section": [
+        "Appendix 10:2660ab9af386",
+        "Appendix 10:496d508a3cf9",
+        "Appendix 7:775ae35fa9ec",
+        "spec:a1de0aa2c6b9",
+        "spec:d52d309aff49"
+      ],
+      "another skin": [
+        "slate:0acd292ec71f",
+        "slate:ab47e650f4b4",
+        "slate:b47c79110ecb",
+        "the reference skin:3c9c2d768f60",
+        "the reference skin:8dd0909b5478",
+        "the reference skin:c4d3b581f59d"
+      ],
+      "the work, not the code": [
+        "Wave 2:f2afba666892"
+      ]
+    },
+    "tools/gallery/entries/ui-text-field.entry.js": {
+      "a spec section": [
+        "spec:a4d1e265ef4d"
+      ],
+      "another skin": [
+        "slate:e4c0177a6999",
+        "the reference skin:1ae142645437",
+        "the reference skin:8aafe4d09086"
+      ],
+      "the work, not the code": [
+        "Wave 2:83c2287a4329"
+      ]
+    },
+    "tools/gallery/entries/ui-tile-grid.entry.js": {
+      "a file not in this repo": [
+        "settings.js:b7284e587eba"
+      ],
+      "a spec section": [
+        "spec:0186a72bdc10",
+        "spec:1b2e90356511",
+        "spec:26217a5d5fdf",
+        "spec:4ba4a08b34d2",
+        "spec:69a27dcd72f9",
+        "§2.4:515e070246fe",
+        "§3.3:8d9ab2e73eb0"
+      ],
+      "another skin": [
+        "the reference skin:7ac38a611cc5",
+        "the reference skin:b7f1f7407051",
+        "the reference skin:c9722f3de034"
+      ],
+      "the work, not the code": [
+        "ORACLE:b7f8b423e714"
+      ]
+    },
+    "tools/gallery/entries/ui-time-picker.entry.js": {
+      "a decision id": [
+        "A10:0f72c37ce208",
+        "A10:a122dadfc1a4",
+        "O16:1b7802a659ed",
+        "O16:c0419baa8b04"
+      ],
+      "a spec section": [
+        "spec:50d2411099f0",
+        "spec:ce3f65d2ffd7",
+        "§13:8554f80d991d",
+        "§2.2:6854579dd548"
+      ],
+      "another skin": [
+        "Radian:4c848328ace2",
+        "Radian:b3fbac2d15ec",
+        "old picker:db36f0247863",
+        "the reference skin:6e8004969766",
+        "the reference skin:b68ee0593567",
+        "the reference skin:d92b9a649a33"
+      ],
+      "the work, not the code": [
+        "Wave 4:6fc38e8f8985"
+      ]
+    },
+    "tools/gallery/entries/ui-toast.entry.js": {
+      "a date": [
+        "29 Aug 2026:ce4bb5bb3bb6"
+      ],
+      "a file not in this repo": [
+        "ui.js:202ef76c4c8f",
+        "ui.js:7dec4b733465"
+      ],
+      "a spec section": [
+        "spec:4142627c4e35",
+        "§2.4:04ce242fc633",
+        "§2:c3c064af511e",
+        "§3:672866fa6924"
+      ],
+      "another skin": [
+        "slate:7aa0cfb098c5",
+        "the reference skin:92d11b08db5a",
+        "the reference skin:d1ef9ed58b8b",
+        "the reference skin:dd17ef906793"
+      ],
+      "the work, not the code": [
+        "Wave 3:9ba6ff9e5535",
+        "the oracle:f3ac08871e8f"
+      ]
+    },
+    "tools/gallery/entries/ui-wizard-column.entry.js": {
+      "a decision id": [
+        "Q1:63c78021623a"
+      ],
+      "a spec section": [
+        "spec:7376dc1e4163",
+        "§4:1d3f10bc7813"
+      ],
+      "another skin": [
+        "slate:5783ddc34133",
+        "slate:9bf07dbf0e1e",
+        "the reference skin:b21f848f4c10",
+        "the reference skin:de9381be198a"
+      ],
+      "the work, not the code": [
+        "Wave 4:4545dc557a6a",
+        "the corpus:663ab7f1ff94"
+      ]
+    }
+  }
+}

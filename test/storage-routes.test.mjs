@@ -122,6 +122,10 @@ test('KV namespaces derive from the skin id and are the only two we own', () => 
     assert.match(STORAGE_ROUTES.dye2Recipes.owner, /dye2\.reaplugin/);
 });
 
+test('the skin id in the manifest is decal', () => {
+    assert.equal(JSON.parse(repoFile('skin-manifest.json')).id, 'decal');
+});
+
 test('identity: prefix, KV namespace and IDB name all follow the manifest id (A9/A10)', () => {
     const manifest = JSON.parse(repoFile('skin-manifest.json'));
     assert.equal(manifest.id, 'decal');

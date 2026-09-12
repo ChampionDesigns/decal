@@ -9,12 +9,21 @@
  * here rather than fixing the same class of thing by hand twice.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
-import { comments } from './lib/source-scan.js';
+import { comments, strings } from './lib/source-scan.js';
 
-/** The two scanners state the patterns, so neither may scan itself or the other. */
-const SELF = ['scripts/prose-scan.js', 'scripts/private-scan.js'];
+/**
+ * The two scanners state the patterns and the baseline records what they find, so none
+ * of the three may be scanned: each one quotes the text it exists to report.
+ */
+const BASELINE = 'tools/prose-baseline.json';
+const BASELINE_RULE = 'Every prose finding this tree already carries, so the gate passes on what is '
+    + 'here and fails on anything added. An entry is a file, a rule, the matched words, and a digest '
+    + 'of the unit holding them. The list may only shrink: rewrite it with --baseline after cleaning, '
+    + 'never to quieten something new.';
+const SELF = ['scripts/prose-scan.js', 'scripts/private-scan.js', BASELINE];
 
 /** Never read for prose: third-party code, binaries, and recorded server responses. */
 const SKIP = [/^vendor\//, /^fonts\//, /^tools\/rea-fixtures\//, /\.(png|woff2?|ttf|sha256)$/,
@@ -65,6 +74,25 @@ function notAPublicStandard() {
 
 const tracked = allTracked.filter((f) => !SELF.includes(f) && !SKIP.some((re) => re.test(f)));
 
+/**
+ * A string is prose only when it reads like a sentence. One line at a time, so a
+ * tagged template is a set of units rather than one unit the size of a stylesheet.
+ */
+const PROSE_MIN = 25;
+
+function jsStrings(source) {
+    const out = [];
+    for (const literal of strings(source)) {
+        literal.text.split('\n').forEach((raw, offset) => {
+            const text = raw.trim();
+            if (text.length >= PROSE_MIN && text.includes(' ')) {
+                out.push({ line: literal.line + offset, text });
+            }
+        });
+    }
+    return out;
+}
+
 /** Every unit of prose in one file, as {line, text}. */
 function prose(file) {
     let source = '';
@@ -74,7 +102,7 @@ function prose(file) {
         return [];
     }
     const lineAt = (index) => source.slice(0, index).split('\n').length;
-    if (/\.(js|mjs)$/.test(file)) return comments(source);
+    if (/\.(js|mjs)$/.test(file)) return [...comments(source), ...jsStrings(source)];
     if (/\.py$/.test(file)) {
         const out = source.split('\n')
             .map((l, i) => ({ line: i + 1, text: l.trim() }))
@@ -125,25 +153,100 @@ for (const file of tracked) {
     }
 }
 
-const only = process.argv[2];
-const shown = only ? findings.filter((f) => f.rule === only || f.file.startsWith(only)) : findings;
-for (const f of shown.slice(0, Number(process.env.PROSE_LIMIT ?? 40))) {
-    console.log(`  ${f.file}:${f.line}  [${f.rule}: ${f.match}]`);
-    console.log(`      ${f.text.replace(/\s+/g, ' ').trim().slice(0, 120)}`);
-}
-if (shown.length > Number(process.env.PROSE_LIMIT ?? 40)) {
-    console.log(`  … ${shown.length - Number(process.env.PROSE_LIMIT ?? 40)} more`);
+const flatten = (text) => text.replace(/\s+/g, ' ').trim();
+
+/** A file, a rule and a key all admit spaces, so the composite key may not. */
+const SEP = '\u0000';
+
+/**
+ * A finding's identity, which has to survive the lines around it moving: the matched
+ * words and a digest of the unit holding them, with whitespace collapsed. Reflowing a
+ * comment keeps its identity; rewording one does not.
+ */
+function key(finding) {
+    const digest = createHash('sha256').update(flatten(finding.text)).digest('hex').slice(0, 12);
+    return `${finding.match}:${digest}`;
 }
 
-const byRule = new Map();
-for (const f of findings) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
-if (findings.length) {
+function readBaseline() {
+    if (!existsSync(BASELINE)) return {};
+    return JSON.parse(readFileSync(BASELINE, 'utf8')).entries ?? {};
+}
+
+/** The findings as {file: {rule: [key]}}, every level sorted so a rewrite diffs small. */
+function buildBaseline(all) {
+    const entries = {};
+    for (const f of all) {
+        const byRule = entries[f.file] ?? (entries[f.file] = {});
+        (byRule[f.rule] ?? (byRule[f.rule] = [])).push(key(f));
+    }
+    const ordered = {};
+    for (const file of Object.keys(entries).sort()) {
+        ordered[file] = {};
+        for (const rule of Object.keys(entries[file]).sort()) ordered[file][rule] = entries[file][rule].sort();
+    }
+    return ordered;
+}
+
+const held = new Map();
+for (const [file, byRule] of Object.entries(readBaseline())) {
+    for (const [rule, keys] of Object.entries(byRule)) {
+        for (const k of keys) {
+            const id = [file, rule, k].join(SEP);
+            held.set(id, (held.get(id) ?? 0) + 1);
+        }
+    }
+}
+
+const fresh = [];
+for (const f of findings) {
+    const id = [f.file, f.rule, key(f)].join(SEP);
+    const left = held.get(id) ?? 0;
+    if (left > 0) held.set(id, left - 1);
+    else fresh.push(f);
+}
+const stale = [...held].filter(([, n]) => n > 0).map(([id, n]) => {
+    const [file, rule, k] = id.split(SEP);
+    return { file, rule, match: k.slice(0, k.lastIndexOf(':')), count: n };
+}).sort((a, b) => a.file.localeCompare(b.file));
+const staleCount = stale.reduce((n, s) => n + s.count, 0);
+
+const show = (mark, f) => {
+    console.log(`  ${mark}${f.file}:${f.line}  [${f.rule}: ${f.match}]`);
+    console.log(`      ${flatten(f.text).slice(0, 120)}`);
+};
+
+if (process.argv.includes('--baseline')) {
+    for (const f of fresh) show('+ ', f);
+    for (const s of stale) console.log(`  - ${s.file}  [${s.rule}: ${s.match}] ×${s.count}`);
+    writeFileSync(BASELINE, `${JSON.stringify({ _rule: BASELINE_RULE, entries: buildBaseline(findings) }, null, 2)}\n`);
+    console.log(`prose-scan: baseline rewritten — ${findings.length} recorded, ${fresh.length} added, ${staleCount} dropped`);
+    process.exit(0);
+}
+
+const only = process.argv.slice(2).find((a) => !a.startsWith('--'));
+const shown = only ? fresh.filter((f) => f.rule === only || f.file.startsWith(only)) : fresh;
+const limit = Number(process.env.PROSE_LIMIT ?? 40);
+for (const f of shown.slice(0, limit)) show('', f);
+if (shown.length > limit) console.log(`  … ${shown.length - limit} more`);
+for (const s of stale.slice(0, limit)) {
+    console.log(`  CLEANED  ${s.file}  [${s.rule}: ${s.match}] ×${s.count} — re-run with --baseline to drop it`);
+}
+
+if (fresh.length) {
+    const byRule = new Map();
+    for (const f of fresh) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
     console.log('');
     for (const [rule, n] of [...byRule].sort((a, b) => b[1] - a[1])) {
         console.log(`  ${String(n).padStart(5)}  ${rule}`);
     }
-    console.log(`  ${String(findings.length).padStart(5)}  TOTAL, in ${new Set(findings.map((f) => f.file)).size} files`);
-} else {
-    console.log('prose-scan: clean');
+    console.log(`  ${String(fresh.length).padStart(5)}  NEW, in ${new Set(fresh.map((f) => f.file)).size} files`);
 }
-process.exit(findings.length ? 1 : 0);
+
+const carried = findings.length - fresh.length;
+if (fresh.length || staleCount) {
+    console.log(`prose-scan: ${fresh.length} new, ${staleCount} cleaned, ${carried} carried by the baseline`);
+} else {
+    console.log(`prose-scan: clean — nothing new, ${carried} carried by the baseline`);
+}
+process.exit(fresh.length || staleCount ? 1 : 0);

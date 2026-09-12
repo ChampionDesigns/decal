@@ -8,6 +8,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { REA_ROOT } from '../scripts/lib/rea-source.js';
 import { stripComments } from '../scripts/lib/source-scan.js';
 
 import {
@@ -81,9 +82,9 @@ describe('an image says which machine it is for', () => {
     });
 
     test('and the REAL bundled DE1 images classify as DE1', (t) => {
-        const dir = join(REPO_ROOT, '..', '..', 'reaprime', 'assets', 'firmware', 'de1');
+        const dir = join(REA_ROOT, 'assets', 'firmware', 'de1');
         if (!existsSync(dir)) {
-            t.skip('no ReaPrime checkout beside this repo — the spec half of the suite still ran');
+            t.skip('REA_ROOT names no checkout — the synthetic-image half of the suite still ran');
             return;
         }
         const images = readdirSync(dir).filter((name) => name.endsWith('.bin'));

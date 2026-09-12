@@ -39,9 +39,15 @@ npm run gate-d # route coverage against the pinned ReaPrime
 npm run mock-contract # the mock answers what the fixtures record
 npm run gate-wire # every custom event has both an emitter and a listener
 npm run private-scan # no keys, home paths or absent-document citations
-npm run prose-scan # every comment is about the code, not about the work
+npm run prose-scan # every comment and prose string is about the code, not the work
 npm test # the suite
 ```
+
+`prose-scan` reads comments, docstrings and prose strings, test names and assertion
+messages included. What the tree already carries is recorded in `tools/prose-baseline.json`,
+so the check passes today and fails on anything added; rewrite that file with
+`node scripts/prose-scan.js --baseline` once a finding is cleaned, never to quieten a
+new one.
 
 `npm test` passes `--test-concurrency=4`. That cap is load-bearing: each render test
 drives its own headless Chrome, and without it the suite becomes its own load source
@@ -50,12 +56,12 @@ and fails at random.
 ### The ReaPrime source
 
 `gate-d` and `mock-contract` re-verify the route table against ReaPrime's own
-Dart handlers, and about 440 tests read the same source. Point `REA_ROOT` at a ReaPrime
+Dart handlers, and about 865 tests read the same source. Point `REA_ROOT` at a ReaPrime
 checkout at the pinned commit (`scripts/lib/rea-source.js` names it); the default is
 `../reaprime`.
 
-Without a checkout the suites skip and the three gates fail, saying which. The other three
-gates and the rest of the suite need nothing.
+Without a checkout those two gates fail and so do the tests that read the source; they do
+not skip. The other five gates and the rest of the suite need nothing.
 
 ## Licence
 
