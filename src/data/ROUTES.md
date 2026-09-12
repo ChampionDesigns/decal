@@ -6,7 +6,7 @@ it is knowledge worth deriving, because a copy has no way to notice when the fac
 
 | file | what it is |
 |---|---|
-| `rea-routes.generated.js` | **generated** — the complete documented surface: 143 REST rows over 101 paths, 13 socket channels. Do not edit. |
+| `rea-routes.generated.js` | **generated** — the complete documented surface: 155 REST rows over 112 paths, 13 socket channels. Do not edit. |
 | `rea-routes.js` | hand-written — lookup, spelling, and the five call helpers the stores actually call (each row names its consumer file, and a test reads that file for the call). Everything else in the table is reached with `callRoute`. |
 | `../../scripts/generate-rea-routes.js` | the generator, with the named exceptions. |
 | `../../scripts/lib/yaml-subset.js` | the YAML reader it stands on — a refusing subset, no npm. |
@@ -24,7 +24,7 @@ route ReaPrime does not document, and `gate-d`'s coverage half can say so mechan
 
 **The helper surface is not.** Exported call helpers exist only where a store
 CALLS one, and `HELPER_DEMAND` names both the item and the consumer FILE for each. Five
-helpers over 143 rows. The old skin had the opposite policy and paid for it: six exported
+helpers over 155 rows. The old skin had the opposite policy and paid for it: six exported
 wrappers with zero call sites, a 34-line socket connector nobody opens, and two wrappers for
 endpoints that exist nowhere in ReaPrime. A wrapper with no caller is not "ready" — it is
 unverified surface that reads like a promise.
