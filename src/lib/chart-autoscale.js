@@ -54,6 +54,20 @@ export function computeDampedYMax(seriesYs, prevYMax, { floor = 0, cap = Infinit
     return next;
 }
 
+export function comparisonTempBand(records, prefixes = ['']) {
+    const column = (key) => {
+        const out = [];
+        for (const prefix of prefixes) {
+            const ys = records?.[`${prefix}${key}`]?.y;
+            if (Array.isArray(ys)) out.push(...ys);
+        }
+        return out;
+    };
+    return computeTempRange(
+        column('targetTemp'), column('groupTemp'), column('mixTemp'), column('targetMixTemp'),
+    );
+}
+
 export function widenBand(held, next) {
     if (!Array.isArray(held) || held.length !== 2) return next;
     if (!Array.isArray(next) || next.length !== 2) return held;

@@ -6,7 +6,7 @@ import { css, html, nothing } from 'lit';
 
 import { UiElement, hitArea } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
-import { DASH_PATTERNS } from 'src/lib/chart-axis.js';
+import { DASH_PATTERNS, SERIES_LINE_CAP } from 'src/lib/chart-axis.js';
 import { channelNameFor, channelToken, readChartTokens, resolveChannels } from 'src/lib/chart-tokens.js';
 import { logger } from 'src/lib/logger.js';
 
@@ -93,7 +93,7 @@ export class UiChartLegend extends UiElement {
             stroke: var(--_ui-swatch-ink, currentColor);
             stroke-width: var(--ui-chart-stroke);
             stroke-dasharray: var(--_ui-swatch-dash, none);
-            stroke-linecap: butt;
+            stroke-linecap: var(--_ui-swatch-cap);
         }
 
         .chip[data-minor] .swatch line {
@@ -211,7 +211,7 @@ export class UiChartLegend extends UiElement {
                 data-key=${item.key}
                 ?data-minor=${item.minor}
                 aria-pressed=${visible ? 'true' : 'false'}
-                style=${`--_ui-swatch-ink: var(${channelToken(item.channel)});`
+                style=${`--_ui-swatch-cap: ${SERIES_LINE_CAP}; --_ui-swatch-ink: var(${channelToken(item.channel)});`
                     + (item.dash ? ` --_ui-swatch-dash: ${DASH_PATTERNS[item.dash].join(' ')};` : '')}
                 @click=${(event) => this.#onClick(event, item.key)}
             ><svg class="swatch" part="swatch" aria-hidden="true"
@@ -266,6 +266,11 @@ export class UiChartLegend extends UiElement {
         return root?.getElementById?.(chart) ?? null;
     }
 
+    /** Push the chip states onto the chart again, after the plot has been rebuilt. */
+    reapply() {
+        return this.#applyToChart();
+    }
+
     #applyToChart() {
         const chart = this.#chartElement;
         const handle = chart?.plotHandle;
@@ -273,11 +278,15 @@ export class UiChartLegend extends UiElement {
         if (!handle?.setSeriesVisible || !Array.isArray(channels)) return false;
         let applied = 0;
         for (const item of this.#items()) {
-            const index = channels.findIndex((c) => c.key === item.key
-                || channelNameFor(c.key) === item.channel);
-            if (index < 0) continue;
-            handle.setSeriesVisible(index, !this.#hidden.has(item.key));
-            applied += 1;
+            const visible = !this.#hidden.has(item.key);
+            for (let index = 0; index < channels.length; index += 1) {
+                const channel = channels[index];
+                const quantity = String(channel?.key ?? '').replace(/^b:/, '');
+                if (channel?.key !== item.key && channelNameFor(quantity) !== item.channel) continue;
+                if (handle.isSeriesVisible?.(index) === visible) { applied += 1; continue; }
+                handle.setSeriesVisible(index, visible);
+                applied += 1;
+            }
         }
         return applied > 0;
     }

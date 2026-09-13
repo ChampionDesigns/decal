@@ -388,7 +388,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const u = card.plotHandle.raw;
                 const read = (s, i) => ({
                     label: s.label,
-                    dash: s.dash ? [...s.dash] : null,
+                    dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null,
                     alpha: s.alpha,
                     cap: s.cap,
                     stroke: typeof s.stroke === 'function' ? s.stroke(u, i + 1) : s.stroke,

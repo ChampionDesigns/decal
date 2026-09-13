@@ -1728,8 +1728,7 @@
     "test/render/ui-chart-legend.render.test.mjs": {
       "a decision id": [
         "C10:28c45a546d37",
-        "C10:37bce955858e",
-        "C7:d6a363162ba4"
+        "C10:37bce955858e"
       ],
       "a spec section": [
         "§2.4:26079c332d64",

@@ -8,7 +8,11 @@ import { PlotSurfaceElement } from './plot-surface.js';
 import { channelNameFor, readChartTokens } from '../lib/chart-tokens.js';
 import { SERIES_KEYS, indexAtTime } from '../lib/shot-derivation.js';
 import { effectivePixelRatio, FIT_EVENT } from '../lib/app-fit.js';
-import { computeTempRange, widenBand } from '../lib/chart-autoscale.js';
+import { valueAtTime } from '../lib/chart-align.js';
+import {
+    DEFAULT_TEMP_UNIT, TEMP_UNIT, fromDisplayTemp, normaliseUnit, toDisplayTemp,
+} from '../lib/temperature.js';
+import { computeDampedYMax, computeTempRange, widenBand } from '../lib/chart-autoscale.js';
 
 export const DEFAULT_CHANNELS = Object.freeze([
     Object.freeze({ key: 'pressure' }),
@@ -19,6 +23,11 @@ export const DEFAULT_CHANNELS = Object.freeze([
     Object.freeze({ key: 'groupTemp', factor: 0.1 }),
     Object.freeze({ key: 'targetTemp', minor: true, dash: 'dash', factor: 0.1 }),
 ]);
+
+const TEMPERATURE_KEYS = Object.freeze(new Set([
+    'groupTemp', 'targetTemp', 'mixTemp', 'targetMixTemp',
+    'steamTemperature', 'milkTemperature',
+]));
 
 const EXTRA_TREATMENTS = Object.freeze([
     Object.freeze({ key: 'groupTemp' }),
@@ -70,6 +79,10 @@ export class UiChartCard extends PlotSurfaceElement {
         cursorPoints: { attribute: false },
 
         yPolicy: { type: String, attribute: 'y-policy' },
+
+        tempUnit: { type: String, attribute: 'temp-unit' },
+
+        yCap: { type: Number, attribute: 'y-cap' },
     };
 
     static styles = [
@@ -163,9 +176,15 @@ export class UiChartCard extends PlotSurfaceElement {
                 position: absolute;
                 inset: 0;
                 display: grid;
-                place-items: center;
+                align-items: center;
+                justify-items: stretch;
+                text-align: center;
                 pointer-events: none;
                 color: var(--ui-muted);
+            }
+
+            slot[name="empty"]::slotted(*) {
+                min-inline-size: 0;
             }
 
             .foot {
@@ -190,6 +209,10 @@ export class UiChartCard extends PlotSurfaceElement {
 
     #tempBandSamples = 0;
 
+    #cappedMax = null;
+
+    #cappedSamples = 0;
+
     #resizeObserver = null;
 
     #pointerBound = false;
@@ -210,11 +233,25 @@ export class UiChartCard extends PlotSurfaceElement {
         this.yRange = null;
         this.yAxis = null;
         this.yPolicy = 'damped';
+        this.yCap = null;
+        this.tempUnit = DEFAULT_TEMP_UNIT;
         this.cursorPoints = null;
     }
 
     /** `{ active, idx, t, values }` — the crosshair's current reading. Frozen. */
     get cursor() { return this.#cursor; }
+
+    /** Drive the crosshair to an instant on the shot clock, with no pointer involved. */
+    setInspectionTime(seconds) {
+        if (!Number.isFinite(seconds) || !this.#xs.length) this.#cursor = NO_CURSOR;
+        else {
+            const values = {};
+            for (const channel of this.channels) values[channel.key] = valueAtTime(this.#series?.[channel.key], seconds);
+            this.#cursor = Object.freeze({ active: true, idx: indexAtTime(this.#xs, seconds),
+                t: seconds, values: Object.freeze(values) });
+        }
+        this.#placeCursor();
+    }
 
     /** The channel specs actually handed to the plot, resolved from tokens. */
     get channelSpecs() { return this.#specs(); }
@@ -292,14 +329,24 @@ export class UiChartCard extends PlotSurfaceElement {
      */
     willUpdate(changed) {
         super.willUpdate?.(changed);
-        if (changed.has('derivation') || changed.has('channelKeys')) this.#applyDerivation();
+        if (changed.has('tempUnit')) {
+            this.#tempBandHeld = null;
+        }
+        if (changed.has('derivation') || changed.has('channelKeys') || changed.has('tempUnit')) {
+            this.#applyDerivation();
+        }
         if ((changed.has('y2') || changed.has('yRange') || changed.has('yAxis')) && this.plotHandle) this.rebuildPlot();
+    }
+
+    y2RangeFor() {
+        const range = this.y2?.range;
+        return typeof range === 'function' ? range() : null;
     }
 
     /** The right-hand axis the caller stated, in `createPlot`'s own shape. */
     y2ScaleSpec() {
         const spec = this.y2;
-        if (!spec || !Array.isArray(spec.range) || spec.range.length !== 2) return undefined;
+        if (!spec || !(typeof spec.range === 'function' || (Array.isArray(spec.range) && spec.range.length === 2))) return undefined;
         return { range: spec.range, format: spec.format };
     }
 
@@ -307,7 +354,7 @@ export class UiChartCard extends PlotSurfaceElement {
         const fixed = this.#fixedRange();
         const base = fixed
             ? { range: fixed }
-            : (this.yPolicy === 'temp' ? { range: computeTempRange([], [], [], []) } : super.yScaleSpec());
+            : { range: this.#openingRange() };
         const axis = this.yAxis;
         if (!axis) return base;
         return {
@@ -318,21 +365,45 @@ export class UiChartCard extends PlotSurfaceElement {
         };
     }
 
+    #openingRange() {
+        if (this.yPolicy === 'temp') {
+            return () => this.#tempBandHeld ?? this.#displayBand(computeTempRange([], [], [], []));
+        }
+        if (this.yPolicy === 'capped') return () => [0, this.#cappedMax ?? this.yFloor];
+        return super.yScaleSpec().range;
+    }
+
     yRangeFor(data) {
         const fixed = this.#fixedRange();
         if (fixed) return fixed;
         if (this.yPolicy === 'temp') return this.#tempBand(data);
+        if (this.yPolicy === 'capped') return this.#cappedCeiling(data);
         return super.yRangeFor(data);
     }
 
+    #cappedCeiling(data) {
+        const samples = Array.isArray(data?.[0]) ? data[0].length : 0;
+        if (samples < this.#cappedSamples) this.#cappedMax = null;
+        this.#cappedSamples = samples;
+        const cap = Number.isFinite(this.yCap) ? this.yCap : Infinity;
+        this.#cappedMax = computeDampedYMax(
+            this.leftScaleData(data), this.#cappedMax, { floor: this.yFloor, cap },
+        );
+        return [0, this.#cappedMax];
+    }
+
     #tempBand(data) {
+        const unit = this.#unit;
         const column = (key) => {
             const i = this.channels.findIndex((channel) => channel.key === key);
-            return i < 0 ? [] : (data[i + 1] ?? []);
+            const drawn = i < 0 ? [] : (data[i + 1] ?? []);
+            if (unit === TEMP_UNIT.CELSIUS) return drawn;
+            return drawn.map((v) => (typeof v === 'number' && Number.isFinite(v)
+                ? fromDisplayTemp(v, unit) : v));
         };
-        const next = computeTempRange(
+        const next = this.#displayBand(computeTempRange(
             column('targetTemp'), column('groupTemp'), column('mixTemp'), column('targetMixTemp'),
-        );
+        ));
 
         const samples = Array.isArray(data?.[0]) ? data[0].length : 0;
         if (samples < this.#tempBandSamples) this.#tempBandHeld = null;
@@ -367,11 +438,46 @@ export class UiChartCard extends PlotSurfaceElement {
         const specs = this.#specs();
         if (!sameSpecs(specs, this.channels)) this.setChannels(specs);
 
-        this.#series = ok ? derivation.series : {};
+        this.#series = this.#shown(ok ? derivation.series : {});
         this.#xs = ok && derivation.axis ? (derivation.axis.t ?? []) : [];
         this.setRecords(this.#series);
         this.#applyRules(derivation, ok);
         this.#placeCursor();
+    }
+
+    get #unit() {
+        return normaliseUnit(this.tempUnit) ?? DEFAULT_TEMP_UNIT;
+    }
+
+    #displayBand(celsius) {
+        const unit = this.#unit;
+        if (unit === TEMP_UNIT.CELSIUS) return celsius;
+        return celsius.map((c) => Math.round(toDisplayTemp(c, unit)));
+    }
+
+    /** Whether a channel is drawn in degrees, and so must be converted for display. */
+    #drawsDegrees(channel) {
+        if (!TEMPERATURE_KEYS.has(channel.key)) return false;
+        const factor = channel.factor;
+        return !(typeof factor === 'number' && Number.isFinite(factor) && factor !== 1);
+    }
+
+    #shown(records) {
+        const unit = this.#unit;
+        if (unit === TEMP_UNIT.CELSIUS) return records ?? {};
+        const out = { ...(records ?? {}) };
+        for (const channel of this.channels) {
+            if (!this.#drawsDegrees(channel)) continue;
+            const record = records?.[channel.key];
+            const ys = record?.y;
+            if (!Array.isArray(ys)) continue;
+            out[channel.key] = {
+                ...record,
+                y: ys.map((v) => (typeof v === 'number' && Number.isFinite(v)
+                    ? toDisplayTemp(v, unit) : v)),
+            };
+        }
+        return out;
     }
 
     setRuleSource(source) {
@@ -397,7 +503,7 @@ export class UiChartCard extends PlotSurfaceElement {
         for (const mark of derivation.stepMarks) {
             if (!Number.isFinite(mark.t)) continue;
             vertical.push({ x: mark.t, color: colour, width });
-            if (mark.name) labels.push({ x: mark.t, text: mark.name, color: ink });
+            if (mark.name) labels.push({ x: mark.t, text: mark.name, rotate: true, color: ink });
         }
         this.setRules({ vertical, labels });
     }
@@ -524,10 +630,10 @@ export class UiChartCard extends PlotSurfaceElement {
         const idx = indexAtTime(this.#xs, t);
         if (idx < 0) { this.#clearCursor(); return; }
 
+        const at = this.#xs[idx];
         const values = {};
         for (const channel of this.channels) {
-            const series = this.#series?.[channel.key];
-            values[channel.key] = series && idx < series.y.length ? series.y[idx] : null;
+            values[channel.key] = valueAtTime(this.#series?.[channel.key], at);
         }
         const previous = this.#cursor;
         this.#cursor = Object.freeze({

@@ -77,7 +77,7 @@ function stepLabelPlugin(state) {
                     if (!Number.isFinite(x)) continue;
                     ctx.save();
                     ctx.translate(x + 6 * dpr, u.bbox.top + 6 * dpr);
-                    ctx.rotate(Math.PI / 2);
+                    if (label.rotate !== false) ctx.rotate(Math.PI / 2);
                     ctx.textAlign = 'left';
                     if (state.labelPlate) {
                         const w = ctx.measureText(label.text).width;
@@ -101,7 +101,7 @@ function bandsPlugin(state) {
                 const specs = state.bands;
                 if (!specs || !specs.length) return;
                 const ctx = u.ctx;
-                const dpr = state.pixelRatio;
+                const dpr = uPlot.pxRatio;
                 ctx.save();
                 ctx.beginPath();
                 ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
@@ -132,6 +132,19 @@ function bandsPlugin(state) {
             },
         },
     };
+}
+
+function seriesDashPlugin(series) {
+    const patterns = series.map((spec) => dashPattern(spec.dash));
+    let previousRatio;
+    return { hooks: { drawClear: (plot) => {
+        const ratio = uPlot.pxRatio;
+        if (ratio === previousRatio) return;
+        previousRatio = ratio;
+        patterns.forEach((pattern, index) => {
+            plot.series[index + 1].dash = pattern?.map((length) => length * ratio);
+        });
+    } } };
 }
 
 function marksPlugin(state) {
@@ -330,7 +343,13 @@ export function createPlot(element, spec) {
             scale: 'y',
             size: spec.padding.left,
             side: 3,
-            ...(spec.yScale.splits ? { splits: () => spec.yScale.splits } : null),
+            ...(spec.yScale.splits
+                ? {
+                    splits: typeof spec.yScale.splits === 'function'
+                        ? spec.yScale.splits
+                        : () => spec.yScale.splits,
+                }
+                : null),
             values: (u, splits) => splits.map((v) => {
                 if (v === 0 && !spec.yScale.keepZeroLabel) return '';
                 return spec.yScale.format ? spec.yScale.format(v) : String(v);
@@ -359,7 +378,7 @@ export function createPlot(element, spec) {
         scales,
         axes,
         series: uSeries,
-        plugins: [bandsPlugin(state), marksPlugin(state), rulesPlugin(state),
+        plugins: [seriesDashPlugin(spec.series), bandsPlugin(state), marksPlugin(state), rulesPlugin(state),
             stepLabelPlugin(state), endLabelPlugin(state)],
     };
 

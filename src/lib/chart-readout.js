@@ -2,6 +2,7 @@
  * The NUMBERS a chart cursor puts on the card, and the one place they are turned into text.
  */
 
+import { valueAtTime } from './chart-align.js';
 import { scalarText } from './shot-summary.js';
 
 /**
@@ -36,7 +37,7 @@ export const CHANNEL_READOUT = Object.freeze({
     mixTemp: Object.freeze({ decimals: 1, unit: UNIT.CELSIUS }),
     targetTemp: Object.freeze({ decimals: 1, unit: UNIT.CELSIUS }),
     targetMixTemp: Object.freeze({ decimals: 1, unit: UNIT.CELSIUS }),
-    power: Object.freeze({ decimals: 0, unit: UNIT.WATTS }),
+    power: Object.freeze({ decimals: 1, unit: UNIT.WATTS }),
     resistance: Object.freeze({ decimals: 2, unit: UNIT.RESISTANCE }),
     impedance: Object.freeze({ decimals: 2, unit: UNIT.IMPEDANCE }),
 });
@@ -71,6 +72,12 @@ export function readoutValues(detail, keys, { hidden = [] } = {}) {
         const text = readoutValue(key, values[key]);
         if (text !== null) out[key] = text;
     }
+    return out;
+}
+
+export function valuesAtTime(records, keys, t) {
+    const out = {};
+    for (const key of keys ?? []) out[key] = valueAtTime(records?.[key], t);
     return out;
 }
 

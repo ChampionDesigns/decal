@@ -6,6 +6,7 @@ import { html, css, nothing } from 'lit';
 import { UiElement } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
 import 'src/components/ui-slider.js';
+import 'src/components/ui-text-field.js';
 import 'src/components/ui-button.js';
 import {
     ALIGNMENT_OFFSET_LIMIT_S,
@@ -15,6 +16,7 @@ import {
     alignmentOffsetAfterSlotChange,
     clampAlignmentOffset,
     formatAlignmentOffset,
+    parseAlignmentOffset,
 } from 'src/lib/alignment-offset.js';
 
 const DEFAULT_LABEL = 'Align B';
@@ -24,6 +26,15 @@ const DEFAULT_RESET_LABEL = 'Reset';
 class UiCompareBar extends UiElement {
     static properties = {
         offset: { type: Number },
+
+        _offsetDraft: { state: true },
+
+        _offsetInvalid: { state: true },
+
+        inputLabel: { type: String, attribute: 'input-label' },
+
+        errorLabel: { type: String, attribute: 'error-label' },
+
         /** Is there a second shot to slide? Reflected: it dims the caption. */
         hasComparison: { type: Boolean, attribute: 'has-comparison', reflect: true },
         hasTimeAxis: {
@@ -93,6 +104,8 @@ class UiCompareBar extends UiElement {
                 --_ui-hit-box: var(--_ui-compare-row);
             }
 
+            .readout[hidden] { display: none; }
+
             .readout {
                 flex: 0 0 auto;
                 min-inline-size: 84px;
@@ -100,6 +113,14 @@ class UiCompareBar extends UiElement {
                 font-size: var(--ui-text-base);
                 text-align: end;
             }
+
+            .entry { flex: 0 0 128px; min-inline-size: 0; }
+
+            .entry ui-text-field { inline-size: 100%; }
+
+            .entry .error { color: var(--ui-status-danger); font-size: var(--ui-text-xs); }
+
+            .bar:has(.error) { block-size: auto; }
 
             .reset {
                 flex: 0 0 auto;
@@ -121,6 +142,10 @@ class UiCompareBar extends UiElement {
     constructor() {
         super();
         this.offset = 0;
+        this._offsetDraft = null;
+        this._offsetInvalid = false;
+        this.inputLabel = 'Offset for shot B in seconds';
+        this.errorLabel = 'Enter a number from −5 to +5 seconds.';
         this.hasComparison = false;
         this.hasTimeAxis = true;
         this.available = true;
@@ -139,7 +164,11 @@ class UiCompareBar extends UiElement {
         });
     }
 
-    willUpdate() {
+    willUpdate(changed) {
+        if (changed.has('offset')) {
+            this._offsetDraft = null;
+            this._offsetInvalid = false;
+        }
         const clamped = clampAlignmentOffset(this.offset);
         if (clamped !== this.offset) this.offset = clamped;
         this.available = this.#state.available;
@@ -169,7 +198,33 @@ class UiCompareBar extends UiElement {
         this.#emit('slide');
     }
 
+    #onNumberInput(event) {
+        this._offsetDraft = event.currentTarget.value;
+        this._offsetInvalid = false;
+    }
+
+    #commitNumber = () => {
+        if (!this.hasComparison) return;
+        const next = parseAlignmentOffset(this._offsetDraft ?? this.offset.toFixed(1));
+        if (next === null) { this._offsetInvalid = true; return; }
+        this._offsetDraft = null;
+        this._offsetInvalid = false;
+        if (next === this.offset) return;
+        this.offset = next;
+        this.#emit('number');
+    };
+
+    #onNumberKey(event) {
+        if (event.key === 'Enter') { event.preventDefault(); this.#commitNumber(); }
+        if (event.key === 'Escape') {
+            event.preventDefault(); event.stopPropagation();
+            this._offsetDraft = null; this._offsetInvalid = false;
+        }
+    }
+
     #onReset() {
+        this._offsetDraft = null;
+        this._offsetInvalid = false;
         if (this.offset === 0) return;
         this.offset = 0;
         this.#emit('reset');
@@ -206,18 +261,23 @@ class UiCompareBar extends UiElement {
                         value-text=${text}
                         @input=${this.#onSlide}
                     ></ui-slider>
-                    <output
-                        id="readout"
-                        class="ui-numeric readout"
-                        part="readout"
-                        aria-hidden="true"
-                    >${text}</output>
+                    <output id="readout" class="ui-numeric readout" part="readout" aria-hidden="true" hidden>${text}</output>
+                    <div class="entry">
+                        <ui-text-field id="offset-input" class="ui-numeric"
+                            label=${this.inputLabel} hide-label inputmode="decimal" align="end"
+                            .value=${this._offsetDraft ?? this.offset.toFixed(1)}
+                            ?disabled=${state.sliderDisabled} ?invalid=${this._offsetInvalid}
+                            @input=${this.#onNumberInput} @change=${this.#commitNumber}
+                            @keydown=${this.#onNumberKey}
+                        ><span slot="trail">s</span></ui-text-field>
+                        ${this._offsetInvalid ? html`<span class="error" role="alert">${this.errorLabel}</span>` : nothing}
+                    </div>
                 </div>
                 <ui-button
                     id="reset"
                     class="reset"
                     part="reset"
-                    ?disabled=${state.resetDisabled}
+                    ?disabled=${state.resetDisabled && this._offsetDraft === null}
                     @click=${this.#onReset}
                 >${this.resetLabel}</ui-button>
             </div>

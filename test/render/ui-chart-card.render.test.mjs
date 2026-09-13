@@ -230,6 +230,101 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(frame['overflow-y'], 'visible');
         }));
 
+        const STEPPED_FEED = `(async () => {
+            const { deriveFromRecord } = await import('/src/lib/shot-derivation.js');
+            const base = Date.parse('2026-08-17T09:15:00.000Z');
+            const at = (ms) => new Date(base + ms).toISOString();
+            const plan = [[3, 0], [3, 0], [3, 0], [9, 1], [9, 1], [9, 1],
+                          [5, 2], [5, 2], [7, 3], [7, 3]];
+            const measurements = plan.map(([target, frame], i) => ({
+                machine: {
+                    timestamp: at(i * 1000),
+                    state: { state: 'espresso', substate: 'pouring' },
+                    flow: 2, pressure: target - 0.2,
+                    targetFlow: 2, targetPressure: target,
+                    mixTemperature: 90, groupTemperature: 92,
+                    targetMixTemperature: 92, targetGroupTemperature: 88,
+                    profileFrame: frame, steamTemperature: 140,
+                },
+                scale: {
+                    timestamp: at(i * 1000), weight: i, weightFlow: 1,
+                    battery: 80, timerValue: i * 1000,
+                },
+            }));
+            const el = document.getElementById('c');
+            await el.ready;
+            el.derivation = deriveFromRecord({ id: 'stepped', timestamp: at(0), measurements });
+            await el.updateComplete;
+            el.drawNow();
+            await new Promise((r) => requestAnimationFrame(r));
+            return {
+                ok: el.derivation.ok,
+                marks: el.derivation.stepMarks.map((m) => m.t),
+                axis: el.derivation.axis.t.length,
+                target: el.derivation.series.targetPressure.x.length,
+                hasPlot: Boolean(el.plotHandle),
+            };
+        })()`;
+
+        /** Where a second sits on screen, so the pointer can be put on it. */
+        const AT_SECOND = (t) => `(() => {
+            const el = document.getElementById('c');
+            const over = el.plotHandle.raw.over;
+            const rect = over.getBoundingClientRect();
+            return {
+                x: rect.left + el.plotHandle.raw.valToPos(${t}, 'x'),
+                y: rect.top + rect.height / 2,
+            };
+        })()`;
+
+        /** What the cursor SAYS beside what the canvas DRAWS, at the cursor's instant. */
+        const NAMED_AGAINST_DRAWN = `(() => {
+            const el = document.getElementById('c');
+            const raw = el.plotHandle.raw;
+            const xs = raw.data[0];
+            const t = el.cursor.t;
+            let slot = -1;
+            for (let i = 0; i < xs.length; i += 1) {
+                if (xs[i] <= t) slot = i; else break;
+            }
+            const drawn = {};
+            el.channels.forEach((channel, i) => {
+                const factor = typeof channel.factor === 'number' && channel.factor
+                    ? channel.factor : 1;
+                const v = raw.data[i + 1][slot];
+                drawn[channel.key] = typeof v === 'number' && Number.isFinite(v)
+                    ? v / factor : null;
+            });
+            return { t, idx: el.cursor.idx, named: { ...el.cursor.values }, drawn };
+        })()`;
+
+        test('AT AND AFTER EVERY BOUNDARY the cursor names the value the plot draws',
+            () => mounted(async (page) => {
+                const fed = await page.eval(STEPPED_FEED);
+                assert.equal(fed.ok, true, 'the stepped record must derive');
+                assert.deepEqual(fed.marks, [0, 3, 6, 8],
+                    'the record must actually step, or there is no boundary to stand on');
+                assert.ok(fed.target > fed.axis,
+                    'the target series must carry MORE points than the axis, or an index into '
+                    + `the axis would answer for it (axis ${fed.axis}, target ${fed.target})`);
+
+                const wrong = [];
+                for (const second of [2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9]) {
+                    const at = await page.eval(AT_SECOND(second));
+                    await page.mouse('mouseMoved', at.x, at.y);
+                    const read = await page.eval(NAMED_AGAINST_DRAWN);
+                    for (const [key, value] of Object.entries(read.drawn)) {
+                        const said = read.named[key] ?? null;
+                        const agree = value === null
+                            ? said === null
+                            : typeof said === 'number' && Math.abs(said - value) < 1e-6;
+                        if (!agree) wrong.push({ second, t: read.t, key, said, drawn: value });
+                    }
+                }
+                assert.deepEqual(wrong, [],
+                    `the cursor named a value the plot is not drawing: ${JSON.stringify(wrong)}`);
+            }));
+
         test('POINTER SWEEP: real CDP mouse moves drive the cursor across the shot', () => mounted(async (page) => {
             await feed(page);
             const host = await page.box('#c >>> .plot');

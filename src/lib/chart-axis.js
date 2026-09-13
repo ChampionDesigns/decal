@@ -40,6 +40,8 @@ export const DASH_PATTERNS = Object.freeze({
     dash: Object.freeze([9, 9]),
     longdash: Object.freeze([15, 15]),
     dashdot: Object.freeze([9, 3, 3, 3]),
+    'compare-target-a': Object.freeze([16, 10]),
+    'compare-target-b': Object.freeze([6, 8]),
 });
 
 export const SERIES_LINE_CAP = 'round';

@@ -285,6 +285,58 @@ describe('the editor preview names what it draws (F-032)', () => {
             assert.equal(after.foot, '', 'lifting the pointer clears it');
         }));
 
+    const FEED_THREE_STEPS = `(async () => {
+      const el = document.getElementById('p');
+      el.profile = {
+        title: 'Test', steps: [
+          { name: 'Preinfusion', pump: 'flow', flow: 4, seconds: 10 },
+          { name: 'Hold', pump: 'pressure', pressure: 9, seconds: 10 },
+          { name: 'Taper', pump: 'flow', flow: 2, seconds: 10 },
+        ],
+      };
+      await el.updateComplete;
+      const card = el.card;
+      await card.ready;
+      await el.updateComplete;
+      card.drawNow();
+      await new Promise((r) => requestAnimationFrame(r));
+      return { ok: el.derivation.ok, hasPlot: Boolean(card.plotHandle) };
+    })()`;
+
+    const PREVIEW_AT = (t) => `(() => {
+      const raw = document.getElementById('p').card.plotHandle.raw;
+      const rect = raw.over.getBoundingClientRect();
+      return { x: rect.left + raw.valToPos(${t}, 'x'), y: rect.top + rect.height / 2 };
+    })()`;
+
+    test('AT AND AFTER A TRANSITION the preview names the step it is standing in',
+        () => browser.withPage({ geometry: BENCH }, async (page) => {
+            await page.mount(previewStage, PREVIEW_MODULE);
+            const fed = await page.eval(FEED_THREE_STEPS);
+            assert.equal(fed.ok, true, 'the preview must derive its three steps');
+            assert.equal(fed.hasPlot, true);
+
+            /* Read against the cursor's own instant, not the second aimed at: a preview's
+               axis holds only the profile's ends, and a boundary opens the next step. */
+            const COMMANDED = { 0: 'Flow 4.0 mL/s', 10: 'Pressure 9.0 bar', 20: 'Flow 2.0 mL/s', 30: 'Flow 2.0 mL/s' };
+            const wrong = [];
+            const stood = [];
+            for (const second of [1, 5, 9.5, 10, 11, 15, 19.5, 20, 21, 25, 29]) {
+                const at = await page.eval(PREVIEW_AT(second));
+                await page.mouse('mouseMoved', at.x, at.y);
+                const read = await page.eval(READ_PREVIEW);
+                const said = read.foot.split('·')[0].trim();
+                stood.push(read.cursor.t);
+                const want = COMMANDED[read.cursor.t];
+                if (said !== want) wrong.push({ second, t: read.cursor.t, want, said });
+            }
+            assert.deepEqual(wrong, [],
+                `the preview named a step it is not standing in: ${JSON.stringify(wrong)}`);
+            assert.ok(stood.includes(10) && stood.includes(20),
+                `the sweep must stand on both transitions: ${JSON.stringify(stood)}`);
+            assert.deepEqual(page.pageErrors, []);
+        }));
+
     test('the preview\'s well is named too', () => onPreview(async (page) => {
         const attrs = await page.evalFn((s) => {
             const el = window.__h.need(s);

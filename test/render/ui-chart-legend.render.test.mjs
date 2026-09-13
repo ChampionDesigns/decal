@@ -260,12 +260,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and a solid series is solid');
         }));
 
-        test('the swatch is --ui-legend-swatch-w wide and butt-capped like the trace', () => mounted(async (page) => {
+        test('the swatch is --ui-legend-swatch-w wide and round-capped like the trace', () => mounted(async (page) => {
             const box = await page.box(`${chip('pressure')} .swatch`);
             near(box.width, 30, '/ styles/tokens.css:538 — 30px', 0.6);
-            assert.equal(await page.prop(swatchLine('pressure'), 'stroke-linecap'), 'butt',
-                'bug chart-C7: round caps exist only inside bandsPlugin, so every ordinary '
-                + 'series is butt-capped and the key must be too');
+            assert.equal(await page.prop(swatchLine('pressure'), 'stroke-linecap'), 'round',
+                'the key is capped the way the trace is, so a short dash reads the same in both');
             await assertTokenDrill(page, {
                 token: '--ui-legend-swatch-w',
                 value: DRILL_LENGTH,

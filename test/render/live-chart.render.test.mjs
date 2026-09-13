@@ -231,10 +231,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 for (let i = 0; i < axis.t.length; i += 1) {
                     if (Math.round(axis.t[i] * 1000) !== axis.stampMs[i] - axis.originMs) mismatched += 1;
                 }
+                const stamped = new Set(axis.t);
+                let repeated = 0;
+                let foreign = 0;
+                for (let i = 0; i < data.length; i += 1) {
+                    if (i > 0 && data[i] === data[i - 1]) repeated += 1;
+                    if (!stamped.has(data[i])) foreign += 1;
+                }
                 return {
                     originRule: axis.originRule,
                     points: axis.t.length,
                     plotted: data.length,
+                    repeated,
+                    foreign,
                     firstPlotted: data[0],
                     lastPlotted: data[data.length - 1],
                     lastT: axis.t[axis.t.length - 1],
@@ -251,7 +260,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'the origin is the machine\'s own first pouring sample, and the axis says which rule it used');
             assert.equal(got.mismatched, 0,
                 'every plotted t is its own arrival stamp minus the origin, to the millisecond');
-            assert.equal(got.plotted, got.points, 'and the plot draws exactly the stamped samples');
+            assert.equal(got.foreign, 0,
+                'every plotted x is a stamped arrival instant — nothing on this axis is invented');
+            assert.equal(got.plotted - got.repeated, got.points,
+                'and the plot draws exactly the stamped samples, plus the repeat each target '
+                + 'step needs to stroke its boundary vertically');
             assert.equal(got.unplaceable, 0);
             assert.ok(got.distinctGaps > 5,
                 `the transport jitter is still there (${got.distinctGaps} distinct intervals) — a `

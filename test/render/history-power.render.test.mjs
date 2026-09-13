@@ -148,7 +148,7 @@ const READ_DERIVED = `(() => {
     series: u.series.slice(1).map((s, i) => ({
       label: s.label,
       scale: s.scale,
-      dash: s.dash ? [...s.dash] : null,
+      dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null,
       alpha: s.alpha,
       width: s.width,
       stroke: typeof s.stroke === 'function' ? s.stroke(u, i + 1) : s.stroke,

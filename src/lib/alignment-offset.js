@@ -45,3 +45,12 @@ export function alignmentControlState({ offset = 0, hasComparison = false, hasTi
     });
 }
 
+
+/** Strict typed entry: invalid or out-of-range text never moves either shot. */
+export function parseAlignmentOffset(text) {
+    if (typeof text !== 'string' || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text.trim())) return null;
+    const value = Number(text.trim());
+    if (!Number.isFinite(value) || Math.abs(value) > ALIGNMENT_OFFSET_LIMIT_S) return null;
+    const rounded = Math.round(value / ALIGNMENT_OFFSET_STEP_S) * ALIGNMENT_OFFSET_STEP_S;
+    return Number(rounded.toFixed(1)) || 0;
+}

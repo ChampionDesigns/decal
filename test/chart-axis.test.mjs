@@ -83,9 +83,10 @@ describe('tickSplits — every tick on the ladder inside the range', () => {
 });
 
 describe('the dash table — one exported constant (§6.2)', () => {
-    test('the four named rhythms, measured from the old renderer\'s own SVG', () => {
+    test('the named dash rhythms, including the two a comparison uses', () => {
         assert.deepEqual({ ...DASH_PATTERNS }, {
             dot: [3, 3], dash: [9, 9], longdash: [15, 15], dashdot: [9, 3, 3, 3],
+            'compare-target-a': [16, 10], 'compare-target-b': [6, 8],
         });
     });
 

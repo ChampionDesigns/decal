@@ -28,8 +28,8 @@ export const STEAM_SESSION_STATES = Object.freeze([
 /* The purge only counts when the chart is already in steam: a purge reached from
  * anywhere else must not claim the canvas. */
 function stillSteaming(state, previousMode) {
-    if (state === MACHINE_STATE.STEAM) return true;
-    return state === MACHINE_STATE.AIR_PURGE && previousMode === CHART_MODE.STEAM;
+    if (!STEAM_SESSION_STATES.includes(state)) return false;
+    return state === MACHINE_STATE.STEAM || previousMode === CHART_MODE.STEAM;
 }
 
 /**
@@ -91,7 +91,7 @@ export const STEAM_Y2_CHANNELS = Object.freeze(['steamTemperature', 'milkTempera
 export const STEAM_CHANNEL_SPECS = Object.freeze(STEAM_CHANNELS.map((key) => Object.freeze({
     key,
     ...(STEAM_Y2_CHANNELS.includes(key) ? { scale: 'y2' } : null),
-    ...(key === 'targetFlow' ? { dash: true, minor: true } : null),
+    ...(key === 'targetFlow' ? { dash: 'dash', minor: true } : null),
 })));
 
 export function steamChannelSpecs({ milk = false } = {}) {
@@ -182,4 +182,11 @@ export const STEAM_MIN_X_RANGE = 4;
 export function steamRangeMaxForTime(time) {
     const t = Number.isFinite(time) && time > 0 ? time : 0;
     return Math.max(STEAM_MIN_X_RANGE, t);
+}
+
+/** The mode the steam chart should draw in: Steam only while the machine is steaming. */
+export function steamSessionMode(displayMode, state) {
+    if (displayMode !== CHART_MODE.STEAM) return displayMode;
+    if (state === null || state === undefined) return CHART_MODE.STEAM;
+    return state === MACHINE_STATE.STEAM ? CHART_MODE.STEAM : CHART_MODE.ESPRESSO;
 }

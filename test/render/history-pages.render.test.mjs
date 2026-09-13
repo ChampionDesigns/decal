@@ -493,7 +493,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const traces = {};
                 for (const s of u.series.slice(1)) {
                     if (String(s.label).startsWith('b:')) continue;
-                    traces[s.label] = { width: s.width, dash: s.dash ? [...s.dash] : null };
+                    traces[s.label] = { width: s.width,
+                        dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null };
                 }
                 const legend = el.renderRoot.querySelector('ui-chart-legend');
                 const chips = [...legend.renderRoot.querySelectorAll('.chip')].map((chip) => {

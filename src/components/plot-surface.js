@@ -439,6 +439,8 @@ export class PlotSurfaceElement extends UiElement {
     /** No right-hand axis by default. */
     y2ScaleSpec() { return undefined; }
 
+    y2RangeFor(_data) { return null; }
+
     cursorSpec() { return { show: false }; }
 
     #destroyPlot() {
@@ -454,6 +456,7 @@ export class PlotSurfaceElement extends UiElement {
         this.#applyFactors(data);
 
         const yRange = this.yRangeFor(data);
+        const y2Range = this.y2RangeFor(data);
 
         const xs = data[0] ?? [];
         const last = xs.length ? xs[xs.length - 1] : 0;
@@ -464,6 +467,7 @@ export class PlotSurfaceElement extends UiElement {
 
         plot.setData(data, this.#xRange);
         if (yRange) plot.setScale('y', yRange);
+        if (y2Range) plot.setScale('y2', y2Range);
         this.#paintCount += 1;
     }
 

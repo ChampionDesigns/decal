@@ -15,9 +15,10 @@ import {
     STEAM_MIN_FLOW, STEAM_GUARD_DELAY_MS, STEAM_PUFF_SUBSTATE,
     chartModeFor, initialChartMode, initialSteamGuard, isSteamFlowing, isSteamHoldActive,
     isSteamPouring, steamGuardFor, steamGuardRemainingMs, steamHoldRemainingMs,
-    steamRangeMaxForTime,
+    steamRangeMaxForTime, steamSessionMode,
 } from '../src/lib/steam-chart.js';
 import { createSteamBuffer, STEAM_SAMPLE_CAP } from '../src/stores/steam-buffer.js';
+import { MACHINE_SUBSTATES } from '../src/data/machine-state.js';
 import { AUTO_STOP, MANUAL_STOP } from './fixtures/steam-sessions.js';
 
 const frame = (state, substate, now) => ({ state, substate, now });
@@ -162,7 +163,7 @@ describe('the two axes are fixed, and the channels know which they are on', () =
         for (const key of ['pressure', 'flow', 'targetFlow']) {
             assert.equal(byKey[key].scale, undefined, `${key} stays on the left`);
         }
-        assert.equal(byKey.targetFlow.dash, true, 'a commanded value is dotted beside its actual');
+        assert.equal(byKey.targetFlow.dash, 'dash', 'a commanded value is dashed beside its actual');
     });
 
     test('the x axis glides with the data past a short floor', () => {
@@ -284,7 +285,7 @@ function replay(frames) {
         if (substate === STEAM_PUFF_SUBSTATE && puffFrom === null) puffFrom = ms;
         if (guard.shown && guardShownAt === null) guardShownAt = ms;
         buffer.take({
-            mode: mode.mode,
+            mode: steamSessionMode(mode.mode, 'steam'),
             pouring: substate === 'pouring',
             machine: { ok: true, flow, pressure: 1, targetFlow: 1.2, steamTemperature: 150 },
             at: ms,
@@ -355,6 +356,31 @@ describe('the flow rule, against the two recorded sessions', () => {
         at(4, 0.0); at(5, 0.0);
         assert.equal(buffer.get().counts.samples, 4, 'the tail after the last flow is not drawn');
     });
+
+    test('a session that ends on its dead tail does not leak it into the next one', () => {
+        const buffer = createSteamBuffer({});
+        let mode = initialChartMode();
+        const push = (ms, state, substate, flow) => {
+            mode = chartModeFor(mode, frame(state, substate, ms));
+            buffer.take({
+                mode: steamSessionMode(mode.mode, state),
+                pouring: state === 'steam' && substate === 'pouring',
+                machine: { ok: true, flow, pressure: 1, targetFlow: 1.2, steamTemperature: 150 },
+                at: ms,
+            });
+        };
+
+        for (let i = 0; i < 10; i += 1) push(1000 + i * 100, 'steam', 'pouring', 3.8);
+        for (let i = 10; i < 20; i += 1) push(1000 + i * 100, 'steam', 'pouring', 0.0);
+        assert.equal(buffer.get().counts.samples, 10, 'the tail is held rather than drawn');
+
+        push(3100, 'idle', 'idle', 0);
+        assert.equal(buffer.get().counts.samples, 10, 'the hold shows what the session drew');
+
+        for (let i = 0; i < 5; i += 1) push(3200 + i * 100, 'steam', 'pouring', 3.9);
+        assert.equal(buffer.get().counts.samples, 5, 'the second session stands alone');
+        assert.equal(buffer.get().axis.t[0], 0, 'on an axis that went back to zero');
+    });
 });
 
 describe('the puff guard', () => {
@@ -397,6 +423,16 @@ describe('the puff guard', () => {
         const guard = steamGuardFor(initialSteamGuard(),
             { state: 'idle', substate: STEAM_PUFF_SUBSTATE, now: 1000 });
         assert.equal(guard.armedAt, null);
+    });
+
+    test('a frame with no substate at all arms nothing', () => {
+        assert.equal(typeof STEAM_PUFF_SUBSTATE, 'string');
+        assert.ok(MACHINE_SUBSTATES.includes(STEAM_PUFF_SUBSTATE),
+            'the puff substate is one ReaPrime generates, never a hand-written name');
+        for (const substate of [null, undefined, '']) {
+            const guard = steamGuardFor(initialSteamGuard(), { state: 'steam', substate, now: 1000 });
+            assert.equal(guard.armedAt, null, String(substate));
+        }
     });
 
     test('the recorded automatic session shows it, ten seconds into its puff', () => {

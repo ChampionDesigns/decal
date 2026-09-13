@@ -24,8 +24,7 @@ describe('chart-readout', () => {
             assert.equal(readoutValue('pressure', 9.06), '9.1');
             assert.equal(readoutValue('pressure', 9.06, { withUnit: true }), '9.1 bar');
             assert.equal(readoutValue('flow', 2.049, { withUnit: true }), '2.0 mL/s');
-            /* Watts have no tenth: a tenth of a watt is noise on a 2 kW heater. */
-            assert.equal(readoutValue('power', 1234.6, { withUnit: true }), '1235 W');
+            assert.equal(readoutValue('power', 1.76, { withUnit: true }), '1.8 W');
             /* R and Z live between 0.01 and 10, so one decimal would round most of a
              * shot to the same number. */
             assert.equal(readoutValue('resistance', 0.4567, { withUnit: true }), '0.46 bar·s²/mL²');

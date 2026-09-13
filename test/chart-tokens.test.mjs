@@ -59,7 +59,7 @@ describe('the token names are written in exactly one place', () => {
 
 describe('freshness — every name this module states is DECLARED in a stylesheet', () => {
     test('every channel token is in chart-channels.css', () => {
-        const missing = CHANNELS.filter((name) => !CHANNEL_CSS.includes(`${channelToken(name)}:`));
+        const missing = [...CHANNELS, ...COMPARISON_CHANNELS].filter((name) => !CHANNEL_CSS.includes(`${channelToken(name)}:`));
         assert.deepEqual(missing, [],
             'a token with no declaration resolves to an empty string, which draws NOTHING — '
             + 'and an empty plot photographs exactly like a plot whose palette did not arrive');
