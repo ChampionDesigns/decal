@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import {
-    COMPARISON_ALPHA, COMPARISON_DASH, COMPARISON_KEY_PREFIX,
+    COMPARISON_KEY_PREFIX,
     DEFAULT_FLOW_PLOT, FLOW_PLOTS, FLOW_TEMP_CHANNELS, FLOW_TOP_CHANNELS,
     abChannelSpecs, abRecords, comparisonKey, isComparisonKey, legendItems, referenceSpecs,
     slotOfKey,
@@ -111,20 +111,23 @@ describe('the channel specs', () => {
         'and so does a plain object');
     });
 
-    test('B is the same hue, dashed and faded — and says so in three fields', () => {
-        const specs = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: true });
-        const b = specs.slice(FLOW_TOP_CHANNELS.length);
-        for (let i = 0; i < b.length; i += 1) {
-            const key = FLOW_TOP_CHANNELS[i];
-            assert.equal(b[i].key, comparisonKey(key), 'B has its own record key');
-            assert.equal(b[i].token, key, 'and A\'s channel token, which is the shared hue');
-            assert.equal(b[i].dash, COMPARISON_DASH, 'a dash NAMED in chart-axis.js\'s one table');
-            assert.equal(b[i].alpha, COMPARISON_ALPHA, 'and the fade Slate drew it with');
+    test('both shots keep measurements solid and targets dashed, with A underneath B', () => {
+        const keys = [...FLOW_TOP_CHANNELS, ...FLOW_TEMP_CHANNELS];
+        const specs = abChannelSpecs(keys, { hasComparison: true });
+        const a = specs.slice(0, keys.length), b = specs.slice(keys.length);
+        for (let i = 0; i < keys.length; i += 1) {
+            const target = keys[i].startsWith('target');
+            assert.equal(b[i].key, comparisonKey(keys[i]));
+            assert.equal(b[i].token, `compare-b-${a[i].token}`);
+            assert.equal(a[i].dash, target ? 'compare-target-a' : null);
+            assert.equal(b[i].dash, target ? 'compare-target-b' : null);
+            assert.equal(a[i].width, target ? 3.5 : 4.5);
+            assert.equal(b[i].width, target ? 1.05 : 1.35);
+            assert.equal(a[i].alpha, 1);
+            assert.equal(b[i].alpha, 1);
         }
-        assert.ok(COMPARISON_ALPHA > 0 && COMPARISON_ALPHA < 1,
-            'the fade is a real fade — stepRules() dropping opacity is the defect');
-        assert.equal(typeof COMPARISON_DASH, 'string',
-            'a dash NAME, never a pattern: the pattern lives in chart-axis.js and nowhere else');
+        assert.equal(a[0].token, a[1].token, 'A target keeps A measured colour');
+        assert.equal(b[0].token, b[1].token, 'B target keeps B measured colour');
     });
 
     test('the legend names A only', () => {

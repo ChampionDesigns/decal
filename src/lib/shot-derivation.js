@@ -370,10 +370,10 @@ export function createShotDerivationVisitor({ record = null } = {}) {
                 ? 'annotation'
                 : (finite(settledWeight) ? 'observed' : null);
 
-            const phaseRow = (from, to) => Object.freeze({
+            const phaseRow = (from, to, { startsAt = t[from], endsAt = t[to] } = {}) => Object.freeze({
                 fromIndex: from,
                 toIndex: to,
-                seconds: t[to] - t[from],
+                seconds: endsAt - startsAt,
                 weight: cumulativeAt(weightY, to),
                 volume: cumulativeAt(volumeY, to),
                 groupTemp: Object.freeze(minMaxOver(tempY, from, to)),
@@ -389,8 +389,13 @@ export function createShotDerivationVisitor({ record = null } = {}) {
                 }),
             });
 
-            const piRow = piEnd >= 0 ? phaseRow(0, piEnd) : null;
-            const extraction = exStart >= 0 ? phaseRow(exStart, last) : null;
+            const boundarySeconds = exStart >= 0 ? t[exStart] : null;
+            const piRow = piEnd >= 0
+                ? phaseRow(0, piEnd, boundarySeconds === null ? {} : { endsAt: boundarySeconds })
+                : null;
+            const extraction = exStart >= 0
+                ? phaseRow(exStart, last, { startsAt: boundarySeconds })
+                : null;
             const totalVolume = cumulativeAt(volumeY, last);
             const piVolume = piRow ? piRow.volume : null;
 

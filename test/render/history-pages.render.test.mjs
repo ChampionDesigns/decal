@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
 import { accessibleNames } from '../harness/editor.js';
-import { FLOW_PLOTS, COMPARISON_ALPHA } from '../../src/lib/history-series.js';
+import { FLOW_PLOTS } from '../../src/lib/history-series.js';
 import { HISTORY_COLUMNS } from '../../src/lib/shot-summary.js';
 
 const DRAWN_LIST_COLUMNS = HISTORY_COLUMNS.length + 1;
@@ -386,13 +386,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         test('a card that is given a new box brings its canvas with it', async () => {
-            await page.mount(pageStage(700), MODULES);
+            await page.mount(pageStage(900), MODULES);
             await page.eval(FEED_FLOW());
             await page.settle(6);
             const tall = await page.eval(READ_FLOW);
             assert.ok(tall.plots.temp.h > 100, 'staged with a real canvas');
 
-            await page.setStyle('#stage', { 'block-size': '560px' });
+            await page.setStyle('#stage', { 'block-size': '700px' });
             await page.settle(8);
             const short = await page.eval(READ_FLOW);
             assert.ok(short.shown.temp, 'the second card still paints at the smaller height');
@@ -401,7 +401,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(short.plots.temp.h < tall.plots.temp.h,
                 'and it is actually smaller — the observer ran, it did not merely survive');
 
-            await page.setStyle('#stage', { 'block-size': '700px' });
+            await page.setStyle('#stage', { 'block-size': '900px' });
             await page.settle(8);
             const back = await page.eval(READ_FLOW);
             assert.ok(back.plots.temp.h > short.plots.temp.h,
@@ -448,19 +448,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
             for (const trace of a) {
                 const mate = b.find((s) => s.label === `b:${trace.label}`);
                 assert.ok(mate, `${trace.label} has a comparison mate`);
-                assert.equal(mate.stroke, trace.stroke,
-                    `${trace.label}: SAME HUE — the comparison names the same channel token`);
-                assert.ok(Array.isArray(mate.dash) && mate.dash.length > 0,
-                    `${trace.label}: B is dashed`);
-                assert.equal(trace.alpha, 1, `${trace.label}: A is drawn at full opacity`);
-                assert.equal(mate.alpha, COMPARISON_ALPHA,
-                    `${trace.label}: and B keeps its fade — opacity is NOT flattened away`);
-                assert.notEqual(mate.alpha, trace.alpha,
-                    `${trace.label}: the pair is told apart on every channel`);
-                if (!trace.dash) {
-                    assert.notDeepEqual(mate.dash, trace.dash,
-                        `${trace.label}: A is solid here, so the dash tells them apart as well`);
-                }
+                assert.notEqual(mate.stroke, trace.stroke, 'A and B have separate shades');
+                assert.equal(trace.alpha, 1);
+                assert.equal(mate.alpha, 1);
+                const target = trace.label.startsWith('target');
+                assert.equal(Boolean(trace.dash?.length), target, 'only targets are dashed');
+                assert.equal(Boolean(mate.dash?.length), target, 'including B targets');
+                assert.equal(trace.width, target ? 3.5 : 4.5);
+                assert.equal(mate.width, target ? 1.05 : 1.35);
+                if (target) assert.notDeepEqual(trace.dash, mate.dash, 'target rhythms identify their shot');
             }
 
             const byKey = Object.fromEntries(a.map((s) => [s.label, s]));
@@ -473,8 +469,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(byKey.targetPressure.width < byKey.pressure.width,
                 `a target is the MINOR stroke (${byKey.targetPressure.width}) under the major `
                 + `one (${byKey.pressure.width}) — §3.8's two tokens, not one`);
-            assert.equal(byKey.weightFlow.width, byKey.targetPressure.width,
-                'and weight flow is minor as well, without a dash');
+            assert.equal(byKey.weightFlow.width, byKey.pressure.width,
+                'weight flow is measured and keeps the measured width');
             assert.equal(new Set(a.map((s) => s.width)).size, 2,
                 'exactly two weights across A — one was the defect');
 
@@ -486,6 +482,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.mount(pageStage(700), MODULES);
             await page.eval(FEED_FLOW());
             await page.settle(6);
+            await page.evalFn(async () => {
+                const el = document.querySelector('history-flow-page');
+                el.derivationB = null;
+                await el.updateComplete;
+            });
+            await page.settle(6);
 
             const measured = await page.evalFn(() => {
                 const el = document.querySelector('history-flow-page');
@@ -493,8 +495,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const traces = {};
                 for (const s of u.series.slice(1)) {
                     if (String(s.label).startsWith('b:')) continue;
-                    traces[s.label] = { width: s.width,
-                        dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null };
+                    traces[s.label] = { width: s.width, dash: s.dash ? s.dash.map(v => v / (u.ctx.canvas.width / u.width)) : null };
                 }
                 const legend = el.renderRoot.querySelector('ui-chart-legend');
                 const chips = [...legend.renderRoot.querySelectorAll('.chip')].map((chip) => {
@@ -516,7 +517,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(trace, `${chip.key}: the chip stands for a trace that is on the plot`);
                 assert.equal(chip.width, trace.width,
                     `${chip.key}: the swatch is drawn at the trace's own stroke width`);
-                assert.deepEqual(chip.dash, trace.dash,
+                assert.deepEqual(chip.dash, trace.dash?.map(v => Math.round(v * 100) / 100) ?? null,
                     `${chip.key}: and with the trace's own dash pattern`);
             }
             assert.equal(new Set(measured.chips.map((c) => c.width)).size, 2,
@@ -836,11 +837,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the compare bar shows on the flow page and is absent on the data page', async () => {
             await page.mount(screenStage(), MODULES);
             await page.settle(6);
-            await page.evalFn(async () => {
+            await page.evalFn(async (a, b) => {
                 const screen = document.querySelector('history-screen');
                 screen.comparing = true;
+                screen.shotA = a;
+                screen.shotB = b;
                 await screen.updateComplete;
-            });
+            }, 'shot-a', 'shot-b');
             await page.settle(2);
 
             const onFlow = await page.box('history-screen >>> #compare');

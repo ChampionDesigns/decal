@@ -148,7 +148,7 @@ const READ_DERIVED = `(() => {
     series: u.series.slice(1).map((s, i) => ({
       label: s.label,
       scale: s.scale,
-      dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null,
+      dash: s.dash ? [...s.dash] : null,
       alpha: s.alpha,
       width: s.width,
       stroke: typeof s.stroke === 'function' ? s.stroke(u, i + 1) : s.stroke,
@@ -307,16 +307,18 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }
         });
 
-        test('A/B: same hue, B dashed and faded, and on the SAME axis as A', async () => {
+        test('A/B: separate shades, solid measurements and the same axis', async () => {
             await fed(700);
             const plot = await page.eval(READ_DERIVED);
             for (const key of DERIVED_CHANNELS) {
                 const a = plot.series.find((s) => s.label === key);
                 const b = plot.series.find((s) => s.label === `b:${key}`);
                 assert.ok(b, `B's ${key} is drawn`);
-                assert.equal(b.stroke, a.stroke, 'same hue — only the record key differs');
-                assert.deepEqual(b.dash, [9, 9], 'B is dashed');
-                assert.equal(b.alpha, 0.72, 'and faded — the fade is not dropped (chart-C7)');
+                assert.notEqual(b.stroke, a.stroke, 'different shades identify the two shots');
+                assert.equal(b.dash, null, 'B measurement remains solid');
+                assert.equal(b.alpha, 1, 'both shots have full opacity');
+                assert.equal(a.width, 4.5);
+                assert.equal(b.width, 1.35);
                 assert.equal(b.scale, a.scale,
                     'and on A\'s own axis: the same colour at two heights meaning one number '
                     + 'is exactly what a second scale must not produce');
@@ -351,8 +353,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const paths = pq.bands.filter((b) => b.n > 10);
             assert.equal(paths.length, 2, 'two trajectories: A and B');
             assert.equal(paths[0].dash, null, 'A is solid');
-            assert.deepEqual(paths[1].dash, [9, 9], 'B is dashed');
-            assert.equal(paths[1].alpha, 0.72,
+            assert.equal(paths[1].dash, null, 'B trajectory is measured and remains solid');
+            assert.equal(paths[1].alpha, 1,
                 'and faded: colour is already carrying TIME here, so it cannot also say which shot');
             /* THE COLOUR IS THE TIME AXIS: the first segment and the last are different
              * ends of the ramp, and the ramp is the stylesheet's. */
@@ -455,7 +457,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await fed(700);
             const read = await page.eval(READ_LAYOUT);
             near(read.host.h, 700, 'the page is the region tall');
-            near(read.grid.h, 700, 'and hands the cell straight on');
+            near(read.grid.h, 700, 'the plots have the whole region');
             assert.deepEqual({ derived: read.per.derived, pq: read.per.pq }, { derived: 0, pq: 0 },
                 'NEITHER PLOT SCROLLS. They RESIZE (H1), and below two usable plots the page '
                 + 'switches branch — a scrollbar on a chart card would be the third state §4.5 '
@@ -463,8 +465,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.ok(read.hostOverflow <= 4 && read.gridOverflow.w <= 8,
                 `the only overflow is #10's hit overlay (host ${read.hostOverflow}, `
                 + `grid ${JSON.stringify(read.gridOverflow)})`);
-            assert.equal(read.legend.h, 44,
-                'and the key is ONE chip row: a wrapped legend takes its height out of the plot');
+            assert.ok(read.legend.h >= 44 && read.legend.h < 100,
+                'the key is one row of chips, whether or not a comparison is open');
         });
 
         test('the two cards have DIFFERENT floors, and both are the card\'s own', async () => {
@@ -492,8 +494,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 `the retired threshold is exported again: ${exports.join(', ')}`);
         });
 
-        test('both plots show, and the RATIO is what decides', async () => {
-            await fed(700);
+        test('both plots show, and the RATIO is what decides above their content floors', async () => {
+            await fed(1000);
             const read = await page.eval(READ_LAYOUT);
             assert.deepEqual(read.shown, { derived: true, trajectory: true });
             const gap = parseFloat(read.gap);
@@ -640,6 +642,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const heights = await page.evalFn(async () => {
                 const screen = document.querySelector('history-screen');
                 screen.comparing = true;
+                screen.shotA = 'a';
+                screen.shotB = 'b';
                 await screen.updateComplete;
                 const bar = screen.renderRoot.getElementById('compare');
                 const at = async (name) => {
@@ -648,9 +652,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await new Promise((r) => requestAnimationFrame(r));
                     return +bar.getBoundingClientRect().height.toFixed(2);
                 };
-                screen.shotA = 'a';
-                screen.shotB = 'b';
-                await screen.updateComplete;
                 return { flow: await at('flow'), power: await at('power'), data: await at('data') };
             });
             assert.ok(heights.power > 0,

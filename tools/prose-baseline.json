@@ -463,9 +463,6 @@
       ],
       "a spec section": [
         "§6.2:86fd724c145c"
-      ],
-      "another skin": [
-        "Slate:14ef7b0f0dd9"
       ]
     },
     "test/history-viewer.test.mjs": {
@@ -975,7 +972,6 @@
       "a decision id": [
         "A6:c33fe2149098",
         "A7:ff355efc38f4",
-        "C7:4c9be53a55d3",
         "Q16:4463d8b6d6de",
         "Q16:df69a185ac1b"
       ],

@@ -5,6 +5,7 @@
 import { ALIGNMENT_SLOT } from './alignment-offset.js';
 import { SERIES_KEYS, shiftSeriesX } from './shot-derivation.js';
 import { Y_FLOOR_EXPANDED } from './chart-autoscale.js';
+import { comparisonStyle } from './chart-comparison-style.js';
 
 export const COMPARISON_KEY_PREFIX = 'b:';
 
@@ -74,15 +75,13 @@ export function abChannelSpecs(channels, {
 } = {}) {
     const a = referenceSpecs(channels, treatments, { scales });
     if (!hasComparison) return a;
+    const styledA = a.map((spec) => ({ ...spec, ...comparisonStyle(spec.key, 'a') }));
     const b = a.map((spec) => ({
         ...spec,
+        ...comparisonStyle(spec.key, 'b'),
         key: comparisonKey(spec.key),
-        token: spec.key,
-        dash: COMPARISON_DASH,
-        alpha: COMPARISON_ALPHA,
-        minor: true,
     }));
-    return [...a, ...b];
+    return [...styledA, ...b];
 }
 
 export function abRecords(channels, { a = null, b = null, offset = 0 } = {}) {

@@ -203,7 +203,8 @@ describe('the History cursor readout', () => {
                 const read = READ('history-power-page', 'plot-pq');
                 const resting = await page.eval(read);
                 assert.equal(resting.hidden, true, 'no pointer, no mark');
-                assert.equal(resting.foot, '');
+                assert.match(resting.foot, /^Pressure \(bar\) ↑ · Flow \(mL\/s\) →/);
+                assert.match(resting.foot, /A wide.*B narrow; both measured/);
                 assert.ok(resting.footBox > 0,
                     'the reading strip reserves its height at rest, so text appearing on '
                     + 'pointerdown does not take it out of the plot under the finger');
@@ -220,12 +221,15 @@ describe('the History cursor readout', () => {
                     'a chart whose x is flow marks a POINT, not a vertical instant');
 
                 for (const r of readings) {
-                    const parts = r.foot.split('·').map((s) => s.trim());
-                    assert.equal(parts.length, 3,
-                        `pressure, flow and time — got ${JSON.stringify(r.foot)}`);
-                    assert.match(parts[0], /^Pressure \d+(\.\d+)? bar$/);
+                    const parts = r.foot.split('· A wide')[0].trim().split('·').map((s) => s.trim());
+                    assert.equal(parts.length, 6,
+                        `paired pressure, flow and time — got ${JSON.stringify(r.foot)}`);
+                    assert.match(parts[0], /^A Pressure \d+(\.\d+)? bar$/);
                     assert.match(parts[1], /^Flow \d+(\.\d+)? mL\/s$/);
                     assert.match(parts[2], /^\d+(\.\d+)? s$/);
+                    assert.match(parts[3], /^B Pressure \d+(\.\d+)? bar$/);
+                    assert.match(parts[4], /^Flow \d+(\.\d+)? mL\/s$/);
+                    assert.match(parts[5], /^\d+(\.\d+)? s$/);
                 }
 
                 const idxs = readings.map((r) => r.cursor.idx);

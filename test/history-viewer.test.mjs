@@ -328,12 +328,11 @@ describe('a new pair starts aligned', () => {
         assert.equal(viewer.hasComparison, false);
     });
 
-    test('marking a disc changes no shot, so it changes no offset', () => {
+    test('there is no slot mark to set — the header discs are tags', () => {
         const { viewer } = stage();
-        viewer.setOffset(3);
-        viewer.setActiveSlot(ALIGNMENT_SLOT.MOVING);
-        assert.equal(viewer.activeSlot, ALIGNMENT_SLOT.MOVING);
-        assert.equal(viewer.offset, 3, 'a glance at the other picker is not a new pair');
+        assert.equal(typeof viewer.setActiveSlot, 'undefined',
+            'a marking method with no consumer');
+        assert.equal('activeSlot' in viewer, false);
     });
 });
 
@@ -509,29 +508,45 @@ describe('both shots\' step boundaries, and B\'s move', () => {
 
 /* ═══════════════════════════════════════════ the A/B convention through the port */
 
-describe('A solid, B dashed, same hue, out of the legend', () => {
+describe('A/B shades and weights identify both measured and target roles', () => {
     test('one B spec for every A spec, and they line up channel for channel', () => {
         const specs = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: true });
         assert.equal(specs.length, FLOW_TOP_CHANNELS.length * 2);
         const half = FLOW_TOP_CHANNELS.length;
         for (let i = 0; i < half; i += 1) {
-            assert.equal(specs[i].key, FLOW_TOP_CHANNELS[i]);
-            assert.equal(specs[half + i].token, FLOW_TOP_CHANNELS[i], 'the pair shares a hue');
-            assert.equal(specs[half + i].dash, COMPARISON_DASH);
-            assert.equal(specs[half + i].alpha, COMPARISON_ALPHA);
+            const key = FLOW_TOP_CHANNELS[i], a = specs[i], b = specs[half + i];
+            const target = key.startsWith('target');
+            assert.equal(a.key, key);
+            assert.equal(b.key, `b:${key}`, 'B follows A in draw order with its own data key');
+            assert.equal(b.token, `compare-b-${a.token}`, 'B uses its theme-specific shade');
+            assert.equal(a.dash, target ? 'compare-target-a' : null);
+            assert.equal(b.dash, target ? 'compare-target-b' : null);
+            assert.equal(a.width, target ? 3.5 : 4.5);
+            assert.equal(b.width, target ? 1.05 : 1.35);
+            assert.equal(a.alpha, 1);
+            assert.equal(b.alpha, 1);
         }
     });
 
-    test('the shared-hue token and the fade are B\'s alone, and A keeps the table\'s treatment', () => {
+    test('comparison targets share their shot\'s measured shade; single-shot treatment stays intact', () => {
         const treatments = [{ key: 'targetPressure', minor: true, dash: 'dash' }];
-        const specs = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: true, treatments });
-        for (const spec of specs.slice(0, FLOW_TOP_CHANNELS.length)) {
-            assert.equal(spec.token, undefined, 'A draws under its own key, so it names no token');
-            assert.equal(spec.alpha, undefined, 'and A is not the faded one');
+        const single = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: false, treatments });
+        for (const spec of single) {
+            assert.equal(spec.token, undefined, 'single-shot colours retain their normal channel tokens');
+            assert.equal(spec.alpha, undefined, 'single-shot opacity keeps its normal default');
         }
-        const target = specs.find((spec) => spec.key === 'targetPressure');
-        assert.equal(target.minor, true, 'A\'s target carries the table\'s minor stroke');
-        assert.equal(target.dash, 'dash', 'and the table\'s dash — what Live draws it with');
+        const singleTarget = single.find((spec) => spec.key === 'targetPressure');
+        assert.equal(singleTarget.minor, true);
+        assert.equal(singleTarget.dash, 'dash', 'single-shot targets retain the standard dash');
+        const specs = abChannelSpecs(FLOW_TOP_CHANNELS, { hasComparison: true, treatments });
+        const byKey = Object.fromEntries(specs.map((spec) => [spec.key, spec]));
+        for (const prefix of ['', 'b:']) {
+            assert.equal(byKey[`${prefix}targetPressure`].token, byKey[`${prefix}pressure`].token,
+                'measured and target share one shade within each shot');
+            assert.equal(byKey[`${prefix}targetFlow`].token, byKey[`${prefix}flow`].token);
+        }
+        assert.equal(byKey.pressure.token, 'pressure', 'A retains the standard measured anchor');
+        assert.equal(byKey['b:pressure'].token, 'compare-b-pressure');
     });
 
     test('the compare-path record map partitions exactly into the two slots', () => {

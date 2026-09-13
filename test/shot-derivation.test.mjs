@@ -235,6 +235,29 @@ describe('the phase table and the settled-weight rule', () => {
         assert.equal(phases.preinfusion.volume + phases.extraction.volume, phases.total.volume);
     });
 
+    test('preinfusion + extraction === total in SECONDS, on regular AND sparse samples', () => {
+        for (const step of [0.25, 1]) {
+            const ms = step * 1000;
+            const rows = [];
+            for (let t = 0; t < 2000; t += ms) {
+                rows.push(sample(t, {
+                    substate: 'preinfusion', pressure: 2, flow: 0.1, weight: 0, frame: 0, volume: 0,
+                }));
+            }
+            for (let t = 2000; t <= 5000; t += ms) {
+                rows.push(sample(t, {
+                    substate: 'pouring', pressure: 8, flow: 2, weight: 10, frame: 1, volume: 10,
+                }));
+            }
+            const spaced = deriveFromRecord({ ...RECORD, measurements: rows });
+            const parts = spaced.phases.preinfusion.seconds + spaced.phases.extraction.seconds;
+            assert.ok(Math.abs(parts - spaced.phases.total.seconds) < 1e-9,
+                `at ${step}s spacing the parts (${spaced.phases.preinfusion.seconds} + `
+                + `${spaced.phases.extraction.seconds}) must equal the total `
+                + `(${spaced.phases.total.seconds})`);
+        }
+    });
+
     test('a phase reports start / peak / end for the two instantaneous channels', () => {
         assert.deepEqual(phases.extraction.pressure, { start: 9, peak: 9, end: 2 });
         assert.deepEqual(phases.extraction.flow, { start: 2.4, peak: 2.4, end: 0.1 });
@@ -463,7 +486,7 @@ describe('THE ONE DERIVATION: the buffer path and the record path agree', () => 
         assert.deepEqual(live.stepMarks, stored.stepMarks);
     });
 
-    test('the two paths report their decision differently, and that is the point', () => {
+    test('the two paths report their SOURCE decision differently, and that is the point', () => {
         const buffer = createShotBuffer({
             chooseSources: ({ sample }) => chooseSources(readStoredMeasurement(sample)),
         });

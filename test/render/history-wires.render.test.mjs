@@ -161,48 +161,29 @@ describe('the History screen\'s wires', () => {
                 'the reason on the wire that DOES fire is what performs the reset');
         }));
 
-    test('picking a disc still switches the slot, and announces nothing (F-012)',
+    test('the header disc is a TAG — no button, no tab stop, no state',
         () => armed(async (page) => {
             const got = await page.eval(`(async () => {
-              const { HistoryViewer } = await import('/src/lib/history-viewer.js');
               const screen = document.querySelector('history-screen');
               screen.comparing = true;
               await screen.updateComplete;
-              /* The one thing the method is FOR: telling the viewer which slot is in
-               * force. Spied on the prototype so the real work still happens. */
-              const seenSlots = [];
-              const realSetActive = HistoryViewer.prototype.setActiveSlot;
-              HistoryViewer.prototype.setActiveSlot = function spy(...a) {
-                seenSlots.push(a[0]); return realSetActive.apply(this, a);
-              };
-              const heard = [];
-              for (const name of ['slot-change', 'shot-change', 'navigate']) {
-                document.addEventListener(name, (e) => heard.push({ name, detail: e.detail }));
-              }
-              const before = screen.activeSlot;
               const disc = screen.renderRoot.getElementById('disc-b');
-              disc.renderRoot.querySelector('button').click();
-              await screen.updateComplete;
-              const after = screen.activeSlot;
-              const marked = {
-                a: screen.renderRoot.getElementById('disc-a').selected,
-                b: screen.renderRoot.getElementById('disc-b').selected,
+              return {
+                letter: disc.textContent.trim(),
+                button: Boolean(disc.renderRoot.querySelector('button')),
+                interactive: disc.hasAttribute('interactive'),
+                focusable: disc.renderRoot.querySelector('[tabindex], button, a[href]') !== null,
+                screenHasSlotState: 'activeSlot' in screen,
+                attr: screen.getAttribute('active-slot'),
               };
-              /* Pressing the SAME disc twice is a no-op by the method's own guard. */
-              disc.renderRoot.querySelector('button').click();
-              await screen.updateComplete;
-              HistoryViewer.prototype.setActiveSlot = realSetActive;
-              return { before, after, marked, heard, viewerCalls: seenSlots.length, seenSlots };
             })()`);
-
-            assert.notEqual(got.after, got.before, 'the press must move the slot in force');
-            assert.equal(got.after, 'b');
-            assert.equal(got.viewerCalls, 1,
-                'the viewer is told once, which is the whole job the method has');
-            assert.deepEqual(got.marked, { a: false, b: true },
-                'the disc pressed is the one the band wears as marked');
-            assert.deepEqual(got.heard, [],
-                'and the screen announces nothing: the courtesy `slot-change` emit had no '
-                + 'listener anywhere and marking a disc changes no shot');
+            assert.equal(got.letter, 'B', 'the tag still NAMES the slot beside it');
+            assert.equal(got.button, false, 'a tag renders a span, not a button');
+            assert.equal(got.interactive, false);
+            assert.equal(got.focusable, false,
+                'it must not take a tab stop for an action it does not have');
+            assert.equal(got.screenHasSlotState, false,
+                'the state the press moved is gone with the press');
+            assert.equal(got.attr, null, 'and so is the attribute it reflected');
         }));
 });

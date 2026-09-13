@@ -6,7 +6,7 @@ import { MACHINE_STATE } from '../data/machine-state.js';
 import { hasLimit, step as stepLimit, clamp as clampLimit, bandHint } from './machine-limits.js';
 import { machineFallbackFor } from './settings-defaults.js';
 import {
-    TEMP_UNIT, displayRange, toDisplayTemp, fromDisplayTemp, decimalsForStep,
+    TEMP_UNIT, displayRange, toDisplayTemp, fromDisplayTemp, decimalsForStep, unitSymbol,
 } from './temperature.js';
 
 /* ═══════════════════════════════════════════════════════════════ the four modes */
@@ -381,26 +381,30 @@ const PHASE_ORDER = Object.freeze([
     Object.freeze({ key: 'total', header: 'Total', emphasis: true }),
 ]);
 
-export const HISTORY_PHASE_COLUMNS = Object.freeze([
-    ...PHASE_COLUMNS,
-    Object.freeze({ key: 'temp', label: 'Temp', unit: '°', align: 'end', grow: 0 }),
-    Object.freeze({
-        key: 'flow',
-        label: 'Flow',
-        unit: 'mL' + '/' + 's',
-        align: 'end',
-        grow: 0,
-        ink: 'var(--ui-channel-flow)',
-    }),
-    Object.freeze({
-        key: 'pressure',
-        label: 'Pressure',
-        unit: 'bar',
-        align: 'end',
-        grow: 0,
-        ink: 'var(--ui-channel-pressure)',
-    }),
-]);
+export function historyPhaseColumns(tempUnit = TEMP_UNIT.CELSIUS) {
+    return Object.freeze([
+        ...PHASE_COLUMNS,
+        Object.freeze({
+            key: 'temp', label: 'Temp', unit: unitSymbol(tempUnit), align: 'end', grow: 0,
+        }),
+        Object.freeze({
+            key: 'flow',
+            label: 'Flow',
+            unit: 'mL' + '/' + 's',
+            align: 'end',
+            grow: 0,
+            ink: 'var(--ui-channel-flow)',
+        }),
+        Object.freeze({
+            key: 'pressure',
+            label: 'Pressure',
+            unit: 'bar',
+            align: 'end',
+            grow: 0,
+            ink: 'var(--ui-channel-pressure)',
+        }),
+    ]);
+}
 
 export const PHASE_RANGE_ARROW = '\u2794';
 
@@ -419,13 +423,16 @@ function spellRange(parts, places) {
     return unique.join(PHASE_RANGE_ARROW);
 }
 
-export function historyPhaseRows(derivation) {
+export function historyPhaseRows(derivation, tempUnit = TEMP_UNIT.CELSIUS) {
     const phases = derivation && derivation.ok ? derivation.phases : null;
+    const shown = (celsius) => (typeof celsius === 'number' && Number.isFinite(celsius)
+        ? toDisplayTemp(celsius, tempUnit)
+        : celsius);
     return Object.freeze(phaseRows(derivation).map((row) => {
         const phase = phases ? phases[row.key] : null;
         if (!phase || row.key === 'total') return row;
         const extra = {
-            temp: spellRange([phase.groupTemp?.min, phase.groupTemp?.max], 0),
+            temp: spellRange([shown(phase.groupTemp?.min), shown(phase.groupTemp?.max)], 0),
             flow: spellRange([phase.flow?.start, phase.flow?.peak, phase.flow?.end], 1),
             pressure: spellRange([phase.pressure?.start, phase.pressure?.peak, phase.pressure?.end], 1),
         };

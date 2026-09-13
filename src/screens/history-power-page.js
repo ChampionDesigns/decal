@@ -17,8 +17,9 @@ import {
 } from 'src/lib/history-compare.js';
 import { failureRefusal } from 'src/lib/history-viewer.js';
 import { dashPattern } from 'src/lib/chart-axis.js';
+import { COMPARISON_STROKES } from 'src/lib/chart-comparison-style.js';
 import {
-    readoutLine, readoutTerms, readoutValues, trajectoryTerms,
+    readoutLine, readoutTerms, readoutValues, trajectoryTerms, valuesAtTime,
 } from 'src/lib/chart-readout.js';
 import { DEFAULT_CHANNELS } from 'src/components/ui-chart-card.js';
 import {
@@ -88,7 +89,7 @@ export class HistoryPowerPage extends UiElement {
     static styles = [css`
         :host {
             display: grid;
-            grid-template-rows: minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto;
             grid-template-columns: minmax(0, 1fr);
             container-type: size;
             min-block-size: 0;
@@ -141,6 +142,7 @@ export class HistoryPowerPage extends UiElement {
 
     /** The identity of the state last laid down, so an unrelated update costs nothing. */
     #appliedToken = '';
+    #records = {};
 
     constructor() {
         super();
@@ -224,7 +226,8 @@ export class HistoryPowerPage extends UiElement {
                             class="trajectory-reading"
                             role="status"
                             aria-live="polite"
-                            >${trajectoryReading}</span
+                            >${trajectoryReading || t('Pressure (bar) ↑ · Flow (mL/s) →')}
+                            ${this.derivationB?.ok ? html`<span class="trajectory-group-key"> · ${t('A wide · B narrow; both measured')}</span>` : null}</span
                         >
                         ${hasA ? null : html`
                             <ui-empty-state
@@ -312,8 +315,9 @@ export class HistoryPowerPage extends UiElement {
         const a = this.derivationA ?? null;
         const b = this.derivationB ?? null;
         const offset = Number.isFinite(this.offset) ? this.offset : 0;
-        const token = `${a?.axis?.stampMs ?? 'none'}|${b?.axis?.stampMs ?? 'none'}|${offset}`;
-        if (token === this.#appliedToken) return;
+        const previous = this.#appliedToken;
+        if (previous?.a === a && previous?.b === b && previous?.offset === offset) return;
+        const token = { a, b, offset };
         this.#appliedToken = token;
 
         const hasComparison = Boolean(b && b.ok);
@@ -338,6 +342,8 @@ export class HistoryPowerPage extends UiElement {
             }));
             derived.xMin = view.empty ? null : Math.min(view.min, 0);
 
+            await derived.updateComplete;
+            if (this.#appliedToken !== token) return;
             derived.setChannels(abChannelSpecs(DERIVED_CHANNELS, {
                 hasComparison,
                 treatments: DEFAULT_CHANNELS,
@@ -345,17 +351,23 @@ export class HistoryPowerPage extends UiElement {
             }));
             /* PLOTTED AS log10 — the other half of the log axis. `logRecords` is applied
              * HERE and nowhere else, so the one transform sits beside the one range. */
-            derived.setRecords(logRecords(abRecords(DERIVED_CHANNELS, { a, b, offset })));
-            derived.setRuleSource((tokens) => comparisonStepRules({
-                a, b, offset,
-                paint: {
-                    colour: tokens?.channels?.['step-boundary'],
-                    ink: tokens?.surface?.label,
-                    width: tokens?.geometry?.strokeMinor,
-                    dash: dashPattern(COMPARISON_DASH),
-                    alpha: COMPARISON_ALPHA,
-                },
-            }));
+            this.#records = abRecords(DERIVED_CHANNELS, { a, b, offset });
+            derived.setRecords(logRecords(this.#records));
+            derived.setRuleSource((tokens) => {
+                this.#legendFor('derived')?.reapply();
+                const rules = comparisonStepRules({
+                    a, b, offset,
+                    paint: {
+                        colour: tokens?.channels?.['step-boundary'],
+                        ink: tokens?.surface?.label,
+                        width: tokens?.geometry?.strokeMinor,
+                        dash: dashPattern(COMPARISON_DASH),
+                        alpha: COMPARISON_ALPHA,
+                    },
+                });
+                rules.labels = rules.labels.map((label, index) => ({ ...label, text: String(index + 1), rotate: false }));
+                return rules;
+            });
         }
 
         if (pq) {
@@ -384,16 +396,15 @@ export class HistoryPowerPage extends UiElement {
         const width = card.chartTokens?.geometry?.strokeMinor;
         const bands = [];
         const pointsA = trajectoryPoints(a);
-        if (pointsA.length) bands.push({ points: pointsA, colorAt, width });
+        if (pointsA.length) bands.push({ points: pointsA, colorAt, width,
+            ...(b?.ok ? COMPARISON_STROKES.a.measured : null) });
         card.cursorPoints = pointsA.length ? pointsA : null;
         const pointsB = trajectoryPoints(b, { offset });
         if (pointsB.length) {
             bands.push({
                 points: pointsB,
                 colorAt,
-                width,
-                dash: dashPattern(COMPARISON_DASH),
-                alpha: COMPARISON_ALPHA,
+                ...COMPARISON_STROKES.b.measured,
             });
         }
         const { marks } = correspondenceMarks({ a, b, offset });
@@ -424,6 +435,9 @@ export class HistoryPowerPage extends UiElement {
         card.setMarks(dots);
     }
 
+    #legendFor(id) {
+        return this.renderRoot?.querySelector(`ui-chart-legend[chart="plot-${id}"]`) ?? null;
+    }
     /** The ten ramp stops, computed. One read per paint; the values are the sheet's. */
     #ramp() {
         return RAMP_TOKENS.map((name) => this.#token(name)).filter(Boolean);
@@ -463,7 +477,15 @@ export class HistoryPowerPage extends UiElement {
         if (!detail || detail.active !== true) return '';
         const words = {};
         for (const [key, label] of Object.entries(TRAJECTORY_TERM_LABELS)) words[key] = t(label);
-        return readoutLine(trajectoryTerms(detail.point), words);
+        const lineA = readoutLine(trajectoryTerms(detail.point), words);
+        if (!this.derivationB?.ok) return lineA;
+        const at = detail.point?.t;
+        const values = valuesAtTime(abRecords(['pressure', 'flow'], {
+            a: this.derivationA, b: this.derivationB, offset: this.offset,
+        }), ['b:pressure', 'b:flow'], at);
+        const lineB = readoutLine(trajectoryTerms({ x: values['b:flow'],
+            y: values['b:pressure'], t: at - this.offset }), words);
+        return `A ${lineA}  ·  B ${lineB || '—'}`;
     }
 
 }

@@ -225,6 +225,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('H8: the screen row 2 is the bar and the bar is its own contents', async () => {
             await staged();
+            await page.eval(PICK_PAIR);
             const measured = await page.evalFn(() => {
                 const screen = document.querySelector('history-screen');
                 const bar = screen.renderRoot.getElementById('compare');
@@ -243,6 +244,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('H8: a 200px Reset cannot move the bar, the track, or the page region', async () => {
             await staged();
+            await page.eval(PICK_PAIR);
             const before = await page.evalFn(() => {
                 const screen = document.querySelector('history-screen');
                 return {
@@ -378,7 +380,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             near(back.series['b:pressure'].to, at0.series['b:pressure'].to, 'both ends', 0.01);
         });
 
-        test('A solid, B dashed and faded, same hue — on the live plot', async () => {
+        test('A/B shades identify both measurements and targets on the live plot', async () => {
             await staged();
             await page.eval(PICK_PAIR);
             const drawn = await page.evalFn(() => {
@@ -388,7 +390,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const u = card.plotHandle.raw;
                 const read = (s, i) => ({
                     label: s.label,
-                    dash: s.dash ? [...s.dash].map((n) => n / devicePixelRatio) : null,
+                    dash: s.dash ? [...s.dash] : null,
                     alpha: s.alpha,
                     cap: s.cap,
                     stroke: typeof s.stroke === 'function' ? s.stroke(u, i + 1) : s.stroke,
@@ -400,9 +402,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(a.length, b.length, 'one B for every A');
             for (let i = 0; i < a.length; i += 1) {
                 assert.equal(b[i].label, `b:${a[i].label}`, 'they line up channel for channel');
-                assert.equal(b[i].stroke, a[i].stroke, 'the pair shares a hue');
-                assert.deepEqual(b[i].dash, [9, 9], 'B is dashed');
-                assert.equal(b[i].alpha, COMPARISON_ALPHA, 'and faded — opacity is not dropped');
+                assert.notEqual(b[i].stroke, a[i].stroke, 'the pair has separate shades');
+                const target = a[i].label.startsWith('target');
+                assert.equal(Boolean(a[i].dash?.length), target, 'only A targets are dashed');
+                assert.equal(Boolean(b[i].dash?.length), target, 'only B targets are dashed');
+                if (target) assert.notDeepEqual(a[i].dash, b[i].dash, 'target rhythms identify their shot');
+                assert.equal(a[i].alpha, 1);
+                assert.equal(b[i].alpha, 1);
                 assert.equal(a[i].cap, 'round');
                 assert.equal(b[i].cap, 'round', 'chart-C7: one cap constant, every series');
             }
@@ -718,6 +724,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await pick(screens[0], 'select-a', shotA);
                 await pick(screens[0], 'select-b', shotB);
                 await pick(screens[1], 'select-a', shotB);
+                await pick(screens[1], 'select-b', shotA);
+                for (let i = 0; i < 60; i += 1) {
+                    await new Promise((r) => setTimeout(r, 10));
+                    if (screens.every((s) => s.renderRoot.getElementById('compare'))) break;
+                }
                 const slide = async (screen, value) => {
                     const bar = screen.renderRoot.getElementById('compare');
                     const input = bar.renderRoot.getElementById('slider').renderRoot.querySelector('input[type=range]');
@@ -738,7 +749,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(independent[0].b, SHOT_B);
             assert.equal(independent[0].offset, 4.2);
             assert.equal(independent[1].a, SHOT_B);
-            assert.equal(independent[1].b, '', 'the second screen has no comparison');
+            assert.equal(independent[1].b, SHOT_A, 'the second screen holds the REVERSED pair');
             assert.equal(independent[1].offset, -1.5);
             assert.equal(independent[0].page, 4.2, 'and each page has its own screen\'s offset');
             assert.equal(independent[1].page, -1.5);
@@ -790,7 +801,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(seen.ask, true, 'comparing is one press away');
         });
 
-        test('asking for a comparison brings both back, and clearing B puts them away',
+        test('asking for a comparison brings the B picker back, and NO COMPARISON puts it away',
             async () => {
                 await page.mount(SCREEN_STAGE, MODULES);
                 await page.eval(BOOT);
@@ -799,31 +810,39 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     screen.renderRoot.getElementById('compare-open')
                         .shadowRoot.querySelector('button').click();
                     await screen.updateComplete;
+                    const select = screen.renderRoot.getElementById('select-b');
                     return {
+                        pickerB: Boolean(select),
+                        bar: Boolean(screen.renderRoot.getElementById('compare')),
+                        ask: Boolean(screen.renderRoot.getElementById('compare-open')),
+                        labels: select.options.slice(0, 2).map((o) => o.label),
+                    };
+                });
+                assert.deepEqual(opened, {
+                    pickerB: true, bar: false, ask: false,
+                    labels: ['Choose a shot', 'No comparison'],
+                });
+
+                const cleared = await page.evalFn(async () => {
+                    const screen = document.querySelector('history-screen');
+                    const native = screen.renderRoot.getElementById('select-b')
+                        .renderRoot.querySelector('select');
+                    native.value = '';
+                    native.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                    await screen.updateComplete;
+                    return {
+                        comparing: screen.comparing,
+                        shotB: screen.shotB,
                         pickerB: Boolean(screen.renderRoot.getElementById('select-b')),
                         bar: Boolean(screen.renderRoot.getElementById('compare')),
                         ask: Boolean(screen.renderRoot.getElementById('compare-open')),
                     };
                 });
-                assert.deepEqual(opened, { pickerB: true, bar: true, ask: false });
-
-                const cleared = await page.evalFn(async () => {
-                    const screen = document.querySelector('history-screen');
-                    const select = screen.renderRoot.getElementById('select-b');
-                    select.value = '';
-                    select.dispatchEvent(new CustomEvent('change', {
-                        bubbles: true, composed: true, detail: { value: '' },
-                    }));
-                    await screen.updateComplete;
-                    return {
-                        comparing: screen.comparing,
-                        pickerB: Boolean(screen.renderRoot.getElementById('select-b')),
-                        bar: Boolean(screen.renderRoot.getElementById('compare')),
-                    };
-                });
                 /* "No comparison" is the way back, and leaving an empty picker beside a
                  * dead slider after it is the state this pair exists to avoid. */
-                assert.deepEqual(cleared, { comparing: false, pickerB: false, bar: false });
+                assert.deepEqual(cleared, {
+                    comparing: false, shotB: '', pickerB: false, bar: false, ask: true,
+                });
             });
     });
 }

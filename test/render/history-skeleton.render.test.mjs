@@ -6,7 +6,7 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
-import { assertScrollFloor, assertOneSelectionTreatment } from '../harness/assertions.js';
+import { assertScrollFloor } from '../harness/assertions.js';
 
 const MODULES = ['/src/screens/history-screen.js'];
 
@@ -278,10 +278,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.setStyle('#stage', { 'inline-size': '100%' });
                 await page.settle(3);
 
-                /* #45 is selection-family paint on a disc: the four dials and nothing
-                 * else. A private selected look here is the defect that started the
-                 * audit. */
-                await assertOneSelectionTreatment(page, { selected: DISC_A, unselected: DISC_B });
+                const paint = await Promise.all([DISC_A, DISC_B].map((d) => page.computed(
+                    `${d} >>> #disc`, ['background-color', 'border-top-color', 'color'])));
+                assert.deepEqual(paint[0], paint[1],
+                    'a difference between the two tags would say one of them is selected');
             }));
 
         test('the compare bar is on the flow page and takes no box on the data page',
@@ -532,7 +532,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const tag = await page.evalFn(() => window.__h.need('history-screen')
                     .shadowRoot.getElementById('disc-b').shadowRoot
                     .getElementById('disc').tagName);
-                assert.equal(tag, 'BUTTON', 'the band\'s disc is still a real button');
+                assert.equal(tag, 'SPAN',
+                    'the band\'s disc NAMES a slot; it performs nothing, so it is not a button');
             }));
     });
 }

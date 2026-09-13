@@ -7,7 +7,7 @@ import { css, html, nothing } from 'lit';
 import { UiElement } from 'src/components/base.js';
 import { I18nController } from 'src/lib/i18n.js';
 import {
-    COMPARISON_ALPHA, COMPARISON_DASH,
+    COMPARISON_ALPHA, COMPARISON_DASH, COMPARISON_KEY_PREFIX,
     FLOW_PLOTS, abChannelSpecs, abRecords, legendItems,
 } from 'src/lib/history-series.js';
 
@@ -20,7 +20,13 @@ import {
  * two sentences a refusal shows, so both pages say the same thing about the same fault. */
 import { failureRefusal } from 'src/lib/history-viewer.js';
 import { dashPattern } from 'src/lib/chart-axis.js';
-import { readoutLine, readoutTerms, readoutValues } from 'src/lib/chart-readout.js';
+import {
+    readoutLine, readoutTerms, readoutValues, valuesAtTime,
+} from 'src/lib/chart-readout.js';
+import { comparisonTempBand } from 'src/lib/chart-autoscale.js';
+import {
+    DEFAULT_TEMP_UNIT, TEMP_UNIT, boundToDisplay, normaliseUnit, toDisplayTemp, unitSymbol,
+} from 'src/lib/temperature.js';
 
 import { CHANNEL_TREATMENTS } from 'src/components/ui-chart-card.js';
 import 'src/components/ui-chart-legend.js';
@@ -29,17 +35,17 @@ import 'src/components/ui-empty-state.js';
 /** The mount contract's own two attributes, so a caller writing the tag gets them. */
 export const FLOW_PAGE_ID = 'flow';
 
-const CHANNEL_LABELS = Object.freeze({
+const labelsFor = (unit) => Object.freeze({
     pressure: 'Pressure (bar)',
-    targetPressure: 'Target Pressure',
+    targetPressure: 'Target Pressure (bar)',
     flow: 'Flow (mL/s)',
-    targetFlow: 'Target Flow',
+    targetFlow: 'Target Flow (mL/s)',
     weightFlow: 'GFlow (g/s)',
-    power: 'Power (W)',
-    groupTemp: 'Group °C',
-    targetTemp: 'Group Target °C',
-    mixTemp: 'Mix °C',
-    targetMixTemp: 'Mix Target °C',
+    power: 'Hydraulic power (W)',
+    groupTemp: `Group ${unitSymbol(unit)}`,
+    targetTemp: `Group Target ${unitSymbol(unit)}`,
+    mixTemp: `Mix ${unitSymbol(unit)}`,
+    targetMixTemp: `Mix Target ${unitSymbol(unit)}`,
 });
 
 /** One frozen empty map, so a resting legend is handed the same object every render. */
@@ -63,12 +69,13 @@ export class HistoryFlowPage extends UiElement {
         _cursor: { state: true },
 
         _hidden: { state: true },
+        tempUnit: { type: String, attribute: 'temp-unit' },
     };
 
     static styles = [css`
         :host {
             display: grid;
-            grid-template-rows: minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto;
             grid-template-columns: minmax(0, 1fr);
             container-type: size;
             min-block-size: 0;
@@ -100,6 +107,7 @@ export class HistoryFlowPage extends UiElement {
     /** The cards whose composition has already been applied for this state. */
     #appliedToken = '';
 
+    #records = {};
     constructor() {
         super();
         this.derivationA = null;
@@ -108,6 +116,10 @@ export class HistoryFlowPage extends UiElement {
         this.offset = 0;
         this._cursor = {};
         this._hidden = {};
+        this.tempUnit = DEFAULT_TEMP_UNIT;
+    }
+    get #unit() {
+        return normaliseUnit(this.tempUnit) ?? DEFAULT_TEMP_UNIT;
     }
 
     connectedCallback() {
@@ -136,6 +148,7 @@ export class HistoryFlowPage extends UiElement {
                         scrub-label=${t('{name} scrub', { name: t(plot.label) })}
                         y-floor=${plot.yFloor ?? nothing}
                         y-policy=${plot.yPolicy ?? nothing}
+                        temp-unit=${this.#unit}
                         .derivation=${this.derivationA ?? null}
                         @cursor-change=${this.#onCursor}
                         @legend-change=${this.#onLegendChange}
@@ -167,7 +180,7 @@ export class HistoryFlowPage extends UiElement {
         `;
     }
 
-    #labelCache = { language: null, labels: null, items: null };
+    #labelCache = { language: null, unit: null, labels: null, items: null };
 
     #labels() {
         return this.#cache().labels;
@@ -179,15 +192,18 @@ export class HistoryFlowPage extends UiElement {
 
     #cache() {
         const language = this.#i18n.language;
-        if (this.#labelCache.language === language) return this.#labelCache;
+        const unit = this.#unit;
+        if (this.#labelCache.language === language && this.#labelCache.unit === unit) {
+            return this.#labelCache;
+        }
         const t = this.#i18n.t;
         const labels = {};
-        for (const [key, label] of Object.entries(CHANNEL_LABELS)) labels[key] = t(label);
+        for (const [key, label] of Object.entries(labelsFor(unit))) labels[key] = t(label);
         const items = new Map();
         for (const plot of FLOW_PLOTS) {
             items.set(plot.id, legendItems(plot.channels, labels, CHANNEL_TREATMENTS));
         }
-        this.#labelCache = { language, labels, items };
+        this.#labelCache = { language, unit, labels, items };
         return this.#labelCache;
     }
 
@@ -200,8 +216,10 @@ export class HistoryFlowPage extends UiElement {
         const a = this.derivationA ?? null;
         const b = this.derivationB ?? null;
         const offset = Number.isFinite(this.offset) ? this.offset : 0;
-        const token = `${a?.axis?.stampMs ?? 'none'}|${b?.axis?.stampMs ?? 'none'}|${offset}`;
-        if (token === this.#appliedToken) return;
+        const unit = this.#unit;
+        const previous = this.#appliedToken;
+        if (previous?.a === a && previous?.b === b && previous?.offset === offset && previous?.unit === unit) return;
+        const token = { a, b, offset, unit };
         this.#appliedToken = token;
 
         const hasComparison = Boolean(b && b.ok);
@@ -217,29 +235,79 @@ export class HistoryFlowPage extends UiElement {
             }));
             card.xMin = view.empty ? null : Math.min(view.min, 0);
 
+            const celsius = abRecords(plot.channels, { a, b, offset });
+            const records = this.#drawn(celsius, plot, unit);
+            this.#records = { ...this.#records, [plot.id]: records };
+            if (plot.yPolicy === 'temp') {
+                const band = this.#band(celsius, unit);
+                const held = card.yRange;
+                if (!Array.isArray(held) || held[0] !== band[0] || held[1] !== band[1]) {
+                    card.yRange = band;
+                    await card.updateComplete;
+                    if (this.#appliedToken !== token) return;
+                }
+            }
             card.setChannels(abChannelSpecs(plot.channels, {
                 hasComparison,
                 treatments: CHANNEL_TREATMENTS,
             }));
-            card.setRecords(abRecords(plot.channels, { a, b, offset }));
+            card.setRecords(records);
 
-            card.setRuleSource((tokens) => comparisonStepRules({
-                a, b, offset,
-                paint: {
-                    colour: tokens?.channels?.['step-boundary'],
-                    ink: tokens?.surface?.label,
-                    width: tokens?.geometry?.strokeMinor,
-                    dash: dashPattern(COMPARISON_DASH),
-                    alpha: COMPARISON_ALPHA,
-                },
-            }));
+            card.setRuleSource((tokens) => {
+                this.#legendFor(plot.id)?.reapply();
+                const rules = comparisonStepRules({
+                    a, b, offset,
+                    paint: {
+                        colour: tokens?.channels?.['step-boundary'],
+                        ink: tokens?.surface?.label,
+                        width: tokens?.geometry?.strokeMinor,
+                        dash: dashPattern(COMPARISON_DASH),
+                        alpha: COMPARISON_ALPHA,
+                    },
+                });
+                rules.labels = rules.labels.map((label, index) => ({ ...label, text: String(index + 1), rotate: false }));
+                return rules;
+            });
+        }
+        if (Object.values(this._cursor).some((detail) => detail?.active === true)) {
+            this.requestUpdate();
         }
     }
 
+    #drawn(records, plot, unit) {
+        if (plot.yPolicy !== 'temp' || unit === TEMP_UNIT.CELSIUS) return records;
+        const out = { ...records };
+        for (const channel of plot.channels) {
+            for (const prefix of ['', COMPARISON_KEY_PREFIX]) {
+                const key = `${prefix}${channel}`;
+                const ys = records?.[key]?.y;
+                if (!Array.isArray(ys)) continue;
+                out[key] = {
+                    ...records[key],
+                    y: ys.map((v) => (typeof v === 'number' && Number.isFinite(v)
+                        ? toDisplayTemp(v, unit) : v)),
+                };
+            }
+        }
+        return out;
+    }
+    #band(celsius, unit) {
+        const band = comparisonTempBand(celsius, ['', COMPARISON_KEY_PREFIX]);
+        if (unit === TEMP_UNIT.CELSIUS) return band;
+        return band.map((end) => boundToDisplay(end, unit));
+    }
+    #legendFor(id) {
+        return this.renderRoot?.querySelector(`ui-chart-legend[chart="plot-${id}"]`) ?? null;
+    }
     #onCursor = (event) => {
         const id = event.currentTarget?.dataset?.plot;
         if (!FLOW_PLOTS.some((entry) => entry.id === id)) return;
-        this._cursor = { ...this._cursor, [id]: event.detail };
+        const detail = event.detail;
+        this._cursor = Object.fromEntries(FLOW_PLOTS.map(plot => [plot.id, detail]));
+        for (const plot of FLOW_PLOTS) {
+            if (plot.id !== id) this.renderRoot?.getElementById(`plot-${plot.id}`)
+                ?.setInspectionTime(detail?.active ? detail.t : null);
+        }
     };
 
     #onLegendChange = (event) => {
@@ -250,12 +318,20 @@ export class HistoryFlowPage extends UiElement {
     };
 
     #reading(plot, labels) {
-        const detail = this._cursor[plot.id];
+        const detail = this.#resolved(plot);
         const hidden = this._hidden[plot.id] ?? EMPTY_KEYS;
         const values = readoutValues(detail, plot.channels, { hidden });
         if (!Object.keys(values).length) return { values: NO_VALUES, line: '' };
         const terms = readoutTerms(detail, plot.channels, { hidden, withUnit: false });
         return { values, line: readoutLine(terms, labels) };
+    }
+    #resolved(plot) {
+        const detail = this._cursor[plot.id];
+        if (!detail || detail.active !== true) return detail;
+        return {
+            ...detail,
+            values: valuesAtTime(this.#records[plot.id], plot.channels, detail.t),
+        };
     }
 
 }

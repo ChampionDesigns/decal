@@ -48,6 +48,9 @@ const RETIRED = Object.freeze([
     { key: 'Browse Profiles', replacedBy: 'Choose for this slot', why: 'audit F-025 — same fault, the empty-slot half' },
     { key: 'Which plot', replacedBy: null, why: 'audit F-036 — both selects were removed for good; the two-card layout made the chooser redundant' },
     { key: 'DYE2', replacedBy: 'Beans', why: 'audit F-028 — named for what the press does, not for who wrote the plugin' },
+    { key: 'A · Reference shot', replacedBy: null, why: 'the eyebrow above the A picker was removed for good; the circled A beside the control already says which shot it chooses' },
+    { key: 'B · Comparison shot', replacedBy: null, why: 'the same eyebrow on the B picker, removed with it' },
+    { key: 'Touch the chart to compare A and B at one instant.', replacedBy: null, why: 'the paired A/B readout it invited was removed from the key, so the prompt pointed at nothing' },
 ]);
 
 for (const retired of RETIRED) {

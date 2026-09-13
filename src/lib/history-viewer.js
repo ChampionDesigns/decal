@@ -41,9 +41,6 @@ export class HistoryViewer {
     /** The alignment offset in force, in seconds. Per instance for the same reason. */
     #offset = 0;
 
-    /** Which slot the discs mark. View state; the offset's sign follows it. */
-    #activeSlot = ALIGNMENT_SLOT.REFERENCE;
-
     /** The last store snapshot seen. Held so a getter never has to re-read mid-render. */
     #snapshot = null;
 
@@ -81,9 +78,6 @@ export class HistoryViewer {
     /** The reference shot's id, and the moving shot's. */
     get shotA() { return this.#ids.a; }
     get shotB() { return this.#ids.b; }
-
-    /** Which slot is marked. */
-    get activeSlot() { return this.#activeSlot; }
 
     /** The offset in force. Always clamped: nothing can put an unclamped number here. */
     get offset() { return this.#offset; }
@@ -142,14 +136,6 @@ export class HistoryViewer {
     /** Reset is only ever an undo. */
     resetOffset() {
         return this.setOffset(0);
-    }
-
-    setActiveSlot(slot) {
-        const next = slot === ALIGNMENT_SLOT.MOVING ? ALIGNMENT_SLOT.MOVING : ALIGNMENT_SLOT.REFERENCE;
-        if (next === this.#activeSlot) return this.#activeSlot;
-        this.#activeSlot = next;
-        this.#host.requestUpdate();
-        return this.#activeSlot;
     }
 
     compare(channels) {

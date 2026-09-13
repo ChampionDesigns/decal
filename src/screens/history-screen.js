@@ -10,7 +10,8 @@ import { typeRoles } from 'src/components/type-roles.js';
 import { I18nController } from 'src/lib/i18n.js';
 import { ALIGNMENT_SLOT } from 'src/lib/alignment-offset.js';
 import { HistoryViewer } from 'src/lib/history-viewer.js';
-import { createShotsStore } from 'src/stores/shots-store.js';
+import { SHOTS_STATUS, createShotsStore } from 'src/stores/shots-store.js';
+import { DEFAULT_TEMP_UNIT, normaliseUnit } from 'src/lib/temperature.js';
 
 import 'src/screens/history-header.js';
 
@@ -24,6 +25,7 @@ import 'src/components/ui-pick-disc.js';
 import 'src/components/ui-tab-bar.js';
 import 'src/components/ui-compare-bar.js';
 
+const B_UNCHOSEN = '\u0000unchosen';
 export const HISTORY_PAGES = Object.freeze([
     Object.freeze({ value: 'flow', label: 'Flow' }),
     Object.freeze({ value: 'power', label: 'Power' }),
@@ -50,11 +52,10 @@ export class HistoryScreen extends UiElement {
         shotA: { type: String, attribute: 'shot-a' },
         shotB: { type: String, attribute: 'shot-b' },
 
-        activeSlot: { type: String, attribute: 'active-slot', reflect: true },
-
         offset: { type: Number },
 
         restoreFocusTo: { attribute: false },
+        tempUnit: { type: String, attribute: 'temp-unit' },
     };
 
     static styles = [typeRoles, seams, css`
@@ -120,9 +121,11 @@ export class HistoryScreen extends UiElement {
 
     #viewer = null;
 
+    #store = null;
     /** The boot the viewer was built from, so it is built once and not per update. */
     #bootUsed = null;
 
+    #unitBootUsed = null;
     /** Whether this mounting has chosen its opening shot. See `#seedNewest`. */
     #seeded = false;
 
@@ -136,6 +139,9 @@ export class HistoryScreen extends UiElement {
     /** True once the caret has been placed for this mounting. */
     #focused = false;
 
+    #pinned = { a: null, b: null };
+    #pageBusy = false;
+    #pageFailed = false;
     constructor() {
         super();
         this.boot = null;
@@ -145,10 +151,13 @@ export class HistoryScreen extends UiElement {
         this.shotB = '';
         /** Whether the opening shot has been chosen for this mounting. See `#seedNewest`. */
         this.#seeded = false;
-        this.activeSlot = ALIGNMENT_SLOT.REFERENCE;
         this.comparing = false;
         this.offset = 0;
         this.restoreFocusTo = null;
+        this.tempUnit = DEFAULT_TEMP_UNIT;
+    }
+    get #unit() {
+        return normaliseUnit(this.tempUnit) ?? DEFAULT_TEMP_UNIT;
     }
 
     connectedCallback() {
@@ -172,15 +181,29 @@ export class HistoryScreen extends UiElement {
         if (!transport) return;
         const store = this.boot?.shotHistory
             ?? createShotsStore({ transport, logger: this.boot?.logger ?? null });
+        this.#store = store;
         this.#viewer = new HistoryViewer({ store, host: this });
         this.#viewer.start();
     }
 
+    #loadTempUnit() {
+        if (this.#unitBootUsed === this.boot) return;
+        this.#unitBootUsed = this.boot;
+        const storage = this.boot?.storage ?? null;
+        if (!storage || typeof storage.get !== 'function') return;
+        const generation = this.boot;
+        Promise.resolve(storage.get('tempUnit')).then((stored) => {
+            if (this.boot !== generation) return;
+            const unit = normaliseUnit(stored) ?? DEFAULT_TEMP_UNIT;
+            if (unit !== this.tempUnit) this.tempUnit = unit;
+        }).catch(() => {});
+    }
     /** The port is opened BEFORE the first render, so the first update already has the
      *  store's replayed state rather than a frame of nothing followed by a frame of it. */
     willUpdate(changed) {
         super.willUpdate?.(changed);
         this.#openViewer();
+        this.#loadTempUnit();
         this.#syncFromViewer();
     }
 
@@ -197,15 +220,14 @@ export class HistoryScreen extends UiElement {
         if (!options.length) return;
         this.#seeded = true;
         this.shotA = options[0].value;
+        this.#pinned = { ...this.#pinned, a: { ...options[0] } };
         this.#viewer.select(ALIGNMENT_SLOT.REFERENCE, options[0].value);
     }
 
     render() {
         const t = this.#i18n.t;
         const viewer = this.#viewer;
-        const options = Array.isArray(this.shotOptions)
-            ? this.shotOptions
-            : (viewer?.shotOptions ?? []);
+        const options = this.#options(viewer);
         const tabs = HISTORY_PAGES.map(({ value, label }) => ({ value, label: t(label) }));
         const hasComparison = viewer
             ? viewer.hasComparison
@@ -224,8 +246,10 @@ export class HistoryScreen extends UiElement {
                 ${this.#renderPicker('picker-a', ALIGNMENT_SLOT.REFERENCE, 'A', t('Shot A'), this.shotA, options)}
 
                 ${this.#comparing
-                    ? this.#renderPicker('picker-b', ALIGNMENT_SLOT.MOVING, 'B', t('Shot B'), this.shotB,
-                        [{ value: '', label: t('No comparison') }, ...options])
+                    ? this.#renderPicker('picker-b', ALIGNMENT_SLOT.MOVING, 'B', t('Shot B'),
+                        this.shotB || B_UNCHOSEN,
+                        [...(this.shotB ? [] : [{ value: B_UNCHOSEN, label: t('Choose a shot') }]),
+                            { value: '', label: t('No comparison') }, ...options])
                     : html`<div slot="picker-b" class="compare-open">
                         <ui-button
                             id="compare-open"
@@ -244,7 +268,7 @@ export class HistoryScreen extends UiElement {
                 ></ui-tab-bar>
             </history-header>
 
-            ${this.#comparing ? html`<ui-compare-bar
+            ${hasComparison ? html`<ui-compare-bar
                 id="compare"
                 .offset=${this.offset}
                 ?has-comparison=${hasComparison}
@@ -252,6 +276,8 @@ export class HistoryScreen extends UiElement {
                 label=${t('Align B')}
                 slider-label=${t('Slide shot B along the time axis')}
                 reset-label=${t('Reset')}
+                input-label=${t('Offset for shot B in seconds')}
+                error-label=${t('Enter a number from −5 to +5 seconds.')}
                 @offset-change=${this.#onOffsetChange}
             ></ui-compare-bar>` : nothing}
 
@@ -266,6 +292,7 @@ export class HistoryScreen extends UiElement {
         return html`
             <history-flow-page
                 data-page="flow"
+                temp-unit=${this.#unit}
                 .derivationA=${viewer.derivationA}
                 .derivationB=${viewer.derivationB}
                 .failure=${viewer.failure}
@@ -280,13 +307,16 @@ export class HistoryScreen extends UiElement {
             ></history-power-page>
             <history-data-page
                 data-page="data"
+                temp-unit=${this.#unit}
                 .derivationA=${viewer.derivationA}
                 .derivationB=${viewer.derivationB}
                 .failure=${viewer.failure}
                 .rows=${viewer.rows}
+                .listWindow=${this.#window()}
                 shot-a=${this.shotA}
                 shot-b=${this.shotB}
                 @shot-change=${this.#onRowPick}
+                @page-change=${this.#onPageTurn}
             ></history-data-page>
         `;
     }
@@ -298,9 +328,6 @@ export class HistoryScreen extends UiElement {
                 id="disc-${slotId}"
                 slot=${region}
                 label=${name}
-                interactive
-                ?selected=${this.activeSlot === slotId}
-                @pick=${() => this.#onSlotPick(slotId)}
             >${letter}</ui-pick-disc>
             <ui-select
                 id="select-${slotId}"
@@ -389,12 +416,6 @@ export class HistoryScreen extends UiElement {
 
     get #comparing() { return this.comparing || Boolean(this.shotB); }
 
-    #onSlotPick(slotId) {
-        if (this.activeSlot === slotId) return;
-        this.#viewer?.setActiveSlot(slotId);
-        this.activeSlot = slotId;
-    }
-
     #onRowPick = (event) => {
         event.stopPropagation();
         const slot = event?.detail?.slot;
@@ -404,6 +425,8 @@ export class HistoryScreen extends UiElement {
 
     #onShotChange(slotId, event) {
         const value = event?.detail?.value ?? event?.target?.value ?? '';
+        if (value === B_UNCHOSEN) return;
+        this.#pin(slotId, value);
         if (slotId === ALIGNMENT_SLOT.REFERENCE) this.shotA = value;
         else {
             this.shotB = value;
@@ -417,6 +440,60 @@ export class HistoryScreen extends UiElement {
         }));
     }
 
+    #pin(slotId, value) {
+        const slot = slotId === ALIGNMENT_SLOT.MOVING ? 'b' : 'a';
+        if (!value) { this.#pinned = { ...this.#pinned, [slot]: null }; return; }
+        const found = (this.#viewer?.shotOptions ?? []).find((option) => option.value === value)
+            ?? this.#pinned[slot];
+        this.#pinned = { ...this.#pinned, [slot]: found ? { ...found } : null };
+    }
+    #options(viewer) {
+        const rows = Array.isArray(this.shotOptions)
+            ? this.shotOptions
+            : (viewer?.shotOptions ?? []);
+        const listed = new Set(rows.map((option) => option.value));
+        const extra = [this.#pinned.a, this.#pinned.b]
+            .filter((option) => option && option.value && !listed.has(option.value));
+        if (!extra.length) return rows;
+        const seen = new Set();
+        return [...rows, ...extra.filter((option) => {
+            if (seen.has(option.value)) return false;
+            seen.add(option.value);
+            return true;
+        })];
+    }
+    #window() {
+        const state = this.#store?.get?.();
+        if (!state) return null;
+        return {
+            offset: state.offset ?? 0,
+            size: state.limit ?? 0,
+            total: Number.isFinite(state.total) ? state.total : null,
+            busy: this.#pageBusy,
+            failed: this.#pageFailed,
+        };
+    }
+    #onPageTurn = async (event) => {
+        event.stopPropagation();
+        const delta = Number(event?.detail?.delta);
+        const store = this.#store;
+        if (!store || (delta !== 1 && delta !== -1) || this.#pageBusy) return;
+        const { offset = 0, limit = 0, total } = store.get();
+        if (!(limit > 0)) return;
+        const next = Math.max(0, offset + delta * limit);
+        if (next === offset) return;
+        if (delta === 1 && Number.isFinite(total) && next >= total) return;
+        this.#pageBusy = true;
+        this.#pageFailed = false;
+        this.requestUpdate();
+        try {
+            const state = await store.readPage({ offset: next });
+            this.#pageFailed = state?.status === SHOTS_STATUS.FAILED;
+        } finally {
+            this.#pageBusy = false;
+            this.requestUpdate();
+        }
+    };
     #onOffsetChange = (event) => {
         const value = event?.detail?.offset;
         if (typeof value !== 'number') return;
