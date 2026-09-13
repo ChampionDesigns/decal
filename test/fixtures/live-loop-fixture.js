@@ -282,7 +282,8 @@ globalThis.__loop = {
         const chip = chipEl();
         const seen = {
             text: chip ? chip.textContent.trim() : null,
-            live: chip ? chip.hasAttribute('live') : null,
+            tone: chip ? chip.getAttribute('tone') : null,
+            dots: chip ? chip.shadowRoot.querySelectorAll('.dot').length : null,
             feed: chip ? chip.getAttribute('data-feed') : null,
             /* The controls the stale reading must NOT withdraw: an unreachable abort
              * target and an absent one fail the same person the same way (cross-1). */
@@ -535,7 +536,7 @@ globalThis.__loop = {
             machineStateProperty: screen.machineState,
             machineStateAttribute: screen.getAttribute('machine-state'),
             chipText: chip ? chip.textContent.trim() : null,
-            chipLive: chip ? chip.hasAttribute('live') : null,
+            chipTone: chip ? chip.getAttribute('tone') : null,
             dim: screen.getAttribute('dim'),
             mode: screen.getAttribute('mode'),
             stopButtons: screen.shadowRoot.querySelectorAll('ui-stop-button').length,

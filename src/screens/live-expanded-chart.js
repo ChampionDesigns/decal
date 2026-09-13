@@ -8,9 +8,21 @@ import { UiElement } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
 import { I18nController } from 'src/lib/i18n.js';
 import { FLOW_PLOTS, abChannelSpecs, legendItems } from 'src/lib/history-series.js';
+
+/** Whole even numbers only, so a shared axis reads the same on every plot. */
+const EVEN_TICKS = Object.freeze({
+    splits: (u, _i, min, max) => {
+        const from = Math.ceil(min / 2) * 2;
+        const out = [];
+        for (let v = from; v <= max; v += 2) out.push(v);
+        return out;
+    },
+});
 import { CHANNEL_TREATMENTS } from 'src/components/ui-chart-card.js';
 import { complianceBadge, shotIdentity, summaryTerms } from 'src/lib/expanded-summary.js';
 import { backIcon } from 'src/lib/icons.js';
+import { deepActiveElement, flatTabbables, trapTarget } from 'src/lib/focus-trap.js';
+import { DEFAULT_TEMP_UNIT, normaliseUnit, unitSymbol } from 'src/lib/temperature.js';
 
 import 'src/components/ui-chart-card.js';
 import 'src/components/ui-chart-legend.js';
@@ -19,17 +31,17 @@ import 'src/components/ui-tab-bar.js';
 import 'src/components/ui-empty-state.js';
 import 'src/screens/history-power-page.js';
 
-const CHANNEL_LABELS = Object.freeze({
+const labelsFor = (unit) => Object.freeze({
     pressure: 'Pressure (bar)',
-    targetPressure: 'Target Pressure',
+    targetPressure: 'Target Pressure (bar)',
     flow: 'Flow (mL/s)',
-    targetFlow: 'Target Flow',
+    targetFlow: 'Target Flow (mL/s)',
     weightFlow: 'GFlow (g/s)',
-    power: 'Power (W)',
-    groupTemp: 'Group °C',
-    targetTemp: 'Group Target °C',
-    mixTemp: 'Mix °C',
-    targetMixTemp: 'Mix Target °C',
+    power: 'Hydraulic power (W)',
+    groupTemp: `Group ${unitSymbol(unit)}`,
+    targetTemp: `Group Target ${unitSymbol(unit)}`,
+    mixTemp: `Mix ${unitSymbol(unit)}`,
+    targetMixTemp: `Mix Target ${unitSymbol(unit)}`,
 });
 
 export const EXPANDED_PAGE = Object.freeze({ FLOW: 'flow', POWER: 'power' });
@@ -38,6 +50,21 @@ const PAGE_TABS = Object.freeze([
     Object.freeze({ value: EXPANDED_PAGE.FLOW, label: 'Pressure / Flow' }),
     Object.freeze({ value: EXPANDED_PAGE.POWER, label: 'Resistance / Impedance' }),
 ]);
+
+const SPECS_BY_UNIT = new Map();
+
+/** The channel specs and legend items for one temperature unit, built once. */
+function plotSpecs(unit) {
+    let specs = SPECS_BY_UNIT.get(unit);
+    if (specs) return specs;
+    const labels = labelsFor(unit);
+    specs = Object.freeze(Object.fromEntries(FLOW_PLOTS.map((plot) => [plot.id, Object.freeze({
+        channels: Object.freeze(abChannelSpecs(plot.channels, { treatments: CHANNEL_TREATMENTS })),
+        legend: Object.freeze(legendItems(plot.channels, labels, CHANNEL_TREATMENTS)),
+    })])));
+    SPECS_BY_UNIT.set(unit, specs);
+    return specs;
+}
 
 export class LiveExpandedChart extends UiElement {
     static properties = {
@@ -54,6 +81,9 @@ export class LiveExpandedChart extends UiElement {
          * owns the rule; this element only draws the answer.
          */
         compliance: { attribute: false },
+
+        /** The temperature unit the traces and the axis are drawn in. */
+        tempUnit: { type: String, attribute: 'temp-unit' },
 
         /** Which page is on screen. Reflected, so a test and a stylesheet can both read it. */
         page: { type: String, reflect: true },
@@ -187,6 +217,85 @@ export class LiveExpandedChart extends UiElement {
         this.profileName = '';
         this.compliance = null;
         this.page = EXPANDED_PAGE.FLOW;
+        this.tempUnit = DEFAULT_TEMP_UNIT;
+    }
+
+    get #unit() {
+        return normaliseUnit(this.tempUnit) ?? DEFAULT_TEMP_UNIT;
+    }
+
+    #returnFocusTo = null;
+    #inerted = [];
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('keydown', this.#onKeydown);
+    }
+
+    disconnectedCallback() {
+        this.removeEventListener('keydown', this.#onKeydown);
+        this.#releaseInert();
+        this.#returnFocusTo = null;
+        super.disconnectedCallback();
+    }
+
+    updated(changed) {
+        super.updated?.(changed);
+        if (!changed.has('open')) return;
+        if (this.open) this.#takeFocus();
+        else this.#giveFocusBack();
+    }
+
+    async #takeFocus() {
+        this.#returnFocusTo = deepActiveElement(this.ownerDocument);
+        this.setAttribute('role', 'dialog');
+        this.setAttribute('aria-modal', 'true');
+        this.#applyInert();
+        await this.updateComplete;
+        if (!this.open) return;
+        const target = flatTabbables(this)[0];
+        target?.focus?.();
+    }
+
+    #giveFocusBack() {
+        this.removeAttribute('role');
+        this.removeAttribute('aria-modal');
+        this.#releaseInert();
+        const target = this.#returnFocusTo;
+        this.#returnFocusTo = null;
+        if (!target || !target.isConnected || typeof target.focus !== 'function') return;
+        target.focus();
+    }
+
+    #onKeydown = (event) => {
+        if (!this.open || event.defaultPrevented) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.#close();
+            return;
+        }
+        if (event.key !== 'Tab' || event.metaKey || event.ctrlKey || event.altKey) return;
+        const items = flatTabbables(this);
+        const target = trapTarget(items, deepActiveElement(this.ownerDocument), { backwards: event.shiftKey });
+        if (!target) return;
+        event.preventDefault();
+        target.focus?.();
+    };
+
+    #applyInert() {
+        const marked = [];
+        for (const sibling of this.parentNode?.children ?? []) {
+            if (sibling === this || sibling.inert === true) continue;
+            sibling.inert = true;
+            marked.push(sibling);
+        }
+        this.#inerted = marked;
+    }
+
+    #releaseInert() {
+        for (const element of this.#inerted) element.inert = false;
+        this.#inerted = [];
     }
 
     render() {
@@ -244,6 +353,8 @@ export class LiveExpandedChart extends UiElement {
             ></history-power-page>`;
         }
 
+        const unit = this.#unit;
+        const specs = plotSpecs(unit);
         return html`
                 <div id="plots" style="--_ui-plot-ratio: ${FLOW_PLOTS[0].expandedRatio}fr">
                     ${FLOW_PLOTS.map((plot) => html`
@@ -255,7 +366,9 @@ export class LiveExpandedChart extends UiElement {
                             activate-label=${t('Close the expanded chart')}
                             y-floor=${plot.yFloor ?? nothing}
                             y-policy=${plot.yPolicy ?? nothing}
-                            .channelKeys=${abChannelSpecs(plot.channels, { treatments: CHANNEL_TREATMENTS })}
+                            .yAxis=${EVEN_TICKS}
+                            temp-unit=${unit}
+                            .channelKeys=${specs[plot.id].channels}
                             .derivation=${derivation}
                             @plot-activate=${this.#close}
                         >
@@ -263,7 +376,7 @@ export class LiveExpandedChart extends UiElement {
                                 slot="legend"
                                 chart="plot-${plot.id}"
                                 label=${t('Chart key')}
-                                .items=${legendItems(plot.channels, CHANNEL_LABELS, CHANNEL_TREATMENTS)}
+                                .items=${specs[plot.id].legend}
                             ></ui-chart-legend>
                         </ui-chart-card>`)}
                 </div>

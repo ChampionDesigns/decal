@@ -37,25 +37,37 @@ export const entry = {
         },
         {
             id: 'live',
-            title: 'Live, pulsing',
-            notes: 'The recording pulse. A 10px --ui-status-danger disc at --ui-radius-pill, '
-                + '--ui-space-2 from the words, breathing 1 → .3 over 1.6s ease-in-out. Read '
-                + 'from the old sheet read-only: the corpus never captured it, '
-                + 'because live-pulling was itself captured Disconnected. The reference skin\'s stated '
-                + 'intent: "LIVE pulses so the difference between a shot happening now and a '
-                + 'plot of one that finished is visible at arm\'s length."',
-            html: '<ui-status-chip live>Live</ui-status-chip>',
+            title: 'A tone, breathing',
+            notes: 'A 10px disc in the tone\'s own token at --ui-radius-pill, --ui-space-2 '
+                + 'from the words, breathing 1 → .3 over 1.6s ease-in-out. Every tone '
+                + 'breathes, so the movement says the app is still updating rather than that '
+                + 'a shot is running.',
+            html: '<ui-status-chip tone="active">Live</ui-status-chip>',
+        },
+        {
+            id: 'tones',
+            title: 'The six tones',
+            notes: 'ok, active, attention, busy, asleep and error, in that order. Five '
+                + 'tokens: --ui-status-ok, --ui-status-danger, --ui-status-attention, '
+                + '--ui-status-busy and --ui-status-asleep — error shares danger\'s red and '
+                + 'is told apart by the alarm and the ring rather than by hue. Which machine '
+                + 'state is which tone is the consumer\'s; this component knows six names.',
+            html: '<ui-status-chip tone="ok">Idle</ui-status-chip>'
+                + ' <ui-status-chip tone="active">Steaming</ui-status-chip>'
+                + ' <ui-status-chip tone="attention">Needs water</ui-status-chip>'
+                + ' <ui-status-chip tone="busy">Booting</ui-status-chip>'
+                + ' <ui-status-chip tone="asleep">Asleep</ui-status-chip>'
+                + ' <ui-status-chip tone="error">Error</ui-status-chip>',
         },
         {
             id: 'row',
             title: 'The three together',
-            notes: 'One ink for every state — the oracle measures a single colour on all '
-                + 'seven captured states in both themes, so there are no tones here. The '
-                + 'small coloured status marker is item #12, Badge; a second one would be '
-                + 'the fourteenth selection idiom all over again.',
+            notes: 'One ink for the WORDS in every state, in both themes — the tone '
+                + 'colours the dot rather than the text. A chip that names no tone '
+                + 'draws no dot.',
             html: '<ui-status-chip>Ready</ui-status-chip>'
                 + ' <ui-status-chip>Disconnected</ui-status-chip>'
-                + ' <ui-status-chip live>Live</ui-status-chip>',
+                + ' <ui-status-chip tone="active">Live</ui-status-chip>',
         },
         {
             id: 'narrow-container',
@@ -66,7 +78,7 @@ export const entry = {
                 + 'the chip may become taller, never wider than what holds it. Responsive '
                 + 'behaviour has no the reference skin answer (Part 10 §4); the layout spec governs.',
             hostStyle: { 'inline-size': '120px' },
-            html: '<ui-status-chip live>Disconnected</ui-status-chip>',
+            html: '<ui-status-chip tone="active">Disconnected</ui-status-chip>',
         },
         {
             id: 'focus',
@@ -76,7 +88,7 @@ export const entry = {
                 + 'push a header band apart for a target nobody can press. When a screen '
                 + 'makes it focusable the base ring applies unmodified, from --ui-focus-w '
                 + 'and --ui-focus-offset, with nothing here to clip it (bug L24).',
-            html: '<ui-status-chip tabindex="0" live>Live</ui-status-chip>',
+            html: '<ui-status-chip tabindex="0" tone="active">Live</ui-status-chip>',
         },
     ],
 };

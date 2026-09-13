@@ -88,10 +88,11 @@ const transport = {
  * that tile has to be able to say.
  */
 const feeds = {
-    [FEED.CONNECTION]: createStore({ status: FEED_STATUS.NEVER, value: null }, { label: 'connection' }),
-    [FEED.MACHINE]: createStore({ status: FEED_STATUS.NEVER, value: null }, { label: 'machine' }),
-    [FEED.SCALE]: createStore({ status: FEED_STATUS.NEVER, value: null }, { label: 'scale' }),
+    [FEED.CONNECTION]: createStore({ status: FEED_STATUS.NEVER, value: null, receivedAt: null }, { label: 'connection' }),
+    [FEED.MACHINE]: createStore({ status: FEED_STATUS.NEVER, value: null, receivedAt: null }, { label: 'machine' }),
+    [FEED.SCALE]: createStore({ status: FEED_STATUS.NEVER, value: null, receivedAt: null }, { label: 'scale' }),
 };
+const PUSHED_AT = 1;
 
 const connects = [];
 
@@ -314,7 +315,7 @@ const api = {
 
     /** Push a raw `/ws/v1/devices` frame through the REAL reader, as a feed would. */
     pushDevices(rawFrame, status = FEED_STATUS.LIVE) {
-        feeds[FEED.CONNECTION].set({ status, value: readDevicesFrame(rawFrame) });
+        feeds[FEED.CONNECTION].set({ status, value: readDevicesFrame(rawFrame), receivedAt: PUSHED_AT });
         return true;
     },
 
@@ -333,7 +334,7 @@ const api = {
      */
     pushMachineFrame(raw, status = FEED_STATUS.LIVE) {
         const snapshot = readMachineSnapshot(raw);
-        feeds[FEED.MACHINE].set({ status, value: snapshot });
+        feeds[FEED.MACHINE].set({ status, value: snapshot, receivedAt: PUSHED_AT });
         if (mounted) mounted.machineState = snapshot.state;
         return true;
     },
@@ -373,7 +374,7 @@ const api = {
      * app does not use.
      */
     pushMachineState(state) {
-        feeds[FEED.MACHINE].set({ status: FEED_STATUS.LIVE, value: { ok: true, state, substate: 'idle' } });
+        feeds[FEED.MACHINE].set({ status: FEED_STATUS.LIVE, value: { ok: true, state, substate: 'idle' }, receivedAt: PUSHED_AT });
         if (mounted) mounted.machineState = state;
         return true;
     },

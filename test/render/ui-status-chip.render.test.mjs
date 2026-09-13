@@ -18,7 +18,7 @@ const MODULE = ['/src/components/ui-status-chip.js'];
 
 const READY = '<ui-status-chip id="ready">Ready</ui-status-chip>';
 const DISCONNECTED = '<ui-status-chip id="off">Disconnected</ui-status-chip>';
-const LIVE = '<ui-status-chip id="live" live>Live</ui-status-chip>';
+const LIVE = '<ui-status-chip id="live" tone="active">Live</ui-status-chip>';
 const MARKUP = `${READY} ${DISCONNECTED} ${LIVE}`;
 
 /** Rendered lengths at dsf 1.5 are not string-comparable; whole CSS px are. */
@@ -137,12 +137,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             }));
 
-        test('L13 cannot express: the dot is absent, not merely unpainted, when not live',
+        test('the dot is absent, not merely unpainted, with no tone',
             () => mounted(async (page) => {
                 assert.equal(await page.count('#ready >>> .dot'), 0,
-                    'a resting chip must render no dot node at all');
+                    'a chip that names no tone must render no dot node at all');
                 assert.equal(await page.count('#live >>> .dot'), 1,
-                    'a live chip renders exactly one dot');
+                    'a chip with a tone renders exactly one dot');
                 assert.equal(await page.prop('#live >>> .dot', 'content', { pseudo: '::before' }), 'none',
                     'the dot is a real element; nothing here leans on a generated box');
             }));
@@ -187,8 +187,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(parseFloat(cs['line-height']), 1.2 * parseFloat(cs['font-size']),
                     'line-height: 1.2 on the oracle\'s 18px', 0.05);
 
-                /* The live chip is the same box: the 10px dot is shorter than the line
-                   box and flex-centred, so the pulse must not move the header band. */
+                /* The toned chip is the same box: the 10px dot is shorter than the line
+                   box, so the pulse must not move the header band. */
                 near((await page.box('#live')).height, ORACLE_HEIGHT,
                     'the pulse does not change the chip\'s height', 0.05);
             }));
@@ -210,7 +210,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             }));
 
-        test('the dot is Slate\'s: 10px, pill, --ui-status-danger, --ui-space-2 away',
+        test('the dot is 10px, pill, the tone\'s ink, --ui-space-2 away',
             () => mounted(async (page) => {
                 const dot = await page.box('#live >>> .dot');
                 near(dot.width, 10, 'dot inline size');
@@ -231,6 +231,57 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const label = await page.box('#live >>> .label');
                 assert.ok(dot.left < label.left, 'the dot leads the words');
+            }));
+
+        test('the dot is centred on the words, at any size',
+            () => mounted(async (page) => {
+                for (const size of ['18px', '20px', '24px', '32px']) {
+                    await page.setStyle('#live', { '--_ui-status-chip-size': size });
+                    await page.settle(1);
+                    const read = JSON.parse(await page.eval(`JSON.stringify((() => {
+                        const root = document.getElementById('live').shadowRoot;
+                        const label = root.querySelector('.label');
+                        const dot = root.querySelector('.dot').getBoundingClientRect();
+                        const probe = document.createElement('i');
+                        probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline;';
+                        label.insertBefore(probe, label.firstChild);
+                        const baseline = probe.getBoundingClientRect().top;
+                        probe.remove();
+                        const cap = document.createElement('span');
+                        cap.style.cssText = 'display:inline-block;inline-size:1cap;block-size:1cap;';
+                        label.append(cap);
+                        const capHeight = cap.getBoundingClientRect().height;
+                        cap.remove();
+                        return { dotCentre: (dot.top + dot.bottom) / 2, optical: baseline - capHeight / 2 };
+                    })())`));
+                    near(read.dotCentre, read.optical,
+                        `the dot's centre sits on the words' optical centre at ${size}`);
+                }
+                await page.setStyle('#live', { '--_ui-status-chip-size': '' });
+            }));
+
+        test('the chip\'s first baseline is still the label\'s',
+            () => mounted(async (page) => {
+                const gap = JSON.parse(await page.eval(`JSON.stringify((() => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:baseline;font-size:24px;';
+                    const peer = document.createElement('span');
+                    peer.textContent = 'Peer';
+                    const chip = document.getElementById('live');
+                    chip.parentNode.insertBefore(row, chip);
+                    row.append(chip, peer);
+                    const base = (el) => {
+                        const probe = document.createElement('i');
+                        probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline;';
+                        el.insertBefore(probe, el.firstChild);
+                        const y = probe.getBoundingClientRect().top;
+                        probe.remove();
+                        return y;
+                    };
+                    return { label: base(chip.shadowRoot.querySelector('.label')), peer: base(peer) };
+                })())`));
+                near(gap.label, gap.peer,
+                    'the chip sits its words on the row\'s baseline, not the dot\'s edge');
             }));
 
         test('token drill: --ui-muted moves the ink', () => mounted((page) => assertTokenDrill(page, {
@@ -279,7 +330,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('the ring is --ui-focus-* and nothing here clips it', () => mounted(async (page) => {
             await assertFocusUnclipped(page, '#focusable');
-        }, `<ui-status-chip id="focusable" tabindex="0" live>Live</ui-status-chip>`));
+        }, `<ui-status-chip id="focusable" tabindex="0" tone="active">Live</ui-status-chip>`));
 
         test('the ring is the outset offset: nothing here is an overflow: hidden band',
             () => mounted(async (page) => {
@@ -362,28 +413,89 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'a chip beside a heading that already announces should stay silent');
         }, '<ui-status-chip id="quiet" role="presentation">Ready</ui-status-chip>'));
 
-        test('the live flag reflects, so a screen can lay it out from outside',
+        test('the tone reflects, so a screen can lay it out from outside',
             () => mounted(async (page) => {
                 const state = JSON.parse(await page.eval(`(() => {
                     const el = document.getElementById('ready');
-                    const before = el.hasAttribute('live');
-                    el.live = true;
+                    const before = el.getAttribute('tone');
+                    el.tone = 'ok';
                     return el.updateComplete.then(() => JSON.stringify({
                         before,
-                        after: el.hasAttribute('live'),
+                        after: el.getAttribute('tone'),
                         dots: el.shadowRoot.querySelectorAll('.dot').length,
                     }));
                 })()`));
-                assert.deepEqual(state, { before: false, after: true, dots: 1 });
+                assert.deepEqual(state, { before: null, after: 'ok', dots: 1 });
             }));
 
-        test('the pulse is Slate\'s 1.6s ease-in-out breathe', () => animated(async (page) => {
+        const TONE_INK = [
+            ['ok', '--ui-status-ok'],
+            ['active', '--ui-status-danger'],
+            ['attention', '--ui-status-attention'],
+            ['busy', '--ui-status-busy'],
+            ['asleep', '--ui-status-asleep'],
+            ['error', '--ui-status-danger'],
+        ];
+
+        test('every tone paints the dot from its own token', () => mounted(async (page) => {
+            for (const [tone, token] of TONE_INK) {
+                await page.eval(`(() => {
+                    const el = document.getElementById('live');
+                    el.tone = '${tone}';
+                    return el.updateComplete.then(() => '');
+                })()`);
+                assert.equal(
+                    await page.prop('#live >>> .dot', 'background-color'),
+                    await page.resolveToken(token, 'background-color'),
+                    `tone="${tone}" must read ${token}`,
+                );
+            }
+        }));
+
+        test('only error carries the still ring', () => mounted(async (page) => {
+            const ringOf = async (tone) => {
+                await page.eval(`(() => {
+                    const el = document.getElementById('live');
+                    el.tone = '${tone}';
+                    return el.updateComplete.then(() => '');
+                })()`);
+                const got = await page.computed('#live >>> .dot', ['outline-style', 'outline-width']);
+                return got['outline-style'] === 'none' ? 0 : parseFloat(got['outline-width']);
+            };
+            for (const [tone] of TONE_INK.filter(([t]) => t !== 'error')) {
+                assert.equal(await ringOf(tone), 0, `tone="${tone}" must draw no ring`);
+            }
+            assert.ok(await ringOf('error') > 0,
+                'error needs a signal that survives prefers-reduced-motion, where every dot goes still');
+        }));
+
+        test('the pulse is a 1.6s ease-in-out breathe, in every tone', () => animated(async (page) => {
+            for (const [tone] of TONE_INK.filter(([t]) => t !== 'error')) {
+                await page.eval(`(() => {
+                    const el = document.getElementById('live');
+                    el.tone = '${tone}';
+                    return el.updateComplete.then(() => '');
+                })()`);
+                const got = await page.computed('#live >>> .dot',
+                    ['animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count']);
+                assert.equal(got['animation-name'], 'ui-status-chip-pulse', tone);
+                assert.equal(got['animation-duration'], '1.6s', tone);
+                assert.equal(got['animation-timing-function'], 'ease-in-out', tone);
+                assert.equal(got['animation-iteration-count'], 'infinite', tone);
+            }
+        }));
+
+        test('the alarm is three times the rate and a different shape', () => animated(async (page) => {
+            await page.eval(`(() => {
+                const el = document.getElementById('live');
+                el.tone = 'error';
+                return el.updateComplete.then(() => '');
+            })()`);
             const got = await page.computed('#live >>> .dot',
-                ['animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count']);
-            assert.equal(got['animation-name'], 'ui-status-chip-pulse');
-            assert.equal(got['animation-duration'], '1.6s');
-            assert.equal(got['animation-timing-function'], 'ease-in-out');
-            assert.equal(got['animation-iteration-count'], 'infinite');
+                ['animation-name', 'animation-duration', 'animation-timing-function']);
+            assert.equal(got['animation-name'], 'ui-status-chip-alarm');
+            assert.equal(got['animation-duration'], '0.5s');
+            assert.equal(got['animation-timing-function'], 'steps(1)');
         }));
 
         test('reduced motion stops the pulse and keeps the dot', () => browser.withPage({ geometry }, async (page) => {
@@ -391,8 +503,16 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.mount(MARKUP, MODULE);
             assert.equal(await page.prop('#live >>> .dot', 'animation-name'), 'none');
             const dot = await page.box('#live >>> .dot');
-            near(dot.width, 10, 'the dot stays: it is the only mark that says a shot is happening');
+            near(dot.width, 10, 'the dot stays: it carries the machine\'s state');
             assert.equal(await page.prop('#live >>> .dot', 'opacity'), '1');
+            await page.eval(`(() => {
+                const el = document.getElementById('live');
+                el.tone = 'error';
+                return el.updateComplete.then(() => '');
+            })()`);
+            assert.equal(await page.prop('#live >>> .dot', 'animation-name'), 'none');
+            assert.ok(parseFloat(await page.prop('#live >>> .dot', 'outline-width')) > 0,
+                'error keeps a still signal when the motion is taken away');
         }));
 
         test('every gallery state mounts and renders a chip', () => browser.withPage({ geometry }, async (page) => {

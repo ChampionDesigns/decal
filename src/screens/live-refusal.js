@@ -65,18 +65,18 @@ export class LiveRefusal extends UiElement {
 
         const headline = typeof refusal.error === 'string' && refusal.error
             ? refusal.error
-            : t('The machine refused the profile');
+            : t('Profile refused');
         const message = typeof refusal.message === 'string' ? refusal.message : '';
 
         return html`
             <ui-alert-banner id="banner"
                 >${headline}<span slot="remedy" class="remedy"
-                    >${message ? html`<span id="message">${message}</span>` : nothing
-                    }<ui-icon-button id="dismiss"
-                        label=${t('Dismiss')}
-                        @click=${this.#dismiss}
-                    >${DISMISS_GLYPH}</ui-icon-button></span
-            ></ui-alert-banner>
+                    >${message ? html`<span id="message">${message}</span>` : nothing}</span
+                ><ui-icon-button id="dismiss"
+                    slot="actions"
+                    label=${t('Dismiss')}
+                    @click=${this.#dismiss}
+                >${DISMISS_GLYPH}</ui-icon-button></ui-alert-banner>
         `;
     }
 

@@ -18,11 +18,11 @@ const WORDS = Object.freeze({
     },
     [CONNECTION_SURFACE.UNREADABLE]: {
         headline: 'Connection state unclear',
-        remedy: 'The machine sent something this app could not read. Nothing has been disconnected.',
+        remedy: 'The app could not read what the machine sent. Nothing was disconnected.',
     },
     [CONNECTION_SURFACE.UNAVAILABLE]: {
         headline: 'Not connected',
-        remedy: 'The connection to the machine has stopped. Check the machine is powered on.',
+        remedy: 'The connection stopped. Check the machine is powered on.',
     },
     [CONNECTION_SURFACE.STALE]: {
         headline: 'Connection lost',
@@ -50,8 +50,8 @@ const WORDS = Object.freeze({
         headline: 'More than one scale', remedy: 'Choose which scale to use.',
     },
     [CONNECTION_SURFACE.PHASE_UNKNOWN]: {
-        headline: 'Connection state not recognised',
-        remedy: 'The machine reported a state this version of the app does not know.',
+        headline: 'State not recognised',
+        remedy: 'The machine reported a state this app does not know.',
     },
 });
 
@@ -84,6 +84,10 @@ export class LiveConnection extends UiElement {
     static styles = [css`
         :host([surface='ready']) {
             display: none;
+        }
+
+        #banner {
+            --ui-space-4: var(--ui-space-1);
         }
 
         /* The banner and the choice affordance are one row: a remedy line and the button
@@ -172,22 +176,20 @@ export class LiveConnection extends UiElement {
 
         const words = WORDS[state.id];
         const serverLine = state.error && typeof state.error === 'object'
-            ? [state.error.message, state.error.suggestion].filter((s) => typeof s === 'string' && s).join(' ')
-            : '';
+            && typeof state.error.message === 'string' ? state.error.message : '';
         const ours = words.remedy ? t(words.remedy) : '';
         const remedy = state.id === CONNECTION_SURFACE.ERROR
             ? (serverLine || ours)
-            : [ours, serverLine].filter(Boolean).join(' ');
+            : (ours || serverLine);
 
         return html`
             <ui-alert-banner id="banner" role=${bannerRoleFor(state.id)}
                 >${t(words.headline)}<span slot="remedy" class="remedy"
-                    >${remedy ? html`<span id="remedy-text">${remedy}</span>` : nothing}${
-                    state.actionable
-                        ? html`<ui-button id="choose" variant="primary" @click=${this.#openPicker}
-                            >${t('Choose')}</ui-button>`
-                        : nothing}</span
-            ></ui-alert-banner>
+                    >${remedy ? html`<span id="remedy-text">${remedy}</span>` : nothing}</span
+                >${state.actionable
+                    ? html`<ui-button id="choose" slot="actions" variant="primary"
+                        @click=${this.#openPicker}>${t('Choose')}</ui-button>`
+                    : nothing}</ui-alert-banner>
 
             ${state.actionable ? this.#picker(state, t) : nothing}
         `;

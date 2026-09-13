@@ -22,8 +22,13 @@ const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></d
 
 const S = 'live-screen';
 const CONNECTION = `${S} >>> live-connection`;
+const LAYER = `${S} >>> .notice-layer`;
 const CARD = `${S} >>> ui-chart-card`;
 const STRIP = `${S} >>> .ghc-strip`;
+const near = (got, want, what, tol = 0.51) => assert.ok(
+    Math.abs(got - want) <= tol,
+    `${what}: expected ${want}, got ${got}`,
+);
 
 /** The arm-time refusal, exactly as the contract row spells the body. */
 const REFUSED = {
@@ -193,16 +198,20 @@ for (const geometry of GATE_A_GEOMETRIES) {
             };
         });
 
+        const settleHold = async (page) => {
+            await page.evalFn(() => new Promise((r) => { setTimeout(r, 320); }));
+            await page.settle(3);
+        };
         const show = async (page, key) => {
             await page.evalFn((frame) => window.__live.pushDevices(frame), FRAMES[key]);
-            await page.settle(3);
+            await settleHold(page);
             return picture(page);
         };
 
         const showHeld = async (page, key, status) => {
             await page.evalFn((frame, feedStatus) => window.__live.pushDevices(frame, feedStatus),
                 FRAMES[key], status);
-            await page.settle(3);
+            await settleHold(page);
             return picture(page);
         };
 
@@ -232,7 +241,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.notEqual(trying.headline, failed.headline);
                 assert.match(failed.remedy, /The machine stopped answering\./,
                     'the server\'s own message must reach the person');
-                assert.match(failed.remedy, /Power-cycle the machine\./, 'and its suggestion with it');
+                assert.doesNotMatch(failed.remedy, /Power-cycle the machine\./,
+                    'the second sentence is what made this banner wrap');
                 assert.equal(failed.hasChoose, false, 'a failure is not a question');
             }));
 
@@ -257,6 +267,79 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.ok(block.height >= gauges.height - 0.51, 'the readings are inside the block');
                 assert.ok(Math.abs(block.height - withoutNotices) < 0.51,
                     `the quiet notices spent ${(block.height - withoutNotices).toFixed(2)}px of the column`);
+            }));
+
+        test('ONE notice is drawn, never two, and a fault outranks the rest',
+            () => mounted(async (page) => {
+                const seen = () => page.evalFn(() => {
+                    const root = window.__h.q('live-screen').renderRoot;
+                    const layer = root.querySelector('.notice-layer');
+                    const drawn = [...layer.querySelectorAll(
+                        'live-connection, live-refusal, ui-alert-banner, .command-note')]
+                        .filter((el) => el.getClientRects().length > 0)
+                        .map((el) => el.id || el.tagName.toLowerCase());
+                    return { showing: layer.dataset.showing ?? null, drawn };
+                });
+                await show(page, 'ready');
+                await page.evalFn((body) => {
+                    window.__live.answer('/machine/profile', body);
+                    return window.__live.armProfile();
+                }, REFUSED);
+                await page.settle(4);
+                const withRefusal = await seen();
+                assert.equal(withRefusal.showing, 'refusal');
+                assert.deepEqual(withRefusal.drawn.filter((id) => id === 'connection'), [],
+                    'a quiet connection must not draw beside a refusal');
+                await show(page, 'machinePicker');
+                const withFault = await seen();
+                assert.equal(withFault.showing, 'connection',
+                    'a machine picker is a choice the person has to make — it outranks a refusal');
+                assert.ok(withFault.drawn.includes('connection'));
+                assert.equal(withFault.drawn.includes('refusal'), false,
+                    'two banners at once is the fault this layer exists to stop');
+            }));
+
+        test('the connection banner costs the chart NOTHING — it covers the readings',
+            () => mounted(async (page) => {
+                const geometryOf = async () => ({
+                    plot: await page.box(`${CARD} >>> .plot`),
+                    gauges: await page.box(`${S} >>> .gauges`),
+                    block: await page.box(`${S} >>> .stats-block`),
+                });
+                await show(page, 'ready');
+                const quiet = await geometryOf();
+                const loud = await show(page, 'idle');
+                assert.equal(loud.surface, 'idle');
+                assert.ok(loud.visible, 'the banner must be on screen for this to mean anything');
+                const covered = await geometryOf();
+                near(covered.plot.height, quiet.plot.height,
+                    'the plot lost height to a banner that is supposed to be over the readings');
+                near(covered.gauges.top, quiet.gauges.top, 'the readings were pushed down');
+                near(covered.block.height, quiet.block.height, 'the stat block grew a row');
+                const banner = await page.box(LAYER);
+                assert.equal(await page.prop(LAYER, 'position'), 'absolute',
+                    'an in-flow banner takes a row whatever else is true of it');
+                assert.ok(banner.top <= covered.gauges.top + 0.51
+                    && banner.bottom >= covered.gauges.bottom - 0.51,
+                    `the banner must cover the readings it replaces: banner ${banner.top}..${banner.bottom}, `
+                    + `readings ${covered.gauges.top}..${covered.gauges.bottom}`);
+                const shortBox = await page.box(LAYER);
+                const tall = await show(page, 'machinePicker');
+                assert.equal(tall.surface, 'machinePicker');
+                const tallBox = await page.box(LAYER);
+                near(tallBox.height, shortBox.height,
+                    `the box grew with its content: idle ${shortBox.height}, machinePicker ${tallBox.height}`);
+                near(tallBox.top, shortBox.top, 'the box moved with its content');
+                const scrolls = await page.prop(LAYER, 'overflow-y');
+                assert.equal(scrolls, 'auto',
+                    'a fixed box that cannot scroll cuts its content off, which is worse than the clipping');
+                await show(page, 'idle');
+                const clock = await page.box(`${S} >>> #clock`);
+                assert.ok(banner.top >= clock.bottom - 0.51,
+                    `the banner reached the identity line: banner top ${banner.top}, clock bottom ${clock.bottom}`);
+                const fill = await page.prop(`${CONNECTION} >>> ui-alert-banner >>> .banner`, 'background-color');
+                assert.ok(!/rgba\([^)]*,\s*0?\.\d+\)/.test(fill) && fill !== 'rgba(0, 0, 0, 0)',
+                    `the banner sits over live numbers and must be opaque; got ${fill}`);
             }));
 
         test('a DEAD socket holding a ready frame does not render as connected', () => mounted(async (page) => {
@@ -312,12 +395,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(headlineOnly(withAdapterOff), headlineOnly(idle),
                     'the headline is the state\'s, and the state has not changed');
                 assert.ok(headlineOnly(idle).length > 0, 'the headline reading came back empty');
-                assert.ok(withAdapterOff.remedy.startsWith(idle.remedy),
-                    `the state's own line was replaced rather than added to: ${withAdapterOff.remedy}`);
-                assert.match(withAdapterOff.remedy, /Bluetooth is turned off\./,
-                    'the reason must still reach the person');
-                assert.match(withAdapterOff.remedy, /Turn Bluetooth on to scan/,
-                    'and the suggestion with it');
+                assert.equal(withAdapterOff.remedy, idle.remedy,
+                    'the state\'s own line is the whole of the remedy now');
+                assert.doesNotMatch(withAdapterOff.remedy, /Bluetooth is turned off\./,
+                    'the server note is dropped on a DEMOTED error — see above');
                 assert.equal(withAdapterOff.bannerRole, 'status',
                     'a radio that is off must not interrupt a screen reader');
             }));
@@ -333,12 +414,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
         test('the three "no readable frame" pictures are three pictures', () => mounted(async (page) => {
             const never = await (async () => {
                 await page.evalFn(() => window.__live.pushDevicesState({ status: 'never', value: null }));
+                await settleHold(page);
                 await page.settle(2);
                 return picture(page);
             })();
             const unreadable = await show(page, 'unreadable');
             const unavailable = await (async () => {
                 await page.evalFn(() => window.__live.pushDevicesState({ status: 'unavailable', value: null }));
+                await settleHold(page);
                 await page.settle(2);
                 return picture(page);
             })();
@@ -425,7 +508,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     },
                 };
                 await page.evalFn((f) => window.__live.pushDevices(f), named);
-                await page.settle(3);
+                await settleHold(page);
 
                 const rows = await page.evalFn(() => [...window.__h
                     .q('live-screen >>> live-connection').shadowRoot
@@ -480,6 +563,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 // The boot's first state — nothing has arrived yet — is progress too.
                 await page.evalFn(() => window.__live.pushDevicesState({ status: 'never', value: null }));
+                await settleHold(page);
                 await page.settle(2);
                 assert.equal((await picture(page)).bannerRole, 'status');
             }));
@@ -823,6 +907,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         await page.evalFn(() => window.__h.q('live-screen')
                             .shadowRoot.querySelectorAll('ui-stop-button').length),
                         1, 'the STOP target went away on a stale feed, which is the worse bug');
+                    assert.equal(
+                        await page.evalFn(() => window.__h.q('live-screen')
+                            .shadowRoot.querySelector('ui-status-chip').textContent.trim()),
+                        'No reading',
+                        `a ${status} feed still prints the last-known state as current`);
                 }
 
                 // A frame arrives: the feed is believable again and the dim comes back.

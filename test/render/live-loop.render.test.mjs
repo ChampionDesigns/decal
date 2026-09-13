@@ -345,7 +345,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const arrived = r.after.samples - r.away.samples;
             assert.ok(r.after.derivations >= 1,
                 'the shot so far is read off the buffer rather than waited for');
-            assert.ok(r.after.derivations <= 1 + Math.max(0, arrived),
+            const RECORD_ARRIVAL = 1;
+            assert.ok(r.after.derivations <= 1 + RECORD_ARRIVAL + Math.max(0, arrived),
                 `${r.after.derivations} derivations for ${arrived} samples since the mount — `
                 + 'the incoming screen replayed the buffer rather than deriving it once');
             assert.equal(r.away.subscribers, r.before.subscribers - 1,
@@ -361,27 +362,28 @@ for (const geometry of GATE_A_GEOMETRIES) {
             const running = need('headerRunning');
             const after = need('headerIdleAfter');
             t.diagnostic(`${geometry.name} header: `
-                + `[${before.machineStateAttribute}] chip "${before.chipText}" live=${before.chipLive} `
+                + `[${before.machineStateAttribute}] chip "${before.chipText}" tone=${before.chipTone} `
                 + `dim=${before.dim} stop=${before.stopButtons} h=${before.headerHeight} -> `
-                + `[${running.machineStateAttribute}] chip "${running.chipText}" live=${running.chipLive} `
+                + `[${running.machineStateAttribute}] chip "${running.chipText}" tone=${running.chipTone} `
                 + `dim=${running.dim} stop=${running.stopButtons} h=${running.headerHeight} -> `
-                + `[${after.machineStateAttribute}] chip "${after.chipText}" live=${after.chipLive} `
+                + `[${after.machineStateAttribute}] chip "${after.chipText}" tone=${after.chipTone} `
                 + `dim=${after.dim} stop=${after.stopButtons} h=${after.headerHeight}`);
 
             assert.equal(before.machineStateProperty, 'idle',
                 'the constructed idle frame reached the screen through the store');
             assert.equal(before.machineStateAttribute, 'idle',
                 'and is reflected, so a selector can name it (Appendix 15)');
-            assert.equal(before.chipText, 'idle', 'the status chip says so');
-            assert.equal(before.chipLive, false, 'and is not lit');
+            assert.equal(before.chipText, 'Machine idle', 'the status chip says so');
+            assert.equal(before.chipTone, 'ok', 'and the dot is the green one');
             assert.equal(before.dim, null, 'nothing is dimmed while the machine is idle (L11)');
             assert.equal(before.stopButtons, 0, 'and there is no abort target for a shot nobody is pulling');
 
             assert.equal(running.machineStateProperty, 'espresso',
                 'the recording\'s own state name arrived over the socket');
             assert.equal(running.machineStateAttribute, 'espresso');
-            assert.equal(running.chipText, 'espresso');
-            assert.equal(running.chipLive, true, 'the chip is lit while the machine runs');
+            assert.equal(running.chipText, 'Pulling a shot');
+            assert.equal(running.chipTone, 'active',
+                'the dot turns red while the machine is doing something');
             assert.equal(running.dim, 'all', 'and espresso dims every other group (live-dimming.js)');
             assert.equal(running.stopButtons, 1, 'the STOP target is on screen while a shot runs');
             assert.equal(Math.round(running.headerHeight), Math.round(before.headerHeight),
@@ -389,7 +391,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'changes WEIGHT, never position (Appendix item 3)');
 
             assert.equal(after.machineStateProperty, 'idle', 'and back to idle at the end');
-            assert.equal(after.chipLive, false);
+            assert.equal(after.chipTone, 'ok', 'and the dot is green again');
             assert.equal(after.dim, null, 'the dimming is lifted with the state that caused it');
             assert.equal(after.stopButtons, 0);
         });
@@ -401,7 +403,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + `machine=${probe.beforeTick.machine} scale=${probe.beforeTick.scale}; `
                 + `after one refreshStaleness() machine=${probe.afterTick.machine} `
                 + `scale=${probe.afterTick.scale}; chip "${probe.chip.text}" `
-                + `live=${probe.chip.live} data-feed=${probe.chip.feed} `
+                + `tone=${probe.chip.tone} dots=${probe.chip.dots} data-feed=${probe.chip.feed} `
                 + `(machineState property still "${probe.chip.machineStateProperty}", `
                 + `${probe.chip.stopButtons} stop buttons)`);
 
@@ -416,8 +418,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(probe.chip.feed, 'stale', 'the chip carries the feed\'s own word');
             assert.equal(probe.chip.text, 'No reading',
                 'the chip went on naming a state nobody is sending');
-            assert.equal(probe.chip.live, false,
-                'the live pulse is a claim that data is arriving, and none is');
+            assert.equal(probe.chip.tone, null,
+                'a state colour is a claim about a state, and none is arriving');
+            assert.equal(probe.chip.dots, 0, 'so no dot is drawn at all');
         });
 
         test('the shot the screen drew is the recorded one, start to finish', () => {

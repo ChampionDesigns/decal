@@ -530,7 +530,6 @@
       "a decision id": [
         "D2:45037412f4d4",
         "D2:54ad24dcdb73",
-        "L1:5515660e641e",
         "L5:2f5830808115",
         "L5:7859b6d28cea",
         "L5:80ab168044cb",
@@ -2617,8 +2616,7 @@
     "test/render/ui-status-chip.render.test.mjs": {
       "a decision id": [
         "L13:a15ed7c38961",
-        "L13:c8273f019c6d",
-        "L13:f30976aef55b"
+        "L13:c8273f019c6d"
       ],
       "a spec section": [
         "spec:e50575b0d381",
@@ -2628,8 +2626,6 @@
       ],
       "another skin": [
         "Slate:725842af3228",
-        "Slate:a8729a10904c",
-        "Slate:b2bdf5ac187b",
         "slate:2335f3019e57",
         "slate:be581e32fe9a",
         "slate:e9220f3c081b"
@@ -4138,7 +4134,6 @@
         "§2.4:8051a8723679"
       ],
       "another skin": [
-        "old sheet:89bed8bcda21",
         "slate:045291b498c8",
         "slate:2329409235fe",
         "slate:41ade2611a8a",
@@ -4147,8 +4142,7 @@
         "the reference skin:d5df5d9f6145"
       ],
       "the work, not the code": [
-        "Wave 1:ace7413d0303",
-        "the oracle:bb032326aa1e"
+        "Wave 1:ace7413d0303"
       ]
     },
     "tools/gallery/entries/ui-stepper.entry.js": {

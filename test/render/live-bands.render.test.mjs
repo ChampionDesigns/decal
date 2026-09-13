@@ -1195,7 +1195,9 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('audit-1: the wall clock is back, in the shipped format, right-aligned, and costs no height',
             () => mounted(async (page) => {
-                await configure(page, { targets: TARGETS, favourites: FAVOURITES, favourite: 'p1' });
+                await configure(page, {
+                    targets: TARGETS, favourites: FAVOURITES, favourite: 'p1', profileName: 'Londinium',
+                });
                 const clock = await page.evalFn(() => {
                     const root = window.__h.q('live-screen').shadowRoot;
                     const el = root.querySelector('.clock');
@@ -1589,12 +1591,19 @@ describe(`the rail at the reference geometry (${DESKTOP.width}x${DESKTOP.height}
                     channels: (card.channels ?? []).map((c) => c.key),
                     espresso: DEFAULT_CHANNELS.map((c) => c.key),
                     yRange: card.yRange,
+                    yPolicy: card.yPolicy,
+                    yFloor: card.yFloor,
+                    drawnTop: card.plotHandle ? card.plotHandle.raw.scales.y.max : null,
                 };
             });
             assert.equal(seen.steaming, 'Steam chart');
             assert.equal(seen.after, 'Shot chart');
             assert.deepEqual(seen.channels, seen.espresso);
-            assert.deepEqual(seen.yRange, [0, 12],
-                'and the left axis is the shot chart\'s own fixed range again');
+            assert.equal(seen.yRange, null, 'the steam session takes its fixed pair with it');
+            assert.equal(seen.yPolicy, 'capped', 'and the shot chart\'s own policy is back');
+            assert.equal(seen.yFloor, 12, 'resting on the shot chart\'s own floor');
+            assert.equal(seen.drawnTop, 12,
+                'and the axis actually drawn is that 12 again — reversible in the only '
+                + 'sense a person can see');
         }));
 });

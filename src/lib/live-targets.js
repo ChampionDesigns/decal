@@ -64,6 +64,36 @@ export function isRunning(machineState) {
     return MACHINE_MODES.has(machineState);
 }
 
+/** The tone `<ui-status-chip>` draws for each machine state. */
+const MACHINE_TONE = Object.freeze({
+    [MACHINE_STATE.IDLE]: 'ok',
+    [MACHINE_STATE.SCHED_IDLE]: 'ok',
+    [MACHINE_STATE.HEATING]: 'active',
+    [MACHINE_STATE.PREHEATING]: 'active',
+    [MACHINE_STATE.ESPRESSO]: 'active',
+    [MACHINE_STATE.HOT_WATER]: 'active',
+    [MACHINE_STATE.FLUSH]: 'active',
+    [MACHINE_STATE.STEAM]: 'active',
+    [MACHINE_STATE.STEAM_RINSE]: 'active',
+    [MACHINE_STATE.AIR_PURGE]: 'active',
+    [MACHINE_STATE.CLEANING]: 'active',
+    [MACHINE_STATE.DESCALING]: 'active',
+    [MACHINE_STATE.CALIBRATION]: 'active',
+    [MACHINE_STATE.SELF_TEST]: 'active',
+    [MACHINE_STATE.FW_UPGRADE]: 'active',
+    [MACHINE_STATE.SKIP_STEP]: 'active',
+    [MACHINE_STATE.ERROR]: 'error',
+    [MACHINE_STATE.NEEDS_WATER]: 'attention',
+    [MACHINE_STATE.BUSY]: 'busy',
+    [MACHINE_STATE.BOOTING]: 'busy',
+    [MACHINE_STATE.SLEEPING]: 'asleep',
+});
+
+/** The tone for a state, or null for anything that is not a machine state. */
+export function machineTone(machineState) {
+    return MACHINE_TONE[machineState] ?? null;
+}
+
 export function modeFor(machineState, chosen = DEFAULT_MODE) {
     if (MACHINE_MODES.has(machineState)) return machineState;
     return MACHINE_MODES.has(chosen) ? chosen : DEFAULT_MODE;

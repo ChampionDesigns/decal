@@ -10,18 +10,20 @@ import { typeRoles } from 'src/components/type-roles.js';
 import { ChartFeed } from 'src/lib/chart-feed.js';
 import { CLOCK_TICK_MS, DEFAULT_CLOCK_FORMAT, wallClock } from 'src/lib/wall-clock.js';
 import { scalarText, shotClock, shotGrind, shotTitle } from 'src/lib/shot-summary.js';
+import { hasReading } from 'src/data/reading.js';
 import { readShotAnnotations } from 'src/data/rea-shot-record.js';
 import { I18nController } from 'src/lib/i18n.js';
 
 import {
     RAIL_ROW, STEAM_STOP, WATER_STOP, MACHINE_KEYS, STOP_STATE, DEFAULT_PRESETS,
-    PHASE_COLUMNS, bandDerivationFor, isRunning, machineKeyGate, phaseRows, railRows, stepFor,
-    numpadBandFor,
+    PHASE_COLUMNS, bandDerivationFor, isRunning, machineKeyGate, machineTone, phaseRows,
+    railRows, stepFor, numpadBandFor,
 } from 'src/lib/live-targets.js';
 import {
     CHART_MODE, STEAM_Y_RANGE, STEAM_Y2_RANGE, steamChannelSpecs, steamEndLabels,
 } from 'src/lib/steam-chart.js';
 import { SHOT_Y_RANGE } from 'src/lib/chart-autoscale.js';
+const SHOT_Y_CEILING = 16;
 
 const CHANNEL_END_LABELS = Object.freeze({
     pressure: 'Pressure',
@@ -38,9 +40,10 @@ import 'src/screens/live-header.js';
 import 'src/screens/live-rail.js';
 import 'src/screens/live-main.js';
 import 'src/screens/live-foot.js';
-import 'src/screens/live-connection.js';
+import { bannerRoleFor } from 'src/screens/live-connection.js';
+import { connectionSurface } from 'src/lib/connection-surface.js';
 import 'src/screens/live-refusal.js';
-import 'src/components/ui-chart-card.js';
+import { DEFAULT_CHANNELS } from 'src/components/ui-chart-card.js';
 import 'src/components/ui-stat-tile.js';
 import 'src/components/ui-bank.js';
 import 'src/components/ui-favourites-bank.js';
@@ -58,6 +61,7 @@ import 'src/screens/weather-modal.js';
 import { WEATHER_STATE, weatherState } from 'src/lib/weather-model.js';
 import { WEATHER_PLUGIN_ID } from 'src/lib/weather-model.js';
 import 'src/components/ui-status-chip.js';
+import 'src/components/ui-alert-banner.js';
 import 'src/components/ui-button.js';
 import 'src/components/ui-icon-button.js';
 import 'src/components/ui-dialog.js';
@@ -69,12 +73,17 @@ import {
     toDisplayLevel, normaliseTankUnit, tankDecimals, DEFAULT_TANK_UNIT,
 } from 'src/lib/tank-volume.js';
 import {
-    normaliseUnit, toDisplayTemp, fromDisplayTemp, unitSymbol,
+    normaliseUnit, toDisplayTemp, fromDisplayTemp, unitSymbol, boundToDisplay,
     decimalsForStep, DEFAULT_TEMP_UNIT,
 } from 'src/lib/temperature.js';
 import { DYE2_PLUGIN_ID, DYE2_PAGE_ENDPOINT } from 'src/lib/plugin-pages.js';
 
 const DYE2_BUTTON = 'Beans';
+const SAVING_SHOT = 'Saving this shot…';
+const UNSAVED_SHOT = 'This shot was not saved.';
+const NOTES_SAVE_FAILED = 'This note was not saved. Check the machine and try again.';
+const NOTES_SAVING_REFUSAL = 'This note is still being saved. Wait for it to finish.';
+const NOTES_UNSAVED_REFUSAL = 'This note has unsaved changes. Save it, or discard them, before leaving.';
 
 const ACTIONS = Object.freeze(['Edit profile', 'Settings', 'Sleep']);
 
@@ -114,6 +123,10 @@ const OLDER_GLYPH = svg`<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true
 const NEWER_GLYPH = svg`<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"
     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
     stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>`;
+
+const DISMISS_GLYPH = svg`<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+    ><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
 const LIBRARY_GLYPH = svg`<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"
     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -244,6 +257,13 @@ export class LiveScreen extends UiElement {
         storedShot: { attribute: false },
         shotId: { type: String, attribute: 'shot-id' },
         rating: { type: Number },
+
+        /** The recorded shot has not reached the history yet, or never will. */
+        shotSaving: { type: Boolean, attribute: 'shot-saving' },
+        shotUnsaved: { type: Boolean, attribute: 'shot-unsaved' },
+
+        /** `{ shotId, profileName, record }` for the shot on the band, or null. */
+        liveShotProfile: { attribute: false },
         /**
          * THE WEATHER PLUGIN'S LAST READING, or null when the plugin is not installed.
          * Written by `LiveWiring` from `weather-store.js` and by nothing else.
@@ -271,6 +291,8 @@ export class LiveScreen extends UiElement {
         /** Whether the weather detail modal is open. */
         _weatherOpen: { state: true },
         _notesDirty: { state: true },
+        _notesSaving: { state: true },
+        _notesError: { state: true },
 
         /** The wall clock's current spelling. State, because nothing outside this
          *  screen owns the time of day (see THE WALL CLOCK above). */
@@ -379,6 +401,7 @@ export class LiveScreen extends UiElement {
             color: var(--ui-text);
             font-size: var(--ui-text-2xl);
             font-weight: var(--ui-weight-light);
+            line-height: 1.2;
             white-space: nowrap;
         }
 
@@ -429,28 +452,15 @@ export class LiveScreen extends UiElement {
             flex: 1 1 0;
         }
 
-        .gauges > ui-stat-tile:last-child {
-            justify-items: end;
-        }
-
         .stats-block {
+            position: relative;
             display: grid;
-            /* TWO COLUMNS SINCE THE CLOCK CAME BACK: the notices and the readings, and
-             * beside them the time of day. See THE WALL CLOCK's placement note. */
-            grid-template-columns: minmax(0, 1fr) auto;
             grid-template-rows: auto auto auto;
-            column-gap: var(--ui-space-5);
             min-inline-size: 0;
         }
 
-        .identity {
-            grid-column: 1;
-        }
-
-        .notices,
-        .gauges {
-            grid-column: 1 / -1;
-        }
+        .identity { grid-row: 1; }
+        .gauges { grid-row: 3; }
 
         .identity {
             display: flex;
@@ -492,10 +502,7 @@ export class LiveScreen extends UiElement {
         }
 
         .clock {
-            grid-column: 2;
-            grid-row: 1;
-            align-self: start;
-            justify-self: end;
+            flex: 0 0 auto;
         }
 
         .notices {
@@ -506,6 +513,48 @@ export class LiveScreen extends UiElement {
 
         .notices > * {
             margin-block-end: var(--ui-space-3);
+        }
+
+        /* Out of flow, so a banner sits over the gauges instead of pushing them down. */
+        .notice-layer {
+            grid-row: 3 / -1;
+            position: absolute;
+            inset-inline: 0;
+            inset-block-start: calc(-1 * var(--ui-space-5));
+            block-size: max(
+                calc(100% + var(--ui-space-5) + var(--ui-space-4) - var(--ui-space-3)),
+                calc(var(--ui-display-xl) + var(--ui-text-lg) + var(--ui-space-6)
+                    + var(--ui-space-5) + var(--ui-space-3) + var(--ui-space-1))
+            );
+            overflow-y: auto;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            min-block-size: 0;
+            pointer-events: none;
+        }
+
+        .notice-layer > * { pointer-events: auto; }
+        .notice-layer > .notices { flex: 0 0 auto; }
+
+        .notice-layer .hushed {
+            display: none;
+        }
+
+        .connection-notice {
+            flex: 1 0 auto;
+        }
+
+        .command-note {
+            margin: 0;
+            color: var(--ui-muted);
+            font-size: var(--ui-text-md);
+            font-weight: var(--ui-weight-regular);
+        }
+
+        .remedy {
+            display: block;
+            min-inline-size: 0;
         }
 
         .ghc-strip {
@@ -526,6 +575,7 @@ export class LiveScreen extends UiElement {
 
         .foot-grid {
             display: grid;
+            --_ui-foot-pitch: calc(var(--ui-text-lg) * 1.5 + var(--ui-space-2));
             grid-template-columns: auto minmax(0, 1fr) auto auto;
 
             align-items: stretch;
@@ -615,15 +665,25 @@ export class LiveScreen extends UiElement {
             white-space: pre-wrap;
         }
 
+        .notes-refusal {
+            max-inline-size: var(--ui-measure);
+            margin: 0;
+            color: var(--ui-status-danger);
+            font-size: var(--ui-text-note);
+            line-height: 1.5;
+        }
+
         .foot-derived {
             display: grid;
             grid-template-columns: auto auto;
             align-items: baseline;
-            gap: var(--ui-space-2) var(--ui-space-5);
+            grid-auto-rows: var(--_ui-foot-pitch);
+            gap: 0 var(--ui-space-5);
             margin: 0;
             min-inline-size: 0;
             block-size: 100%;
             align-content: end;
+            padding-block-end: calc(var(--_ui-foot-pitch) / 2);
         }
 
         .foot-derived dt {
@@ -652,6 +712,14 @@ export class LiveScreen extends UiElement {
             flex: 1 1 auto;
         }
 
+        .foot-controls > .rating-waiting,
+        .foot-controls > .rating-unsaved {
+            flex: 1 1 auto;
+            margin: 0;
+            color: var(--ui-muted);
+            font-size: var(--ui-text-md);
+        }
+
         .shot-nav #history-entry {
             flex: 1 1 auto;
             min-inline-size: 0;
@@ -667,6 +735,7 @@ export class LiveScreen extends UiElement {
         }
 
         .foot-grid > ui-data-grid {
+            --_ui-data-grid-row-pitch: var(--_ui-foot-pitch);
             min-inline-size: 0;
             overflow: hidden;
 
@@ -678,6 +747,7 @@ export class LiveScreen extends UiElement {
     #chart = new ChartFeed(this);
 
     #wiring = new LiveWiring(this);
+    #steamY2Held = null;
 
     #summary = '';
 
@@ -700,6 +770,8 @@ export class LiveScreen extends UiElement {
         this._notes = false;
         this._weatherOpen = false;
         this._notesDirty = false;
+        this._notesSaving = false;
+        this._notesError = '';
         this.dye2 = false;
         this.compliance = null;
         this.steamDerivation = null;
@@ -721,6 +793,9 @@ export class LiveScreen extends UiElement {
         this.storedDerivation = null;
         this.storedShot = null;
         this.shotId = '';
+        this.shotSaving = false;
+        this.shotUnsaved = false;
+        this.liveShotProfile = null;
         this.rating = null;
         this.historyCount = 0;
         this.canStepOlder = false;
@@ -767,6 +842,8 @@ export class LiveScreen extends UiElement {
     willUpdate(changed) {
         super.willUpdate?.(changed);
         if (changed.has('boot') && !this.shot) this.shot = this.boot?.live?.shot ?? null;
+        const identity = this.liveShotProfile;
+        this.#chart.record = identity?.shotId === this.shot?.get?.().shotId ? identity?.record ?? null : null;
         this.#chart.watch(this.shot ?? null);
         this.#refreshSummary();
     }
@@ -783,6 +860,7 @@ export class LiveScreen extends UiElement {
         const seconds = ok ? derivation.scalars.durationSeconds : null;
         const key = [
             this.#i18n.language,
+            this.#steaming,
             ok,
             derivation ? derivation.reason ?? null : null,
             derivation ? derivation.shotId : null,
@@ -796,6 +874,9 @@ export class LiveScreen extends UiElement {
 
     #sentence(derivation) {
         const t = this.#i18n.t;
+        if (this.#steaming) {
+            return t('Steam chart. Steam sessions have no expanded chart, so this one does not open.');
+        }
         if (!derivation || !derivation.ok) {
             return derivation && derivation.reason === 'noPouringSample'
                 ? t('Shot chart. This shot has no pouring samples to draw.')
@@ -833,6 +914,22 @@ export class LiveScreen extends UiElement {
 
     get #running() { return isRunning(this.machineState); }
 
+    /** The words the status chip shows for the machine's current state. */
+    get #machineStatus() {
+        switch (this.machineState) {
+            case 'idle': return 'Machine idle';
+            case 'steam': return 'Steaming';
+            case 'espresso': return 'Pulling a shot';
+            default: return this.machineState || 'No reading';
+        }
+    }
+
+    /** The chip's tone, or `nothing` — a stale feed has no state to colour. */
+    get #machineTone() {
+        if (this.#machineStale) return nothing;
+        return machineTone(this.machineState) ?? nothing;
+    }
+
     get #steaming() { return this.chartMode === CHART_MODE.STEAM; }
 
     get #steamSpecs() { return steamChannelSpecs({ milk: this.milkPresent }); }
@@ -864,6 +961,17 @@ export class LiveScreen extends UiElement {
         });
     }
 
+    /** The profile name for the shot on the band — the stored one's, or the live one's. */
+    get #shotProfileName() {
+        const shown = this.#bandDerivation;
+        if (!shown) return '';
+        if (shown === this.storedDerivation) return shotTitle(this.storedShot) ?? '';
+        const identity = this.liveShotProfile;
+        return identity && identity.shotId === shown.shotId && typeof identity.profileName === 'string'
+            ? identity.profileName
+            : '';
+    }
+
     get #gauges() {
         const readings = this.readings ?? null;
         const steaming = this.#steaming;
@@ -887,6 +995,7 @@ export class LiveScreen extends UiElement {
         }
         const held = this.readings ? this.readings[gauge.key] : null;
         if (gauge.unit === '°C') {
+            if (!hasReading(held)) return DEFAULT_DATA_GRID_DASH;
             return scalarText(toDisplayTemp(held, this.#tempUnit), { dash: DEFAULT_DATA_GRID_DASH });
         }
         if (gauge.key === 'tank') {
@@ -900,6 +1009,20 @@ export class LiveScreen extends UiElement {
 
     get #tankUnit() {
         return normaliseTankUnit(this.tankUnit) ?? DEFAULT_TANK_UNIT;
+    }
+
+    /** The steam chart's right-hand axis, in display units. */
+    get #steamY2() {
+        const unit = this.#tempUnit;
+        if (!this.#steamY2Held || this.#steamY2Held.unit !== unit) {
+            this.#steamY2Held = Object.freeze({
+                unit,
+                spec: Object.freeze({
+                    range: Object.freeze(STEAM_Y2_RANGE.map((c) => boundToDisplay(c, unit))),
+                }),
+            });
+        }
+        return this.#steamY2Held.spec;
     }
 
     get #tempUnit() {
@@ -1044,10 +1167,14 @@ export class LiveScreen extends UiElement {
 
     #commit(key, value, presetIndex = null) {
         const celsius = fromDisplayTemp(Number(value), this.#unitOf(key));
-        this.targets = { ...(this.targets ?? {}), [key]: celsius };
+        let refused = false;
         this.dispatchEvent(new CustomEvent('target-change', {
-            detail: { key, value: celsius, presetIndex }, bubbles: true, composed: true,
+            detail: { key, value: celsius, presetIndex, refuse: () => { refused = true; } },
+            bubbles: true,
+            composed: true,
         }));
+        if (refused) return;
+        this.targets = { ...(this.targets ?? {}), [key]: celsius };
     }
 
     #onTarget(event) {
@@ -1322,9 +1449,14 @@ export class LiveScreen extends UiElement {
         if (!card || typeof card.setEndLabels !== 'function') return;
         const t = this.#i18n.t;
         const show = this.#steaming && this.steamSettled;
+        const unit = this.#tempUnit;
         const labels = show
             ? steamEndLabels(this.steamDerivation, this.#steamSpecs)
-                .map((label) => ({ ...label, text: t(CHANNEL_END_LABELS[label.key] ?? label.key) }))
+                .map((label) => ({
+                    ...label,
+                    y: label.scale === 'y2' ? toDisplayTemp(label.y, unit) : label.y,
+                    text: t(CHANNEL_END_LABELS[label.key] ?? label.key),
+                }))
             : [];
         card.setEndLabels(labels);
     }
@@ -1420,6 +1552,87 @@ export class LiveScreen extends UiElement {
             </div>`;
     }
 
+    /** Which one notice the layer draws, in severity order, or null for none. */
+    get #noticeShowing() {
+        const surface = connectionSurface(this.#wiring.bannerConnectionFrame, {
+            feedStatus: this.#wiring.bannerConnectionFeedStatus ?? null,
+        });
+        const speaking = !surface.quiet;
+        if (speaking && bannerRoleFor(surface.id) === 'alert') return 'connection';
+        const refusal = this.#wiring.refusal;
+        if (refusal && typeof refusal === 'object' && typeof refusal.kind === 'string') {
+            return 'refusal';
+        }
+        const command = this.#wiring.machineCommand;
+        const tare = this.#wiring.tareOutcome;
+        if (command && command.alert) return 'command';
+        if (tare && tare.alert) return 'tare';
+        if (speaking) return 'connection';
+        if (command) return 'command';
+        if (tare) return 'tare';
+        return null;
+    }
+
+    #renderCommand() {
+        const command = this.#wiring.machineCommand;
+        if (!command) return nothing;
+        const t = this.#i18n.t;
+        if (!command.alert) {
+            return html`<p id="command-note" class="command-note" role="status"
+                aria-live="polite" data-outcome=${command.outcome}
+                >${command.headline}</p>`;
+        }
+        return html`<ui-alert-banner id="command-error"
+            data-outcome=${command.outcome}
+            data-kind=${command.kind ?? nothing}
+            >${command.headline}<span slot="remedy" class="remedy"
+                >${command.detail
+                    ? html`<span id="command-detail"
+                        >${command.detail}</span>`
+                    : nothing
+                }</span
+            ><ui-button id="command-retry" slot="actions" data-state=${command.state}
+                @click=${this.#onMachineKey}
+            >${t('Try again')}</ui-button
+            ><ui-icon-button id="command-dismiss"
+                slot="actions"
+                label=${t('Dismiss')}
+                @click=${this.#onCommandDismiss}
+            >${DISMISS_GLYPH}</ui-icon-button></ui-alert-banner>`;
+    }
+
+    #renderTare() {
+        const tare = this.#wiring.tareOutcome;
+        if (!tare) return nothing;
+        const t = this.#i18n.t;
+        if (!tare.alert) {
+            return html`<p id="tare-note" class="command-note" role="status"
+                aria-live="polite" data-status=${tare.status}>${tare.message}</p>`;
+        }
+        return html`<ui-alert-banner id="tare-error" data-status=${tare.status}
+            >${tare.message}<span slot="remedy" class="remedy"
+                >${tare.detail
+                    ? html`<span id="tare-detail"
+                        >${tare.detail}</span>`
+                    : nothing
+                }</span
+            ><ui-button id="tare-retry" slot="actions" @click=${this.#onGaugePress}
+            >${t('Try again')}</ui-button
+            ><ui-icon-button id="tare-dismiss"
+                slot="actions"
+                label=${t('Dismiss')}
+                @click=${this.#onTareDismiss}
+            >${DISMISS_GLYPH}</ui-icon-button></ui-alert-banner>`;
+    }
+
+    #onCommandDismiss = () => {
+        this.dispatchEvent(new CustomEvent('command-dismiss', { bubbles: true, composed: true }));
+    };
+
+    #onTareDismiss = () => {
+        this.dispatchEvent(new CustomEvent('tare-dismiss', { bubbles: true, composed: true }));
+    };
+
     #onMachineKey(event) {
         const state = event.currentTarget.dataset.state;
         if (!state) return;
@@ -1437,6 +1650,7 @@ export class LiveScreen extends UiElement {
 
     render() {
         const t = this.#i18n.t;
+        const showing = this.#noticeShowing;
         return html`
             <live-header part="header">
                 <ui-icon-button size="lg" slot="lead" label=${t('Choose a profile')}
@@ -1477,12 +1691,16 @@ export class LiveScreen extends UiElement {
                     id="live-chart"
                     slot="chart"
                     legend-gutter
-                    activate
+                    ?activate=${!this.#steaming}
                     label=${this.#steaming ? t('Steam chart') : t('Shot chart')}
-                    activate-label=${t('Open the shot charts')}
-                    .channelKeys=${this.#steaming ? this.#steamSpecs : null}
-                    .yRange=${this.#steaming ? STEAM_Y_RANGE : SHOT_Y_RANGE}
-                    .y2=${this.#steaming ? { range: STEAM_Y2_RANGE } : null}
+                    activate-label=${this.#steaming ? nothing : t('Open the shot charts')}
+                    .channelKeys=${this.#steaming ? this.#steamSpecs : DEFAULT_CHANNELS}
+                    y-policy="capped"
+                    y-floor=${SHOT_Y_RANGE[1]}
+                    y-cap=${SHOT_Y_CEILING}
+                    temp-unit=${this.#tempUnit}
+                    .yRange=${this.#steaming ? STEAM_Y_RANGE : null}
+                    .y2=${this.#steaming ? this.#steamY2 : null}
                     .derivation=${this.#steaming ? this.steamDerivation : this.#bandDerivation}
                     @plot-activate=${this.#openExpanded}
                 >
@@ -1495,18 +1713,26 @@ export class LiveScreen extends UiElement {
                                     >${this.#doseNote}</span>`
                                 : nothing}`
                         : nothing}
-                    <ui-status-chip ?live=${this.#running && !this.#machineStale}
+                    <ui-status-chip tone=${this.#machineTone}
                         data-feed=${this.#wiring.machineFeedStatus ?? nothing}
-                        >${this.#machineStale ? t('No reading') : t(this.machineState || 'idle')}</ui-status-chip
+                        >${this.#machineStale ? t('No reading') : t(this.#machineStatus)}</ui-status-chip
                     >
+                    <span id="clock" class="clock ui-numeric">${this._clock}</span>
                 </div>
-                ${this.boot ? html`<div class="notices">
+                ${this.boot ? html`<div class="notice-layer" data-showing=${showing ?? nothing}>
                     <live-connection
                         id="connection"
-                        .frame=${this.#wiring.connectionFrame}
-                        feed-status=${this.#wiring.connectionFeedStatus ?? nothing}
+                        class="connection-notice ${showing === 'connection' ? '' : 'hushed'}"
+                        .frame=${this.#wiring.bannerConnectionFrame}
+                        feed-status=${this.#wiring.bannerConnectionFeedStatus ?? nothing}
                     ></live-connection>
-                    <live-refusal id="refusal" .refusal=${this.#wiring.refusal}></live-refusal>
+                    <div class="notices">
+                        <live-refusal id="refusal"
+                            class=${showing === 'refusal' ? '' : 'hushed'}
+                            .refusal=${this.#wiring.refusal}></live-refusal>
+                        <div class=${showing === 'command' ? '' : 'hushed'}>${this.#renderCommand()}</div>
+                        <div class=${showing === 'tare' ? '' : 'hushed'}>${this.#renderTare()}</div>
+                    </div>
                 </div>` : nothing}
                 <div class="gauges">
                     ${this.#gauges.map((gauge) => html`
@@ -1525,7 +1751,6 @@ export class LiveScreen extends UiElement {
                             @keydown=${gauge.press ? this.#onGaugeKey : nothing}
                         ></ui-stat-tile>`)}
                 </div>
-                <span id="clock" class="clock ui-numeric">${this._clock}</span>
                 </div>
                     <span slot="empty">${this.#emptyMessage()}</span>
                     <span slot="foot" class="chart-summary" role="status" aria-live="polite"
@@ -1560,6 +1785,12 @@ export class LiveScreen extends UiElement {
                                 .reading=${this.weather}
                                 @weather-open=${this.#openWeather}
                             ></ui-weather-corner>`
+                            : this.shotSaving
+                            ? html`<p class="rating-waiting" aria-live="polite"
+                                >${t(SAVING_SHOT)}</p>`
+                            : this.shotUnsaved
+                            ? html`<p class="rating-unsaved" aria-live="polite"
+                                >${t(UNSAVED_SHOT)}</p>`
                             : this.shotId
                             ? html`<ui-rating-control
                                 shot-id=${this.shotId}
@@ -1580,9 +1811,10 @@ export class LiveScreen extends UiElement {
             <live-expanded-chart
                 id="expanded"
                 ?open=${this._expanded}
+                temp-unit=${this.#tempUnit}
                 .derivation=${this.#bandDerivation}
                 .compliance=${this.compliance ?? null}
-                profile-name=${this.profileName ?? ''}
+                profile-name=${this.#shotProfileName}
                 @expanded-close=${() => { this._expanded = false; }}
             ></live-expanded-chart>
             <ui-steam-guard id="steam-guard" ?open=${this.steamGuard}></ui-steam-guard>
@@ -1605,7 +1837,7 @@ export class LiveScreen extends UiElement {
             ? annotations.espressoNotes
             : (shot && typeof shot.shotNotes === 'string' ? shot.shotNotes : '');
         const notes = written.trim();
-        const shotId = shot && typeof shot.id === 'string' ? shot.id : null;
+        const shotId = this.#notesShotId;
         return html`<ui-dialog
             id="notes-sheet"
             heading=${t('Shot notes')}
@@ -1631,6 +1863,7 @@ export class LiveScreen extends UiElement {
                             label=${t('Shot notes')}
                             placeholder=${t('Nothing is written against this shot yet.')}
                             guard-unsaved
+                            guard-refusal=${this._notesSaving ? t(NOTES_SAVING_REFUSAL) : ''}
                             .value=${notes}
                             @notes-input=${this.#onNotesInput}
                         ></ui-notes-editor>`
@@ -1639,17 +1872,21 @@ export class LiveScreen extends UiElement {
                         heading=${t('No notes yet')}
                         body=${t('There is no shot on the band to read notes for.')}
                     ></ui-empty-state>`}
+                <p id="notes-refusal" class="notes-refusal" role="status"
+                    >${this._notesError}</p>
             </div>
-            <ui-button slot="actions"
-                @click=${() => { this.#closeNotes(); }}>${t('Close')}</ui-button>
+            <ui-button
+                id="notes-close"
+                slot="actions"
+                @click=${() => { this.#dismissNotes('close'); }}>${t('Close')}</ui-button>
             ${shotId
                 ? html`
                     <ui-button
                         id="notes-save"
                         slot="actions"
                         variant="primary"
-                        ?disabled=${!this._notesDirty}
-                        @click=${() => { this.#saveNotes(shotId); }}
+                        ?disabled=${!this._notesDirty || this._notesSaving}
+                        @click=${() => { void this.#saveNotes(shotId); }}
                     >${t('Save')}</ui-button>`
                 : nothing}
         </ui-dialog>`;
@@ -1657,21 +1894,86 @@ export class LiveScreen extends UiElement {
 
     #onNotesInput = (event) => {
         this._notesDirty = !!event?.detail?.dirty;
+        if (this._notesError) this._notesError = '';
     };
 
-    #saveNotes(shotId) {
+    /** The shot the sheet is writing against, or null. */
+    get #notesShotId() {
+        const shot = this.storedShot;
+        return shot && typeof shot.id === 'string' ? shot.id : null;
+    }
+
+    #notesSaveSeq = 0;
+
+    async #saveNotes(shotId) {
+        if (this._notesSaving) return;
         const editor = this.renderRoot?.getElementById?.('notes-editor');
         if (!editor || typeof shotId !== 'string' || shotId === '') return;
         const text = typeof editor.text === 'string' ? editor.text : '';
+        const token = (this.#notesSaveSeq += 1);
+        this._notesSaving = true;
+        this._notesError = '';
+        let answer;
+        let answered = false;
         this.dispatchEvent(new CustomEvent('notes-change', {
-            detail: { shotId, text },
+            detail: {
+                shotId,
+                text,
+                respond: (outcome) => { answered = true; answer = outcome; },
+            },
             bubbles: true,
             composed: true,
         }));
-        editor.markSaved?.();
-        this._notesDirty = false;
-        this._notes = false;
-        this._weatherOpen = false;
+        let accepted = true;
+        if (answered) {
+            try {
+                const outcome = await answer;
+                accepted = !(outcome && outcome.ok === false);
+            } catch {
+                accepted = false;
+            }
+        }
+        if (this.#notesSaveSeq !== token) return;
+        this._notesSaving = false;
+        if (!this._notes || this.#notesShotId !== shotId) return;
+        if (!accepted) {
+            this._notesError = this.#i18n.t(NOTES_SAVE_FAILED);
+            return;
+        }
+        const live = this.renderRoot?.getElementById?.('notes-editor');
+        live?.markSaved?.(text);
+        this._notesDirty = live ? !!live.dirty : false;
+        this._notesError = '';
+        this.#dismissNotes('saved');
+    }
+
+    /** Ask the sheet to close; it may refuse while the draft is unsaved. */
+    #dismissNotes(reason) {
+        const sheet = this.renderRoot?.getElementById?.('notes-sheet');
+        if (!sheet || typeof sheet.requestClose !== 'function') {
+            this.#closeNotes();
+            return true;
+        }
+        return sheet.requestClose(reason);
+    }
+
+    /** True while anything on this screen is holding the keyboard. */
+    get modalOpen() {
+        return Boolean(
+            this._typing || this._presetTyping
+            || this._hold
+            || this._notes || this._weatherOpen,
+        );
+    }
+
+    /** The router's answer: true to leave, or `{ allow, reason }` to stay. */
+    canLeaveRoute() {
+        if (!this._notes) return true;
+        if (this.#dismissNotes('route')) return true;
+        return {
+            allow: false,
+            reason: this.#i18n.t(this._notesSaving ? NOTES_SAVING_REFUSAL : NOTES_UNSAVED_REFUSAL),
+        };
     }
 
     /** Shut the sheet and forget the draft state with it. */
@@ -1679,6 +1981,8 @@ export class LiveScreen extends UiElement {
         this._notes = false;
         this._weatherOpen = false;
         this._notesDirty = false;
+        this._notesSaving = false;
+        this._notesError = '';
     }
 }
 

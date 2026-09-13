@@ -268,7 +268,7 @@ const api = {
     },
 
     /** Build the boot and mount the Live screen on it. */
-    async mount() {
+    async mount({ loadWorkflow = false } = {}) {
         boot = createAppBoot({
             fetch: scriptedFetch,
             createSocket,
@@ -280,6 +280,7 @@ const api = {
          * about. The boot OBJECT is what the screens take. */
         await boot.library.load();
         await boot.shotHistory.readPage({ limit: 20, offset: 0 });
+        if (loadWorkflow) await boot.workflow.load();
         await api.show('live');
         return {
             records: RECORDS.length,
@@ -410,6 +411,49 @@ const api = {
     },
 
     /** Press a hold-menu item BY ID — a separator is an item and is not a `.item`. */
+    async serveSteplessProfile() {
+        workflow = { ...workflow, profile: { ...workflow.profile, steps: [] } };
+        await boot.workflow.refresh();
+        await screen.updateComplete;
+        await sleep(40);
+        await screen.updateComplete;
+        return { steps: workflow.profile.steps.length };
+    },
+    rail(railKey) {
+        const stepper = screen.shadowRoot.querySelector(`ui-stepper[data-key="${railKey}"]`);
+        if (!stepper) return null;
+        return {
+            held: screen.targets ? screen.targets[railKey] ?? null : null,
+            value: stepper.value,
+            disabled: stepper.disabled,
+            drawn: (stepper.shadowRoot.querySelector('.value, #value, output')?.textContent ?? '').trim(),
+        };
+    },
+    async pressRail(railKey) {
+        const stepper = screen.shadowRoot.querySelector(`ui-stepper[data-key="${railKey}"]`);
+        stepper.shadowRoot.getElementById('increment').click();
+        const atOnce = screen.targets ? screen.targets[railKey] ?? null : null;
+        await screen.updateComplete;
+        await sleep(60);
+        await screen.updateComplete;
+        return { atOnce, rail: api.rail(railKey), puts: api.workflowPuts() };
+    },
+    async reportRailStep(railKey, value) {
+        const stepper = screen.shadowRoot.querySelector(`ui-stepper[data-key="${railKey}"]`);
+        stepper.dispatchEvent(new CustomEvent('change', {
+            detail: { value }, bubbles: true, composed: true,
+        }));
+        const atOnce = screen.targets ? screen.targets[railKey] ?? null : null;
+        await screen.updateComplete;
+        await sleep(60);
+        await screen.updateComplete;
+        return { atOnce, rail: api.rail(railKey), puts: api.workflowPuts() };
+    },
+    workflowPuts() {
+        return calls
+            .filter((call) => call.method === 'PUT' && call.path === '/api/v1/workflow')
+            .map((call) => call.body);
+    },
     async pressMenuItem(id) {
         const menu = screen.shadowRoot.getElementById('hold-menu');
         const item = (menu.items || []).find((row) => row.id === id);

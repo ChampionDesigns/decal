@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import {
     bandDerivationFor,
     DEFAULT_MODE, DEFAULT_PRESETS, LIVE_MODES, PHASE_COLUMNS, RAIL_ROW, STEAM_STOP, WATER_STOP,
-    isRunning, modeFor, modeIsMachines, phaseRows, railRows, stepFor, stopModeRow,
+    isRunning, machineTone, modeFor, modeIsMachines, phaseRows, railRows, stepFor, stopModeRow,
     steamStopFrom, waterStopFrom, armValueFor, numpadBandFor,
 } from '../src/lib/live-targets.js';
 import { SETTINGS_ROWS } from '../src/lib/settings-leaves.js';
@@ -20,7 +20,7 @@ import { createMemoryBackend } from '../src/lib/storage-backends.js';
 import { LAYERS } from '../src/lib/storage-routes.js';
 import { limitsFor, hasLimit } from '../src/lib/machine-limits.js';
 import { machineFallbackFor } from '../src/lib/settings-defaults.js';
-import { MACHINE_STATE } from '../src/data/machine-state.js';
+import { MACHINE_STATE, MACHINE_STATES } from '../src/data/machine-state.js';
 import { r2MachineLimits } from '../src/data/adapters-r.js';
 import { clamp } from '../src/lib/machine-limits.js';
 import { fromDisplayTemp, toDisplayTemp, TEMP_UNIT } from '../src/lib/temperature.js';
@@ -68,6 +68,41 @@ describe('the mode', () => {
     test('every working state is abortable — the STOP target is told, it does not decide', () => {
         for (const state of MODES) assert.equal(isRunning(state), true);
         for (const state of ['idle', 'heating', 'sleeping', '']) assert.equal(isRunning(state), false);
+    });
+
+    const TONES = new Set(['ok', 'active', 'attention', 'busy', 'asleep', 'error']);
+
+    test('every machine state has a tone, and it is one of the six', () => {
+        for (const state of MACHINE_STATES) {
+            const tone = machineTone(state);
+            assert.ok(tone, `${state} has no tone — the dot would be missing for it`);
+            assert.ok(TONES.has(tone), `${state} asks for a tone the chip does not have: ${tone}`);
+        }
+    });
+
+    test('the mapping, state by state', () => {
+        assert.deepEqual(
+            Object.fromEntries(MACHINE_STATES.map((s) => [s, machineTone(s)])),
+            {
+                idle: 'ok', schedIdle: 'ok',
+                heating: 'active', preheating: 'active', espresso: 'active',
+                hotWater: 'active', flush: 'active', steam: 'active', steamRinse: 'active',
+                airPurge: 'active', cleaning: 'active', descaling: 'active',
+                calibration: 'active', selfTest: 'active', fwUpgrade: 'active',
+                skipStep: 'active',
+                error: 'error',
+                needsWater: 'attention',
+                busy: 'busy', booting: 'busy',
+                sleeping: 'asleep',
+            },
+        );
+    });
+
+    test('anything that is not a machine state has no tone at all', () => {
+        for (const state of ['', null, undefined, 'ready', 'nonsense']) {
+            assert.equal(machineTone(state), null,
+                'a machine that has said nothing yet has no colour to show');
+        }
     });
 });
 

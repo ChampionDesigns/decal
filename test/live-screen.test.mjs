@@ -149,10 +149,20 @@ describe('bugs that die in the source', () => {
         assert.doesNotMatch(rail, /\d+\.\d+/, 'a fractional length in a rail is how the L5 chain started');
     });
 
-    test('nothing in the skeleton is absolutely positioned (L1, and the header clusters)', () => {
+    test('nothing in the skeleton is absolutely positioned but the one named overlay', () => {
+        const OVERLAYS = { 'src/screens/live-screen.js': '.notice-layer' };
         for (const file of SCREEN_FILES) {
-            assert.doesNotMatch(CODE[file], /position:\s*(absolute|fixed)/,
-                `${file} positions something - §4.1: "One grid. No absolutely-positioned structure."`);
+            const found = [...CODE[file].matchAll(/position:\s*(absolute|fixed)/g)].map((m) => m[0]);
+            const allowed = OVERLAYS[file];
+            if (!allowed) {
+                assert.deepEqual(found, [],
+                    `${file} positions something - §4.1: "One grid. No absolutely-positioned structure."`);
+                continue;
+            }
+            assert.equal(found.length, 1,
+                `${file} may position ${allowed} and nothing else; found ${found.length}: ${found.join(', ')}`);
+            assert.match(CODE[file], new RegExp(`\\${allowed}\\s*\\{[^}]*position:\\s*absolute`, 's'),
+                `the one positioned rule in ${file} must be ${allowed}`);
         }
     });
 
