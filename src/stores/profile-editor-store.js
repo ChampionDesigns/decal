@@ -4,7 +4,7 @@
 
 import { callRoute } from '../data/rea-routes.js';
 import {
-    profileCreateBody, profileUpdateBody, profileRefusal,
+    profileCreateBody, profileUpdateBody, profileRefusal, profileMetadataOf,
     profileRecordIdOf, profileVisibilityOf, isDefaultProfile, PROFILE_VISIBILITY,
 } from '../data/rea-profile.js';
 import { saveReportFrom, saveFailureFrom, changeCountOf, headerCommitFor } from '../lib/editor-commit.js';
@@ -55,6 +55,33 @@ const NO_VISIBILITY_WRITE = Object.freeze({
     error: null,
     at: null,
 });
+
+/** The metadata a new version carries forward from the record it was edited from. */
+export const REMEMBERED_METADATA_KEYS = Object.freeze([
+    'targetDoseWeight', 'targetYield', 'grinderSetting',
+]);
+
+function sameWeight(a, b) {
+    const left = Number(a);
+    const right = Number(b);
+    if (Number.isFinite(left) && Number.isFinite(right)) return left === right;
+    return a === b;
+}
+
+function carriedMetadata(before, profile) {
+    const held = profileMetadataOf(before);
+    if (!held) return null;
+    const served = before && typeof before === 'object' ? before.profile ?? null : null;
+    const weightEdited = Boolean(served) && Boolean(profile) && typeof profile === 'object'
+        && !sameWeight(served.target_weight, profile.target_weight);
+    const carried = {};
+    for (const key of REMEMBERED_METADATA_KEYS) {
+        if (!Object.hasOwn(held, key)) continue;
+        if (key === 'targetYield' && weightEdited) continue;
+        carried[key] = held[key];
+    }
+    return Object.keys(carried).length > 0 ? carried : null;
+}
 
 const NOOP_LOGGER = Object.freeze({
     debug() {}, info() {}, warn() {}, error() {}, scope() { return NOOP_LOGGER; },
@@ -218,14 +245,15 @@ export function createProfileEditorStore({
             return patch({ load: EDITOR_LOAD_STATUS.FAILED, error: result, at: now() });
         },
 
-        async saveAsNewVersion(profile, { metadata = null, parentId = undefined } = {}) {
+        async saveAsNewVersion(profile, { metadata = undefined, parentId = undefined } = {}) {
             const before = store.get().record;
             const parent = parentId === undefined
                 ? (before && typeof before === 'object' ? before.id ?? null : null)
                 : parentId;
+            const sent = metadata === undefined ? carriedMetadata(before, profile) : metadata;
             patch({ save: SAVE_STATUS.SAVING, refusal: null, error: null, at: now() });
             const result = await callRoute(transport, 'postProfiles', {
-                body: profileCreateBody(profile, { parentId: parent, metadata }),
+                body: profileCreateBody(profile, { parentId: parent, metadata: sent }),
             });
             if (!result.ok) return publishFailure(result, 'postProfiles');
             const settled = await settleToOneRow(result, before);

@@ -8,7 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-    targetsFrom, patchFor, brewTempOf, WORKFLOW_TARGET_KEYS,
+    targetsFrom, patchFor, brewTempOf, isWritableTarget, WORKFLOW_TARGET_KEYS,
 } from '../src/lib/workflow-targets.js';
 import { LIMIT_KEYS } from '../src/lib/machine-limits.js';
 
@@ -68,12 +68,13 @@ test('every rail key is sourced, and the two that are not are named', () => {
     ], 'a rail key lost its source, or gained one without this test being told');
 });
 
-test('the patch is PARTIAL — one block, and the rest of the document untouched', () => {
+test('the patch is PARTIAL — one leaf, and the rest of the document untouched', () => {
     const patch = patchFor(WORKFLOW, 'dose', 19);
     assert.deepEqual(Object.keys(patch), ['context'],
         'the write carries a block the press did not change');
     assert.equal(patch.context.targetDoseWeight, 19);
-    assert.equal(patch.context.targetYield, 40.0, 'the sibling field was dropped');
+    assert.equal('targetYield' in patch.context, false,
+        'the press sent a sibling back, at whatever value its snapshot held');
     assert.equal(patch.profile, undefined);
     assert.equal(patch.steamSettings, undefined);
 });
@@ -95,6 +96,18 @@ test('a key this module does not own, or a value that is not a number, writes no
     assert.equal(patchFor(WORKFLOW, 'dose', null), null);
     assert.equal(patchFor(WORKFLOW, 'dose', '19'), null);
     assert.equal(patchFor(WORKFLOW, 'dose', Number.NaN), null);
+    assert.equal(patchFor({ profile: { steps: [] } }, 'brewTemp', 91), null);
+});
+
+test('whether a press is writable at all is answered WITHOUT the document', () => {
+    for (const key of WORKFLOW_TARGET_KEYS) {
+        assert.equal(isWritableTarget(key, 19), true, `${key} is a rail key and was refused`);
+    }
+    assert.equal(isWritableTarget('fanThreshold', 40), false);
+    assert.equal(isWritableTarget('dose', null), false);
+    assert.equal(isWritableTarget('dose', '19'), false);
+    assert.equal(isWritableTarget('dose', Number.NaN), false);
+    assert.equal(isWritableTarget('brewTemp', 91), true);
     assert.equal(patchFor({ profile: { steps: [] } }, 'brewTemp', 91), null);
 });
 
@@ -126,10 +139,8 @@ describe('grind — the rail row the workflow does carry', () => {
             { context: { grinderSetting: '8.50' } });
     });
 
-    test('the patch is partial: the rest of the context rides along, nothing else does', () => {
+    test('the patch is partial: the grind alone, and the rest left where the machine keeps it', () => {
         const workflow = { context: { targetDoseWeight: 18, targetYield: 40 }, steamSettings: { flow: 2.1 } };
-        assert.deepEqual(patchFor(workflow, 'grind', 9), {
-            context: { targetDoseWeight: 18, targetYield: 40, grinderSetting: '9.00' },
-        });
+        assert.deepEqual(patchFor(workflow, 'grind', 9), { context: { grinderSetting: '9.00' } });
     });
 });

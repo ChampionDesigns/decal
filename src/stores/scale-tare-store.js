@@ -3,6 +3,7 @@
  */
 
 import { createStore } from './store.js';
+import { FEED_STATUS } from './feed-store.js';
 import { callRoute } from '../data/rea-routes.js';
 
 /** Where a tare attempt is. */
@@ -12,6 +13,8 @@ export const TARE_STATUS = Object.freeze({
     WORKING: 'working',
     /** The weight settled near zero — the only evidence a tare took. */
     DONE: 'done',
+    /** The scale was already at zero when the request left, so nothing moved. */
+    ALREADY_ZERO: 'already-zero',
     /** The machine said no, in words this can quote. */
     REFUSED: 'refused',
     /** No refusal and no zero: the request went out and nothing moved. */
@@ -58,13 +61,19 @@ export function createScaleTareStore({
     const patch = (next) => store.set(Object.freeze({ ...store.get(), ...next }));
 
     /** The weight the scale feed is publishing, or null when it is saying nothing. */
-    const weightNow = () => {
+    const scaleNow = () => {
         const state = scale.get();
         const value = state && state.value ? state.value.weight : null;
-        return typeof value === 'number' && Number.isFinite(value) ? value : null;
+        return {
+            weight: typeof value === 'number' && Number.isFinite(value) ? value : null,
+            live: Boolean(state) && state.status === FEED_STATUS.LIVE,
+            frames: state && Number.isFinite(state.frames) ? state.frames : 0,
+        };
     };
 
-    const confirm = () => new Promise((resolve) => {
+    const isZero = (weight) => weight !== null && Math.abs(weight) <= TARE_ZERO_G;
+
+    const confirm = (baseline) => new Promise((resolve) => {
         const started = now();
         let stop = null;
         let timer = null;
@@ -74,12 +83,13 @@ export function createScaleTareStore({
             resolve({ settled, weight });
         };
         const look = () => {
-            const weight = weightNow();
-            if (weight !== null && Math.abs(weight) <= TARE_ZERO_G) finish(true, weight);
-            else if (now() - started >= TARE_CONFIRM_MS) finish(false, weight);
+            const seen = scaleNow();
+            const evidence = seen.live && seen.frames > baseline.frames;
+            if (evidence && isZero(seen.weight)) finish(true, seen.weight);
+            else if (now() - started >= TARE_CONFIRM_MS) finish(false, seen.weight);
         };
         stop = scale.subscribe(look);
-        timer = setTimer(() => finish(false, weightNow()), TARE_CONFIRM_MS);
+        timer = setTimer(() => finish(false, scaleNow().weight), TARE_CONFIRM_MS);
         look();
     });
 
@@ -92,6 +102,11 @@ export function createScaleTareStore({
             patch({ status: TARE_STATUS.WORKING, refusal: null, error: null, weight: null });
 
             inFlight = (async () => {
+                const before = scaleNow();
+                const baseline = {
+                    frames: before.frames,
+                    zero: before.live && isZero(before.weight),
+                };
                 const result = await callRoute(transport, 'putScaleTare', { method: 'PUT' });
 
                 if (!result.ok) {
@@ -112,9 +127,10 @@ export function createScaleTareStore({
                 }
 
                 /* THE 200 PROVES ONLY THAT THE WRITE LANDED. Watch the weight. */
-                const { settled, weight } = await confirm();
+                const { settled, weight } = await confirm(baseline);
+                if (!settled) return patch({ status: TARE_STATUS.UNCONFIRMED, weight });
                 return patch({
-                    status: settled ? TARE_STATUS.DONE : TARE_STATUS.UNCONFIRMED,
+                    status: baseline.zero ? TARE_STATUS.ALREADY_ZERO : TARE_STATUS.DONE,
                     weight,
                 });
             })().finally(() => { inFlight = null; });

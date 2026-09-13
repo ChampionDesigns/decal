@@ -1,6 +1,7 @@
 
 
 import { callRoute } from '../data/rea-routes.js';
+import { isReaFailure, reaMessageOf } from '../data/rea-errors.js';
 import { createStore } from './store.js';
 
 /** Where a read or an install got to. */
@@ -26,11 +27,20 @@ const EMPTY_FLASH = Object.freeze({
     state: FLASH_STATE.IDLE,
     /** 0..1 while uploading, else null. The machine's own fraction, never interpolated. */
     progress: null,
-    /** What the machine or the route said, verbatim. */
+    /** What the machine or the route said, as a sentence. */
     error: null,
+    /** `{status, problem}` behind a refusal, or null when there is nothing to diagnose from. */
+    detail: null,
     /** Which artifact, or 'file' for a hand-picked one. */
     what: null,
 });
+
+function refusalMessage(result) {
+    if (isReaFailure(result)) return reaMessageOf(result) ?? result.message ?? null;
+    if (typeof result?.message === 'string' && result.message !== '') return result.message;
+    if (typeof result?.problem === 'string' && result.problem !== '') return result.problem;
+    return null;
+}
 
 const EMPTY_STATE = Object.freeze({
     status: FIRMWARE_STATUS.IDLE,
@@ -59,6 +69,7 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
                 state,
                 progress: typeof line.progress === 'number' && line.progress >= 0 ? line.progress : null,
                 error: typeof line.error === 'string' ? line.error : null,
+                detail: null,
                 what,
             }),
         });
@@ -67,11 +78,15 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
     /** A request that never became a stream. Its status is the whole story. */
     const refuse = (what, result) => {
         if (log && log.warn) log.warn(`firmware install refused (${result.status}): ${result.message}`);
+        const status = Number.isFinite(result?.status) && result.status > 0 ? result.status : null;
         return patch({
             flash: Object.freeze({
                 state: FLASH_STATE.REFUSED,
                 progress: null,
-                error: result.problem ?? result.message ?? null,
+                error: refusalMessage(result),
+                detail: status === null && result?.problem == null
+                    ? null
+                    : Object.freeze({ status, problem: result?.problem ?? null }),
                 what,
             }),
         });
@@ -96,7 +111,7 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
             if (!artifactId) {
                 return refuse(null, { status: 0, message: 'no recommended artifact', problem: null });
             }
-            patch({ flash: Object.freeze({ state: FLASH_STATE.ERASING, progress: 0, error: null, what: artifactId }) });
+            patch({ flash: Object.freeze({ state: FLASH_STATE.ERASING, progress: 0, error: null, detail: null, what: artifactId }) });
             const result = await callRoute(transport, 'postMachineFirmwareApply', {
                 body: { artifactId },
                 onLine: onLine(artifactId),
@@ -114,7 +129,7 @@ export function createFirmwareStore({ transport, logger = null, now = () => Date
             if (image.byteLength === 0) {
                 return refuse('file', { status: 0, message: 'that file is empty', problem: null });
             }
-            patch({ flash: Object.freeze({ state: FLASH_STATE.ERASING, progress: 0, error: null, what: 'file' }) });
+            patch({ flash: Object.freeze({ state: FLASH_STATE.ERASING, progress: 0, error: null, detail: null, what: 'file' }) });
             const result = await callRoute(transport, 'postMachineFirmware', {
                 raw: image,
                 headers: { 'Content-Type': 'application/octet-stream' },

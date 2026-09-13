@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {
     createScaleTareStore, TARE_STATUS, TARE_ZERO_G,
 } from '../src/stores/scale-tare-store.js';
+import { FEED_STATUS } from '../src/stores/feed-store.js';
 
 /** A transport whose one answer a test scripts, recording what was asked. */
 function scriptedTransport(answer) {
@@ -21,16 +22,21 @@ function scriptedTransport(answer) {
 }
 
 /** The scale feed, as this store uses it: a value and a subscription. */
-function fakeScale(initialWeight = 18.4) {
+function fakeScale(initialWeight = 18.4, { status = FEED_STATUS.LIVE, frames = 1 } = {}) {
     const listeners = new Set();
-    let state = { value: { weight: initialWeight } };
+    let state = { status, value: { weight: initialWeight }, frames };
+    const publish = () => { for (const fn of [...listeners]) fn(state); };
     return {
         get: () => state,
         subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
         /** Publish a new reading, as the websocket would. */
         emit(weight) {
-            state = { value: { weight } };
-            for (const fn of [...listeners]) fn(state);
+            state = { status: FEED_STATUS.LIVE, value: { weight }, frames: state.frames + 1 };
+            publish();
+        },
+        goStale() {
+            state = { ...state, status: FEED_STATUS.STALE };
+            publish();
         },
     };
 }
@@ -71,6 +77,64 @@ test('A 200 OVER A SILENT REFUSAL IS NOT A TARE — the weight never moved', asy
     assert.equal(store.get().status, TARE_STATUS.UNCONFIRMED,
         'a route that answered 200 was reported as a successful tare');
     assert.equal(store.get().weight, 18.4, 'and the reading it settled at is kept, to say so with');
+});
+
+test('A STALE ZERO CANNOT CONFIRM A NEW TARE — it is a memory, not an observation', async () => {
+    const transport = scriptedTransport(OK);
+    const scale = fakeScale(0);
+    scale.goStale();
+    const store = createScaleTareStore({ transport, scale, now: fakeClock() });
+    await store.tare();
+    assert.equal(store.get().status, TARE_STATUS.UNCONFIRMED,
+        'an old zero was read as evidence about a request that had not been sent when it arrived');
+});
+
+test('a scale ALREADY at zero says so, and does not claim a tare it could not have seen', async () => {
+    const transport = scriptedTransport(OK);
+    const scale = fakeScale(0.01);
+    const store = createScaleTareStore({ transport, scale });
+    const pending = store.tare();
+    setTimeout(() => scale.emit(0.01), 5);
+    await pending;
+    assert.equal(store.get().status, TARE_STATUS.ALREADY_ZERO);
+    assert.notEqual(store.get().status, TARE_STATUS.DONE,
+        'a no-op was reported as a confirmed operation');
+});
+
+test('a zero that lands WHILE the request is in flight still confirms it', async () => {
+    const scale = fakeScale(18.4);
+    const transport = {
+        calls: [],
+        request: async (path, options = {}) => {
+            transport.calls.push({ path, method: options.method ?? 'GET' });
+            scale.emit(0.0);
+            return OK;
+        },
+    };
+    const store = createScaleTareStore({ transport, scale });
+    await store.tare();
+    assert.equal(store.get().status, TARE_STATUS.DONE);
+    assert.equal(store.get().weight, 0);
+});
+
+test('a REPEAT tare does not inherit the zero the FIRST one earned', async () => {
+    const scale = fakeScale(18.4);
+    let answerTares = true;
+    const transport = {
+        request: async () => {
+            if (answerTares) scale.emit(0.0);
+            return OK;
+        },
+    };
+    const store = createScaleTareStore({
+        transport, scale, setTimer: (fn) => setTimeout(fn, 0), clearTimer: (id) => clearTimeout(id),
+    });
+    await store.tare();
+    assert.equal(store.get().status, TARE_STATUS.DONE, 'the first tare is the one with evidence');
+    answerTares = false;
+    await store.tare();
+    assert.equal(store.get().status, TARE_STATUS.UNCONFIRMED,
+        'the second tare confirmed itself on the frame the first one earned');
 });
 
 test('ReaPrime\'s own refusal is quoted, not guessed at', async () => {

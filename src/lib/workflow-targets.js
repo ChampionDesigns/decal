@@ -33,6 +33,11 @@ const SCALAR_FIELDS = Object.freeze({
 
 export const WORKFLOW_TARGET_KEYS = Object.freeze([...Object.keys(SCALAR_FIELDS), 'brewTemp']);
 
+export function isWritableTarget(key, value) {
+    if (numberOrUndefined(value) === undefined) return false;
+    return key === 'brewTemp' || Object.prototype.hasOwnProperty.call(SCALAR_FIELDS, key);
+}
+
 export function brewTempOf(workflow) {
     const steps = workflow && workflow.profile && Array.isArray(workflow.profile.steps)
         ? workflow.profile.steps : null;
@@ -71,8 +76,6 @@ export function patchFor(workflow, key, value) {
     const field = SCALAR_FIELDS[key];
     if (!field) return null;
     const [block, name, codec] = field;
-    const current = workflow && workflow[block] && typeof workflow[block] === 'object'
-        ? workflow[block] : {};
     const written = codec ? codec.write(Number(value)) : value;
-    return { [block]: { ...current, [name]: written } };
+    return { [block]: { [name]: written } };
 }

@@ -19,12 +19,33 @@ export const SURFACE = Object.freeze({
 export const WRITE_REFUSAL = Object.freeze({
     BACKEND_FAILED: 'backendFailed',
     CAPABILITY_NOT_PRESENT: 'capabilityNotPresent',
+    SUPERSEDED: 'superseded',
 });
+
+/** Where one key's read or write has got to. */
+export const OPERATION = Object.freeze({
+    IDLE: 'idle',
+    PENDING: 'pending',
+    FAILED: 'failed',
+});
+
+/** Why a read did not happen. */
+export const READ_REFUSAL = Object.freeze({
+    BACKEND_FAILED: 'readFailed',
+});
+
+export const OPERATION_KIND = Object.freeze({
+    READ: 'read',
+    WRITE: 'write',
+});
+
+const IDLE_OPERATION = Object.freeze({ status: OPERATION.IDLE, reason: null });
 
 /** Where a loaded value came from. `absent` is a real answer, not a failure. */
 export const VALUE_SOURCE = Object.freeze({
     STORED: 'stored',
     ABSENT: 'absent',
+    FAILED: 'failed',
 });
 
 export function createSettingsStore({ storage, capabilities = null, routes = STORAGE_ROUTES, logger = NOOP_LOGGER } = {}) {
@@ -36,8 +57,58 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
     const keys = Object.freeze(settingsKeys(routes));
     const known = new Set(keys);
     const values = new Map();          // key -> createStore(...)
+    const operations = new Map();
+    const operationListeners = new Set();
     const loadedKeys = new Set();
     const writeFailureListeners = new Set();
+
+    const readFailures = new Map();
+    if (typeof storage.onReadFailure === 'function') {
+        storage.onReadFailure((event) => {
+            const key = event?.key;
+            if (typeof key !== 'string') return;
+            readFailures.set(key, (readFailures.get(key) ?? 0) + 1);
+        });
+    }
+
+    /* Every read and every write takes a number, so an answer that arrives after a newer
+     * one is discarded rather than published over it. */
+    const issued = new Map();
+    const lastWrite = new Map();
+    const settledAt = new Map();
+
+    function nextIssue(key) {
+        const next = (issued.get(key) ?? 0) + 1;
+        issued.set(key, next);
+        return next;
+    }
+
+    function nextWriteIssue(key) {
+        const next = nextIssue(key);
+        lastWrite.set(key, next);
+        return next;
+    }
+
+    const writeIsCurrent = (key, issue) => lastWrite.get(key) === issue;
+    const readIsCurrent = (key, issue) => issued.get(key) === issue
+        && issue > (settledAt.get(key) ?? 0);
+    const markSettled = (key) => settledAt.set(key, issued.get(key) ?? 0);
+
+    function publishOperation(key, kind, status, reason = null) {
+        const slot = `${kind}:${key}`;
+        const held = operations.get(slot) ?? IDLE_OPERATION;
+        if (held.status === status && held.reason === reason) return;
+        const next = Object.freeze({ key, kind, status, reason });
+        if (status === OPERATION.IDLE) operations.delete(slot);
+        else operations.set(slot, next);
+        for (const listener of operationListeners) {
+            try {
+                listener(next);
+            } catch (error) {
+                log.error('a settings operation listener threw', error);
+            }
+        }
+    }
 
     function cell(key) {
         if (!values.has(key)) {
@@ -143,6 +214,12 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
         /** True once this key has been read — tells "not read yet" from "read, absent". */
         isLoaded: (key) => loadedKeys.has(key),
 
+        /** Every read and write state change, as {key, kind, status, reason}. */
+        onOperation(listener) {
+            operationListeners.add(listener);
+            return () => operationListeners.delete(listener);
+        },
+
         /** Subscribe to one key; fires immediately with the current value. */
         subscribe(key, listener) {
             rowFor(key, 'subscribe()');
@@ -151,8 +228,32 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
 
         async load(key) {
             rowFor(key, 'load()');
+            const issue = nextIssue(key);
+            const failuresBefore = readFailures.get(key) ?? 0;
             const value = await storage.get(key);
+            const failed = (readFailures.get(key) ?? 0) > failuresBefore;
+            if (!readIsCurrent(key, issue)) {
+                return Object.freeze({
+                    key,
+                    value: unwrap(cell(key).get()),
+                    source: VALUE_SOURCE.STORED,
+                    superseded: true,
+                });
+            }
+            if (failed) {
+                log.error(`'${key}' could not be read from layer '${rowFor(key, 'load()').layer}' — the shown value stays ${JSON.stringify(cell(key).get())}`);
+                publishOperation(key, OPERATION_KIND.READ, OPERATION.FAILED, READ_REFUSAL.BACKEND_FAILED);
+                return Object.freeze({
+                    key,
+                    value: unwrap(cell(key).get()),
+                    source: VALUE_SOURCE.FAILED,
+                    failed: true,
+                });
+            }
             loadedKeys.add(key);
+            if (operations.get(`${OPERATION_KIND.READ}:${key}`)?.reason === READ_REFUSAL.BACKEND_FAILED) {
+                publishOperation(key, OPERATION_KIND.READ, OPERATION.IDLE);
+            }
             const held = cell(key);
             if (!Object.is(held.get(), value)) held.set(value);
             return Object.freeze({
@@ -188,7 +289,10 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
                 announceWriteFailure(refusal);
                 return refusal;
             }
+            const issue = nextWriteIssue(key);
+            publishOperation(key, OPERATION_KIND.WRITE, OPERATION.PENDING);
             const stored = await storage.set(key, value);
+            const newest = writeIsCurrent(key, issue);
             if (!stored) {
                 const failure = Object.freeze({
                     ok: false,
@@ -199,9 +303,23 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
                     verdict: verdict.verdict,
                 });
                 log.error(`'${key}' was NOT stored on layer '${row.layer}' — the shown value stays ${JSON.stringify(cell(key).get())}`);
+                if (newest) publishOperation(key, OPERATION_KIND.WRITE, OPERATION.FAILED, WRITE_REFUSAL.BACKEND_FAILED);
                 announceWriteFailure(failure);
                 return failure;
             }
+            if (!newest) {
+                log.debug(`a settings write for '${key}' answered after a newer one; discarding it`);
+                return Object.freeze({
+                    ok: false,
+                    key,
+                    layer: row.layer,
+                    reason: WRITE_REFUSAL.SUPERSEDED,
+                    capability: verdict.capability,
+                    verdict: verdict.verdict,
+                });
+            }
+            markSettled(key);
+            publishOperation(key, OPERATION_KIND.WRITE, OPERATION.IDLE);
             loadedKeys.add(key);
             cell(key).set(value);
             return Object.freeze({ ok: true, key, layer: row.layer, reason: null, capability: verdict.capability, verdict: verdict.verdict });
@@ -223,15 +341,27 @@ export function createSettingsStore({ storage, capabilities = null, routes = STO
                 announceWriteFailure(refusal);
                 return refusal;
             }
+            const issue = nextWriteIssue(key);
+            publishOperation(key, OPERATION_KIND.WRITE, OPERATION.PENDING);
             const removed = await storage.remove(key);
+            const newest = writeIsCurrent(key, issue);
             if (!removed) {
                 const failure = Object.freeze({
                     ok: false, key, layer: row.layer, reason: WRITE_REFUSAL.BACKEND_FAILED, capability: verdict.capability, verdict: verdict.verdict,
                 });
                 log.error(`'${key}' was NOT removed from layer '${row.layer}'`);
+                if (newest) publishOperation(key, OPERATION_KIND.WRITE, OPERATION.FAILED, WRITE_REFUSAL.BACKEND_FAILED);
                 announceWriteFailure(failure);
                 return failure;
             }
+            if (!newest) {
+                log.debug(`a settings delete for '${key}' answered after a newer write; discarding it`);
+                return Object.freeze({
+                    ok: false, key, layer: row.layer, reason: WRITE_REFUSAL.SUPERSEDED, capability: verdict.capability, verdict: verdict.verdict,
+                });
+            }
+            markSettled(key);
+            publishOperation(key, OPERATION_KIND.WRITE, OPERATION.IDLE);
             loadedKeys.add(key);
             cell(key).set(undefined);
             return Object.freeze({ ok: true, key, layer: row.layer, reason: null, capability: verdict.capability, verdict: verdict.verdict });

@@ -1,10 +1,13 @@
 /**
- * The owner <live-screen> was promised and never given.
+ * The workflow document, the Live rail's numbers read off it, and the writes back.
+ *
+ * A press is held on the rail until its write settles, so a read that lands late
+ * cannot revert it, and writes are sent one at a time in the order they were made.
  */
 
 import { callRoute } from '../data/rea-routes.js';
 import { createStore } from './store.js';
-import { targetsFrom, patchFor } from '../lib/workflow-targets.js';
+import { targetsFrom, patchFor, isWritableTarget } from '../lib/workflow-targets.js';
 
 /** What the store knows about the document right now. */
 export const WORKFLOW_STATUS = Object.freeze({
@@ -40,35 +43,124 @@ export function createWorkflowStore({ transport, logger = null, now = () => Date
      * has gone. */
     let epoch = 0;
 
+    /* Every read and every write takes a number, and an answer older than the newest one
+     * already served is discarded rather than published. */
+    let issued = 0;
+    let newestAnswer = 0;
+
+    /** Presses made and not yet settled, keyed by rail key. They overlay the served document. */
+    const pending = new Map();
+
+    let writes = Promise.resolve();
+
+    const enqueue = (run) => {
+        const answer = writes.then(run, run);
+        writes = answer.then(() => {}, () => {});
+        return answer;
+    };
+
     const publish = (next) => store.set(next);
-    const publishIfCurrent = (asOf, next) => {
+
+    const railTargets = (workflow) => {
+        const base = targetsFrom(workflow);
+        if (pending.size === 0) return base;
+        const out = { ...base };
+        for (const [key, held] of pending) out[key] = held.value;
+        return Object.freeze(out);
+    };
+
+    const sameTargets = (a, b) => {
+        const keys = Object.keys(a);
+        return keys.length === Object.keys(b).length && keys.every((k) => Object.is(a[k], b[k]));
+    };
+
+    const resettle = (patch = null) => {
+        const held = store.get();
+        const targets = railTargets(held.workflow);
+        if (!patch && sameTargets(held.targets, targets)) return held;
+        return publish({ ...held, ...patch, targets });
+    };
+
+    const clearPress = (key, op) => {
+        if (key === null) return true;
+        if (!pending.has(key) || pending.get(key).op !== op) return false;
+        pending.delete(key);
+        return true;
+    };
+
+    const answer = (state, abandoned = false) => Object.freeze({ ...state, abandoned });
+
+    const abandon = (key, op, why) => {
+        if (log && log.info) log.info(`a queued workflow write was dropped: ${why}`);
+        if (!clearPress(key, op)) return answer(store.get(), true);
+        return answer(resettle(), true);
+    };
+
+    const settle = (asOf, op, next) => {
         if (asOf !== epoch) {
             if (log && log.info) log.info('discarding a workflow for a machine that is gone');
             return store.get();
         }
-        return publish(next);
+        if (op < newestAnswer) {
+            if (log && log.info) log.info('discarding a workflow answer a newer one has replaced');
+            return resettle();
+        }
+        newestAnswer = op;
+        return publish({ ...next, targets: railTargets(next.workflow) });
     };
 
-    const write = async (patch, before, label) => {
-        const asOf = epoch;
-        const result = await callRoute(transport, 'putWorkflow', { body: patch });
+    const write = async (patch, label, key, op, asOf) => {
+        if (asOf !== epoch) return abandon(key, op, 'the machine it was made against is gone');
+        let result;
+        try {
+            result = await callRoute(transport, 'putWorkflow', { body: patch });
+        } catch (error) {
+            result = {
+                ok: false,
+                kind: 'error',
+                message: error && error.message ? error.message : String(error),
+            };
+        }
+        const current = clearPress(key, op);
         if (!result.ok) {
             if (log && log.warn) log.warn(`workflow write refused for ${label}`);
-            return publishIfCurrent(asOf, { ...before, writeError: result });
+            if (!current) return answer(resettle());
+            if (asOf !== epoch) return answer(store.get());
+            if (op < newestAnswer) return answer(resettle({ writeError: result }));
+            return answer(settle(asOf, op, { ...store.get(), writeError: result }));
         }
         const served = result.data && typeof result.data === 'object'
             && result.data.profile ? result.data : null;
         if (served) {
-            return publishIfCurrent(asOf, {
+            return answer(settle(asOf, ++issued, {
                 status: WORKFLOW_STATUS.READY,
                 workflow: served,
-                targets: targetsFrom(served),
                 error: null,
                 loadedAt: now(),
                 writeError: null,
-            });
+            }));
         }
         inFlight = null;
+        return answer(await api.load());
+    };
+
+    const sendTarget = (key, value, op, asOf) => {
+        if (asOf !== epoch) return abandon(key, op, 'the machine it was made against is gone');
+        const patch = patchFor(store.get().workflow, key, value);
+        if (!patch) return abandon(key, op, `the document carries no field for '${key}'`);
+        return write(patch, `target '${key}'`, key, op, asOf);
+    };
+
+    const MAX_CHASED_READS = 1;
+    let chasedReads = 0;
+    const chaseDiscardedRead = (asOf) => {
+        if (asOf !== epoch) return null;
+        if (chasedReads >= MAX_CHASED_READS) {
+            if (log && log.info) log.info('a discarded workflow read was not chased a second time');
+            return null;
+        }
+        chasedReads += 1;
+        if (log && log.info) log.info('re-reading the workflow a newer answer discarded');
         return api.load();
     };
 
@@ -82,26 +174,32 @@ export function createWorkflowStore({ transport, logger = null, now = () => Date
         load() {
             if (inFlight) return inFlight;
             const asOf = epoch;
+            const op = ++issued;
+            let outranked = false;
             publish({ ...store.get(), status: WORKFLOW_STATUS.LOADING, error: null });
             inFlight = (async () => {
                 const result = await callRoute(transport, 'getWorkflow');
                 if (!result.ok) {
-                    return publishIfCurrent(asOf, {
+                    return settle(asOf, op, {
                         ...EMPTY_STATE,
                         status: WORKFLOW_STATUS.UNAVAILABLE,
                         error: result,
                     });
                 }
                 const workflow = result.data && typeof result.data === 'object' ? result.data : null;
-                return publishIfCurrent(asOf, {
+                outranked = asOf === epoch && op < newestAnswer;
+                if (!outranked) chasedReads = 0;
+                return settle(asOf, op, {
                     status: WORKFLOW_STATUS.READY,
                     workflow,
-                    targets: targetsFrom(workflow),
                     error: null,
                     loadedAt: now(),
                     writeError: null,
                 });
             })().finally(() => { inFlight = null; });
+            inFlight
+                .then(() => (outranked ? chaseDiscardedRead(asOf) : null))
+                .catch(() => {});
             return inFlight;
         },
 
@@ -113,25 +211,29 @@ export function createWorkflowStore({ transport, logger = null, now = () => Date
 
         async setTarget(key, value) {
             const before = store.get();
-            const patch = patchFor(before.workflow, key, value);
-            if (!patch) {
+            if (!isWritableTarget(key, value)) {
                 if (log && log.warn) log.warn(`no workflow field for target '${key}'`);
-                return before;
+                return answer(before, true);
             }
-            const optimistic = { ...before.targets, [key]: value };
-            publish({ ...before, targets: Object.freeze(optimistic), writeError: null });
-            return write(patch, before, `target '${key}'`);
+            const asOf = epoch;
+            const op = ++issued;
+            pending.set(key, { op, value });
+            publish({ ...before, targets: railTargets(before.workflow), writeError: null });
+            return enqueue(() => sendTarget(key, value, op, asOf));
         },
 
         async apply(patch, { label = 'document' } = {}) {
-            if (!patch || typeof patch !== 'object') return store.get();
-            return write(patch, store.get(), label);
+            if (!patch || typeof patch !== 'object') return answer(store.get(), true);
+            const asOf = epoch;
+            const op = ++issued;
+            return enqueue(() => write(patch, label, null, op, asOf));
         },
 
         /** The machine went away. Mirrors `machineInfo.forget()`. */
         forget() {
             epoch += 1;
             inFlight = null;
+            pending.clear();
             return publish({ ...EMPTY_STATE });
         },
 

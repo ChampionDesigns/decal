@@ -44,6 +44,7 @@ export const PANEL_SETTING_NAMES = Object.freeze(Object.keys(PANEL_SETTINGS));
 export const COMMIT_REFUSAL = Object.freeze({
     NO_MACHINE_PORT: 'noMachinePort',
     WRITE_FAILED: 'writeFailed',
+    MEMORY_NOT_SAVED: 'memoryNotSaved',
 });
 
 export function createSettingsLeafModel({
@@ -463,7 +464,7 @@ export function createSettingsLeafModel({
             /** The live machine channel this row shows beside its value, or null. */
             live: row.live ?? null,
             staged: row.source === SOURCE.MACHINE && staged.has(row.field),
-            surface: gate.surface,
+            surface: row.supportedBy && fieldNow(row.supportedBy) === false ? 'hidden' : gate.surface,
             capability: gate.capability,
             verdict: gate.verdict,
         });
@@ -475,6 +476,7 @@ export function createSettingsLeafModel({
 
         /** The number, and nothing else crosses that boundary. */
         get changeCount() { return staged.size; },
+        get hasPendingWrites() { return staged.size > 0 || stagedMemory.size > 0; },
 
         /** True once the machine document has been read (or has failed to read). */
         get machineLoaded() { return machineLoaded; },
@@ -567,6 +569,20 @@ export function createSettingsLeafModel({
             }
         },
 
+        /** Take machine values off a live feed. Returns how many actually moved. */
+        observeMachine(fields) {
+            if (!fields || typeof fields !== 'object') return 0;
+            let moved = 0;
+            for (const [field, value] of Object.entries(fields)) {
+                if (value === undefined) continue;
+                if (machineValues.has(field) && Object.is(machineValues.get(field), value)) continue;
+                machineValues.set(field, value);
+                moved += 1;
+            }
+            if (moved > 0) bump();
+            return moved;
+        },
+
         async set(row, value) {
             if (row.zeroSwitch) {
                 const on = Boolean(value);
@@ -655,11 +671,11 @@ export function createSettingsLeafModel({
 
         async commit() {
             if (staged.size === 0 && stagedMemory.size === 0) {
-                return Object.freeze({ ok: true, wrote: 0, reason: null });
+                return Object.freeze({ ok: true, wrote: 0, reason: null, detail: null });
             }
             if (staged.size > 0 && (!machine || typeof machine.write !== 'function')) {
                 log.error('refusing to commit: there is no machine settings port');
-                return Object.freeze({ ok: false, wrote: 0, reason: COMMIT_REFUSAL.NO_MACHINE_PORT });
+                return Object.freeze({ ok: false, wrote: 0, reason: COMMIT_REFUSAL.NO_MACHINE_PORT, detail: null });
             }
             const patch = Object.fromEntries(staged);
             const count = staged.size;
@@ -674,7 +690,7 @@ export function createSettingsLeafModel({
             }
             if (!ok) {
                 bump();
-                return Object.freeze({ ok: false, wrote: 0, reason: COMMIT_REFUSAL.WRITE_FAILED });
+                return Object.freeze({ ok: false, wrote: 0, reason: COMMIT_REFUSAL.WRITE_FAILED, detail: null });
             }
             let memoryReason = null;
             for (const [key, remembered] of [...stagedMemory]) {
@@ -695,8 +711,14 @@ export function createSettingsLeafModel({
             }
             staged.clear();
             await this.loadMachine();
+            if (memoryReason === null) {
+                return Object.freeze({ ok: true, wrote: count, reason: null, detail: null });
+            }
             return Object.freeze({
-                ok: memoryReason === null, wrote: count, reason: memoryReason,
+                ok: false,
+                wrote: count,
+                reason: COMMIT_REFUSAL.MEMORY_NOT_SAVED,
+                detail: memoryReason,
             });
         },
 

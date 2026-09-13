@@ -71,6 +71,21 @@ export const VERSIONS_STATUS = Object.freeze({
     FAILED: 'failed',
 });
 
+/** What `setFavourite` did. */
+export const ASSIGN_RESULT = Object.freeze({
+    ASSIGNED: 'assigned',
+    REFUSED_DUPLICATE: 'refused-duplicate',
+    REFUSED_SLOT: 'refused-slot',
+    FAILED: 'failed',
+});
+
+/** What `hide` or `purge` did. */
+export const MANAGE_RESULT = Object.freeze({
+    DONE: 'done',
+    NO_RECORD: 'no-record',
+    FAILED: 'failed',
+});
+
 const NOOP_LOGGER = Object.freeze({
     debug() {}, info() {}, warn() {}, error() {}, scope() { return NOOP_LOGGER; },
 });
@@ -87,6 +102,10 @@ const EMPTY_LOADED = Object.freeze({
     source: null,
     /** The R layer's own flag, true on every adapter answer. Not the marking. */
     layerProvisional: false,
+    /** The recipe the machine is running, as served. */
+    profile: null,
+    /** Whether the id is the machine's own answer rather than a guess. */
+    confirmed: false,
     basis: null,
     reason: null,
     candidates: null,
@@ -148,6 +167,41 @@ function listableLoadedId(listable, loaded) {
     return listable.some((record) => record?.id === id) ? id : null;
 }
 
+const isBody = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+function sameBody(a, b) {
+    if (Object.is(a, b)) return true;
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+        return a.every((item, i) => sameBody(item, b[i]));
+    }
+    if (!isBody(a) || !isBody(b)) return false;
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) return false;
+    return keys.every((key) => Object.hasOwn(b, key) && sameBody(a[key], b[key]));
+}
+
+function activeRecipeOf(report) {
+    const profile = isBody(report) && isBody(report.profile) ? report.profile : null;
+    return profile ? structuredClone(profile) : null;
+}
+
+function holdsActiveRecipe(record, active) {
+    if (!active || !isBody(record)) return false;
+    if (sameBody(active, record.profile ?? null)) return true;
+    const armed = workflowApplyBody(record);
+    return Boolean(armed) && sameBody(active, armed.profile);
+}
+
+function recordWithId(records, id) {
+    if (!Array.isArray(records) || !id) return null;
+    return records.find((record) => isBody(record) && record.id === id) ?? null;
+}
+
+export const LOADED_UNRESOLVED = Object.freeze({
+    CONTENT_MISMATCH: 'contentMismatch',
+});
+
 export const LOADED_SOURCE = Object.freeze({
     /** `report.profile.id` — R1 has landed and the machine names the record itself. */
     WORKFLOW_ID: R1_SOURCE.WORKFLOW_ID,
@@ -207,11 +261,12 @@ export function createProfileLibraryStore({
         if (!result.ok) log.debug(`workflow read failed (${result.message}) — no loaded-profile highlight`);
         const answer = r1LoadedProfileId(report, records);
         const value = answer.value || {};
+        const active = activeRecipeOf(report);
 
         if (!value.id) {
             const remembered = rememberedRecord(
                 records, armedId ?? await loadLoadedProfileId(storage), value.title ?? title(report));
-            if (remembered) {
+            if (remembered && holdsActiveRecipe(remembered, active)) {
                 return Object.freeze({
                     id: remembered.id,
                     title: remembered.profile.title,
@@ -219,12 +274,37 @@ export function createProfileLibraryStore({
                     provisional: true,
                     source: LOADED_SOURCE.REMEMBERED,
                     layerProvisional: answer.provisional === true,
-                    basis: 'the id this skin armed, still carrying the title the machine is running',
+                    profile: active,
+                    confirmed: true,
+                    basis: 'the id this skin armed, and the record still carries the recipe the machine is running',
                     reason: null,
                     candidates: Array.isArray(value.candidates)
                         ? Object.freeze([...value.candidates]) : null,
                 });
             }
+            if (remembered) {
+                log.info(`the remembered profile ${remembered.id} no longer carries the recipe the `
+                    + 'machine is running — something else has loaded one since');
+            }
+        }
+
+        if (value.id && value.source === R1_SOURCE.TITLE_MATCH
+            && !holdsActiveRecipe(recordWithId(records, value.id), active)) {
+            log.info(`'${value.title}' matches ${value.id} by title, and that record carries a `
+                + 'different recipe — the loaded profile is UNRESOLVED');
+            return Object.freeze({
+                id: null,
+                title: value.title ?? null,
+                known: false,
+                provisional: false,
+                source: null,
+                layerProvisional: answer.provisional === true,
+                profile: active,
+                confirmed: false,
+                basis: 'a record carries this title and does NOT carry this recipe — a title is not an identity',
+                reason: LOADED_UNRESOLVED.CONTENT_MISMATCH,
+                candidates: Object.freeze([value.id]),
+            });
         }
 
         return Object.freeze({
@@ -235,6 +315,8 @@ export function createProfileLibraryStore({
             source: value.source ?? null,
             /** The adapter's own flag for the whole R layer, kept so nothing is lost. */
             layerProvisional: answer.provisional === true,
+            profile: active,
+            confirmed: Boolean(value.id),
             basis: answer.basis ?? null,
             reason: value.reason ?? null,
             candidates: Array.isArray(value.candidates) ? Object.freeze([...value.candidates]) : null,
@@ -305,6 +387,15 @@ export function createProfileLibraryStore({
         /** The selected record, or null. */
         selected() { return api.recordFor(store.get().selectedId); },
 
+        /** The recipe the machine is running, shaped as an editor draft, or null. */
+        activeDraft() {
+            const profile = store.get().loaded?.profile ?? null;
+            if (!profile) return null;
+            return Object.freeze({
+                id: null, profile: structuredClone(profile), parentId: null, metadata: null,
+            });
+        },
+
         /** Rule 2's short label for a record — the five fixed-width favourite slots. */
         shortTitle(record) { return shortProfileTitle(profileTitleOf(record) || ''); },
 
@@ -351,20 +442,23 @@ export function createProfileLibraryStore({
         },
 
         async purge(id = store.get().selectedId) {
+            const ended = (outcome, error = null) => Object.freeze({
+                result: outcome, id: id ?? null, error, state: store.get(),
+            });
             const record = api.recordFor(id);
             if (!record) {
                 log.warn('purge: no record for that id');
-                return store.get();
+                return ended(MANAGE_RESULT.NO_RECORD);
             }
             const result = await callRoute(transport, 'deleteProfilesByIdPurge', { params: { id } });
             if (!result.ok && result.status !== 404) {
                 log.warn(`purge ${id} failed: ${result.message}`);
-                return store.get();
+                return ended(MANAGE_RESULT.FAILED, result);
             }
             log.info(`purge ${id}: removed`);
             patch({ selectedId: null });
             await api.load();
-            return store.get();
+            return ended(MANAGE_RESULT.DONE);
         },
 
         async arm(id = store.get().selectedId) {
@@ -436,19 +530,22 @@ export function createProfileLibraryStore({
         },
 
         async hide(id = store.get().selectedId) {
+            const ended = (outcome, error = null) => Object.freeze({
+                result: outcome, id: id ?? null, error, state: store.get(),
+            });
             const record = api.recordFor(id);
             if (!record) {
                 log.warn('hide: no record for that id');
-                return store.get();
+                return ended(MANAGE_RESULT.NO_RECORD);
             }
             const result = await callRoute(transport, 'deleteProfilesById', { params: { id } });
             if (!result.ok && result.status !== 404) {
                 log.warn(`hide ${id} failed: ${result.message}`);
-                return store.get();
+                return ended(MANAGE_RESULT.FAILED, result);
             }
             patch({ selectedId: null });
             await api.load();
-            return store.get();
+            return ended(MANAGE_RESULT.DONE);
         },
 
         async createFromFile(text) {
@@ -461,7 +558,7 @@ export function createProfileLibraryStore({
             }
             const read = readProfileFile(parsed);
             if (!read.ok) {
-                patch({ add: { status: ADD_STATUS.REFUSED, reason: read.reason, error: null } });
+                patch({ add: { status: ADD_STATUS.REFUSED, reason: read.reason, missing: read.missing, error: null } });
                 return store.get();
             }
             patch({ add: { status: ADD_STATUS.ADDING, reason: null, error: null } });
@@ -549,15 +646,18 @@ export function createProfileLibraryStore({
         },
 
         async setFavourite(slot, id) {
+            const ended = (result, extra = {}) => Object.freeze({
+                result, slot, id: id ?? null, held: null, state: store.get(), ...extra,
+            });
             const index = Number(slot);
             if (!Number.isInteger(index) || index < 0 || index >= FAVOURITE_SLOT_COUNT) {
                 log.warn(`setFavourite: slot ${slot} is outside 0..${FAVOURITE_SLOT_COUNT - 1}`);
-                return store.get();
+                return ended(ASSIGN_RESULT.REFUSED_SLOT);
             }
             const held = api.favouriteSlotHolding(id);
             if (held !== null) {
                 log.info(`setFavourite: refused — ${id} is already on slot ${held}`);
-                return store.get();
+                return ended(ASSIGN_RESULT.REFUSED_DUPLICATE, { held });
             }
             const current = store.get().favourites;
             const heal = healFavouriteAssignments(
@@ -573,10 +673,13 @@ export function createProfileLibraryStore({
             const save = await saveFavouriteAssignments(storage, assignments, { logger });
             if (!save.saved) {
                 log.warn('favourite not persisted — the rail is left as it was');
-                return store.get();
+                return ended(ASSIGN_RESULT.FAILED);
             }
-            return patch({
+            const state = patch({
                 favourites: Object.freeze({ assignments: Object.freeze(assignments), seeded: save.marked }),
+            });
+            return Object.freeze({
+                result: ASSIGN_RESULT.ASSIGNED, slot, id: id ?? null, held: null, state,
             });
         },
 

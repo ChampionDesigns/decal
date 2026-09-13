@@ -110,7 +110,8 @@ export function workflowDoorFor(workflow) {
             }
             if (Object.keys(merge).length === 0) return false;
             const state = await workflow.apply(merge, { label: 'settings targets' });
-            return Boolean(state && state.writeError === null);
+            if (state && state.abandoned === true) return false;
+            return Boolean(state && state.writeError === null && state.workflow);
         },
     });
 }
@@ -212,12 +213,13 @@ export function waterLevelsDoorFor({ feed = null, post = null } = {}) {
         async write(patch) {
             const value = patch?.refillLevel;
             if (!Number.isFinite(value)) return false;
+            let result;
             try {
-                await post({ refillLevel: value });
-                return true;
+                result = await post({ refillLevel: value });
             } catch {
                 return false;
             }
+            return Boolean(result && typeof result === 'object' && result.ok === true);
         },
     });
 }

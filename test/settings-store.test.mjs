@@ -12,6 +12,7 @@ import {
     createSettingsStore,
     SURFACE,
     WRITE_REFUSAL,
+    READ_REFUSAL,
     VALUE_SOURCE,
 } from '../src/stores/settings-store.js';
 
@@ -328,5 +329,129 @@ describe('construction refuses to be useless', () => {
         for (const global of ['document', 'window', 'localStorage', 'sessionStorage', 'fetch(']) {
             assert.ok(!code.includes(global), `${global} appears in the settings store`);
         }
+    });
+});
+
+describe('a read is outranked, and never outranks', () => {
+    function orderingHarness() {
+        const data = new Map();
+        const held = [];
+        let holdWrites = false;
+        let holdReads = false;
+        let readThrows = false;
+        const kv = {
+            async get(key) {
+                if (readThrows) throw new Error('KV read rejected');
+                if (!holdReads) return data.get(key);
+                return new Promise((resolve) => held.push(() => resolve(data.get(key))));
+            },
+            async set(key, value) {
+                if (!holdWrites) { data.set(key, value); return; }
+                return new Promise((resolve) => held.push(() => { data.set(key, value); resolve(); }));
+            },
+            async remove(key) { data.delete(key); },
+        };
+        const backends = {
+            [LAYERS.local]: memoryBackend(),
+            [LAYERS.session]: memoryBackend(),
+            [LAYERS.kv]: kv,
+            [LAYERS.kvNumpad]: memoryBackend(),
+        };
+        const storage = createStorageRouter({ backends });
+        const settings = createSettingsStore({ storage });
+        return {
+            settings,
+            data,
+            holdWrites: (on = true) => { holdWrites = on; },
+            holdReads: (on = true) => { holdReads = on; },
+            failReads: (on = true) => { readThrows = on; },
+            release: () => { const go = held.shift(); go?.(); },
+        };
+    }
+
+    test('a read made while a write is on the wire does not discard the accepted value', async () => {
+        const rig = orderingHarness();
+        rig.data.set(KV_KEY, 'mm');
+        await rig.settings.load(KV_KEY);
+        const operations = [];
+        rig.settings.onOperation((operation) => operations.push(`${operation.key}:${operation.status}`));
+        rig.holdWrites(true);
+        const writing = rig.settings.set(KV_KEY, 'mL');
+        await rig.settings.load(KV_KEY);
+        rig.release();
+        assert.equal((await writing).ok, true, 'the accepted write reported itself superseded');
+        assert.equal(rig.data.get(KV_KEY), 'mL', 'the backend did take it');
+        assert.equal(rig.settings.value(KV_KEY), 'mL', 'the store showed a value the server does not hold');
+        assert.deepEqual(operations, [`${KV_KEY}:pending`, `${KV_KEY}:idle`],
+            'the pending marker was left standing for ever');
+    });
+
+    test('a read that left BEFORE a write does not put the old value back after it', async () => {
+        const rig = orderingHarness();
+        rig.data.set(KV_KEY, 'mm');
+        await rig.settings.load(KV_KEY);
+        rig.holdReads(true);
+        const reading = rig.settings.load(KV_KEY);
+        rig.holdReads(false);
+        assert.equal((await rig.settings.set(KV_KEY, 'mL')).ok, true);
+        rig.release();
+        const answer = await reading;
+        assert.equal(answer.superseded, true, 'a read that a write has overtaken still spoke');
+        assert.equal(rig.settings.value(KV_KEY), 'mL');
+    });
+
+    test('a read served BEFORE the write it was issued after does not revert it', async () => {
+        const rig = orderingHarness();
+        rig.data.set(KV_KEY, 'mm');
+        await rig.settings.load(KV_KEY);
+        rig.holdWrites(true);
+        const writing = rig.settings.set(KV_KEY, 'mL');
+        rig.holdReads(true);
+        const reading = rig.settings.load(KV_KEY);
+        rig.release();
+        assert.equal((await writing).ok, true);
+        rig.release();
+        assert.equal((await reading).superseded, true);
+        assert.equal(rig.settings.value(KV_KEY), 'mL', 'a read put the pre-write value back');
+    });
+
+    test('two writes still settle by PRESS order, not by whichever answers last', async () => {
+        const rig = orderingHarness();
+        rig.holdWrites(true);
+        const first = rig.settings.set(KV_KEY, 'mm');
+        const second = rig.settings.set(KV_KEY, 'mL');
+        rig.release();
+        rig.release();
+        assert.equal((await second).ok, true);
+        assert.equal((await first).reason, WRITE_REFUSAL.SUPERSEDED);
+        assert.equal(rig.settings.value(KV_KEY), 'mL', 'the abandoned choice came back on screen');
+    });
+
+    test('a read the backend could not MAKE is failed, not absent', async () => {
+        const rig = orderingHarness();
+        rig.data.set(KV_KEY, 'mm');
+        await rig.settings.load(KV_KEY);
+        const operations = [];
+        rig.settings.onOperation((operation) => operations.push(operation));
+        rig.failReads(true);
+        const answer = await rig.settings.load(KV_KEY);
+        assert.equal(answer.source, VALUE_SOURCE.FAILED, 'a failed read read as an absence');
+        assert.equal(answer.failed, true);
+        assert.equal(rig.settings.storedValue(KV_KEY), 'mm',
+            'a read that learned nothing cleared the value a write had put there');
+        assert.deepEqual(operations.map((o) => [o.status, o.reason]),
+            [['failed', READ_REFUSAL.BACKEND_FAILED]]);
+        rig.failReads(false);
+        await rig.settings.load(KV_KEY);
+        assert.equal(operations.at(-1).status, 'idle');
+        assert.equal(rig.settings.isLoaded(KV_KEY), true);
+    });
+
+    test('a key whose only read FAILED is not "read, and absent"', async () => {
+        const rig = orderingHarness();
+        rig.failReads(true);
+        await rig.settings.load(KV_KEY);
+        assert.equal(rig.settings.isLoaded(KV_KEY), false,
+            'isLoaded is what tells "absent" from "never answered", and it claimed an answer');
     });
 });

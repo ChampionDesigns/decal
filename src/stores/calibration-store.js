@@ -114,6 +114,19 @@ export function createCalibrationStore({
     let ticket = null;
     let stopped = false;
 
+    /* A generation for the machine, a number for every read and command, and one queue,
+     * so an answer a newer one has replaced is discarded rather than published. */
+    let epoch = 0;
+    let issued = 0;
+    let newestAnswer = 0;
+    let commands = Promise.resolve();
+    const enqueue = (run) => {
+        const answer = commands.then(run, run);
+        commands = answer.then(() => {}, () => {});
+        return answer;
+    };
+    const STALE = Symbol('a calibration answer a newer one has replaced');
+
     const publish = (patch) => store.set({ ...store.get(), ...patch, version: store.get().version + 1 });
 
     /** Disarm. Called on every terminal state, every failure and every teardown. */
@@ -129,12 +142,58 @@ export function createCalibrationStore({
     }
 
     /** Take a state from any reply that carries one, and re-arm from what it says. */
-    function absorb(body, patch = {}) {
+    function absorb(body, op, asOf, patch = {}) {
         const state = readCalibrationState(body);
         if (state === null) return null;
+        if (asOf !== epoch) {
+            log.info('discarding a calibration state for a machine that is gone');
+            return STALE;
+        }
+        if (op < newestAnswer) {
+            log.info('discarding a calibration state a newer answer has replaced');
+            return STALE;
+        }
+        newestAnswer = op;
         publish({ load: CAL_LOAD.READY, state, ...patch });
         arm(state);
         return state;
+    }
+
+    async function send(command, weightGrams, asOf) {
+        if (asOf !== epoch) {
+            log.info(`a queued calibration ${command} was dropped: the machine it was made against is gone`);
+            return Object.freeze({ ok: false, refusal: null, reason: null });
+        }
+        const body = command === CAL_COMMAND.LATCH
+            ? { command, weightGrams }
+            : { command };
+        const result = await callRoute(transport, 'putMachineScaleCalibration', { body });
+        if (asOf !== epoch) {
+            log.info(`discarding a calibration ${command} answer for a machine that is gone`);
+            return Object.freeze({ ok: false, refusal: null, reason: null });
+        }
+
+        if (result.ok) {
+            absorb(result.data && result.data.state, ++issued, asOf, { refusal: null, reason: null });
+            return Object.freeze({ ok: true, refusal: null, reason: null });
+        }
+
+        const problem = result.problem && typeof result.problem === 'object' ? result.problem : null;
+        if (result.status === 409) {
+            absorb(problem && problem.state, ++issued, asOf);
+            const reason = problem && typeof problem.reason === 'string' ? problem.reason : null;
+            publish({ refusal: CAL_REFUSAL.REJECTED, reason });
+            return Object.freeze({ ok: false, refusal: CAL_REFUSAL.REJECTED, reason });
+        }
+        disarm();
+        const refusal = result.status === 404
+            ? CAL_REFUSAL.UNSUPPORTED
+            : (result.status === 400 ? CAL_REFUSAL.BAD_REQUEST : CAL_REFUSAL.FAILED);
+        if (refusal === CAL_REFUSAL.UNSUPPORTED) publish({ load: CAL_LOAD.UNSUPPORTED, state: null });
+        const reason = problem && typeof problem.error === 'string' ? problem.error : null;
+        publish({ refusal, reason });
+        log.warn(`scaleCalibration ${command} refused: ${result.status ?? 'no status'}`);
+        return Object.freeze({ ok: false, refusal, reason });
     }
 
     const api = {
@@ -151,14 +210,33 @@ export function createCalibrationStore({
          * Read the calibration state. 404 is the feature gate — hide the wizard.
          */
         async read() {
+            const asOf = epoch;
+            const op = ++issued;
             const result = await callRoute(transport, 'getMachineScaleCalibration');
+            const outranked = () => {
+                if (asOf !== epoch) {
+                    log.info('discarding a calibration read for a machine that is gone');
+                    return true;
+                }
+                if (op < newestAnswer) {
+                    log.info('discarding a calibration read a newer answer has replaced');
+                    return true;
+                }
+                return false;
+            };
             if (!result.ok) {
+                if (outranked()) return store.get();
+                newestAnswer = op;
                 disarm();
                 const load = result.status === 404 ? CAL_LOAD.UNSUPPORTED : CAL_LOAD.UNAVAILABLE;
                 log.info(`scaleCalibration read: ${load} (${result.status ?? 'no status'})`);
                 return publish({ load, state: null });
             }
-            if (absorb(result.data) === null) {
+            const taken = absorb(result.data, op, asOf);
+            if (taken === STALE) return store.get();
+            if (taken === null) {
+                if (outranked()) return store.get();
+                newestAnswer = op;
                 disarm();
                 log.warn('scaleCalibration answered a body that is not a state');
                 return publish({ load: CAL_LOAD.UNAVAILABLE, state: null });
@@ -167,32 +245,8 @@ export function createCalibrationStore({
         },
 
         async command(command, weightGrams = null) {
-            const body = command === CAL_COMMAND.LATCH
-                ? { command, weightGrams }
-                : { command };
-            const result = await callRoute(transport, 'putMachineScaleCalibration', { body });
-
-            if (result.ok) {
-                absorb(result.data && result.data.state, { refusal: null, reason: null });
-                return Object.freeze({ ok: true, refusal: null, reason: null });
-            }
-
-            const problem = result.problem && typeof result.problem === 'object' ? result.problem : null;
-            if (result.status === 409) {
-                absorb(problem && problem.state);
-                const reason = problem && typeof problem.reason === 'string' ? problem.reason : null;
-                publish({ refusal: CAL_REFUSAL.REJECTED, reason });
-                return Object.freeze({ ok: false, refusal: CAL_REFUSAL.REJECTED, reason });
-            }
-            disarm();
-            const refusal = result.status === 404
-                ? CAL_REFUSAL.UNSUPPORTED
-                : (result.status === 400 ? CAL_REFUSAL.BAD_REQUEST : CAL_REFUSAL.FAILED);
-            if (refusal === CAL_REFUSAL.UNSUPPORTED) publish({ load: CAL_LOAD.UNSUPPORTED, state: null });
-            const reason = problem && typeof problem.error === 'string' ? problem.error : null;
-            publish({ refusal, reason });
-            log.warn(`scaleCalibration ${command} refused: ${result.status ?? 'no status'}`);
-            return Object.freeze({ ok: false, refusal, reason });
+            const asOf = epoch;
+            return enqueue(() => send(command, weightGrams, asOf));
         },
 
         /** The three, named. Nothing above this store spells a command string. */
@@ -202,7 +256,12 @@ export function createCalibrationStore({
 
         /** `GET /api/v1/machine/calibration` -> `{flowMultiplier}`. */
         async readFlow() {
+            const asOf = epoch;
             const result = await callRoute(transport, 'getMachineCalibration');
+            if (asOf !== epoch) {
+                log.info('discarding a flow calibration read for a machine that is gone');
+                return store.get();
+            }
             if (!result.ok) {
                 log.info(`flow calibration read failed: ${result.status ?? 'no status'}`);
                 return publish({ flowLoaded: true, flowMultiplier: null });
@@ -218,9 +277,14 @@ export function createCalibrationStore({
 
         async writeFlow(flowMultiplier) {
             if (!Number.isFinite(flowMultiplier)) return false;
+            const asOf = epoch;
             const result = await callRoute(transport, 'postMachineCalibration', {
                 body: { flowMultiplier },
             });
+            if (asOf !== epoch) {
+                log.info('a flow calibration write was made against a machine that is gone');
+                return false;
+            }
             if (!result.ok) {
                 log.warn(`flow calibration write refused: ${result.status ?? 'no status'}`);
                 return false;
@@ -229,14 +293,21 @@ export function createCalibrationStore({
             return true;
         },
 
+        clearRefusal() {
+            if (store.get().refusal === null) return store.get();
+            return publish({ refusal: null, reason: null });
+        },
+
         /** The machine went away. */
         forget() {
+            epoch += 1;
             disarm();
             store.set({ ...EMPTY });
         },
 
         stop() {
             stopped = true;
+            epoch += 1;
             disarm();
             store.destroy();
         },

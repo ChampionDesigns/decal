@@ -46,6 +46,9 @@ const EMPTY_STATE = Object.freeze({
     error: null,
 });
 
+const ANNOTATION_FIELDS = Object.freeze(['enjoyment', 'espressoNotes']);
+const slotFor = (id, field) => `${field}:${id}`;
+
 const NOOP = { debug() {}, info() {}, warn() {}, error() {} };
 const scoped = (logger) => (logger && logger.scope ? logger.scope('shots') : (logger || NOOP));
 
@@ -89,6 +92,28 @@ export function createShotsStore({
     /** Reads in flight, by id, so concurrent callers join one request. See `loadShot`. */
     const inFlight = new Map();
 
+    /* Every read and every annotation write takes a number, so a page or a record read
+     * that predates a confirmed annotation cannot un-write it. */
+    let issued = 0;
+    const nextIssue = () => (issued += 1);
+    const lastWrite = new Map();
+    const settled = new Map();
+    const writeIsCurrent = (slot, op) => lastWrite.get(slot) === op;
+    const markSettled = (slot, value) => settled.set(slot, { at: issued, value });
+
+    function guarded(served, op) {
+        if (!served || typeof served !== 'object' || typeof served.id !== 'string') return served;
+        let out = served;
+        for (const field of ANNOTATION_FIELDS) {
+            const held = settled.get(slotFor(served.id, field));
+            if (!held || op > held.at) continue;
+            if (out === served) out = { ...served, annotations: { ...(served.annotations || {}) } };
+            out.annotations[field] = held.value;
+            if (field === 'espressoNotes') out.shotNotes = held.value;
+        }
+        return out;
+    }
+
     const rowOptions = () => (dash === undefined ? {} : { dash });
 
     function publish(fields) {
@@ -116,6 +141,7 @@ export function createShotsStore({
         const asked = Math.min(Math.max(Math.trunc(limit) || DEFAULT_PAGE_LIMIT, 1), MAX_PAGE_LIMIT);
         const from = Math.max(Math.trunc(offset) || 0, 0);
         publish({ status: SHOTS_STATUS.LOADING });
+        const op = nextIssue();
 
         const result = await callRoute(transport, 'getShots', {
             query: { limit: asked, offset: from, order },
@@ -133,7 +159,7 @@ export function createShotsStore({
         const items = page && Array.isArray(page.items) ? page.items : [];
         return publish({
             status: SHOTS_STATUS.READY,
-            items: Object.freeze(orderShots(items, order)),
+            items: Object.freeze(orderShots(items, order).map((item) => guarded(item, op))),
             /* `total` is the count the pager runs on. `limit`/`offset` are echoed back
              * unclamped, so what is published is what was ASKED after our own clamp. */
             total: page && Number.isFinite(page.total) ? page.total : null,
@@ -165,6 +191,7 @@ export function createShotsStore({
 
     /** The read itself. Only `loadShot` calls it, and only once per id at a time. */
     async function fetchShot(id) {
+        const op = nextIssue();
         const result = await callRoute(transport, 'getShotsById', { params: { id } });
         const reads = store.get().reads;
         if (!result.ok) {
@@ -172,7 +199,7 @@ export function createShotsStore({
             publish({ reads: { ...reads, byId: reads.byId + 1, failed: reads.failed + 1 }, error: result });
             return Object.freeze({ ok: false, id, failure: result });
         }
-        const record = result.data;
+        const record = guarded(result.data, op);
         const derivation = derive(record);
         records.set(id, record);
         derivations.set(id, derivation);
@@ -195,16 +222,26 @@ export function createShotsStore({
                 + "control's and belongs to the component, not to the wire.",
             );
         }
+        const slot = slotFor(id, 'enjoyment');
+        const op = nextIssue();
+        lastWrite.set(slot, op);
         const result = await callRoute(transport, 'putShotsById', {
             params: { id },
             body: { annotations: { enjoyment: value } },
         });
         const reads = store.get().reads;
+        const current = writeIsCurrent(slot, op);
         if (!result.ok) {
             log.warn(`enjoyment write for ${id} failed: ${result.message}`);
-            publish({ reads: { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 }, error: result });
+            const counted = { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 };
+            publish(current ? { reads: counted, error: result } : { reads: counted });
             return Object.freeze({ ok: false, id, failure: result });
         }
+        if (!current) {
+            publish({ reads: { ...reads, writes: reads.writes + 1 } });
+            return Object.freeze({ ok: true, id, enjoyment: value });
+        }
+        markSettled(slot, value);
         const items = store.get().items.map((item) => (item && item.id === id
             ? { ...item, annotations: { ...(item.annotations || {}), enjoyment: value } }
             : item));
@@ -231,16 +268,26 @@ export function createShotsStore({
                 + 'nothing but annotations.espressoNotes is ever sent.',
             );
         }
+        const slot = slotFor(id, 'espressoNotes');
+        const op = nextIssue();
+        lastWrite.set(slot, op);
         const result = await callRoute(transport, 'putShotsById', {
             params: { id },
             body: { annotations: { espressoNotes: text } },
         });
         const reads = store.get().reads;
+        const current = writeIsCurrent(slot, op);
         if (!result.ok) {
             log.warn(`note write for ${id} failed: ${result.message}`);
-            publish({ reads: { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 }, error: result });
+            const counted = { ...reads, writes: reads.writes + 1, failed: reads.failed + 1 };
+            publish(current ? { reads: counted, error: result } : { reads: counted });
             return Object.freeze({ ok: false, id, failure: result });
         }
+        if (!current) {
+            publish({ reads: { ...reads, writes: reads.writes + 1 } });
+            return Object.freeze({ ok: true, id, notes: text });
+        }
+        markSettled(slot, text);
         const patch = (record) => ({
             ...record,
             annotations: { ...(record.annotations || {}), espressoNotes: text },
@@ -275,6 +322,8 @@ export function createShotsStore({
         stop() {
             records.clear();
             derivations.clear();
+            lastWrite.clear();
+            settled.clear();
             store.set({ ...EMPTY_STATE });
         },
     });

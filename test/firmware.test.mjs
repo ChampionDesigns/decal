@@ -122,19 +122,55 @@ describe('"latest" is the server\'s recommendation and nothing else', () => {
         ], 'the first erasing is this store opening the operation; the rest are the machine');
     });
 
-    test('a refusal never becomes a flash', async () => {
+    test('a refusal never becomes a flash, and its reason is a SENTENCE', async () => {
         const transport = recordingTransport({
             'GET /machine/firmware': ok(CATALOG),
             'POST /machine/firmware/apply': {
                 ok: false, kind: 'http', status: 422, message: 'not applicable',
-                problem: { error: 'artifact_not_applicable', reasons: ['buildNotNewer'] },
+                problem: { error: 'artifact_not_applicable', message: 'this build is not newer' },
             },
         });
         const store = createFirmwareStore({ transport });
         await store.load();
         await store.installLatest();
-        assert.equal(store.get().flash.state, FLASH_STATE.REFUSED);
-        assert.deepEqual(store.get().flash.error, { error: 'artifact_not_applicable', reasons: ['buildNotNewer'] });
+        const flash = store.get().flash;
+        assert.equal(flash.state, FLASH_STATE.REFUSED);
+        assert.equal(typeof flash.error, 'string');
+        assert.equal(flash.error, 'artifact_not_applicable: this build is not newer');
+        assert.equal(flash.detail.status, 422);
+        assert.deepEqual(flash.detail.problem,
+            { error: 'artifact_not_applicable', message: 'this build is not newer' });
+    });
+
+    test('a refusal with no body at all still says something a person can read', async () => {
+        const transport = recordingTransport({
+            'GET /machine/firmware': ok(CATALOG),
+            'POST /machine/firmware/apply': {
+                ok: false, kind: 'network', status: null,
+                message: 'the machine did not answer', problem: null,
+            },
+        });
+        const store = createFirmwareStore({ transport });
+        await store.load();
+        await store.installLatest();
+        const flash = store.get().flash;
+        assert.equal(flash.error, 'the machine did not answer');
+        assert.equal(flash.detail, null, 'no status and no body is nothing to diagnose from');
+    });
+
+    test('a refusal whose body is a plain string is taken as the string', async () => {
+        const transport = recordingTransport({
+            'GET /machine/firmware': ok(CATALOG),
+            'POST /machine/firmware/apply': {
+                ok: false, kind: 'http', status: 503,
+                message: 'HTTP 503', problem: 'no machine connected',
+            },
+        });
+        const store = createFirmwareStore({ transport });
+        await store.load();
+        await store.installLatest();
+        assert.equal(store.get().flash.error, 'no machine connected');
+        assert.equal(store.get().flash.detail.status, 503);
     });
 });
 

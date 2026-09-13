@@ -1324,16 +1324,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.doesNotMatch(seen.text, /does not send firmware/i);
             });
 
-            test('the capability list does not decide this leaf: five rows, or none', async () => {
+            test('the capability list does not decide this leaf: its rows, or none', async () => {
                 await showLeaf('accessories', 'accessories-cup-warmer');
                 const rows = await rowReport(page);
                 assert.deepEqual(rows.map((row) => row.id), [
                     'accessories-cup-warmer-enabled',
                     'accessories-cup-warmer-target',
                     'accessories-cup-warmer-now',
-                    'accessories-cup-warmer-prewarm',
-                    'accessories-cup-warmer-prewarm-lead',
-                ], 'the whole page draws even with the capability list unread');
+                ], 'the whole page draws even with the capability list unread; the pre-warm pair '
+                + 'is absent because the machine document says this firmware cannot pre-warm');
             });
         });
 

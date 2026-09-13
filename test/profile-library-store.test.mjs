@@ -12,8 +12,10 @@ import {
     createProfileLibraryStore,
     matchProfiles,
     restoreFilenameOf,
+    ASSIGN_RESULT,
     D6_PURGE_IS_LANDED,
     LIBRARY_STATUS,
+    MANAGE_RESULT,
     RESTORE_STATUS,
     VERSIONS_STATUS,
 } from '../src/stores/profile-library-store.js';
@@ -711,6 +713,157 @@ describe('the favourite rail — rules 4 and 5 through the store', () => {
             'threw a ReferenceError on exactly this input');
         assert.ok(entries.filter(Boolean).every((e) => typeof e.name === 'string' && e.name.length > 0),
             'and a filled slot carries rule 2\'s short label');
+    });
+});
+
+describe('a management action says which of its endings it took', () => {
+    const refusingWrites = (inner) => ({
+        ...inner,
+        get: (...args) => inner.get(...args),
+        set: async () => false,
+    });
+
+    const withStorage = (storage, script = {}) => {
+        const transport = recordingTransport({
+            '/profiles': ok(FIXTURE),
+            '/workflow': ok(WORKFLOW),
+            'POST /machine/profile': ok(null),
+            ...script,
+        });
+        const arm = createProfileArmStore({ transport });
+        return {
+            transport,
+            store: createProfileLibraryStore({ transport, storage, arm }),
+        };
+    };
+
+    test('a written slot answers ASSIGNED and carries the state it published', async () => {
+        const { store } = build();
+        await store.load();
+        const outcome = await store.setFavourite(0, LISTABLE[0].id);
+        assert.equal(outcome.result, ASSIGN_RESULT.ASSIGNED);
+        assert.equal(outcome.slot, 0);
+        assert.equal(outcome.id, LISTABLE[0].id);
+        assert.equal(outcome.state.favourites.assignments[0], LISTABLE[0].id,
+            'the state still rides out, so nothing that only wanted the state lost it');
+    });
+
+    test('a rail that could not be persisted answers FAILED, and the old slot is still there',
+        async () => {
+            const storage = memoryRouter();
+            const kept = LISTABLE[0].id;
+            await storage.set(FAVOURITES_KEY, { 0: kept, 1: null, 2: null, 3: null, 4: null });
+            const { store } = withStorage(refusingWrites(storage));
+            await store.load();
+            const outcome = await store.setFavourite(0, LISTABLE[1].id);
+            assert.equal(outcome.result, ASSIGN_RESULT.FAILED,
+                'a write that did not land must not answer the same way one that did');
+            assert.equal(store.get().favourites.assignments[0], kept,
+                'the rail on screen is the rail in storage — nothing was changed');
+            assert.equal((await storage.get(FAVOURITES_KEY))[0], kept,
+                'and the assignment did NOT survive a reload, because it was never stored');
+        });
+
+    test('a profile already on a slot answers REFUSED_DUPLICATE and names that slot', async () => {
+        const { store } = build();
+        await store.load();
+        await store.setFavourite(0, LISTABLE[0].id);
+        const before = store.get().favourites.assignments[3];
+        const outcome = await store.setFavourite(3, LISTABLE[0].id);
+        assert.equal(outcome.result, ASSIGN_RESULT.REFUSED_DUPLICATE);
+        assert.equal(outcome.held, 0,
+            'the slot that holds it is what a message names, so it rides out with the refusal');
+        assert.equal(store.get().favourites.assignments[3], before, 'and slot 3 is untouched');
+    });
+
+    test('a slot outside the rail answers REFUSED_SLOT', async () => {
+        const { store } = build();
+        await store.load();
+        const outcome = await store.setFavourite(9, LISTABLE[0].id);
+        assert.equal(outcome.result, ASSIGN_RESULT.REFUSED_SLOT);
+    });
+
+    test('THE FOUR ENDINGS ARE FOUR ANSWERS, and a caller can tell them apart', async () => {
+        const storage = memoryRouter();
+        const { store } = build();
+        await store.load();
+        const assigned = await store.setFavourite(0, LISTABLE[0].id);
+        const duplicate = await store.setFavourite(1, LISTABLE[0].id);
+        const slot = await store.setFavourite(9, LISTABLE[1].id);
+        const refused = withStorage(refusingWrites(storage));
+        await refused.store.load();
+        const failed = await refused.store.setFavourite(0, LISTABLE[1].id);
+        const results = [assigned, duplicate, slot, failed].map((o) => o.result);
+        assert.equal(new Set(results).size, 4,
+            'the caller has to be able to tell a success from a refusal from a failure');
+    });
+
+    test('a hide that worked answers DONE, and one that failed answers FAILED', async () => {
+        const target = LISTABLE[1];
+        const encoded = encodeURIComponent(target.id);
+        const good = build({ [`DELETE /profiles/${encoded}`]: ok({ success: true }) });
+        await good.store.load();
+        assert.equal((await good.store.hide(target.id)).result, MANAGE_RESULT.DONE);
+        const bad = build({
+            [`DELETE /profiles/${encoded}`]:
+                { ok: false, kind: 'http', status: 503, message: 'boom', problem: null },
+        });
+        await bad.store.load();
+        bad.store.select(target.id);
+        const outcome = await bad.store.hide(target.id);
+        assert.equal(outcome.result, MANAGE_RESULT.FAILED);
+        assert.equal(outcome.error.status, 503, 'the failure itself rides out, so a screen can say why');
+        assert.equal(bad.store.get().selectedId, target.id,
+            'the selection survives, so the gesture is retryable without finding the row again');
+    });
+
+    test('a 404 on a hide is DONE, because the record is gone and that is what was wanted',
+        async () => {
+            const target = LISTABLE[1];
+            const encoded = encodeURIComponent(target.id);
+            const { store } = build({
+                [`DELETE /profiles/${encoded}`]:
+                    { ok: false, kind: 'http', status: 404, message: 'Not found', problem: null },
+            });
+            await store.load();
+            assert.equal((await store.hide(target.id)).result, MANAGE_RESULT.DONE);
+        });
+
+    test('an id no row carries answers NO_RECORD — nothing was asked, so nothing failed',
+        async () => {
+            const { store } = build();
+            await store.load();
+            const outcome = await store.hide('profile:nothing-like-this');
+            assert.equal(outcome.result, MANAGE_RESULT.NO_RECORD);
+            assert.equal(outcome.error, null);
+        });
+
+    test('purge answers the same three, and a failure keeps the selection', async () => {
+        const target = LISTABLE[1];
+        const encoded = encodeURIComponent(target.id);
+        const good = build({ [`DELETE /profiles/${encoded}/purge`]: ok({ success: true }) });
+        await good.store.load();
+        assert.equal((await good.store.purge(target.id)).result, MANAGE_RESULT.DONE);
+        const bad = build({
+            [`DELETE /profiles/${encoded}/purge`]:
+                { ok: false, kind: 'http', status: 503, message: 'boom', problem: null },
+        });
+        await bad.store.load();
+        bad.store.select(target.id);
+        const outcome = await bad.store.purge(target.id);
+        assert.equal(outcome.result, MANAGE_RESULT.FAILED);
+        assert.equal(bad.store.get().selectedId, target.id,
+            'the one irreversible control on the screen must not lose the row it failed on');
+        assert.equal((await bad.store.purge('profile:nothing-like-this')).result,
+            MANAGE_RESULT.NO_RECORD);
+    });
+
+    test('every outcome is frozen — a caller cannot edit the answer it was handed', async () => {
+        const { store } = build();
+        await store.load();
+        assert.equal(Object.isFrozen(await store.setFavourite(0, LISTABLE[0].id)), true);
+        assert.equal(Object.isFrozen(await store.hide('profile:nothing-like-this')), true);
+        assert.equal(Object.isFrozen(await store.purge('profile:nothing-like-this')), true);
     });
 });
 

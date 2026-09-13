@@ -24,6 +24,9 @@ const EMPTY_STATE = Object.freeze({
     plugins: Object.freeze([]),
     /** `{[pluginId]: settingsObject}` for every plugin whose settings were read. */
     settings: Object.freeze({}),
+    /** `{[pluginId]: values}` staged by a screen and not yet written. */
+    drafts: Object.freeze({}),
+    dirty: false,
     error: null,
     writeError: null,
 });
@@ -40,6 +43,14 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         store.set({ ...store.get(), ...patch });
         return store.get();
     };
+
+    function publishDrafts(next) {
+        const kept = {};
+        for (const [id, values] of Object.entries(next)) {
+            if (values && Object.keys(values).length > 0) kept[id] = Object.freeze({ ...values });
+        }
+        return publish({ drafts: Object.freeze(kept), dirty: Object.keys(kept).length > 0 });
+    }
 
     function start() {
         publish({ status: PLUGINS_STATUS.LOADING });
@@ -134,6 +145,43 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         },
 
         /** Turn one on or off. One call — the handler does both the flag and the load. */
+        /** Hold one setting against a plugin until a Save writes it. */
+        stageSetting(id, key, value) {
+            if (typeof id !== 'string' || !id) return false;
+            if (typeof key !== 'string' || !key) return false;
+            if (value === undefined) return false;
+            const drafts = store.get().drafts;
+            publishDrafts({ ...drafts, [id]: { ...(drafts[id] ?? {}), [key]: value } });
+            return true;
+        },
+
+        draftFor(id) {
+            return store.get().drafts[id] ?? null;
+        },
+
+        async commitDraft(id) {
+            const draft = this.draftFor(id);
+            if (!draft) return true;
+            const ok = await this.writeSettings(id, draft);
+            if (!ok) return false;
+            const rest = { ...store.get().drafts };
+            delete rest[id];
+            publishDrafts(rest);
+            return true;
+        },
+
+        async commitDrafts() {
+            for (const id of Object.keys(store.get().drafts)) {
+                if (!(await this.commitDraft(id))) return Object.freeze({ ok: false, reason: 'writeFailed' });
+            }
+            return Object.freeze({ ok: true });
+        },
+
+        discardDrafts() {
+            if (!store.get().dirty) return;
+            publishDrafts({});
+        },
+
         async setEnabled(id, enabled) {
             if (typeof id !== 'string' || !id) return false;
             if (typeof enabled !== 'boolean') return false;

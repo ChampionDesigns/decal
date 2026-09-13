@@ -818,6 +818,96 @@ describe('app-boot', () => {
         boot.destroy();
     });
 
+    test('the reconnection re-read cannot revert a press made while it was in flight', async () => {
+        const fetchImpl = workflowFetch();
+        const { boot, devices } = await connectedShell(fetchImpl);
+        fetchImpl.state.targetYield = 48;
+
+        /* Hold the re-read open, so the press below is made with it still in flight. */
+        let release = null;
+        fetchImpl.state.holdGet = () => new Promise((done) => { release = done; });
+
+        devices.emit('close', {});
+        devices.emit('open', {});
+        await null;
+        assert.ok(release, 'the reconnection did not issue a re-read at all');
+
+        const pressed = boot.workflow.setTarget('drinkWeight', 40);
+        assert.equal(boot.workflow.targets().drinkWeight, 40,
+            'the press did not reach the rail at once — it is an overlay, not a document');
+        await pressed;
+        assert.equal(fetchImpl.state.targetYield, 40, 'the press never reached the machine');
+
+        release();
+        await boot.workflowSettled();
+
+        assert.equal(boot.workflow.targets().drinkWeight, 40,
+            'the reconnection re-read silently reverted a confirmed press');
+        assert.equal(boot.workflow.get().writeError, null, 'and it invented a refusal that never happened');
+        assert.equal(fetchImpl.state.puts.length, 1, 'the press was sent once');
+        boot.destroy();
+    });
+
+    test('a press the machine REFUSES while reconnecting is refused visibly, not silently', async () => {
+        const fetchImpl = workflowFetch();
+        const { boot, devices } = await connectedShell(fetchImpl);
+        fetchImpl.state.targetYield = 48;
+        fetchImpl.state.refusePut = true;
+
+        let release = null;
+        fetchImpl.state.holdGet = () => new Promise((done) => { release = done; });
+        devices.emit('close', {});
+        devices.emit('open', {});
+        await null;
+
+        const pressed = boot.workflow.setTarget('drinkWeight', 40);
+        assert.equal(boot.workflow.targets().drinkWeight, 40, 'the press did not reach the rail');
+        await pressed;
+        release();
+        await boot.workflowSettled();
+
+        /* The read carrying 48 left before the press, so it is outranked. */
+        assert.equal(boot.workflow.targets().drinkWeight, 36,
+            'a refused press stayed on the rail over a machine that never took it');
+        assert.ok(boot.workflow.get().writeError, 'the refusal went quiet — the rail cannot say so');
+        boot.destroy();
+    });
+
+    test('a reconnection that ALSO swapped the machine answers for the NEW one', async () => {
+        const fetchImpl = workflowFetch();
+        const { boot, devices } = await connectedShell(fetchImpl);
+        const asked = fetchImpl.calls.length;
+
+        let release = null;
+        fetchImpl.state.holdGet = () => new Promise((done) => { release = done; });
+        devices.emit('close', {});
+        devices.emit('open', {});
+        await null;
+        assert.ok(release, 'the reconnection did not issue a re-read at all');
+
+        /* The frame that follows names a DIFFERENT machine, with different numbers. */
+        fetchImpl.state.holdGet = null;
+        fetchImpl.state.targetYield = 60;
+        fetchImpl.state.info = { ...fetchImpl.state.info, serialNumber: '2' };
+        devices.emit('message', { data: JSON.stringify(machineFrame('m-2')) });
+        await settle(boot);
+        await boot.workflowSettled();
+
+        release();
+        await null;
+        await null;
+
+        assert.equal(boot.workflow.targets().drinkWeight, 60,
+            'the departed machine\'s re-read landed on the machine that replaced it');
+        assert.equal(boot.machineInfo.get().info.serialNumber, '2');
+        const workflowGets = fetchImpl.calls
+            .slice(asked)
+            .filter((call) => call.method === 'GET' && call.url.includes('/api/v1/workflow'));
+        assert.equal(workflowGets.length, 2,
+            'the recovery read and the swap read — a third would mean the swap is asking twice');
+        boot.destroy();
+    });
+
     test('start() after destroy() is refused rather than half-working', async () => {
         const { boot } = bootWith();
         await boot.start();

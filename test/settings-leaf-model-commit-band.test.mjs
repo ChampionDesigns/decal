@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { createStorageRouter } from '../src/lib/storage-router.js';
 import { LAYERS } from '../src/lib/storage-routes.js';
 import { createSettingsStore } from '../src/stores/settings-store.js';
-import { createSettingsLeafModel } from '../src/stores/settings-leaf-model.js';
+import { createSettingsLeafModel, COMMIT_REFUSAL } from '../src/stores/settings-leaf-model.js';
 import { limitsFor } from '../src/lib/machine-limits.js';
 
 /** A backend that RECORDS, so "nothing was written" is a fact rather than an absence. */
@@ -147,6 +147,24 @@ describe('F-049 — a master switch commits on Save and discards on Cancel', () 
         assert.equal(kv.data.size, 0);
         assert.equal(model.machineValue('tankTemp'), 44, 'the row redraws the machine\'s own 44');
     });
+
+    test('a PARTIAL save says which half landed — the machine took it, the memory did not',
+        async () => {
+            const { model, kv, written } = await opened({ kvFails: true });
+            const preheat = rowById(model, 'machine-water-tank', 'machine-water-tank-preheat');
+            await model.set(preheat.row, false);
+            const result = await model.commit();
+            assert.equal(result.ok, false);
+            assert.equal(result.wrote, 1, 'the machine half DID go out');
+            assert.deepEqual(written, [{ tankTemp: 0 }]);
+            assert.equal(result.reason, COMMIT_REFUSAL.MEMORY_NOT_SAVED,
+                'a reason no refusal table carries reads as "nothing was saved"');
+            assert.equal(result.detail, 'backendFailed', 'and the kv layer\'s own word survives under it');
+            assert.equal(kv.data.size, 0, 'the memory really did not land');
+            assert.equal(model.hasPendingWrites, true, 'the refused key stays staged');
+            await model.commit();
+            assert.equal(written.length, 1, 'the machine was written twice for one change');
+        });
 
     test('a failed machine write leaves the memory staged too — never a half commit', async () => {
         const { model, kv, settings } = await opened({ machine: 'fails' });

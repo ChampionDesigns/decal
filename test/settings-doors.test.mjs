@@ -8,10 +8,13 @@ import assert from 'node:assert/strict';
 import {
     createMachineFieldsPort,
     workflowDoorFor,
+    waterLevelsDoorFor,
     FIELD_DOORS,
     DOORS,
     WORKFLOW_FIELD_PATHS,
 } from '../src/stores/machine-fields-port.js';
+import { callRoute } from '../src/data/rea-routes.js';
+import { createWorkflowStore } from '../src/stores/workflow-store.js';
 import { createAppSettingsClient, APP_SETTINGS_WRITE_KEYS } from '../src/data/rea-app-settings.js';
 import { SETTINGS_ROWS } from '../src/lib/settings-leaves.js';
 import { WORKFLOW_TARGET_KEYS } from '../src/lib/workflow-targets.js';
@@ -122,7 +125,7 @@ describe('the workflow door flattens three fields and merges the smallest patch'
         rinseData: { targetTemperature: 90, flow: 6, duration: 4 },
     });
 
-    function storeOf({ state = {}, onApply = () => ({ writeError: null }) } = {}) {
+    function storeOf({ state = {}, onApply = () => ({ ...state, writeError: null }) } = {}) {
         const applied = [];
         return {
             applied,
@@ -179,10 +182,79 @@ describe('the workflow door flattens three fields and merges the smallest patch'
     test('a refused write reports false, read off the state the store publishes', async () => {
         const store = storeOf({
             state: { workflow: DOCUMENT },
-            onApply: () => ({ writeError: { ok: false, status: 500 } }),
+            onApply: () => ({ workflow: DOCUMENT, writeError: { ok: false, status: 500 } }),
         });
         const door = workflowDoorFor(store);
         assert.equal(await door.write({ hotWaterVolume: 150 }), false);
+    });
+
+    test('a write the store ABANDONED is not a success, though it recorded no failure', async () => {
+        const store = storeOf({
+            state: { workflow: DOCUMENT },
+            onApply: () => ({ workflow: null, targets: {}, writeError: null }),
+        });
+        const door = workflowDoorFor(store);
+        assert.equal(await door.write({ hotWaterVolume: 150 }), false);
+    });
+
+    test('an abandoned write is not saved by the NEXT machine\u2019s document', async () => {
+        const DOC_B = { profile: { title: 'B' }, steamSettings: { targetTemperature: 150 } };
+        let served = { profile: { title: 'A' }, steamSettings: { targetTemperature: 140 } };
+        let releasePut = null;
+        const transport = {
+            socketUrl: () => 'ws://test',
+            url: (path) => `http://test${path}`,
+            async request(path, { method = 'GET' } = {}) {
+                if (method === 'GET') return ok(served);
+                if (releasePut === null) {
+                    return new Promise((resolve) => { releasePut = () => resolve(ok(served)); });
+                }
+                return ok(served);
+            },
+        };
+        const store = createWorkflowStore({ transport });
+        const door = workflowDoorFor(store);
+        await store.load();
+        const press = store.setTarget('steamTemp', 145);
+        await Promise.resolve();
+        const saving = door.write({ steamTargetTemperature: 151 });
+        store.forget();
+        served = DOC_B;
+        await store.load();
+        releasePut?.();
+        await press;
+        assert.equal(await saving, false, 'a write that never left the tablet reported itself saved');
+        assert.equal(store.get().workflow.profile.title, 'B', 'and it was the NEW machine on hand');
+        assert.equal(store.get().writeError, null, 'with nothing recorded as a failure');
+    });
+
+    test('an ordinary first read does not turn a write the machine took into a refusal', async () => {
+        const DOC = { profile: { id: 'p1' }, steamSettings: { flow: 1.2 } };
+        let releasePut = null;
+        const transport = {
+            socketUrl: () => 'ws://test',
+            url: (path) => `http://test${path}`,
+            async request(path, { method = 'GET', body } = {}) {
+                if (method === 'PUT') {
+                    await new Promise((resolve) => { releasePut = resolve; });
+                    return ok({ ...DOC, ...body });
+                }
+                return ok({ ...DOC });
+            },
+        };
+        const store = createWorkflowStore({ transport });
+        const door = workflowDoorFor(store);
+        const saving = door.write({ steamFlow: 1.4 });
+        await Promise.resolve();
+        const reading = store.load();
+        for (let spins = 0; !releasePut && spins < 500; spins += 1) {
+            await new Promise((resolve) => { setTimeout(resolve, 2); });
+        }
+        assert.ok(releasePut, 'the PUT never left, so this case would prove nothing');
+        releasePut();
+        assert.equal(await saving, true, 'the machine took the write and the door called it abandoned');
+        await reading;
+        assert.equal(store.get().workflow.steamSettings.flow, 1.4, 'and it is what the machine holds');
     });
 
     test('an absent value stays absent — a machine that has not answered is not holding zero', async () => {
@@ -235,5 +307,49 @@ describe('the app settings client sends sixteen keys and no more', () => {
     test('a refused write reports false, so a staged intent stays staged', async () => {
         const transport = transportOf(() => bad(400));
         assert.equal(await createAppSettingsClient(transport).write({ chargingMode: 'nonsense' }), false);
+    });
+});
+
+describe('the tank alert door reports what the machine said, not that it was asked', () => {
+    function doorOverTransport(script) {
+        const transport = transportOf(script);
+        const feed = { get: () => ({ frame: { refillLevel: 5 } }) };
+        return {
+            transport,
+            door: waterLevelsDoorFor({
+                feed,
+                post: (body) => callRoute(transport, 'postMachineWaterLevels', { body }),
+            }),
+        };
+    }
+
+    test('a 202 is ACCEPTED — the handler answers no body and the value comes back on the feed', async () => {
+        const { door, transport } = doorOverTransport(() => reaSuccess({
+            status: 202, data: null, method: 'POST', url: 'test',
+        }));
+        assert.equal(await door.write({ refillLevel: 15 }), true);
+        assert.deepEqual(transport.calls.at(-1).body, { refillLevel: 15 });
+        assert.deepEqual(await door.read(), { refillLevel: 5 });
+    });
+
+    test('a refused write reports false, so the staged threshold stays staged', async () => {
+        for (const status of [400, 500, 503]) {
+            const { door } = doorOverTransport(() => bad(status));
+            assert.equal(await door.write({ refillLevel: 15 }), false,
+                `HTTP ${status} resolved as a result and must not read as a success`);
+        }
+    });
+
+    test('a request that never landed is not a success either', async () => {
+        const { door } = doorOverTransport(() => { throw new Error('no route'); });
+        assert.equal(await door.write({ refillLevel: 15 }), false);
+    });
+
+    test('a value that is not a number never leaves the tablet', async () => {
+        const { door, transport } = doorOverTransport(() => reaSuccess({
+            status: 202, data: null, method: 'POST', url: 'test',
+        }));
+        assert.equal(await door.write({ refillLevel: null }), false);
+        assert.equal(transport.calls.length, 0);
     });
 });
