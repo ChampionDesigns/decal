@@ -7,7 +7,7 @@ import { createSettingsLeafModel, machinePortFor, advancedPortFor } from 'src/st
 import { createDe1SettingsClient } from 'src/data/rea-de1-settings.js';
 import {
     createMachineFieldsPort, workflowDoorFor, waterLevelsDoorFor, machineInfoDoorFor,
-    cupWarmerDoorFor, presenceDoorFor,
+    cupWarmerDoorFor, presenceDoorFor, WORKFLOW_FIELD_PATHS,
 } from 'src/stores/machine-fields-port.js';
 import { createMachineInfoStore } from 'src/stores/machine-info-store.js';
 import { createLedStripStore } from 'src/stores/led-strip-store.js';
@@ -42,6 +42,10 @@ export function settingsModelFor(boot) {
 
 export function settingsBespokeFor(boot) {
     return bundleFor(boot)?.bespoke ?? null;
+}
+
+export function settingsBespokePeek(boot) {
+    return (boot && MODELS.get(boot)?.bespoke) ?? null;
 }
 
 function bundleFor(boot) {
@@ -84,11 +88,12 @@ function bundleFor(boot) {
     const machineInfo = transport ? createMachineInfoStore({ transport, logger }) : null;
     const led = transport ? createLedStripStore({ transport, logger }) : null;
     const calibration = transport ? createCalibrationStore({ transport, logger }) : null;
+    boot?.onMachineForget?.(() => calibration?.forget());
     const skins = transport ? createSkinsStore({ transport, logger }) : null;
     const firmware = transport ? createFirmwareStore({ transport, logger }) : null;
     const appInfo = transport ? createAppInfoStore({ transport, logger }) : null;
     const app = boot.appSettings ?? (transport ? createAppSettingsStore({ transport, logger }) : null);
-    const workflow = transport ? createWorkflowStore({ transport, logger }) : null;
+    const workflow = boot.workflow ?? (transport ? createWorkflowStore({ transport, logger }) : null);
     const presence = transport ? createPresenceStore({ transport, logger }) : null;
     const plugins = boot.plugins ?? (transport ? createPluginsStore({ transport, logger }) : null);
     const account = transport ? createDecentAccountStore({ transport, logger }) : null;
@@ -146,6 +151,19 @@ function bundleFor(boot) {
         logger: boot.logger ?? undefined,
     });
 
+    if (workflow && typeof workflow.subscribe === 'function') {
+        workflow.subscribe((state) => {
+            const document_ = state?.workflow ?? null;
+            if (!document_ || typeof document_ !== 'object') return;
+            const fields = {};
+            for (const [field, [group, leaf]] of Object.entries(WORKFLOW_FIELD_PATHS)) {
+                const value = document_[group]?.[leaf];
+                if (Number.isFinite(value)) fields[field] = value;
+            }
+            model.observeMachine(fields);
+        });
+    }
+
     const capabilities = boot.capabilities ?? null;
     const bundle = Object.freeze({
         leaf: model,
@@ -189,6 +207,7 @@ function bundleFor(boot) {
                 : null,
             machineValue: (field) => model.machineValue(field),
             reloadMachine: () => model.loadMachine(),
+            capability: (name) => capabilities?.capability?.(name) ?? CAPABILITY.UNKNOWN,
             /* ONE EXPRESSION. PRESENT is the only answer that opens a surface; ABSENT
              * and UNKNOWN both close it, and so does having no capability store at all. */
             allowed: (capability) => (

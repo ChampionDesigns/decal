@@ -98,7 +98,14 @@ export const SETTINGS_TREE = Object.freeze([
 ]);
 
 /** What a result is. Both kinds render through the SAME nav row (#24). */
-export const NAV_KIND = Object.freeze({ CATEGORY: 'category', LEAF: 'leaf' });
+export const NAV_KIND = Object.freeze({ CATEGORY: 'category', LEAF: 'leaf', ROW: 'row' });
+
+export const LEAF_CAPABILITIES = Object.freeze({
+    'accessories-cup-warmer': 'cupWarmer',
+    'accessories-lighting': 'ledStrip',
+    'calibration-load-cells': 'scaleCalibration',
+    'machine-sleep-wake-schedules': 'wakeSchedule',
+});
 
 export function navName(node) {
     return node?.name ?? '';
@@ -137,8 +144,10 @@ export function shownOnMachine(node, machineClass) {
     return node.machines.includes(machineClass);
 }
 
-export function leafShownOn(leaf, machineClass) {
-    return shownOnMachine(leaf, machineClass);
+export function leafShownOn(leaf, machineClass, capability = null) {
+    const required = LEAF_CAPABILITIES[leaf?.id];
+    return shownOnMachine(leaf, machineClass)
+        && (!required || capability?.(required) !== 'absent');
 }
 
 export function rowShownOn(row, machineClass) {
@@ -146,8 +155,12 @@ export function rowShownOn(row, machineClass) {
 }
 
 /** One category's leaves, filtered for this machine. The tree itself never changes. */
-export function leavesFor(category, machineClass) {
-    return (category?.leaves ?? []).filter((leaf) => leafShownOn(leaf, machineClass));
+export function leavesFor(category, machineClass, capability = null) {
+    return (category?.leaves ?? []).filter((leaf) => leafShownOn(leaf, machineClass, capability));
+}
+
+export function categoriesFor(tree = SETTINGS_TREE, machineClass = null, capability = null) {
+    return tree.filter((category) => leavesFor(category, machineClass, capability).length > 0);
 }
 
 /** True when a query is worth running. Whitespace is not a search. */
@@ -155,20 +168,20 @@ export function isSearching(query) {
     return typeof query === 'string' && query.trim() !== '';
 }
 
-export function searchSettings(query, tree = SETTINGS_TREE, machineClass = null) {
+export function searchSettings(query, tree = SETTINGS_TREE, machineClass = null, capability = null) {
     if (!isSearching(query)) return [];
     const needle = query.trim().toLowerCase();
     const hit = (node) => navName(node).toLowerCase().includes(needle);
 
     const results = [];
-    for (const category of tree) {
+    for (const category of categoriesFor(tree, machineClass, capability)) {
         if (hit(category)) {
             results.push({ kind: NAV_KIND.CATEGORY, node: category, category });
         }
         for (const leaf of category.leaves) {
             /* A HIDDEN LEAF IS NOT SEARCHABLE EITHER. A search result that navigates to a
              * page the sub-nav does not list is a page with no way back to it. */
-            if (!leafShownOn(leaf, machineClass)) continue;
+            if (!leafShownOn(leaf, machineClass, capability)) continue;
             if (hit(leaf)) results.push({ kind: NAV_KIND.LEAF, node: leaf, category });
         }
     }

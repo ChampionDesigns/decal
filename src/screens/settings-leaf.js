@@ -9,6 +9,7 @@ import { typeRoles } from 'src/components/type-roles.js';
 import { I18nController } from 'src/lib/i18n.js';
 import { leafDescription } from 'src/lib/settings-leaf-copy.js';
 import { ARCHETYPE, leafAction } from 'src/lib/settings-leaves.js';
+import { TEMP_UNIT, toDisplayTemp, unitSymbol } from 'src/lib/temperature.js';
 import 'src/components/ui-slider.js';
 import { NO_READING } from 'src/data/reading.js';
 
@@ -21,6 +22,7 @@ import 'src/components/ui-button.js';
 import 'src/components/ui-text-field.js';
 
 const INERT_VALUE = () => '\u2013';
+const FAHRENHEIT_SYMBOL = unitSymbol(TEMP_UNIT.FAHRENHEIT);
 
 const READING_FORMATTERS = new Map();
 function liveReadingFormat(word, unit) {
@@ -368,7 +370,10 @@ export class SettingsLeaf extends UiElement {
         if (!view.live) return view.reading;
         if (view.inert || view.pending) return NO_READING;
         const value = Number(this._snapshot?.[view.live]);
-        return Number.isFinite(value) && value > 0 ? value : NO_READING;
+        if (!Number.isFinite(value) || value <= 0) return NO_READING;
+        return view.bounds?.unit === FAHRENHEIT_SYMBOL
+            ? toDisplayTemp(value, TEMP_UNIT.FAHRENHEIT)
+            : value;
     }
 
     #note(view) {

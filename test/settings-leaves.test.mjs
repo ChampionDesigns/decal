@@ -676,9 +676,10 @@ describe('a stop mode is read from the machine and written to it', () => {
         assert.ok(order.indexOf('accessories-usb-charger-dim') < order.indexOf('accessories-usb-charger-night'));
     });
 
-    test('the pre-warm pair goes inert with a sentence when the firmware cannot do it', async () => {
+    test('the pre-warm pair is hidden when the firmware cannot do it', async () => {
         const cannot = harness({ document: { ...MACHINE_DOCUMENT, cupWarmerPreheatSupported: false } });
         await cannot.model.load('accessories-cup-warmer');
+        assert.ok(!cannot.model.rows('accessories-cup-warmer').some((view) => view.id.startsWith('accessories-cup-warmer-prewarm')));
         const view = rowById(cannot.model, 'accessories-cup-warmer', 'accessories-cup-warmer-prewarm');
         assert.equal(view.inert, true);
         assert.equal(view.checked, false, 'and it does not paint ON for a machine that cannot');

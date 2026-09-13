@@ -200,7 +200,7 @@ describe('what the skeleton does not import', () => {
 
     test('D11: the screen supplies a count and never a word', () => {
         const screen = CODE['src/screens/settings-screen.js'];
-        assert.match(screen, /change-count=\$\{this\.changeCount \+ \(this\.#ledPending \? 1 : 0\)\}/,
+        assert.match(screen, /change-count=\$\{this\.changeCount(?: \+ \(this\.#\w+Pending \? 1 : 0\))+\}/,
             '"A count, and nothing else, crosses the boundary"');
         assert.doesNotMatch(screen, /'Save|"Save|Save \(/,
             'the Save wording belongs to #31 and to no screen');

@@ -152,6 +152,7 @@ const MACHINE_WORKFLOW = {
 
 let capabilities = null;
 let bespoke = null;
+let settingsStore = null;
 /* THE FIXTURE'S TRANSPORT, HELD SO ONE STORE CAN BE REBUILT OVER IT.
  *
  * `supportToken()` is the only lever that rebuilds a store, and it has to: the account
@@ -160,6 +161,7 @@ let bespoke = null;
  * re-serving the page from a different origin would. A lever that mutated a live store
  * would be modelling something that cannot happen. */
 let fixtureTransport = null;
+let fixtureStorage = null;
 let theme = null;
 let themeRoot = null;
 
@@ -205,6 +207,13 @@ const publishUpdateFeed = () => {
     }
 };
 
+const displayFeedListeners = new Set();
+const displayFeedState = () => (SERVER.displayFrame ? { value: { ...SERVER.displayFrame } } : null);
+const publishDisplayFeed = () => {
+    const state = displayFeedState();
+    for (const listener of displayFeedListeners) listener(state);
+};
+
 /* ---- the scale feed, through the REAL reader ------------------------------
  *
  * THE CALIBRATION WALK IS THE ONLY SETTINGS SURFACE THAT DRAWS A LIVE NUMBER, and until
@@ -226,7 +235,9 @@ const scaleFeedListeners = new Set();
 const scaleFeedState = () => (SERVER.scaleFrame === null
     ? null
     : {
-        status: SERVER.scaleStale ? FEED_STATUS.STALE : FEED_STATUS.LIVE,
+        status: SERVER.scaleStatus
+            ?? (SERVER.scaleStale ? FEED_STATUS.STALE : FEED_STATUS.LIVE),
+        receivedAt: 1,
         value: readScaleSnapshot(SERVER.scaleFrame),
     });
 const publishScaleFeed = () => {
@@ -235,12 +246,38 @@ const publishScaleFeed = () => {
     }
 };
 
+const refusable = (backend) => Object.freeze({
+    ...backend,
+    async get(key) {
+        if (SERVER.readRefuse) throw new Error('this tablet could not be read');
+        return backend.get(key);
+    },
+    async set(key, value) {
+        if (SERVER.rememberRefuse) throw new Error('this tablet refused the write');
+        await heldWrite();
+        return backend.set(key, value);
+    },
+    async remove(key) {
+        if (SERVER.rememberRefuse) throw new Error('this tablet refused the delete');
+        await heldWrite();
+        return backend.remove(key);
+    },
+});
+const heldWrites = [];
+const heldWrite = () => (SERVER.rememberHold
+    ? new Promise((resolve) => { heldWrites.push(resolve); })
+    : Promise.resolve());
+
 function buildModel() {
+    const imageStorage = createMemoryBackend();
     const storage = createStorageRouter({
         backends: {
-            [LAYERS.local]: createMemoryBackend(),
+            [LAYERS.local]: { ...imageStorage, set: async (...args) => {
+                if (SERVER.localWriteRefuse) throw new Error('The local store refused the write');
+                return imageStorage.set(...args);
+            } },
             [LAYERS.session]: createMemoryBackend(),
-            [LAYERS.kv]: createMemoryBackend(),
+            [LAYERS.kv]: refusable(createMemoryBackend()),
             [LAYERS.kvNumpad]: createMemoryBackend(),
         },
     });
@@ -257,6 +294,8 @@ function buildModel() {
         },
     });
     const settings = createSettingsStore({ storage, capabilities });
+    settingsStore = settings;
+    fixtureStorage = storage;
 
     /* THE DE1 SETTINGS DOOR, scripted. The OTHER door is real: `flowMultiplier` goes
      * through the calibration store over the fixture transport, which is what makes
@@ -403,8 +442,12 @@ function buildModel() {
         display: {
             setBrightness: (value) => { SERVER.brightnessSent.push(value); return { ok: true }; },
             feed: {
-                get: () => (SERVER.displayFrame ? { value: { ...SERVER.displayFrame } } : null),
-                subscribe: () => () => {},
+                get: () => displayFeedState(),
+                subscribe: (listener) => {
+                    displayFeedListeners.add(listener);
+                    listener(displayFeedState());
+                    return () => displayFeedListeners.delete(listener);
+                },
             },
         },
         /* THE MACHINE'S OWN STATE, for the two maintenance pages.
@@ -450,6 +493,7 @@ function buildModel() {
         },
         languages: [{ code: 'en', endonym: 'English', english: 'English', partial: false }],
         defaultLanguage: 'en',
+        capability: (name) => capabilities.capability(name),
         allowed: (name) => capabilities.capability(name) === 'present',
         /* THE SAME EDGE THE APP HANDS THE LEAF (`settings-model.js`): the capability
          * answer is asynchronous, so "may I render" has to be re-askable. The fixture
@@ -500,6 +544,7 @@ function buildModel() {
                  * or the refusal case silently stops being tested the day a row moves. */
                 write: async (patch) => {
                     if (SERVER.settingsRefuse) return false;
+                    SERVER.workflowWrites += 1;
                     Object.assign(MACHINE_WORKFLOW, patch);
                     return true;
                 },
@@ -868,6 +913,11 @@ const SERVER = {
      * under the zero step's "take the platform off" is the specific lie this guards.
      */
     scaleStale: false,
+    scaleStatus: null,
+    rememberRefuse: false,
+    localWriteRefuse: false,
+    readRefuse: false,
+    rememberHold: false,
     /**
      * `GET /api/v1/info`, at the shape `tools/rea-fixtures/api__v1__info.json` records
      * which is a REAL capture off a bench tablet, branch and commit included.
@@ -908,6 +958,8 @@ const SERVER = {
     resets: 0,
     /** Make the machine settings door refuse, so a commit can fail. */
     settingsRefuse: false,
+    workflowWrites: 0,
+    wire: [],
 
     /** Every PUT /machine/ledStrip the store has issued, in order. The drill reads it. */
     ledWrites: [],
@@ -974,6 +1026,7 @@ function createFixtureTransport() {
         },
         async request(path, { method = 'GET', body, query = null, headers = null, expect = 'json' } = {}) {
             const key = `${method} ${path}`;
+            SERVER.wire.push(key);
             if (method !== 'GET') {
                 for (const listener of writeListeners) listener({ method, path });
             }
@@ -1387,6 +1440,7 @@ const api = {
         if (!screen) {
             model = buildModel();
             screen = document.createElement('settings-screen');
+            screen.boot = Object.freeze({ settings: settingsStore });
             screen.model = model;
             screen.bespoke = bespoke;
             screen.theme = theme;
@@ -1540,6 +1594,8 @@ const api = {
         cupWarmer: { ...SERVER.cupWarmer },
         cupWarmerPreheat: { ...SERVER.cupWarmerPreheat },
         machineAdvanced: { ...MACHINE_ADVANCED },
+        workflowWrites: SERVER.workflowWrites,
+        machineWorkflow: { ...MACHINE_WORKFLOW },
         resets: SERVER.resets,
         /* THE 26 AUG 2026 SURFACES. The device list, the two halves of a skin switch, and
          * the count of firmware writes — which is the one that proves "choosing a file is
@@ -1595,6 +1651,7 @@ const api = {
      */
     async displayFrame(frame) {
         SERVER.displayFrame = frame === null ? null : { ...frame };
+        publishDisplayFeed();
         api.bespokeEl()?.requestUpdate?.();
         await settle();
         return true;
@@ -1629,6 +1686,9 @@ const api = {
 
     /** How many live writes are parked on the wire right now. Must never exceed 1. */
     ledParked: () => SERVER.ledParked.length,
+
+    wire: () => [...SERVER.wire],
+    clearWire() { SERVER.wire.length = 0; return true; },
 
     /** The store's own counters: intents, sent, peak in flight, dropped. */
     ledCounters: () => bespoke.led.counters(),
@@ -1698,6 +1758,13 @@ const api = {
      * THE FRAME IS RAW, at `WeightSnapshot.toJson`'s shape, and goes through the real
      * `readScaleSnapshot`. See `scaleFeedState`.
      */
+    async flowCalibration(value) {
+        SERVER.flowMultiplier = value;
+        await model.loadMachine();
+        await settle();
+        return true;
+    },
+
     /**
      * Put one field of `GET /machine/settings/advanced` at a value, and re-read.
      *
@@ -1718,8 +1785,9 @@ const api = {
         return true;
     },
 
-    async scaleWeight(grams, { stale = false } = {}) {
+    async scaleWeight(grams, { stale = false, status = null } = {}) {
         SERVER.scaleStale = Boolean(stale);
+        SERVER.scaleStatus = status === null || status === undefined ? null : String(status);
         SERVER.scaleFrame = grams === null || grams === undefined
             ? null
             : { weight: Number(grams), weightFlow: 0, battery: 100, timestamp: new Date(0).toISOString() };
@@ -1889,6 +1957,18 @@ const api = {
      */
     /** Make the next machine write fail, or let it succeed again. */
     refuseWrites(on = true) { SERVER.settingsRefuse = Boolean(on); },
+    refuseRemembered(on = true) { SERVER.rememberRefuse = Boolean(on); },
+    refuseLocalWrites(on = true) { SERVER.localWriteRefuse = Boolean(on); },
+    refuseReads(on = true) { SERVER.readRefuse = Boolean(on); },
+    reread(key) { return settingsStore.load(key); },
+    seedStored(key, value) { return fixtureStorage.set(key, value); },
+    settingValue(key) { return settingsStore.value(key); },
+    holdRemembered(on = true) { SERVER.rememberHold = Boolean(on); },
+    heldRemembered: () => heldWrites.length,
+    releaseRemembered() {
+        while (heldWrites.length) heldWrites.pop()();
+        return true;
+    },
 
     async cupWarmerState(patch) {
         Object.assign(SERVER.cupWarmer, patch);
