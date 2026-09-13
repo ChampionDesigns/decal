@@ -324,6 +324,7 @@ export class UiTimePicker extends UiElement {
                     id="field"
                     class="field"
                     mode="radio"
+                    density="compact"
                     .items=${[
                         { value: 'hour', label: hh },
                         { value: 'minute', label: mm },

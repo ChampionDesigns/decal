@@ -23,6 +23,17 @@ test('typed B offset commits valid numbers, rejects invalid text, and resets thr
         assert.equal(await page.evalFn(() => document.getElementById('compare').offset), 0);
     }));
 
+test('Clear rating emits null while zero remains a score', () => browser.withPage(async page => {
+    await page.mount('<ui-rating-control id="rating" shot-id="one" score="0"></ui-rating-control>', ['/src/components/ui-rating-control.js']);
+    await page.evalFn(() => { window.changes = []; const c = document.getElementById('rating'); c.addEventListener('rating-change', e => { changes.push(e.detail); c.score = e.detail.score; }); });
+    assert.equal(await page.evalFn(() => document.getElementById('rating').rated), true);
+    await page.click('#rating >>> #rate');
+    await page.click('#rating >>> #sheet-clear');
+    assert.deepEqual(await page.evalFn(() => changes), [{ score: null, shotId: 'one' }]);
+    assert.equal(await page.evalFn(() => document.getElementById('rating').rated), false);
+    assert.equal(await page.evalFn(() => document.getElementById('rating').shadowRoot.getElementById('sheet-clear').disabled), true);
+}));
+
 test('a dynamic right axis expands without rebuilding and Steam targets are physically dashed',
     () => browser.withPage(async page => {
         await page.mount('<ui-chart-card id="card" style="display:block;width:900px;height:450px"></ui-chart-card>', ['/src/components/ui-chart-card.js']);

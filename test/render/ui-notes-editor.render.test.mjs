@@ -59,6 +59,77 @@ async function selectBoldKey(page) {
     await page.settle();
 }
 
+const UNTRUSTED = [
+    '# Tasting',
+    '',
+    '<img src="no-such-image.png" alt="probe"'
+    + ' onerror="document.documentElement.dataset.notesHandlerRan = \'yes\'">',
+    '',
+    '<a href="javascript:void 0">follow</a>',
+    '',
+    '<script>document.documentElement.dataset.notesScriptRan = \'yes\';<\/script>',
+    '',
+    '<iframe src="about:blank"></iframe>',
+    '',
+    '<p id="editor" style="position: fixed">over the top</p>',
+].join('\n');
+
+const FORMATTED = [
+    '# Heading',
+    '',
+    'A **bold** word and an *italic* one.',
+    '',
+    '- first',
+    '- second',
+    '',
+    '> quoted',
+    '',
+    'An `inline` span.',
+    '',
+    '```js',
+    'const grind = 1;',
+    '```',
+    '',
+    '[example](https://example.com/beans)',
+    '',
+    '| bean | ratio |',
+    '| --- | ---: |',
+    '| Guji | 1:2 |',
+].join('\n');
+
+async function previewOf(page, text) {
+    await page.evalFn((t) => {
+        document.getElementById('notes').value = t;
+        return true;
+    }, text);
+    await page.settle();
+    await page.evalFn(() => {
+        document.getElementById('notes').renderRoot.querySelector('.ui-mde-key.preview').click();
+        return true;
+    });
+    await page.settle(3);
+    return page.evalFn(() => {
+        const preview = document.getElementById('notes').renderRoot
+            .querySelector('.editor-preview');
+        const all = Array.from(preview.querySelectorAll('*'));
+        const image = preview.querySelector('img');
+        return {
+            tags: all.map((el) => el.localName),
+            handlerAttributes: all.flatMap(
+                (el) => el.getAttributeNames().filter((n) => n.toLowerCase().startsWith('on')),
+            ),
+            ids: all.filter((el) => el.hasAttribute('id')).map((el) => el.getAttribute('id')),
+            styles: all.filter((el) => el.hasAttribute('style')).length,
+            links: Array.from(preview.querySelectorAll('a')).map((a) => ({
+                href: a.getAttribute('href'),
+                rel: a.getAttribute('rel'),
+            })),
+            text: preview.textContent,
+            imageFailed: Boolean(image && image.complete && image.naturalWidth === 0),
+        };
+    });
+}
+
 for (const geometry of GATE_A_GEOMETRIES) {
     describe(`ui-notes-editor @ ${geometry.name}`, () => {
         let browser;
@@ -504,6 +575,84 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(bold, { active: true, pressed: 'true' });
             }));
 
+        test('the preview does not run a handler carried in the note text',
+            () => withPage(async (page) => {
+                await open(page);
+                const preview = await previewOf(page, UNTRUSTED);
+
+                const ran = await page.evalFn(() => new Promise((resolve) => {
+                    setTimeout(() => resolve({
+                        handler: document.documentElement.dataset.notesHandlerRan ?? null,
+                        script: document.documentElement.dataset.notesScriptRan ?? null,
+                    }), 300);
+                }));
+                assert.deepEqual(ran, { handler: null, script: null },
+                    'note text executed in the skin document');
+
+                assert.ok(preview.tags.includes('img'), 'the image never reached the preview');
+                assert.equal(preview.imageFailed, true,
+                    'the image loaded, so the error path was never taken');
+
+                assert.deepEqual(preview.handlerAttributes, [],
+                    'a handler attribute is still in the preview tree');
+                assert.equal(preview.tags.includes('script'), false);
+                assert.equal(preview.tags.includes('iframe'), false);
+                assert.deepEqual(preview.ids, [], 'note text can answer an id lookup');
+                assert.equal(preview.styles, 0, 'note text can position an element over the app');
+                assert.deepEqual(preview.links.map((l) => l.href), [null],
+                    'a script-protocol link is still followable');
+                assert.match(preview.text, /over the top/);
+                assert.match(preview.text, /follow/);
+            }));
+
+        test('the preview still renders ordinary formatting', () => withPage(async (page) => {
+            await open(page);
+            const preview = await previewOf(page, FORMATTED);
+
+            for (const tag of ['h1', 'strong', 'em', 'ul', 'li', 'blockquote', 'code',
+                'pre', 'a', 'table', 'th', 'td']) {
+                assert.ok(preview.tags.includes(tag), `the preview lost <${tag}>`);
+            }
+            assert.deepEqual(preview.links, [{
+                href: 'https://example.com/beans',
+                rel: 'noopener noreferrer',
+            }], 'an ordinary link did not survive intact');
+            assert.match(preview.text, /const grind = 1;/);
+        }));
+
+        test('the sanitizer keeps the words and drops what acts', () => withPage(async (page) => {
+            await open(page);
+            const out = await page.evalFn(async () => {
+                const { sanitizeHtml } = await import('/src/lib/html-sanitize.js');
+                return {
+                    handler: sanitizeHtml('<p onclick="run()">word</p>'),
+                    unknown: sanitizeHtml('<marquee><b>word</b></marquee>'),
+                    subtree: sanitizeHtml('<div>keep<style>.a { color: red }</style>'
+                        + '<svg><g></g></svg></div>'),
+                    comment: sanitizeHtml('<!-- <img src=x onerror=run()> -->kept'),
+                    dataUrl: sanitizeHtml('<img src="data:image/gif;base64,R0lGOD" alt="a">'),
+                    remoteImage: sanitizeHtml('<img src="https://example.com/a.png" alt="a">'),
+                    task: sanitizeHtml('<li><input type="checkbox" name="n" onfocus="run()"> do</li>'),
+                    otherInput: sanitizeHtml('<input type="text" value="v">'),
+                    spacedProtocol: sanitizeHtml('<a href="java\tscript:run()">go</a>'),
+                    fragment: sanitizeHtml('<a href="#beans">go</a>'),
+                };
+            });
+
+            assert.equal(out.handler, '<p>word</p>');
+            assert.equal(out.unknown, '<b>word</b>', 'an unknown tag took its text with it');
+            assert.equal(out.subtree, '<div>keep</div>');
+            assert.equal(out.comment, 'kept');
+            assert.equal(out.dataUrl, '<img alt="a">', 'a payload-carrying source survived');
+            assert.equal(out.remoteImage, '<img src="https://example.com/a.png" alt="a">');
+            assert.equal(out.task, '<li><input type="checkbox" disabled=""> do</li>',
+                'the one allowed input shape is not intact');
+            assert.equal(out.otherInput, '', 'an input that is not a task checkbox survived');
+            assert.equal(out.spacedProtocol, '<a>go</a>',
+                'a protocol written around a control character survived');
+            assert.equal(out.fragment, '<a href="#beans" rel="noopener noreferrer">go</a>');
+        }));
+
         test('F-016: the picked-over textarea and the fake scrollbars are out of the tree',
             () => withPage(async (page) => {
                 await open(page);
@@ -631,6 +780,102 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
             assert.equal(saved, false, 'markSaved did not move the baseline');
         }));
+
+        test('a republished note is held while the document is dirty, and lands when it is clean',
+            () => withPage(async (page) => {
+                await open(page);
+
+                const held = await page.evalFn(async () => {
+                    const notes = document.getElementById('notes');
+                    const cm = notes.editor.codemirror;
+                    cm.focus();
+                    cm.setCursor({ line: 0, ch: 0 });
+                    cm.replaceSelection('grind finer. ');
+                    const draft = notes.text;
+                    notes.value = 'Someone else wrote this one.';
+                    await notes.updateComplete;
+                    return { draft, text: notes.text, dirty: notes.dirty, value: notes.value };
+                });
+
+                assert.match(held.draft, /grind finer\. Ethiopia Guji/, 'the draft was not typed');
+                assert.equal(held.text, held.draft, 'the stored note replaced a live draft');
+                assert.equal(held.dirty, true, 'and the draft stopped being unsaved work');
+                assert.equal(held.value, 'Someone else wrote this one.',
+                    'the property itself still takes the note it was handed');
+
+                const landed = await page.evalFn(async () => {
+                    const notes = document.getElementById('notes');
+                    notes.markSaved(notes.text);
+                    await notes.updateComplete;
+                    return { text: notes.text, dirty: notes.dirty };
+                });
+
+                assert.equal(landed.text, 'Someone else wrote this one.',
+                    'the held note never landed once there was nothing left to protect');
+                assert.equal(landed.dirty, false, 'and it landed as a baseline, not as an edit');
+            }));
+
+        test('deleting a draft back to the baseline is a clean moment too',
+            () => withPage(async (page) => {
+                await open(page);
+
+                const back = await page.evalFn(async () => {
+                    const notes = document.getElementById('notes');
+                    const cm = notes.editor.codemirror;
+                    cm.focus();
+                    cm.setCursor({ line: 0, ch: 0 });
+                    cm.replaceSelection('X');
+                    notes.value = 'The record says this now.';
+                    await notes.updateComplete;
+                    const guarded = notes.text;
+                    cm.undo();
+                    await notes.updateComplete;
+                    return { guarded, text: notes.text, dirty: notes.dirty };
+                });
+
+                assert.match(back.guarded, /^X/, 'the edit did not reach the document');
+                assert.equal(back.text, 'The record says this now.',
+                    'undoing the last edit left the document holding neither the draft nor the note');
+                assert.equal(back.dirty, false);
+            }));
+
+        test('a note republished onto a clean document lands at once, as it always did',
+            () => withPage(async (page) => {
+                await open(page);
+
+                const seeded = await page.evalFn(async () => {
+                    const notes = document.getElementById('notes');
+                    notes.value = 'The stored note.';
+                    await notes.updateComplete;
+                    return { text: notes.text, dirty: notes.dirty };
+                });
+
+                assert.equal(seeded.text, 'The stored note.', 'a clean document refused a re-seed');
+                assert.equal(seeded.dirty, false);
+            }));
+
+        test('a write that echoes the document back takes the baseline rather than being held',
+            () => withPage(async (page) => {
+                await open(page);
+
+                const echoed = await page.evalFn(async () => {
+                    const notes = document.getElementById('notes');
+                    const cm = notes.editor.codemirror;
+                    cm.focus();
+                    cm.setCursor({ line: 0, ch: 0 });
+                    cm.replaceSelection('typed. ');
+                    notes.value = notes.text;
+                    await notes.updateComplete;
+                    const after = { text: notes.text, dirty: notes.dirty };
+                    notes.value = '';
+                    await notes.updateComplete;
+                    return { after, cleared: notes.text };
+                });
+
+                assert.match(echoed.after.text, /^typed\. /, 'the echo rewrote the document');
+                assert.equal(echoed.after.dirty, false, 'the echoed write did not take the baseline');
+                assert.equal(echoed.cleared, '', 'and the field could no longer be cleared');
+            }));
 
         test('the subject row is a slot, and absent means absent', () => withPage(async (page) => {
             await open(page);

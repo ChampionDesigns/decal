@@ -419,21 +419,17 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'and the raw-table answer is a different number — that was the defect');
             }));
 
-        test('a TOLD band still clamps, at its own ceiling and in its own unit',
+        test('a told band refuses values above its displayed ceiling',
             () => mounted(async (page) => {
                 await tellBand(page, 'milkStopTemp', TEMP_UNIT.FAHRENHEIT);
                 const shown = fahrenheit('milkStopTemp');
-
-                /* A band the caller declares is not a band without one: 200 °F is above
-                 * the machine's 85 °C ceiling and must come back at it, converted. */
                 for (const d of ['2', '0', '0']) await tap(page, d);
                 await page.click(CONFIRM);
                 await page.settle(2);
-                assert.deepEqual(await events(page), [
-                    `confirm:${shown.inBand(200)}:200:milkStopTemp`,
-                ]);
-                assert.equal(shown.inBand(200), shown.max,
-                    'the ceiling it lands on is the one the hint printed');
+                assert.deepEqual(await events(page), []);
+                assert.equal(await isOpen(page), true);
+                assert.equal(await readout(page), '200');
+                assert.ok(200 > shown.max);
             }));
 
         test('the decimal key follows the band\'s stated PRECISION, not its converted step',
@@ -789,16 +785,49 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(after, before);
             }));
 
-        test('confirm reports the clamped value once and closes', () => mounted(async (page) => {
+        test('confirm refuses an out-of-range value without changing the readout', () => mounted(async (page) => {
             await arm(page);
             for (const d of ['9', '9', '9']) await tap(page, d);
             assert.equal(await readout(page), '999');
             await page.click(CONFIRM);
             await page.settle(2);
-            /* dose declares max 120; 999 is clamped by the PORT, not by this file. */
-            assert.deepEqual(await events(page), [`confirm:${clamp(BENGLE, 'dose', 999)}:999:dose`]);
-            assert.equal(await isOpen(page), false);
+            assert.deepEqual(await events(page), []);
+            assert.equal(await isOpen(page), true);
+            assert.equal(await readout(page), '999');
         }));
+
+        test('an untouched out-of-range reading stays visible and cannot be submitted',
+            () => mounted(async (page) => {
+                await arm(page, { limitKey: 'hotWaterFlow', value: '10' });
+                assert.equal(await readout(page), '10',
+                    'the well shows the served value, or there is nothing to preserve');
+                await page.click(CONFIRM);
+                await page.settle(2);
+                assert.deepEqual(await events(page), []);
+                assert.equal(await isOpen(page), true);
+                assert.equal(await readout(page), '10');
+            }));
+
+        test('typing an out-of-range replacement keeps the keypad open',
+            () => mounted(async (page) => {
+                await arm(page, { limitKey: 'hotWaterFlow', value: '10' });
+                for (const d of ['9', '9']) await tap(page, d);
+                assert.equal(await readout(page), '99', 'the first press replaces the seed');
+                await page.click(CONFIRM);
+                await page.settle(2);
+                assert.deepEqual(await events(page), []);
+                assert.equal(await isOpen(page), true);
+            }));
+
+        test('an empty pad cannot submit a default zero below the permitted range',
+            () => mounted(async (page) => {
+                await arm(page, { limitKey: 'hotWaterFlow', value: '' });
+                assert.equal(await readout(page), '0', 'the empty readout is a zero');
+                await page.click(CONFIRM);
+                await page.settle(2);
+                assert.deepEqual(await events(page), []);
+                assert.equal(await isOpen(page), true);
+            }));
 
         test('cancel reports once and leaves the value alone', () => mounted(async (page) => {
             await arm(page);

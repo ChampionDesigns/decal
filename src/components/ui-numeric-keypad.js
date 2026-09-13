@@ -9,6 +9,7 @@ import { seams } from 'src/components/seams.js';
 import { I18nController } from 'src/lib/i18n.js';
 import { SHEET_HEADING_LEVELS, DEFAULT_LEVEL } from 'src/components/ui-sheet-header.js';
 import { hasLimit, clamp, numpadRange } from 'src/lib/machine-limits.js';
+import { NumericHistoryController, RECENT_VALUES_SHOWN } from 'src/lib/numeric-input-history.js';
 import 'src/components/ui-dialog.js';
 import 'src/components/ui-button.js';
 import 'src/components/ui-keycap.js';
@@ -31,7 +32,7 @@ const PAD = Object.freeze([
 ]);
 
 /** Up to four recent values, two rows of two. */
-const PREVIOUS_SHOWN = 4;
+const PREVIOUS_SHOWN = RECENT_VALUES_SHOWN;
 
 /** The empty buffer. Backspacing past the last character lands here, not on ''. */
 const EMPTY = '0';
@@ -64,6 +65,9 @@ export class UiNumericKeypad extends UiElement {
         unit: { type: String },
         /** Recent values. Plain strings; the screen owns where they came from. */
         previous: { attribute: false },
+
+        /** Which stored history the recent values come from. Defaults to `limitKey`. */
+        recentKey: { type: String, attribute: 'recent-key' },
         /** 1..6 for the heading element #16 renders. */
         level: { type: Number, reflect: true },
         /** The entry buffer. Internal — a screen reads `value` on confirm. */
@@ -169,6 +173,16 @@ export class UiNumericKeypad extends UiElement {
             text-align: center;
         }
 
+        .well[aria-invalid='true'] {
+            outline: var(--ui-border-w) solid var(--ui-status-danger);
+            outline-offset: calc(-1 * var(--ui-border-w));
+        }
+
+        .validation {
+            margin: 0;
+            color: var(--ui-status-danger);
+        }
+
         .previous {
             display: grid;
             gap: var(--ui-space-2);
@@ -232,6 +246,11 @@ export class UiNumericKeypad extends UiElement {
     /** Which outcome closed the dialog, so one dismissal reports exactly one event. */
     #outcome = null;
 
+    /** The reading the pad opened on, so an untouched confirm answers it unchanged. */
+    #served = null;
+
+    #history = new NumericHistoryController(this);
+
     constructor() {
         super();
         this.open = false;
@@ -242,6 +261,7 @@ export class UiNumericKeypad extends UiElement {
         this.value = '';
         this.unit = '';
         this.previous = [];
+        this.recentKey = '';
         this.level = DEFAULT_LEVEL;
         this._buffer = EMPTY;
         this._fresh = true;
@@ -298,11 +318,9 @@ export class UiNumericKeypad extends UiElement {
 
     get outOfBand() {
         const range = this.range;
-        if (!range?.refuseOutside) return false;
+        if (!range) return false;
         const typed = Number(this._buffer);
-        /* A buffer that is not a number is not a REFUSAL, it is an absence — the empty
-         * readout, mid-decimal "12.". Those already have their own answer below. */
-        if (!Number.isFinite(typed)) return false;
+        if (!Number.isFinite(typed)) return true;
         return typed < range.min || typed > range.max;
     }
 
@@ -316,7 +334,15 @@ export class UiNumericKeypad extends UiElement {
     }
 
     get shownPrevious() {
-        return Array.isArray(this.previous) ? this.previous.slice(0, PREVIOUS_SHOWN) : [];
+        const range = this.range;
+        if (!range) return [];
+        const values = [...this.#history.values(), ...(Array.isArray(this.previous) ? this.previous : [])];
+        const decimals = Number.isFinite(range.decimals)
+            ? range.decimals : (String(range.step).split('.')[1]?.length ?? 0);
+        return [...new Set(values.filter(value => value !== null && String(value).trim() !== '')
+            .map(Number).filter(value => Number.isFinite(value) && value >= range.min && value <= range.max)
+            .map(value => String(Number(value.toFixed(Math.min(9, Math.max(0, decimals)))))))]
+            .slice(0, PREVIOUS_SHOWN);
     }
 
     /** Open. Forwarded so #18 captures the restore target at open time. */
@@ -343,13 +369,19 @@ export class UiNumericKeypad extends UiElement {
 
     confirm(reason = 'confirm') {
         if (!this.open || !this.ranged || this.outOfBand) return false;
+        const untouched = this._fresh && this.#served !== null;
+        const value = untouched ? this.#served : this.clamped;
+        if (!Number.isFinite(value)) return false;
+        const historyField = this.recentKey || this.limitKey;
+        const historyUnit = this.unit;
         const allowed = this.dispatchEvent(new CustomEvent('confirm', {
-            detail: { value: this.clamped, raw: this._buffer, limitKey: this.limitKey, reason },
+            detail: { value, raw: this._buffer, limitKey: this.limitKey, reason },
             bubbles: true,
             composed: true,
             cancelable: true,
         }));
         if (!allowed) return false;
+        if (!untouched) this.#history.source.remember(historyField, historyUnit, value);
         this.#outcome = 'confirm';
         this.hide('confirm');
         return true;
@@ -430,6 +462,8 @@ export class UiNumericKeypad extends UiElement {
         const incoming = String(this.value ?? '').trim();
         this._buffer = incoming === '' ? EMPTY : incoming;
         this._fresh = true;
+        const served = incoming === '' ? Number.NaN : Number(incoming);
+        this.#served = Number.isFinite(served) ? served : null;
     }
 
     #onOpenChange = (event) => {
@@ -460,15 +494,36 @@ export class UiNumericKeypad extends UiElement {
 
     #onCancelPress = () => { this.cancel('press'); };
 
+    #onKeyDown = event => {
+        if (!this.open || !this.ranged || event.ctrlKey || event.metaKey || event.altKey) return;
+        const key = /^[0-9]$/.test(event.key) ? event.key
+            : event.key === '.' || event.key === ',' ? 'decimal'
+                : event.key === 'Backspace' ? 'backspace' : null;
+        const well = this.renderRoot?.querySelector('#well');
+        if (key) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.press(key);
+            well?.focus({ preventScroll: true });
+        } else if (event.key === 'Enter' && event.composedPath().includes(well)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.confirm('keyboard');
+        }
+    };
+
     #renderWell() {
-        return html`<div id="well" class="well"
+        return html`<div id="well" class="well" tabindex="-1"
+            aria-invalid=${this.outOfBand ? 'true' : nothing}
+            aria-describedby=${this.outOfBand ? 'validation' : 'hint'}
             ><span id="display" class="display readout ui-numeric"
                 role="status" aria-live="polite" aria-atomic="true"
                 aria-invalid=${this.outOfBand ? 'true' : nothing}
                 >${this._buffer}</span
             >${this.unit
                 ? html`<span id="unit" class="unit">${this.unit}</span>`
-                : nothing}</div>`;
+                : nothing}</div>${this.outOfBand ? html`<p id="validation" class="validation ui-caption" role="status"
+                    >${this.i18n.t('Enter a value within {range}.', { range: this.rangeText })}</p>` : nothing}`;
     }
 
     #renderPad() {
@@ -498,12 +553,12 @@ export class UiNumericKeypad extends UiElement {
         if (values.length === 0) return nothing;
         return html`<div id="previous" class="previous"
             ><p id="previous-title" class="prev-title ui-microcap"
-                >${this.i18n.t('Previous values')}</p
+                >${this.i18n.t('Recent values')}</p
             ><div id="previous-grid" class="previous-grid">${values.map((raw, i) => html`<ui-button
                 id=${`previous-${i}`}
                 data-value=${String(raw)}
                 @click=${this.#onPreviousPress}
-                >${String(raw)}</ui-button>`)}</div></div>`;
+                >${String(raw)}${this.unit ? ` ${this.unit}` : ''}</ui-button>`)}</div></div>`;
     }
 
     #renderUnavailable() {
@@ -525,6 +580,7 @@ export class UiNumericKeypad extends UiElement {
             .label=${this.heading ?? ''}
             .level=${this.level}
             @open-change=${this.#onOpenChange}
+            @keydown=${this.#onKeyDown}
         ><div id="body" class="body" slot="body"
             ><div id="layout" class="layout seam-grid seam-cols seam-line"
                 ><div id="entry" class="col entry"

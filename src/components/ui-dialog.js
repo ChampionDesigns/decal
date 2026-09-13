@@ -160,6 +160,12 @@ export class UiDialog extends UiElement {
             gap: var(--ui-space-4);
         }
 
+        :host([standard-actions]) ::slotted(ui-button[slot="actions"]) {
+            min-inline-size: min(calc(2 * var(--ui-control-h)), 100%);
+            max-inline-size: 100%;
+            overflow-wrap: anywhere;
+        }
+
         .is-empty {
             display: none;
         }

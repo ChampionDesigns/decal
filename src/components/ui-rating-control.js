@@ -257,6 +257,9 @@ export class UiRatingControl extends UiElement {
                         @change=${this.#onSliderChange}
                     ></ui-slider>
                 </div>
+                <ui-button slot="actions" id="sheet-clear"
+                    ?disabled=${inert || !this.rated}
+                    @click=${this.#clearRating}>${this.i18n.t('Clear rating')}</ui-button>
                 <ui-button slot="actions" id="sheet-done" variant="primary"
                     @click=${this.#closeSheet}>${this.i18n.t(SHEET_DONE_KEY)}</ui-button>
             </ui-dialog>` : nothing}
@@ -280,6 +283,12 @@ export class UiRatingControl extends UiElement {
     };
 
     #closeSheet = () => { this.open = false; };
+
+    #clearRating = () => {
+        if (!this.ratable || !this.rated) return;
+        this._draft = null;
+        this.#emit('rating-change', null);
+    };
 
     /* The dialog announces its own close — Escape, the scrim, the close control. Only a
      * CLOSE is acted on: `open-change` fires on open too. */

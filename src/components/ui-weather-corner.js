@@ -29,7 +29,7 @@ export class UiWeatherCorner extends UiElement {
     static styles = [typeRoles, css`
         :host {
             display: block;
-            inline-size: 290px;
+            inline-size: 245px;
             block-size: 100%;
         }
 

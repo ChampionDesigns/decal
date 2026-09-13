@@ -553,6 +553,49 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the panel was never restored, so it must not be dimmed a second time');
             }));
 
+        test('a wake that did not take is said on the blank, and only until the next press',
+            () => mounted(async (page) => {
+                await page.evalFn(() => document.getElementById('s1').setAttribute('grace-ms', '600'));
+                await page.settle(2);
+                assert.equal(await page.exists('#s1 >>> #wake-error'), false,
+                    'a blank with nothing to report says nothing at all');
+                await page.click('#s1 >>> #blank');
+                await page.settle(2);
+                await page.evalFn(() => {
+                    document.getElementById('s1').wakeError = 'The machine did not wake. Press again.';
+                });
+                await sleep(900);
+                await page.settle(2);
+                assert.equal(await page.prop('#s1', 'display'), 'block',
+                    'the machine never woke, so the blank is back');
+                const shown = await page.evalFn(() => document.getElementById('s1')
+                    .shadowRoot.getElementById('wake-error')?.textContent?.trim() ?? null);
+                assert.match(String(shown), /did not wake/,
+                    'the press was swallowed by a black screen with nothing said');
+                assert.equal(
+                    await page.evalFn(() => document.getElementById('s1')
+                        .shadowRoot.getElementById('blank').textContent.trim()),
+                    'Wake the machine',
+                    'the wake target was renamed by a message about the last press');
+                const hit = await page.evalFn(() => {
+                    const root = document.getElementById('s1').shadowRoot;
+                    const box = root.getElementById('wake-error').getBoundingClientRect();
+                    const at = root.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+                    return at ? at.id : null;
+                });
+                assert.equal(hit, 'blank', 'a tap on the sentence stopped being a wake');
+                const style = await page.computed('#s1 >>> #wake-error', ['pointer-events', 'color']);
+                assert.equal(style['pointer-events'], 'none');
+                const alpha = Number(
+                    /(?:\/\s*|,\s*)([\d.]+)\s*\)\s*$/.exec(style.color)?.[1] ?? '1',
+                );
+                assert.ok(alpha < 1, `the line is drawn at full ink (${style.color}) on a screen meant to be black`);
+                await page.click('#s1 >>> #blank');
+                await page.settle(2);
+                assert.equal(await page.evalFn(() => document.getElementById('s1').wakeError), '',
+                    'the previous attempt\'s sentence outlived the attempt');
+            }));
+
         test('the press target takes the one focus ring, drawn INSIDE the blank',
             () => mounted(async (page) => {
                 await assertFocusUnclipped(page, '#s1 >>> #blank');

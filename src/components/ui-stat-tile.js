@@ -37,7 +37,14 @@ export class UiStatTile extends UiElement {
 
             --_ui-stat-value-reserve: var(--_ui-stat-value-size);
 
-            --_ui-stat-label-h: calc(var(--ui-text-sm) * 1.2);
+            --_ui-stat-min-glass-text: 11px;
+
+            --_ui-stat-glass-floor:
+                calc(var(--_ui-stat-min-glass-text) / max(0.2, var(--ui-app-scale, 1)));
+
+            --_ui-stat-label-size: max(var(--ui-text-sm), var(--_ui-stat-glass-floor));
+
+            --_ui-stat-label-h: calc(var(--_ui-stat-label-size) * 1.2);
 
             --_ui-stat-value-tracking: normal;
 
@@ -80,7 +87,7 @@ export class UiStatTile extends UiElement {
             /* minmax, so a tile promoted mid-shot does not shrink when it is demoted again. */
             font-family: var(--ui-font-family);
 
-            font-size: var(--ui-text-sm);
+            font-size: var(--_ui-stat-label-size);
 
             font-weight: var(--ui-weight-semibold);
 
@@ -132,7 +139,7 @@ export class UiStatTile extends UiElement {
 
             color: var(--ui-muted);
 
-            font-size: var(--_ui-stat-unit-size);
+            font-size: max(var(--_ui-stat-unit-size), var(--_ui-stat-glass-floor));
 
             font-weight: var(--ui-weight-regular);
 

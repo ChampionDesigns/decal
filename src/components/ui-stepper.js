@@ -307,6 +307,10 @@ class UiStepper extends UiElement {
         return dot < 0 ? 0 : s.length - dot - 1;
     }
 
+    static #DISPLAY_PLACES_MAX = 4;
+
+    static #DISPLAY_EPSILON = 1e-6;
+
     get #stepSize() {
         const n = Number(this.step);
         return Number.isFinite(n) && n > 0 ? n : 1;
@@ -352,14 +356,17 @@ class UiStepper extends UiElement {
         return hi !== null && this.#current >= hi;
     }
 
-    /** The displayed number. Never fewer digits than the value actually has. */
+    /** The displayed number: the step's places, grown until the printed digits reach the
+     *  value, and never past #DISPLAY_PLACES_MAX. */
     get #display() {
         if (typeof this.format === 'function') return String(this.format(this.#current));
-        const places = Math.max(
-            UiStepper.#decimals(this.#stepSize),
-            UiStepper.#decimals(this.#current),
-        );
-        return this.#current.toFixed(places);
+        const value = this.#current;
+        let places = UiStepper.#decimals(this.#stepSize);
+        while (places < UiStepper.#DISPLAY_PLACES_MAX
+            && Math.abs(Number(value.toFixed(places)) - value) > UiStepper.#DISPLAY_EPSILON) {
+            places += 1;
+        }
+        return value.toFixed(places);
     }
 
     get #rangeHint() {

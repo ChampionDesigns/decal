@@ -78,6 +78,28 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 + 'it is worse than no blank');
         }));
 
+        test('a wake that did not reach the machine is reported on the blank', () => booted(async (page) => {
+            const wake = await page.evalFn(async () => {
+                const root = document.querySelector('app-root');
+                const saver = root.shadowRoot.querySelector('#screensaver');
+                saver.machineState = 'sleeping';
+                await saver.updateComplete;
+                saver.dispatchEvent(new CustomEvent('ui-screensaver-wake', { bubbles: true, composed: true }));
+                await new Promise((r) => setTimeout(r, 120));
+                await saver.updateComplete;
+                return {
+                    status: root.boot.machineState.get().status,
+                    said: saver.wakeError,
+                    drawn: saver.shadowRoot.getElementById('wake-error')?.textContent?.trim() ?? null,
+                };
+            });
+
+            assert.equal(wake.status, 'failed', 'the request has to have failed, or this proves nothing');
+            assert.match(wake.said, /did not wake/,
+                'the press was answered by nothing a person can see');
+            assert.equal(wake.drawn, wake.said, 'the shell set a property the blank does not draw');
+        }));
+
         test('the DIM reaches the panel — the shell listens for it now', () => booted(async (page) => {
             const sent = await page.evalFn(async () => {
                 const root = document.querySelector('app-root');

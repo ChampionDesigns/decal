@@ -389,7 +389,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'while the same 170 comes back DOWN to the DE1\'s own ceiling');
             }));
 
-        test('the numpad opens on the value cell and hands back a CLAMPED number',
+        test('the numpad refuses an invalid number and applies an explicitly entered valid number',
             () => mounted(async (page) => {
                 await configure(page, { targets: TARGETS });
 
@@ -412,15 +412,29 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const pad = window.__h.q('live-screen >>> ui-numeric-keypad');
                     pad.press('3'); pad.press('0'); pad.press('0');
                     await pad.updateComplete;
-                    const typed = pad.clamped;
-                    pad.confirm();
+                    const accepted = pad.confirm();
                     const screen = window.__h.q('live-screen');
                     await screen.updateComplete;
-                    return { typed, held: screen.targets.hotWaterVolume, open: pad.open };
+                    return { accepted, held: screen.targets.hotWaterVolume, open: pad.open, raw: pad._buffer };
                 });
-                assert.equal(confirmed.typed, 255, '300 is clamped to the one byte the machine holds');
-                assert.equal(confirmed.held, 255, 'and that is what the rail now holds');
-                assert.equal(confirmed.open, false, 'confirming closes the dialog');
+                assert.equal(confirmed.accepted, false);
+                assert.equal(confirmed.held, TARGETS.hotWaterVolume);
+                assert.equal(confirmed.raw, '300');
+                assert.equal(confirmed.open, true);
+
+                const valid = await page.evalFn(async () => {
+                    const pad = window.__h.q('live-screen >>> ui-numeric-keypad');
+                    const maximum = pad.range.max;
+                    for (let i = 0; i < 3; i++) pad.press('backspace');
+                    for (const digit of String(maximum)) pad.press(digit === '.' ? 'decimal' : digit);
+                    const accepted = pad.confirm();
+                    const screen = window.__h.q('live-screen');
+                    await screen.updateComplete;
+                    return { accepted, maximum, held: screen.targets.hotWaterVolume, open: pad.open };
+                });
+                assert.equal(valid.accepted, true);
+                assert.equal(valid.held, valid.maximum);
+                assert.equal(valid.open, false);
             }));
 
         /** Open the numpad on one rail row from its value cell, the way a finger does. */

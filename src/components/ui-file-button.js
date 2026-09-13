@@ -27,6 +27,7 @@ export class UiFileButton extends UiElement {
 
     static styles = [css`
         :host {
+            position: relative;
             container-type: normal;
             display: inline-grid;
         }

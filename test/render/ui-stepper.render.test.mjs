@@ -509,6 +509,59 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(text, { value: 2.2, shown: '2.2' });
         }));
 
+        const tailed = (attrs) => (fn) => mounted(`
+<div id="stage" style="${STAGE}">
+  <ui-stepper id="s" label="Pressure" unit="bar" ${attrs}></ui-stepper>
+</div>`, fn);
+
+        test('a float tail in the value is displayed as the number it is, with its unit',
+            () => tailed('step="0.1"')(async (page) => {
+                const seen = await page.evalFn(async () => {
+                    const el = document.querySelector('#s');
+                    el.value = 6.0000000000000036;
+                    await el.updateComplete;
+                    const r = el.shadowRoot;
+                    return {
+                        shown: r.querySelector('#number').textContent,
+                        unit: r.querySelector('#unit')?.textContent ?? null,
+                        value: el.value,
+                    };
+                });
+                assert.equal(seen.shown, '6.0',
+                    'the step is 0.1, so one place is this control\'s own resolution');
+                assert.equal(seen.unit, 'bar', 'and the measure is still beside it');
+                assert.equal(seen.value, 6.0000000000000036,
+                    'the value itself is untouched: the display is a paint, not a rewrite');
+        }));
+
+        test('precision beyond the step is still shown — the step is a floor, not a cap',
+            () => tailed('step="0.1"')(async (page) => {
+                const shown = await page.evalFn(async () => {
+                    const el = document.querySelector('#s');
+                    const out = [];
+                    for (const v of [6.25, 8.125, 9, 0.1 + 0.2]) {
+                        el.value = v;
+                        await el.updateComplete;
+                        out.push(el.shadowRoot.querySelector('#number').textContent);
+                    }
+                    return out;
+                });
+                assert.deepEqual(shown, ['6.25', '8.125', '9.0', '0.3'],
+                    'a value that sits between two steps is not rounded away, and a binary '
+                    + 'tail stops at the step');
+        }));
+
+        test('a whole number on a whole step stays whole', () => tailed('step="1"')(
+            async (page) => {
+                const shown = await page.evalFn(async () => {
+                    const el = document.querySelector('#s');
+                    el.value = 6.0000000000000036;
+                    await el.updateComplete;
+                    return el.shadowRoot.querySelector('#number').textContent;
+                });
+                assert.equal(shown, '6', 'no decimal point is invented where the step has none');
+        }));
+
         test('a cap at a range end does nothing and says nothing', () => ranged(async (page) => {
             await page.evalFn(async () => {
                 const el = document.querySelector('#s');

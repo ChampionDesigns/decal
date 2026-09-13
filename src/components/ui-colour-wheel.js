@@ -2,10 +2,11 @@
  * A hue wheel with a saturation field, reporting a colour as the caller's own format.
  */
 
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import iro from 'iro';
 
 import { UiElement } from 'src/components/base.js';
+import { typeRoles } from 'src/components/type-roles.js';
 
 export const DEFAULT_WHEEL_SIZE = 300;
 
@@ -13,6 +14,14 @@ export const DEFAULT_WHEEL_SIZE = 300;
 export function readHex(value) {
     const text = String(value ?? '').trim();
     return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : null;
+}
+
+/** The colour's brightness as a whole percentage of full, or null when it is not a hex. */
+export function brightnessOf(value) {
+    const hex = readHex(value);
+    if (!hex) return null;
+    const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+    return Math.round((Math.max(...channels) / 255) * 100);
 }
 
 export class UiColourWheel extends UiElement {
@@ -23,11 +32,15 @@ export class UiColourWheel extends UiElement {
         label: { type: String },
         /** The wheel's width in DESIGN units. */
         size: { type: Number },
+        /** Names the brightness caption. Empty draws no caption at all. */
+        brightnessLabel: { type: String, attribute: 'brightness-label' },
+        /** What a brightness of zero reads as. Defaults to `0%`. */
+        offLabel: { type: String, attribute: 'off-label' },
         /** Paint AND refusal. */
         disabled: { type: Boolean, reflect: true },
     };
 
-    static styles = [css`
+    static styles = [typeRoles, css`
         :host {
             container-type: normal;
             display: block;
@@ -42,9 +55,18 @@ export class UiColourWheel extends UiElement {
             display: block;
         }
 
-        :host([disabled]) .slot {
+        :host([disabled]) .slot,
+        :host([disabled]) .brightness {
             opacity: var(--ui-opacity-disabled);
             pointer-events: none;
+        }
+
+        .brightness {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: var(--ui-space-2);
+            margin: var(--ui-space-2) 0 0;
         }
     `];
 
@@ -53,6 +75,8 @@ export class UiColourWheel extends UiElement {
         this.value = '';
         this.label = '';
         this.size = DEFAULT_WHEEL_SIZE;
+        this.brightnessLabel = '';
+        this.offLabel = '';
         this.disabled = false;
         this.#picker = null;
         this.#writing = false;
@@ -175,10 +199,18 @@ export class UiColourWheel extends UiElement {
     }
 
     render() {
+        const brightness = brightnessOf(this.value);
         return html`
             <div id="slot" class="slot" role="group" aria-label=${this.label || 'Colour'}>
                 <div id="picker" class="picker"></div>
-            </div>`;
+            </div>
+            ${this.brightnessLabel && brightness !== null
+                ? html`<p id="brightness" class="brightness ui-caption">
+                    <span>${this.brightnessLabel}</span>
+                    <span class="ui-numeric"
+                        >${brightness === 0 ? (this.offLabel || '0%') : `${brightness}%`}</span>
+                </p>`
+                : nothing}`;
     }
 }
 

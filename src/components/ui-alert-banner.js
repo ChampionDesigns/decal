@@ -11,6 +11,7 @@ export class UiAlertBanner extends UiElement {
          * API: the consumer says what it has by slotting it, never by setting a flag. */
         _hasHeadline: { state: true },
         _hasRemedy: { state: true },
+        _hasActions: { state: true },
     };
 
     static styles = [css`
@@ -20,9 +21,9 @@ export class UiAlertBanner extends UiElement {
 
         .banner {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: var(--ui-space-1);
+            flex-direction: row;
+            align-items: center;
+            gap: var(--ui-space-5);
             min-inline-size: 0;
             min-block-size: 100%;
             padding-block: var(--ui-space-4);
@@ -48,6 +49,23 @@ export class UiAlertBanner extends UiElement {
             overflow-wrap: anywhere;
         }
 
+        .text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: var(--ui-space-1);
+            min-inline-size: 0;
+            flex: 1 1 auto;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: var(--ui-space-3);
+            flex: 0 0 auto;
+        }
+
         .is-empty {
             display: none;
         }
@@ -57,6 +75,7 @@ export class UiAlertBanner extends UiElement {
         super();
         this._hasHeadline = false;
         this._hasRemedy = false;
+        this._hasActions = false;
     }
 
     #readSlot(slot) {
@@ -65,6 +84,7 @@ export class UiAlertBanner extends UiElement {
             .join('')
             .trim() !== '';
         if (slot.name === 'remedy') this._hasRemedy = filled;
+        else if (slot.name === 'actions') this._hasActions = filled;
         else this._hasHeadline = filled;
     }
 
@@ -92,13 +112,19 @@ export class UiAlertBanner extends UiElement {
     render() {
         const headline = this._hasHeadline ? 'headline' : 'headline is-empty';
         const remedy = this._hasRemedy ? 'remedy' : 'remedy is-empty';
+        const actions = this._hasActions ? 'actions' : 'actions is-empty';
         return html`<div id="banner" class="banner"
-            ><strong id="headline" class="${headline}"
-                ><slot @slotchange=${this.#onSlotChange}></slot
-            ></strong
-            ><span id="remedy" class="${remedy}"
-                ><slot name="remedy" @slotchange=${this.#onSlotChange}></slot
-            ></span
+            ><div id="text" class="text"
+                ><strong id="headline" class="${headline}"
+                    ><slot @slotchange=${this.#onSlotChange}></slot
+                ></strong
+                ><span id="remedy" class="${remedy}"
+                    ><slot name="remedy" @slotchange=${this.#onSlotChange}></slot
+                ></span
+            ></div
+            ><div id="actions" class="${actions}"
+                ><slot name="actions" @slotchange=${this.#onSlotChange}></slot
+            ></div
         ></div>`;
     }
 }

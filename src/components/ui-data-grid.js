@@ -40,6 +40,11 @@ export class UiDataGrid extends UiElement {
     };
 
     static styles = [typeRoles, css`
+        :host {
+            --_ui-data-grid-row-h: calc(var(--ui-text-base) * 1.5 + 2 * var(--ui-space-1));
+            --_ui-data-grid-row-pitch: calc(var(--_ui-data-grid-row-h) + var(--ui-space-3));
+        }
+
         .frame {
             max-block-size: 100%;
             overflow: auto;
@@ -53,7 +58,7 @@ export class UiDataGrid extends UiElement {
             align-content: start;
             align-items: baseline;
             column-gap: var(--ui-space-5);
-            row-gap: var(--ui-space-3);
+            row-gap: calc(var(--_ui-data-grid-row-pitch) - var(--_ui-data-grid-row-h));
 
             /* Rows and rowgroups are display: contents, so every cell is an item of this one
                grid. */

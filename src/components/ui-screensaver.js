@@ -18,6 +18,8 @@ import {
     isWakePending,
 } from 'src/lib/screensaver-policy.js';
 import { defaultFor } from 'src/lib/settings-defaults.js';
+import { createScreensaverPlaylist } from 'src/lib/screensaver-images.js';
+import { verifyScreensaverImage } from 'src/components/screensaver-image-io.js';
 import {
     CLOCK_TICK_MS, DEFAULT_CLOCK_FORMAT, normaliseClockFormat, wallClock,
 } from 'src/lib/wall-clock.js';
@@ -29,6 +31,7 @@ export const SCREENSAVER_EVENT = Object.freeze({
 
 /** The press target's name, as an i18n KEY — keys are English text (`src/lib/i18n.js`). */
 const WAKE_LABEL_KEY = 'Wake the machine';
+const IMAGE_PLAYLISTS = new WeakMap();
 
 const SUPPORTS_POPOVER = typeof HTMLElement !== 'undefined'
     && typeof HTMLElement.prototype.showPopover === 'function';
@@ -74,11 +77,18 @@ export class UiScreensaver extends UiElement {
         /** The press target's accessible name. Overrides the translated default. */
         label: { type: String },
 
+        /** One dimmed line at the foot of the blank, when a wake did not reach the
+         *  machine. `app-root.js` writes it; this component asks the machine nothing. */
+        wakeError: { attribute: 'wake-error', type: String },
+
         graceMs: { type: Number, attribute: 'grace-ms' },
 
         clock: { type: Boolean, reflect: true },
 
         image: { type: String },
+
+        /** True while the chosen screensaver is the image slideshow. */
+        imageMode: { state: true },
 
         language: { type: String },
 
@@ -164,6 +174,17 @@ export class UiScreensaver extends UiElement {
                 pointer-events: none;
             }
 
+            .wake-error {
+                position: absolute;
+                inset-block-end: var(--ui-space-6);
+                inset-inline: 0;
+                text-align: center;
+                font-family: var(--ui-font-family);
+                font-size: var(--ui-text-md);
+                color: color-mix(in oklab, var(--ui-blackout-ink) 55%, transparent);
+                pointer-events: none;
+            }
+
             @keyframes ui-screensaver-drift {
                 from { transform: translateY(0); }
                 to   { transform: translateY(calc(var(--_ui-clock-drift) * -1)); }
@@ -193,9 +214,11 @@ export class UiScreensaver extends UiElement {
         this.displayAction = DISPLAY_ACTION.NONE;
         this.anchor = 'viewport';
         this.label = '';
+        this.wakeError = '';
         this.graceMs = WAKE_CONFIRM_GRACE_MS;
         this.clock = false;
         this.image = '';
+        this.imageMode = false;
         this.language = '';
         this.clockFormat = DEFAULT_CLOCK_FORMAT;
         this._time = '';
@@ -289,6 +312,7 @@ export class UiScreensaver extends UiElement {
 
     #lower() {
         this.active = false;
+        this.wakeError = '';
         releaseBlank(this);
     }
 
@@ -296,6 +320,7 @@ export class UiScreensaver extends UiElement {
         if (!this.#dimPending) return;
         if (this.brightnessSupported !== true) return;
         const showsSomething = this.clock === true
+            || this.imageMode === true
             || (typeof this.image === 'string' && this.image !== '');
         if (showsSomething) return;
         this.#dimPending = false;
@@ -439,6 +464,25 @@ export class UiScreensaver extends UiElement {
         });
     };
 
+    #imageElement = null;
+
+    #renderImage() {
+        if (!this.image) { this.#imageElement = null; return nothing; }
+        if (this.#imageElement?.getAttribute('src') === this.image) return this.#imageElement;
+        /* A new source owns a new node, so an old queued error cannot reject a later slide. */
+        const url = this.image;
+        const picture = this.ownerDocument.createElement('img');
+        picture.id = 'saver-image';
+        picture.className = 'saver-image';
+        picture.alt = '';
+        picture.addEventListener('error', () => {
+            if (this.#imageElement === picture && this.image === url) IMAGE_PLAYLISTS.get(this)?.reject(url);
+        });
+        picture.src = url;
+        this.#imageElement = picture;
+        return picture;
+    }
+
     render() {
         return html`
             <button
@@ -447,11 +491,13 @@ export class UiScreensaver extends UiElement {
                 type="button"
                 @click=${this.#onPress}
             ><span class="a11y">${this.label || this.i18n.t(WAKE_LABEL_KEY)}</span
-            >${this.image
-                    ? html`<img id="saver-image" class="saver-image" src=${this.image} alt="">`
-                    : nothing}${this.clock && this._time
+            >${this.#renderImage()}${this.clock && this._time
                     ? html`<span id="clock" class="clock" aria-hidden="true">${this._time}</span>`
-                    : nothing}</button>
+                    : nothing}</button
+            >${this.wakeError
+                ? html`<span id="wake-error" class="wake-error" role="status"
+                    >${this.wakeError}</span>`
+                : nothing}
         `;
     }
 }
@@ -463,37 +509,20 @@ export const SCREENSAVER_DEFAULT_IMAGE = 'src/assets/screensaver-default.jpg';
 const DEFAULT_CYCLE_MINUTES = defaultFor('screensaverCycleMinutes');
 
 function createSlideshow(host) {
-    let mode = false;
-    let images = [];
-    let minutes = DEFAULT_CYCLE_MINUTES;
-    let index = 0;
-    let timer = 0;
-
-    const shown = () => (images.length > 0 ? images : [SCREENSAVER_DEFAULT_IMAGE]);
-
-    const paint = () => {
-        const list = shown();
-        if (index >= list.length) index = 0;
-        host.image = mode ? (list[index] ?? '') : '';
-    };
-
-    const apply = () => {
-        if (timer) { clearInterval(timer); timer = 0; }
-        paint();
-        /* NO TIMER FOR ONE PICTURE. A cycle over a list of one is a repaint that changes
-         * nothing, once every ten minutes, for as long as the tablet is asleep. */
-        if (!mode || shown().length < 2) return;
-        timer = setInterval(() => {
-            index = (index + 1) % shown().length;
-            paint();
-        }, Math.max(1, minutes) * 60_000);
-    };
+    const playlist = createScreensaverPlaylist({
+        paint: (url) => { host.image = url; },
+        verify: (url, options) => verifyScreensaverImage(host.ownerDocument.defaultView, url, options),
+        fallback: SCREENSAVER_DEFAULT_IMAGE,
+        defaultMinutes: DEFAULT_CYCLE_MINUTES,
+    });
+    IMAGE_PLAYLISTS.set(host, playlist);
 
     return {
-        setMode(next) { mode = next === true; apply(); },
-        setImages(next) { images = Array.isArray(next) ? next : []; index = 0; apply(); },
-        setCycle(next) { minutes = Number.isFinite(next) && next > 0 ? next : DEFAULT_CYCLE_MINUTES; apply(); },
-        stop() { if (timer) { clearInterval(timer); timer = 0; } host.image = ''; },
+        ...playlist,
+        stop() {
+            playlist.stop();
+            if (IMAGE_PLAYLISTS.get(host) === playlist) IMAGE_PLAYLISTS.delete(host);
+        },
     };
 }
 
@@ -507,8 +536,6 @@ export function attachScreensaver(host, { machine = null, display = null, settin
         }));
     }
 
-    const slides = createSlideshow(host);
-
     if (settings) {
         for (const method of ['subscribe', 'value', 'load']) {
             if (typeof settings[method] !== 'function') {
@@ -520,6 +547,9 @@ export function attachScreensaver(host, { machine = null, display = null, settin
                 );
             }
         }
+
+        const slides = createSlideshow(host);
+        offs.push(() => slides.stop());
 
         const decided = (key, apply) => {
             offs.push(settings.subscribe(key, () => apply(settings.value(key))));
@@ -533,17 +563,17 @@ export function attachScreensaver(host, { machine = null, display = null, settin
          * element already had. `black` sets neither, which is what it means. */
         decided('screensaverType', (value) => {
             host.clock = value === 'clock';
+            host.imageMode = value === 'image';
             slides.setMode(value === 'image');
         });
 
         decided('screensaverImages', (value) => {
-            slides.setImages(Array.isArray(value) ? value : []);
+            void slides.setImages(Array.isArray(value) ? value : []);
         });
 
         decided('screensaverCycleMinutes', (value) => {
             slides.setCycle(Number.isFinite(value) && value > 0 ? value : null);
         });
-        offs.push(() => slides.stop());
 
         decided('language', (value) => {
             host.language = typeof value === 'string' ? value : '';

@@ -11,6 +11,7 @@ import {
     selectionSurface,
     visuallyHidden,
 } from 'src/components/base.js';
+import { sanitizeHtml } from 'src/lib/html-sanitize.js';
 import { I18nController } from 'src/lib/i18n.js';
 
 /** Resolved against this module, so it does not care what the served root is —
@@ -333,6 +334,8 @@ export class UiNotesEditor extends UiElement {
     /** Guards the property → editor write against the editor → property echo. */
     #writing = false;
 
+    #heldSeed = null;
+
     #resizeObserver = null;
 
     /** The <ui-dialog> this body is slotted into, while `guard-unsaved` is on. */
@@ -392,9 +395,11 @@ export class UiNotesEditor extends UiElement {
         this.#mde?.codemirror?.focus?.();
     }
 
-    /** Take the current text as the new baseline — what a screen calls after a save. */
-    markSaved() {
-        this.#seed = this.text;
+    /** Take a baseline once a save is confirmed. `saved` is the text actually written,
+     *  which a round trip can leave behind what is now in the document. */
+    markSaved(saved) {
+        this.#seed = typeof saved === 'string' ? saved : this.text;
+        this.#applyHeldSeed();
     }
 
     /** Re-measure. CodeMirror caches its own metrics and needs telling. */
@@ -420,7 +425,7 @@ export class UiNotesEditor extends UiElement {
 
     updated(changed) {
         super.updated?.(changed);
-        if (changed.has('value') && !this.#writing) this.#seedEditor(this.value ?? '');
+        if (changed.has('value') && !this.#writing) this.#takeSeed(this.value ?? '');
         if (changed.has('disabled') || changed.has('readonly')) this.#applyDisabled();
         if (changed.has('placeholder')) this.#mde?.codemirror?.setOption?.('placeholder', this.placeholderText);
         if (changed.has('label')) this.#applyEditorLabel();
@@ -460,6 +465,7 @@ export class UiNotesEditor extends UiElement {
             autoDownloadFontAwesome: false,
             autosave: { enabled: false },
             placeholder: this.placeholderText,
+            renderingConfig: { sanitizerFunction: (rendered) => sanitizeHtml(rendered) },
             toolbar: this.#toolbar(EasyMDE),
             minHeight: '100%',
             maxHeight: '100%',
@@ -603,6 +609,24 @@ export class UiNotesEditor extends UiElement {
         for (const key of this.toolbarKeys) key.disabled = locked;
     }
 
+    /** An inbound `value` is refused while the buffer is dirty, and held rather than
+     *  dropped: `value` still holds it, so lit would never write it again. */
+    #takeSeed(text) {
+        if (this.dirty && text !== this.text) {
+            this.#heldSeed = text;
+            return;
+        }
+        this.#heldSeed = null;
+        this.#seedEditor(text);
+    }
+
+    #applyHeldSeed() {
+        if (this.#heldSeed === null || this.dirty) return;
+        const text = this.#heldSeed;
+        this.#heldSeed = null;
+        this.#seedEditor(text);
+    }
+
     #seedEditor(text) {
         this.#seed = text;
         if (!this.#mde) return;
@@ -617,6 +641,7 @@ export class UiNotesEditor extends UiElement {
 
     #onEditorChange = () => {
         if (this.#writing) return;
+        this.#applyHeldSeed();
         if (this._refused) this._refused = false;
         this.dispatchEvent(new CustomEvent('notes-input', {
             detail: { value: this.text, dirty: this.dirty },

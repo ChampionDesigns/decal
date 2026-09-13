@@ -36,10 +36,10 @@ before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
 describe('the weather corner', () => {
-    test('fills the 290px box the short band gives it', () => mount(READING, async (page) => {
+    test('fills the 245px box the short band gives it', () => mount(READING, async (page) => {
         const box = await page.box('#wx');
 
-        assert.equal(Math.round(box.width), 290, 'the width the short band gives it');
+        assert.equal(Math.round(box.width), 245, 'the width the short band gives it');
         const over = await page.evalFn(() => {
             const card = window.__h.need('#wx').shadowRoot.querySelector('.card');
             return { scroll: card.scrollHeight, client: card.clientHeight };
@@ -47,6 +47,28 @@ describe('the weather corner', () => {
         assert.ok(over.scroll <= over.client + 1,
             `the card overflows its box by ${over.scroll - over.client}px`);
     }));
+
+    test('fits its head at a three-digit Fahrenheit reading',
+        () => mount({
+            ...READING, units: 'imperial', temperature: 104.2, high: 108, low: 88,
+        }, async (page) => {
+            const fit = await page.evalFn(() => {
+                const root = window.__h.need('#wx').shadowRoot;
+                const head = root.querySelector('.head');
+                return {
+                    headOver: head.scrollWidth - head.clientWidth,
+                    need: [...head.children]
+                        .reduce((a, c) => a + c.getBoundingClientRect().width, 0)
+                        + (head.children.length - 1) * 16,
+                    max: root.querySelector('.range .v')?.textContent?.trim(),
+                };
+            });
+            assert.equal(fit.max, '108\u00b0', 'the three-digit pair is actually drawn');
+            assert.equal(fit.headOver, 0,
+                `the head overflows the block by ${fit.headOver}px`);
+            assert.ok(fit.need <= 245,
+                `the head needs ${fit.need.toFixed(2)}px of the block's 245`);
+        }));
 
     test('draws the temperature, the mark and both halves of the strip',
         () => mount(READING, async (page) => {

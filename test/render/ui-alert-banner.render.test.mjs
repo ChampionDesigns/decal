@@ -152,7 +152,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await assertTokenDrill(page, {
                 token: '--ui-space-1',
                 value: DRILL_LENGTH,
-                selector: '#plain >>> #banner',
+                selector: '#plain >>> #text',
                 property: 'row-gap',
             });
             await assertTokenDrill(page, {
@@ -215,7 +215,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 near(banner['border-top-width'], ORACLE.borderWidth, `${theme}: a strip has no edge`);
                 near(banner['border-top-left-radius'], ORACLE.radius, `${theme}: a strip has no radius`);
                 assert.equal(banner.opacity, '1', `${theme}: oracle opacity = 1`);
-                near(banner['row-gap'], ORACLE.gap, `${theme}: --ui-space-1`);
+                const words = await page.computed('#oracle-width >>> #text', ['row-gap']);
+                near(words['row-gap'], ORACLE.gap, `${theme}: --ui-space-1`);
                 near(banner['padding-left'], ORACLE.padInline, `${theme}: --ui-space-6`);
                 near(banner['padding-right'], ORACLE.padInline, `${theme}: the inline inset is symmetric`);
 
@@ -260,17 +261,18 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'and it is unchanged on the way back');
 
             // The insets and the gap are physical tokens: they do not scale with it.
-            const insets = await page.computed('#tight >>> #banner', ['padding-left', 'padding-top', 'row-gap']);
+            const insets = await page.computed('#tight >>> #banner', ['padding-left', 'padding-top']);
+            const wordGap = await page.computed('#tight >>> #text', ['row-gap']);
             near(insets['padding-left'], ORACLE.padInline, '--ui-space-6 does not shrink');
             near(insets['padding-top'], 18, '--ui-space-4 does not shrink');
-            near(insets['row-gap'], ORACLE.gap, '--ui-space-1 does not shrink');
+            near(wordGap['row-gap'], ORACLE.gap, '--ui-space-1 does not shrink');
 
             acrossGeometries[geometry.name] = {
                 wide: parseFloat(wide),
                 tight: parseFloat(tight),
                 padInline: insets['padding-left'],
                 padBlock: insets['padding-top'],
-                gap: insets['row-gap'],
+                gap: wordGap['row-gap'],
             };
         }));
 
