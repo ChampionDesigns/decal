@@ -14,6 +14,38 @@ let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
+async function confirmReplacement(page, index) {
+    const shown = await page.evalFn(index => {
+        const screen = document.querySelector('selector-screen');
+        const store = screen.store, state = store.get();
+        const dialog = screen.shadowRoot.getElementById('replace-favourite');
+        const previousId = state.favourites.assignments[index];
+        return { open: dialog.open, heading: dialog.heading, text: dialog.textContent,
+            previousId, selectedId: state.selectedId,
+            previousName: store.recordFor(previousId)?.profile.title,
+            selectedName: store.selected()?.profile.title };
+    }, index);
+    assert.equal(shown.open, true, 'Use profile opens the named replacement decision');
+    assert.match(shown.heading, new RegExp(String(index + 1)), 'the dialog names the held slot');
+    assert.notEqual(shown.previousId, shown.selectedId, 'the old favourite is still in place before confirmation');
+    assert.ok(shown.previousName && shown.text.includes(shown.previousName), 'the current favourite is named');
+    assert.ok(shown.selectedName && shown.text.includes(shown.selectedName), 'the proposed replacement is named');
+    assert.equal((await page.evalFn(() => window.__carry.requests('/machine/profile'))).length, 0,
+        'no profile is armed before the replacement is confirmed');
+    await page.click('selector-screen >>> #replacement-confirm');
+    const finished = await page.evalFn(async () => {
+        const screen = document.querySelector('selector-screen');
+        for (let i = 0; i < 200; i++) {
+            await screen.updateComplete;
+            if (!screen.shadowRoot.getElementById('replace-favourite').open
+                && !screen.shadowRoot.getElementById('confirm').disabled) return true;
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        return false;
+    });
+    assert.equal(finished, true, 'replacement and the pending-selector gesture finish');
+}
+
 for (const geometry of GATE_A_GEOMETRIES) {
     describe(`favourite carry @ ${geometry.name} (${geometry.width}x${geometry.height})`, () => {
 
@@ -145,6 +177,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.armNavigate());
                 await page.evalFn(() => window.__carry.clearRequests());
                 await page.evalFn(() => window.__carry.confirm());
+                await confirmReplacement(page, 3);
 
                 const armed = await page.evalFn(() => window.__carry.requests('/machine/profile'));
                 assert.equal(armed.length, 1,
@@ -173,6 +206,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.armNavigate());
                 await page.evalFn(() => window.__carry.clearRequests());
                 await page.evalFn(() => window.__carry.confirm());
+                await confirmReplacement(page, 3);
 
                 const held = await page.evalFn(() => window.__carry.assignments());
                 assert.equal(held['3'], picked,
@@ -194,6 +228,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__carry.show('selector'));
                 await page.evalFn(async () => window.__carry.selectRow(window.__carry.offRailId()));
                 await page.evalFn(() => window.__carry.confirm());
+                await confirmReplacement(page, 3);
 
                 const pending = await page.evalFn(() => window.__carry.stored('pendingAssignmentIndex'));
                 assert.equal(pending, null, 'the intent dies with the gesture that made it');
@@ -233,6 +268,23 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.deepEqual(await page.evalFn(() => window.__carry.favourites()), before4,
                     'the rail is exactly as it was — this is the 28 August property');
             }));
+
+        test('cancelling the named replacement keeps the held slot and does not arm', () => mounted(async page => {
+            const before = await page.evalFn(() => window.__carry.assignments());
+            await page.evalFn(() => window.__carry.holdFavourite(3));
+            await page.evalFn(() => window.__carry.pressMenuItem('replace'));
+            await page.evalFn(() => window.__carry.show('selector'));
+            await page.evalFn(() => window.__carry.selectRow(window.__carry.offRailId()));
+            await page.evalFn(() => window.__carry.clearRequests());
+            await page.evalFn(() => window.__carry.confirm());
+            assert.equal(await page.evalFn(() => document.querySelector('selector-screen')
+                .shadowRoot.getElementById('replace-favourite').open), true);
+            await page.click('selector-screen >>> #replacement-cancel');
+            assert.deepEqual(await page.evalFn(() => window.__carry.assignments()), before);
+            assert.deepEqual(await page.evalFn(() => window.__carry.requests('/machine/profile')), []);
+            assert.deepEqual(await page.evalFn(() => window.__carry.requests('/store/decal/favouriteProfiles')
+                .filter(request => request.method === 'POST')), []);
+        }));
 
         test('F-025 — "Browse Profiles" on an EMPTY slot fills that slot', () => mounted(async (page) => {
             await page.evalFn(() => window.__carry.holdFavourite(4));

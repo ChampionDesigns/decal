@@ -502,8 +502,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const cardOntoNotes = (card.top + card.height) - notes.top;
 
                 if (geometry.name === 'floor') {
-                    near(listOntoBank, 48.25,
-                        'the scrolling list covers the favourites bank at the design floor');
+                    const listTracks = tracks(await page.prop(LIST_PANE, 'grid-template-rows')).map(px);
+                    const listGap = px(await page.prop(LIST_PANE, 'row-gap'));
+                    near(listOntoBank, list.height - listTracks[2] - listGap,
+                        'the unscaled list overflow is its own floor minus its track and gap');
                     near(cardOntoNotes, 6.19,
                         'and the chart card covers the top of the notes region', 0.6);
                                         assert.ok(listOntoBank > 0 && cardOntoNotes > 0,

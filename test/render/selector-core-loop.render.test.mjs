@@ -97,7 +97,7 @@ const P13_CENSUS = () => {
         return out;
     };
     return ['confirm-hide', 'confirm-reset', 'confirm-remove', 'share-code', 'versions',
-        'restore', 'add'].map((id) => {
+        'restore', 'add', 'manage', 'replace-favourite', 'file-import', 'generator-handoff'].map((id) => {
         const host = root.getElementById(id);
         if (!host) return { id, missing: true, open: false, candidates: 0, reachable: 0 };
         const inside = walk(host.shadowRoot ?? host, []);
@@ -115,7 +115,7 @@ const P13_CENSUS = () => {
 const P13_SHUT = () => {
     const root = document.querySelector('selector-screen').shadowRoot;
     for (const id of ['confirm-hide', 'confirm-reset', 'confirm-remove', 'share-code',
-        'versions', 'restore', 'add']) {
+        'versions', 'restore', 'add', 'manage', 'replace-favourite', 'file-import', 'generator-handoff']) {
         const el = root.getElementById(id);
         if (el && el.open) el.hide('p13-census');
     }
@@ -155,6 +155,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             run.foldedAtRest = await page.evalFn(() => window.__sel.optionCount());
             run.familiesAtRest = await page.evalFn(() => window.__sel.families());
+            run.openingFamilyCount = await page.evalFn(async () => {
+                const { listboxGroups } = await import('/src/lib/profile-listbox.js');
+                const state = document.querySelector('selector-screen').store.get();
+                const group = listboxGroups(state.listable).find((entry) =>
+                    entry.entries.some((record) => record.id === state.selectedId));
+                return group?.folder ? 1 : 0;
+            });
             run.expandedCount = await page.evalFn(() => window.__sel.expandAll());
             run.refoldOne = await page.evalFn(() => window.__sel.toggleFamily(
                 window.__sel.families().names[0],
@@ -386,13 +393,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * 2. — A REAL LISTBOX
          * ═════════════════════════════════════════════════════════════════ */
 
-        test('families ship SHUT, which is what makes 91 profiles legible', () => {
+        test('families start closed except the one revealing the opening selection', () => {
             const folded = need('foldedAtRest');
             const families = need('familiesAtRest');
             const all = need('expandedCount');
             assert.ok(families.count > 0, 'the fixture has families to fold');
-            assert.equal(families.open, 0,
-                'nothing is open on a device that has never been asked — Slate\'s own default');
+            assert.equal(families.open, need('openingFamilyCount'),
+                'only the opening selection’s family is expanded automatically');
             assert.ok(folded < all,
                 `folded shows ${folded} rows against ${all} open — folding that reveals nothing is not folding`);
         });
@@ -871,14 +878,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
             })()`);
             const found = JSON.parse(overlays);
-            assert.equal(found.dialogs, 6,
-                'six dialog surfaces: confirm-hide, confirm-reset, confirm-remove, share-code, versions, restore');
+            assert.equal(found.dialogs, 9,
+                'existing confirmations plus named favourite replacement, file import and generator handoff');
             assert.equal(found.screenMenus, 1, 'the add menu on the list toolbar');
             assert.ok(found.rowMenus > 0, 'the rows really do carry their own menus');
             assert.ok(found.rowMenus < found.rows,
                 'and the folder headings do not — a family has no actions of its own');
-            assert.equal(found.menus, found.rowMenus + 1,
-                'every menu is a row\'s or the toolbar\'s — nothing else holds one');
+            assert.equal(found.menus, found.rowMenus + 2,
+                'row menus plus Add and Manage');
             assert.equal(found.nativeDialogsInThisRoot, 0,
                 'every native <dialog> is inside its own component root, not this grid');
         });
@@ -899,7 +906,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 };
 
                 const closed = await census();
-                assert.equal(closed.length, 7, 'six dialog surfaces and the add menu');
+                assert.equal(closed.length, 11, 'nine dialog surfaces plus Add and Manage');
                 assert.deepEqual(closed.filter((o) => o.missing).map((o) => o.id), [],
                     'an overlay this screen is supposed to own is not in its root');
                 for (const overlay of closed) {

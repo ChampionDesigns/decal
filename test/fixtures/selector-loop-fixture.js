@@ -50,7 +50,10 @@ if (typeof HTMLElement !== 'undefined') {
 
 const { createAppBoot } = await import('../../src/lib/app-boot.js');
 const { createMemoryBackend } = await import('../../src/lib/storage-backends.js');
-const { LAYERS } = await import('../../src/lib/storage-routes.js');
+const { LAYERS, KV_NAMESPACES } = await import('../../src/lib/storage-routes.js');
+const { KV_STORE_PATH } = await import('../../src/data/rea-kv-backend.js');
+const { API_PREFIX } = await import('../../src/data/rea-transport.js');
+const { FAVOURITES_KEY, FAVOURITES_SEEDED_KEY } = await import('../../src/lib/profile-rules.js');
 await import('../../src/screens/selector-screen.js');
 
 /* ---------------------------------------------------------------------------
@@ -93,8 +96,37 @@ const scriptedFetch = async (input, init = {}) => {
             headers: { 'content-type': 'application/json' },
         });
     }
+    const kv = kvResponse(method, url.pathname, init);
+    if (kv) return kv;
     return globalThis.fetch(input, init);
 };
+
+const kvStore = new Map();
+const KV_PREFIX = `${API_PREFIX}/${KV_STORE_PATH}/`;
+
+const json = (status, body) => new Response(body === undefined ? '' : JSON.stringify(body), {
+    status, headers: { 'content-type': 'application/json' },
+});
+
+function kvResponse(method, pathname, init) {
+    if (!pathname.startsWith(KV_PREFIX)) return null;
+    const rest = pathname.slice(KV_PREFIX.length).split('/');
+    if (rest.length === 1) {
+        if (method !== 'GET') return null;
+        const ns = `${decodeURIComponent(rest[0])}/`;
+        return json(200, [...kvStore.keys()]
+            .filter((k) => k.startsWith(ns)).map((k) => k.slice(ns.length)));
+    }
+    if (rest.length !== 2) return null;
+    const at = `${decodeURIComponent(rest[0])}/${decodeURIComponent(rest[1])}`;
+    if (method === 'GET') return json(200, kvStore.has(at) ? kvStore.get(at) : null);
+    if (method === 'DELETE') { kvStore.delete(at); return json(200, {}); }
+    if (method === 'POST') {
+        kvStore.set(at, JSON.parse(String(init.body ?? 'null')));
+        return json(200, {});
+    }
+    return null;
+}
 
 /** A socket factory that never dials. This screen opens no channel. */
 const createSocket = () => ({
@@ -173,13 +205,13 @@ const api = {
      * module through the route table, neither of which this cluster is about. The boot
      * OBJECT — transport, storage, arm — is what the screen takes.
      */
-    async mount({ port }) {
+    async mount({ port, kv = 'memory' }) {
         boot = createAppBoot({
             fetch: scriptedFetch,
             createSocket,
             location: { hostname: '127.0.0.1', protocol: 'http:', port },
             backends: {
-                [LAYERS.kv]: createMemoryBackend(),
+                ...(kv === 'rea' ? null : { [LAYERS.kv]: createMemoryBackend() }),
                 [LAYERS.local]: createMemoryBackend(),
                 [LAYERS.session]: createMemoryBackend(),
             },
@@ -204,6 +236,12 @@ const api = {
         }
         await screen.updateComplete;
         return true;
+    },
+
+    favouritePaths() {
+        const ns = encodeURIComponent(KV_NAMESPACES[LAYERS.kv]);
+        const at = (k) => `${API_PREFIX}/${KV_STORE_PATH}/${ns}/${encodeURIComponent(k)}`;
+        return { assignments: at(FAVOURITES_KEY), seeded: at(FAVOURITES_SEEDED_KEY) };
     },
 
     answer(method, pathname, status, body, etag = null) {
@@ -261,6 +299,22 @@ const api = {
     },
 
     async reload() { await screen.store.load(); await screen.updateComplete; return api.state(); },
+
+    async duringReload() {
+        const inFlight = screen.store.load();
+        await screen.updateComplete;
+        const root = screen.shadowRoot;
+        const seen = {
+            status: screen.store.get().status,
+            loading: root.getElementById('list-loading') !== null,
+            empty: root.getElementById('list-empty') !== null,
+            failed: root.getElementById('list-failed') !== null,
+            rows: api.optionCount(),
+        };
+        await inFlight;
+        await screen.updateComplete;
+        return seen;
+    },
 
     /** Record ids from the listing, so a test never types one. */
     ids({ limit = 5, withFilename = false } = {}) {
@@ -528,6 +582,9 @@ const api = {
          * event; the bank is gone, so both halves were reaching past the real control. */
         const disc = screen.shadowRoot.querySelectorAll('.assign-row ui-favourite-slot')[slot];
         disc.dispatchEvent(new CustomEvent('click', { bubbles: true, composed: true }));
+        await screen.updateComplete;
+        const replacement = screen.shadowRoot.getElementById('replace-favourite');
+        if (replacement?.open) screen.shadowRoot.getElementById('replacement-confirm')?.click();
         /* THE WRITE IS ASYNC AND THE PRESS IS NOT. `setFavourite` persists through the
          * storage router before it patches the store, so a single `updateComplete`
          * returns the assignments as they were — which reads as "the press did nothing"

@@ -336,7 +336,7 @@ export class EditorScreen extends UiElement {
     }
 
     /** The shell may set `boot` before or after this element is connected; both must
-     *  open the screen exactly once. Same construction as `selector-screen.js:409`. */
+     *  open the screen exactly once. */
     willUpdate(changed) {
         if (changed.has('boot')) this.#attach();
     }
