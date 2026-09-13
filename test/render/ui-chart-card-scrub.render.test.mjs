@@ -252,7 +252,7 @@ describe('the editor preview names what it draws (F-032)', () => {
     test('a scrub names the planned values and the second, and release clears it',
         () => onPreview(async (page) => {
             const resting = await page.eval(READ_PREVIEW);
-            assert.equal(resting.foot, '', 'before the drag the card names none');
+            assert.equal(resting.foot, 'Time (s)', 'the time-axis unit remains visible before inspection');
             assert.ok(resting.footBox > 0,
                 'and the strip reserves its height, so text appearing on pointerdown does '
                 + 'not take it out of the plot under the finger');
@@ -267,7 +267,8 @@ describe('the editor preview names what it draws (F-032)', () => {
 
             assert.ok(seen.every((s) => s.cursor.active), 'the cursor must be live throughout');
             for (const s of seen) {
-                const parts = s.foot.split('·').map((x) => x.trim());
+                assert.ok(s.foot.endsWith('Time (s)'), 'the axis unit remains visible during inspection');
+                const parts = s.foot.replace(/Time \(s\)$/, '').split('·').map((x) => x.trim());
                 assert.equal(parts.length, 2,
                     `the commanded value and the second — got ${JSON.stringify(s.foot)}`);
                 assert.match(parts[0], /^(Pressure \d+(\.\d+)? bar|Flow \d+(\.\d+)? mL\/s)$/);
@@ -282,7 +283,7 @@ describe('the editor preview names what it draws (F-032)', () => {
             await page.mouse('mouseMoved', box.left - 40, box.top - 40);
             const after = await page.eval(READ_PREVIEW);
             assert.equal(after.cursor.active, false);
-            assert.equal(after.foot, '', 'lifting the pointer clears it');
+            assert.equal(after.foot, 'Time (s)', 'lifting the pointer restores the axis unit');
         }));
 
     const FEED_THREE_STEPS = `(async () => {

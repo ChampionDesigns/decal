@@ -12,7 +12,7 @@ import {
     emptyProfilePreview,
     profilePreviewDerivation,
 } from 'src/lib/profile-preview.js';
-import { readoutLine, readoutTerms } from 'src/lib/chart-readout.js';
+import { readoutLine, readoutTerms, readoutTime } from 'src/lib/chart-readout.js';
 
 import 'src/components/ui-chart-card.js';
 
@@ -27,6 +27,9 @@ const TERM_LABELS = Object.freeze({
     targetPressure: 'Pressure',
     targetFlow: 'Flow',
 });
+
+const AXIS_TERM = '{name} ({unit})';
+const TIME_UNIT = String(readoutTime(0) ?? '').replace(/^[^A-Za-z°]*/, '');
 
 export class EditorPreview extends UiElement {
     static properties = {
@@ -54,13 +57,30 @@ export class EditorPreview extends UiElement {
             block-size: 100%;
         }
 
+        .foot {
+            display: flex;
+            align-items: baseline;
+            gap: var(--ui-space-3);
+            min-inline-size: 0;
+        }
+
         .reading {
             display: block;
+            flex: 1 1 auto;
             min-block-size: calc(var(--ui-text-note) * 1.5);
             font-size: var(--ui-text-note);
             line-height: 1.5;
             padding-inline-start: var(--ui-chart-gutter-l);
             color: var(--ui-muted);
+            min-inline-size: 0;
+        }
+
+        .axis {
+            flex: 0 0 auto;
+            font-size: var(--ui-text-note);
+            line-height: 1.5;
+            color: var(--ui-muted);
+            white-space: nowrap;
         }
     `];
 
@@ -135,14 +155,19 @@ export class EditorPreview extends UiElement {
                 @cursor-change=${this.#onCursor}
             >
                 <span slot="empty">${t(REFUSAL_TEXT[reason] ?? REFUSAL_TEXT[PREVIEW_REFUSAL.NO_PROFILE])}</span>
-                <span
-                    slot="foot"
-                    part="reading"
-                    class="reading"
-                    role="status"
-                    aria-live="polite"
-                    >${this.#reading(t)}</span
-                >
+                <div slot="foot" part="foot" class="foot">
+                    <span
+                        part="reading"
+                        class="reading"
+                        role="status"
+                        aria-live="polite"
+                        >${this.#reading(t)}</span
+                    >
+                    <span id="axis-x" class="axis">${t(AXIS_TERM, {
+                        name: t('Time'),
+                        unit: TIME_UNIT,
+                    })}</span>
+                </div>
             </ui-chart-card>
         `;
     }

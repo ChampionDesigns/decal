@@ -577,6 +577,37 @@ describe('commitPlan: the route follows the gesture, never a diff', () => {
         assert.equal(clean.close, true, 'and it closes, as it always did');
     });
 
+    test('a record that was never written is CREATED by Save, even at a count of zero', () => {
+        const plan = commitPlan({
+            gesture: COMMIT_GESTURE.SAVE, dirty: false, seated: true, persisted: false,
+        });
+        assert.equal(plan.operation, SAVE_OPERATION.NEW_VERSION,
+            'the press that opened this editor asked for a profile; Save is where it is made');
+        assert.equal(plan.close, true, 'and it leaves like every other save');
+    });
+
+    test('an unwritten draft that HAS been edited takes the same path — one ending, not two', () => {
+        const plan = commitPlan({
+            gesture: COMMIT_GESTURE.SAVE, dirty: true, seated: true, persisted: false,
+        });
+        assert.equal(plan.operation, SAVE_OPERATION.NEW_VERSION);
+        assert.equal(plan.close, true);
+    });
+
+    test('`persisted` defaults to true, so nothing that never asked the question moved', () => {
+        const plan = commitPlan({ gesture: COMMIT_GESTURE.SAVE, dirty: false, seated: true });
+        assert.equal(plan.operation, null);
+        assert.equal(plan.close, true);
+    });
+
+    test('nothing open still beats an unwritten record — a plan cannot invent a draft', () => {
+        const plan = commitPlan({
+            gesture: COMMIT_GESTURE.SAVE, dirty: false, seated: false, persisted: false,
+        });
+        assert.equal(plan.operation, null, 'there is no draft to create anything from');
+        assert.equal(plan.close, true);
+    });
+
     test('an unknown dirty state with NOTHING OPEN still only closes', () => {
         /* Seating comes first: there is no draft to protect when no record is open, and
          * inventing a POST out of nothing would be a worse answer than leaving. */

@@ -11,6 +11,7 @@ import {
     EXIT_VERB,
     exitConditionChoices,
     exitTypeLabel,
+    formatExitValue,
     loadedConditionType,
 } from 'src/lib/exit-sentence.js';
 import { exitValueMin, isDeadExit } from 'src/lib/exit-validity.js';
@@ -143,6 +144,46 @@ export class EditorExitDialog extends UiElement {
         };
     }
 
+    /** The range this exit type allows, with its floor and ceiling resolved. */
+    #band(draft) {
+        const { range } = resolveRange(this.ranges, 'exitCondition', {
+            exitType: draft?.type,
+        });
+        if (!range) return { range: null, min: null, max: null };
+        return {
+            range,
+            min: this.#floor(range, draft?.condition),
+            max: Number.isFinite(range.max) ? range.max : null,
+        };
+    }
+
+    /** Why this draft cannot be committed, as a catalogue key and params, or null. */
+    #reject(draft) {
+        if (!draft || typeof draft.type !== 'string' || draft.type === '') {
+            return { key: 'Choose what this step exits on.', params: {} };
+        }
+        if (!this.#choices().includes(draft.type)) {
+            return { key: 'This machine does not offer that exit.', params: {} };
+        }
+        const { range, min, max } = this.#band(draft);
+        if (!range) return { key: 'This exit has no bounds on this machine.', params: {} };
+        const value = Number(draft.value);
+        if (!Number.isFinite(value)) {
+            return { key: 'Enter a threshold for this exit.', params: {} };
+        }
+        if ((min !== null && value < min) || (max !== null && value > max)) {
+            return {
+                key: 'This exit takes {min} to {max} {unit}. Change the threshold or the exit type.',
+                params: {
+                    min: formatExitValue(min, range.step),
+                    max: formatExitValue(max, range.step),
+                    unit: range.unit ?? '',
+                },
+            };
+        }
+        return null;
+    }
+
     /** The types this step may exit on — the port's rule, never a list typed here. */
     #choices() {
         return exitConditionChoices(
@@ -161,6 +202,7 @@ export class EditorExitDialog extends UiElement {
         /* THE DIRECTION IS PART OF THE BOUND. #4 clamps to `min`, so this is what makes
          * "under 0" undialable rather than merely flagged. */
         const floor = range ? this.#floor(range, draft.condition) : null;
+        const reject = this.#draft ? this.#reject(draft) : null;
 
         return html`
             <ui-dialog
@@ -213,12 +255,19 @@ export class EditorExitDialog extends UiElement {
                             @change=${this.#onValue}
                         ></ui-stepper>
                     </div>
+                    ${reject ? html`<p class="note ui-caption" id="reject" role="status"
+                        >${t(reject.key, reject.params)}</p>` : nothing}
                 </div>
 
                 <ui-button id="cancel" slot="actions" @click=${this.#onCancel}
                     >${t('Cancel')}</ui-button
                 >
-                <ui-button id="confirm" slot="actions" variant="primary" @click=${this.#onConfirm}
+                <ui-button
+                    id="confirm"
+                    slot="actions"
+                    variant="primary"
+                    ?disabled=${Boolean(reject)}
+                    @click=${this.#onConfirm}
                     >${t('Done')}</ui-button
                 >
             </ui-dialog>
@@ -264,6 +313,7 @@ export class EditorExitDialog extends UiElement {
     /** The one outcome. The screen writes it; this dialog writes nothing. */
     #onConfirm() {
         const draft = this.#draft;
+        if (draft && this.#reject(draft)) return;
         if (draft) {
             this.dispatchEvent(new CustomEvent(EXIT_CONDITION_CHANGE, {
                 detail: {

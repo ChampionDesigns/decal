@@ -226,11 +226,6 @@ export function limiterToleranceOfStep(step) {
     return limiterToleranceOf(pump);
 }
 
-/** The pump modes whose limiter is measured in this tolerance, in cycle order. */
-export function pumpsForLimiterTolerance(tolerance) {
-    return Object.freeze(PUMP_MODE_CYCLE.filter((pump) => limiterToleranceOf(pump) === tolerance));
-}
-
 /**
  * The tolerance a profile is already authored with, or `null` when no step carries a
  * limiter of that kind. A step with no limiter object is skipped, not defaulted: it has

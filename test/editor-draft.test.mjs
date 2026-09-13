@@ -326,43 +326,138 @@ describe('the step list — the edges the rail already declares', () => {
 });
 
 describe('the preinfusion marker survives every reorder', () => {
-    /** A three-step profile whose marker points at step 2 (1-based). */
-    const marked = (at = 2) => ({ ...three(), target_volume_count_start: at });
+    /** A three-step profile whose marker points at a step, by 0-based index. */
+    const marked = (at = 1) => ({ ...three(), target_volume_count_start: at });
 
-    /** Which step the marker points at, by name, or null for None. */
-    const markedStep = (profile) => {
+    /** Which step the marker points at, by name. */
+    const countsFrom = (profile) => {
         const at = profile.target_volume_count_start;
-        return at > 0 ? profile.steps[at - 1].name : null;
+        assert.equal(Number.isInteger(at), true, 'the marker is stored as an integer');
+        assert.ok(at >= 0 && at < profile.steps.length,
+            `the marker ${at} is inside a ${profile.steps.length}-step profile`);
+        return profile.steps[at].name;
     };
 
-    test('a move carries it with the step that moved', () => {
-        assert.equal(markedStep(applyStepAction(marked(), { action: 'move-right', index: 1 }).draft), 'two');
-        assert.equal(markedStep(applyStepAction(marked(), { action: 'move-left', index: 1 }).draft), 'two');
+    const acted = (profile, action, index) =>
+        applyStepAction(profile, { action, index }).draft;
+    test('moving the marked step left carries the marker with it', () => {
+        const after = acted(marked(2), 'move-left', 2);
+        assert.deepEqual(names(after), ['one', 'three', 'two']);
+        assert.equal(after.target_volume_count_start, 1);
+        assert.equal(countsFrom(after), 'three');
+    });
+
+    test('moving the marked step right carries the marker with it', () => {
+        const after = acted(marked(1), 'move-right', 1);
+        assert.deepEqual(names(after), ['one', 'three', 'two']);
+        assert.equal(after.target_volume_count_start, 2);
+        assert.equal(countsFrom(after), 'two');
     });
 
     test('a move of the step BESIDE it carries it too', () => {
-        /* 'two' is marked; moving 'one' right past it must leave 'two' marked. */
-        assert.equal(markedStep(applyStepAction(marked(), { action: 'move-right', index: 0 }).draft), 'two');
+        const after = acted(marked(1), 'move-right', 0);
+        assert.deepEqual(names(after), ['two', 'one', 'three']);
+        assert.equal(after.target_volume_count_start, 0);
+        assert.equal(countsFrom(after), 'two');
+    });
+
+    test('a move that does not reach the marker leaves the number alone', () => {
+        const after = acted(marked(0), 'move-right', 1);
+        assert.equal(after.target_volume_count_start, 0);
+        assert.equal(countsFrom(after), 'one');
+    });
+
+    test('the marker at index 0 is a step, not an absence, and travels like one', () => {
+        const after = acted(marked(0), 'move-right', 0);
+        assert.deepEqual(names(after), ['two', 'one', 'three']);
+        assert.equal(after.target_volume_count_start, 1);
+        assert.equal(countsFrom(after), 'one');
+    });
+
+    test('the marker on the last step travels off the end of the list and back', () => {
+        const after = acted(marked(2), 'move-left', 2);
+        assert.equal(countsFrom(after), 'three');
+        const back = acted(after, 'move-right', 1);
+        assert.deepEqual(names(back), ['one', 'two', 'three']);
+        assert.equal(back.target_volume_count_start, 2);
     });
 
     test('an insert before it pushes it along', () => {
-        const after = applyStepAction(marked(), { action: 'insert-after', index: 0 }).draft;
-        assert.equal(markedStep(after), 'two');
+        const after = acted(marked(1), 'insert-after', 0);
         assert.deepEqual(names(after), ['one', '', 'two', 'three']);
+        assert.equal(after.target_volume_count_start, 2);
+        assert.equal(countsFrom(after), 'two');
     });
 
     test('an insert AFTER it leaves it alone', () => {
-        assert.equal(markedStep(applyStepAction(marked(), { action: 'insert-after', index: 2 }).draft), 'two');
+        const after = acted(marked(1), 'insert-after', 2);
+        assert.equal(after.target_volume_count_start, 1);
+        assert.equal(countsFrom(after), 'two');
+    });
+
+    test('an insert into the gap before the first step pushes a marker at 0 along', () => {
+        const after = acted(marked(0), 'insert-after', -1);
+        assert.deepEqual(names(after), ['', 'one', 'two', 'three']);
+        assert.equal(after.target_volume_count_start, 1);
+        assert.equal(countsFrom(after), 'one');
+    });
+
+    test('duplicating a step before it pushes it along', () => {
+        const after = acted(marked(1), 'duplicate', 0);
+        assert.deepEqual(names(after), ['one', 'one', 'two', 'three']);
+        assert.equal(after.target_volume_count_start, 2);
+        assert.equal(countsFrom(after), 'two');
+    });
+
+    test('duplicating the marked step leaves the ORIGINAL marked, not the copy', () => {
+        const after = acted(marked(1), 'duplicate', 1);
+        assert.deepEqual(names(after), ['one', 'two', 'two', 'three']);
+        assert.equal(after.target_volume_count_start, 1,
+            'the copy is a new step and nobody asked to count from it');
+    });
+
+    test('duplicating a step after it leaves the number alone', () => {
+        const after = acted(marked(0), 'duplicate', 2);
+        assert.equal(after.target_volume_count_start, 0);
+        assert.equal(countsFrom(after), 'one');
     });
 
     test('a delete before it pulls it back', () => {
-        assert.equal(markedStep(applyStepAction(marked(), { action: 'delete', index: 0 }).draft), 'two');
+        const after = acted(marked(1), 'delete', 0);
+        assert.deepEqual(names(after), ['two', 'three']);
+        assert.equal(after.target_volume_count_start, 0);
+        assert.equal(countsFrom(after), 'two');
     });
 
-    test('deleting the marked step itself sets the marker to None, not to its neighbour', () => {
-        const after = applyStepAction(marked(), { action: 'delete', index: 1 }).draft;
+    test('a delete after it leaves the number alone', () => {
+        const after = acted(marked(0), 'delete', 2);
+        assert.deepEqual(names(after), ['one', 'two']);
         assert.equal(after.target_volume_count_start, 0);
-        assert.equal(markedStep(after), null);
+        assert.equal(countsFrom(after), 'one');
+    });
+
+    test('deleting the marked step counts every step rather than re-aiming at its neighbour', () => {
+        const after = acted(marked(1), 'delete', 1);
+        assert.deepEqual(names(after), ['one', 'three']);
+        assert.equal(after.target_volume_count_start, 0);
+        assert.equal(countsFrom(after), 'one');
+    });
+
+    test('deleting the marked LAST step leaves a number the shorter profile can reach', () => {
+        const after = acted(marked(2), 'delete', 2);
+        assert.deepEqual(names(after), ['one', 'two']);
+        assert.equal(after.target_volume_count_start, 0);
+    });
+
+    test('deleting the last step never leaves the marker past the end', () => {
+        const after = acted(marked(0), 'delete', 2);
+        assert.ok(after.target_volume_count_start < after.steps.length);
+    });
+
+    test('a marker that names no step is carried through untouched, not clamped', () => {
+        const after = acted(marked(7), 'move-right', 0);
+        assert.deepEqual(names(after), ['two', 'one', 'three']);
+        assert.equal(after.target_volume_count_start, 7);
     });
 
     test('a profile that carries no marker key is not given one', () => {
@@ -370,6 +465,32 @@ describe('the preinfusion marker survives every reorder', () => {
         const after = applyStepAction(bare, { action: 'move-right', index: 0 }).draft;
         assert.equal('target_volume_count_start' in after, false,
             'adding a key the document did not have changes what the server hashes');
+    });
+
+    test('every action leaves an in-range marker in range, from every starting index', () => {
+        for (let at = 0; at < 3; at += 1) {
+            for (const action of STEP_ACTIONS) {
+                for (let index = 0; index < 3; index += 1) {
+                    const result = applyStepAction(marked(at), { action, index });
+                    if (!result.applied) continue;
+                    const after = result.draft;
+                    const stored = after.target_volume_count_start;
+                    assert.ok(stored >= 0 && stored < after.steps.length,
+                        `${action} at ${index} with the marker on ${at} stored ${stored}`);
+                }
+            }
+        }
+    });
+
+    test('the marker follows a HOLD step that a move drops to a hard jump', () => {
+        const before = {
+            ...draft([step({ name: 'a' }), step({ name: 'held', transition: 'hold' })]),
+            target_volume_count_start: 1,
+        };
+        const after = applyStepAction(before, { action: 'move-left', index: 1 }).draft;
+        assert.deepEqual(names(after), ['held', 'a']);
+        assert.equal(after.steps[0].transition, 'fast');
+        assert.equal(after.target_volume_count_start, 0);
     });
 });
 

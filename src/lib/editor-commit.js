@@ -229,7 +229,7 @@ export const SAVE_OPERATION = Object.freeze({
 });
 
 export function commitPlan({
-    gesture, dirty = false, tell = CHANGE_TELL.COMPARED, seated = true,
+    gesture, dirty = false, tell = CHANGE_TELL.COMPARED, seated = true, persisted = true,
 } = {}) {
     const plan = (operation, close, reason) => Object.freeze({ operation, close, reason });
 
@@ -240,6 +240,10 @@ export function commitPlan({
 
     if (gesture !== COMMIT_GESTURE.SAVE) return plan(null, false, `no plan for gesture '${gesture}'`);
     if (!seated) return plan(null, true, 'nothing is open, so the band can only close');
+    if (!persisted) {
+        return plan(SAVE_OPERATION.NEW_VERSION, true,
+            'this record has never been written, so Save is a create even at a count of zero');
+    }
     if (!dirty) {
         if (tell === CHANGE_TELL.CANNOT_TELL) {
             return plan(SAVE_OPERATION.NEW_VERSION, true,

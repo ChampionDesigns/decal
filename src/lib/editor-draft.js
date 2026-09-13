@@ -167,19 +167,25 @@ const refuseAction = (draft, index, reason) => Object.freeze({
     draft, applied: false, reason, index,
 });
 
-/**
- * The preinfusion marker as a 0-BASED step index, or -1 for None.
- * A profile that does not carry the key at all also answers -1, and `withMarker` then
- * declines to invent one.
- */
-function markerIndex(draft) {
+const COUNT_EVERY_STEP = 0;
+
+/** The step the preinfusion marker points at, or null when it points at no step. */
+function markedStep(draft, steps) {
     const raw = draft[VOLUME_COUNT_KEY];
-    return Number.isInteger(raw) && raw > 0 ? raw - 1 : -1;
+    if (!Number.isInteger(raw) || raw < 0 || raw >= steps.length) return null;
+    return steps[raw];
+}
+
+/** Where the marker sits once the steps have moved: a 0-based index, or every step. */
+function markerAfter(draft, marked, next) {
+    if (marked === null) return draft[VOLUME_COUNT_KEY];
+    const at = next.indexOf(marked);
+    return at < 0 ? COUNT_EVERY_STEP : at;
 }
 
 function withMarker(profile, source, marker) {
     if (!Object.prototype.hasOwnProperty.call(source, VOLUME_COUNT_KEY)) return profile;
-    return { ...profile, [VOLUME_COUNT_KEY]: marker < 0 ? 0 : marker + 1 };
+    return { ...profile, [VOLUME_COUNT_KEY]: marker };
 }
 
 function withoutLeadingHold(steps, was) {
@@ -210,7 +216,7 @@ export function applyStepAction(draft, { action, index } = {}, { stepName = '' }
     }
 
     const next = steps.slice();
-    let marker = markerIndex(draft);
+    const marked = markedStep(draft, steps);
     let here = index;
 
     if (action === 'move-left' || action === 'move-right') {
@@ -222,8 +228,6 @@ export function applyStepAction(draft, { action, index } = {}, { stepName = '' }
         const moved = next[index];
         next[index] = next[to];
         next[to] = moved;
-        if (marker === index) marker = to;
-        else if (marker === to) marker = index;
         here = to;
     } else if (action === 'delete') {
         if (next.length <= MIN_PROFILE_STEPS) {
@@ -232,8 +236,6 @@ export function applyStepAction(draft, { action, index } = {}, { stepName = '' }
                 + 'columns, so it has no action rail either and there is no way back');
         }
         next.splice(index, 1);
-        if (marker === index) marker = -1;
-        else if (marker > index) marker -= 1;
         /* THE CARET LANDS ON WHATEVER TOOK THIS COLUMN'S PLACE — the step that shifted
          * left into it, or the new last step when the deleted one was the last. */
         here = Math.min(index, next.length - 1);
@@ -242,10 +244,10 @@ export function applyStepAction(draft, { action, index } = {}, { stepName = '' }
         next.splice(at, 0, action === 'duplicate'
             ? copyStep(steps[index])
             : newStep({ name: stepName }));
-        if (marker >= at) marker += 1;
         here = at;
     }
 
+    const marker = markerAfter(draft, marked, next);
     const withSteps = { ...draft, steps: withoutLeadingHold(next, steps[0]) };
     return Object.freeze({
         draft: withMarker(withSteps, draft, marker),

@@ -2,7 +2,7 @@
  * <editor-review-panel>, the editor's Review panel.
  */
 
-import { css, html } from 'lit';
+import { css, html, nothing } from 'lit';
 
 import { UiElement, focusRing } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
@@ -21,6 +21,16 @@ const REVIEW_ROW = Object.freeze({
     limiter: 'limiter',
     volume: 'exits',
     weight: 'exits',
+});
+
+/** A reading's unit -> the channel whose colour it is drawn in. */
+const REVIEW_CHANNEL = Object.freeze({
+    '\u00B0C': 'temperature',
+    bar: 'pressure',
+    'mL/s': 'flow',
+    W: 'power',
+    mL: 'volume',
+    g: 'weight',
 });
 
 /** The one number slot that is not a step key: it lives at `step.exit.value`. */
@@ -92,8 +102,16 @@ export class EditorReviewPanel extends UiElement {
             min-block-size: var(--ui-editor-review-min-h);
             min-inline-size: 0;
             overflow-y: auto;
+            scrollbar-width: thin;
         }
 
+        .column[data-more] {
+            mask-image: linear-gradient(
+                to bottom,
+                currentColor calc(100% - var(--ui-space-7)),
+                transparent
+            );
+        }
         .column + .column {
             border-inline-start: var(--ui-hairline) solid var(--ui-line);
             padding-inline-start: var(--ui-space-7);
@@ -104,12 +122,12 @@ export class EditorReviewPanel extends UiElement {
         .block {
             display: flex;
             flex-direction: column;
-            gap: var(--ui-space-2);
+            gap: var(--ui-space-3);
             min-inline-size: 0;
         }
 
         .block:not(:first-child) > [data-role="heading"] {
-            margin-block-start: var(--ui-space-4);
+            margin-block-start: var(--ui-space-7);
         }
 
         .line {
@@ -148,6 +166,13 @@ export class EditorReviewPanel extends UiElement {
             text-underline-offset: 0.22em;
             text-decoration-thickness: 1px;
         }
+        .slot[data-channel="temperature"] { color: var(--ui-channel-target-group-temperature); }
+        .slot[data-channel="pressure"] { color: var(--ui-channel-target-pressure); }
+        .slot[data-channel="flow"] { color: var(--ui-channel-target-flow); }
+        .slot[data-channel="power"] { color: var(--ui-channel-power); }
+        .slot[data-channel="volume"] { color: var(--ui-channel-volume); }
+        .slot[data-channel="weight"] { color: var(--ui-channel-weight); }
+        .slot[data-channel="lever"] { color: var(--ui-tint-lever); }
 
         .seg-num:hover,
         .seg-lev:hover {
@@ -191,6 +216,7 @@ export class EditorReviewPanel extends UiElement {
     /** Watches ONE attribute — see the header on why `hidden` is not a property here. */
     #watch = null;
 
+    #resize = null;
     constructor() {
         super();
         this.columns = null;
@@ -202,12 +228,23 @@ export class EditorReviewPanel extends UiElement {
             this.#watch = new MutationObserver(() => this.#onHiddenChanged());
             this.#watch.observe(this, { attributes: true, attributeFilter: ['hidden'] });
         }
+        if (typeof ResizeObserver !== 'undefined' && !this.#resize) {
+            this.#resize = new ResizeObserver(() => this.#markOverflow());
+            this.#resize.observe(this);
+        }
     }
 
     disconnectedCallback() {
         this.#watch?.disconnect();
         this.#watch = null;
+        this.#resize?.disconnect();
+        this.#resize = null;
         super.disconnectedCallback?.();
+    }
+
+    updated(changed) {
+        super.updated?.(changed);
+        this.#markOverflow();
     }
 
     /** The scrolling elements, found by the class the overflow is declared on. */
@@ -278,6 +315,7 @@ export class EditorReviewPanel extends UiElement {
                         data-value=${seg[2] ?? ''}
                         data-step=${seg[3] ?? ''}
                         data-unit=${seg[4] ?? ''}
+                        data-channel=${REVIEW_CHANNEL[seg[4]] ?? nothing}
                         data-min=${seg[5] ?? ''}
                         data-max=${seg[6] ?? ''}
                         @click=${this.#onNumPress}
@@ -299,6 +337,7 @@ export class EditorReviewPanel extends UiElement {
                         class="slot seg-lev"
                         ?disabled=${!live}
                         data-index=${at ?? ''}
+                        data-channel="lever"
                         @click=${this.#onLevPress}
                     >${seg[1]}</button>`;
                 default:
@@ -334,7 +373,7 @@ export class EditorReviewPanel extends UiElement {
         /* Not a step key — it lives at `step.exit.value`, and the draft writer assigns
          * any field it does not name straight onto the step. It opens the dialog. */
         if (field === EXIT_NUMBER) {
-            this.#send('exit-edit', { index, slot: 'condition' });
+            this.#send('exit-edit', { index, slot: 'condition', invoker: el });
             return;
         }
 
@@ -345,6 +384,7 @@ export class EditorReviewPanel extends UiElement {
             index,
             row: REVIEW_ROW[field] ?? field,
             field,
+            invoker: el,
             value: this.#attrNum(el, 'value'),
             range: {
                 min,
@@ -362,7 +402,7 @@ export class EditorReviewPanel extends UiElement {
         if (index === null || field === '') return;
 
         if (field === 'exit') {
-            this.#send('exit-edit', { index, slot: 'condition' });
+            this.#send('exit-edit', { index, slot: 'condition', invoker: el });
             return;
         }
         const value = nextToggle(field, el.dataset.value ?? '');
@@ -371,9 +411,10 @@ export class EditorReviewPanel extends UiElement {
     };
 
     #onLevPress = (event) => {
-        const index = this.#attrNum(event.currentTarget, 'index');
+        const el = event.currentTarget;
+        const index = this.#attrNum(el, 'index');
         if (index === null) return;
-        this.#send('lever-edit', { index });
+        this.#send('lever-edit', { index, invoker: el });
     };
 
     #onScroll = (event) => {
@@ -381,7 +422,15 @@ export class EditorReviewPanel extends UiElement {
         const column = event.currentTarget;
         const id = column?.dataset?.column;
         if (typeof id === 'string') this.#offsets.set(id, column.scrollTop);
+        this.#markOverflow();
     };
+
+    #markOverflow() {
+        for (const column of this.scrollers) {
+            const more = column.scrollHeight - column.scrollTop - column.clientHeight > 1;
+            column.toggleAttribute('data-more', more);
+        }
+    }
 
     #onHiddenChanged() {
         if (this.hasAttribute('hidden')) return;
@@ -389,6 +438,7 @@ export class EditorReviewPanel extends UiElement {
             const saved = this.#offsets.get(column.dataset.column);
             if (typeof saved === 'number' && saved > 0) column.scrollTop = saved;
         }
+        this.#markOverflow();
     }
 }
 

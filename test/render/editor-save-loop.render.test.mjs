@@ -6,7 +6,9 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
-import { EDITOR, mountEditor, editingProfile } from '../harness/editor.js';
+import {
+    EDITOR, mountEditor, editingProfile, seatProfile, editorCalls, editorStoreState,
+} from '../harness/editor.js';
 
 const FIXTURE = ['/test/fixtures/editor-save-loop-fixture.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></div>';
@@ -378,7 +380,7 @@ describe('a Save that cannot tell writes the draft rather than dropping it', () 
 
     test('a commit that never became a request says so rather than doing nothing quietly',
         () => browser.withPage({ geometry: GATE_A_GEOMETRIES[0] }, async (page) => {
-            await mountEditor(page, { matrix: null, fields: 0 });
+            await mountEditor(page, { matrix: 'min-block-size: 200px', fields: 0 });
             await seatBodyless(page);
             await page.settle(6);
 
@@ -400,5 +402,64 @@ describe('a Save that cannot tell writes the draft rather than dropping it', () 
                 .map((n) => ({ tone: n.getAttribute('tone'), text: n.textContent.trim() })), EDITOR.notice);
             assert.deepEqual(notices,
                 [{ tone: 'warn', text: 'Nothing was saved — no profile is open.' }]);
+        }));
+});
+
+describe('Add New then Save creates the profile rather than discarding it', () => {
+    const seatUnwritten = async (page) => {
+        const profile = await page.evalFn(async () => {
+            const mod = await import('/src/data/rea-profile.js');
+            return mod.newProfile({ title: 'New profile', stepName: 'Step 1' });
+        });
+        await seatProfile(page, {
+            record: {
+                id: null,
+                profile,
+                metadataHash: null,
+                compoundHash: null,
+                parentId: null,
+                visibility: 'visible',
+                isDefault: false,
+                metadata: null,
+            },
+        });
+        return profile;
+    };
+
+    test('one press of Save writes exactly one record, and it is the draft that was open',
+        () => browser.withPage({ geometry: GATE_A_GEOMETRIES[0] }, async (page) => {
+            await mountEditor(page, { matrix: null, fields: 0 });
+            const profile = await seatUnwritten(page);
+            const label = await page.evalFn(
+                (sel) => (window.__h.q(sel)?.textContent ?? '').trim(), EDITOR.save,
+            );
+            assert.equal(label, 'Save', 'an untouched draft has no changes to count');
+            await page.click(EDITOR.save);
+            await page.settle(8);
+            const posts = (await editorCalls(page)).filter((call) => call.method === 'POST');
+            assert.equal(posts.length, 1, 'ONE record — a press that sent none and a press '
+                + 'that sent two are both wrong');
+            assert.equal(posts[0].path, '/profiles');
+            assert.equal(posts[0].body.parentId ?? null, null,
+                'a first save is a version of nothing, so it carries no parent');
+            assert.deepEqual(posts[0].body.profile, profile,
+                'and it carries the draft that was open, whole');
+            const state = await editorStoreState(page);
+            assert.equal(state.recordId, 'profile:saved',
+                'the answer re-seats a real id, which is what makes the profile openable again');
+            assert.equal(state.title, 'New profile');
+            assert.deepEqual(page.pageErrors, []);
+        }));
+
+    test('a record the server already holds is unaffected — a clean Save still just closes',
+        () => browser.withPage({ geometry: GATE_A_GEOMETRIES[0] }, async (page) => {
+            await mountEditor(page, { matrix: null, fields: 0 });
+            await seatProfile(page, { profile: editingProfile() });
+            await page.click(EDITOR.save);
+            await page.settle(8);
+            const posts = (await editorCalls(page)).filter((call) => call.method === 'POST');
+            assert.deepEqual(posts, [],
+                'nothing is unsaved and the record exists, so Save is still Close — not a '
+                + 'spare version per press');
         }));
 });

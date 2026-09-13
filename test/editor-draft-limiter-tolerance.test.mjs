@@ -36,7 +36,7 @@ import { applyLimiterTolerance } from '../src/lib/editor-draft.js';
  * are the module's, not this file's. */
 import {
     POWER_CAP_DEFAULT, LIMITER_TOLERANCES, limiterToleranceOf, limiterToleranceOfStep,
-    limiterToleranceIn, pumpsForLimiterTolerance,
+    limiterToleranceIn,
 } from '../src/lib/profile-modes.js';
 
 const PRESSURE = 'pressureLimitTolerance';
@@ -67,13 +67,11 @@ describe('which tolerance a mode uses', () => {
     test('a pressure-shaped limiter takes the bar tolerance', () => {
         assert.equal(limiterToleranceOf('flow'), PRESSURE);
         assert.equal(limiterToleranceOf('power'), PRESSURE);
-        assert.deepEqual([...pumpsForLimiterTolerance(PRESSURE)], ['flow', 'power']);
     });
 
     test('a flow-shaped limiter takes the mL/s tolerance', () => {
         assert.equal(limiterToleranceOf('pressure'), FLOW);
         assert.equal(limiterToleranceOf('lever'), FLOW);
-        assert.deepEqual([...pumpsForLimiterTolerance(FLOW)], ['pressure', 'lever']);
     });
 
     test('a pump this build does not know answers nothing rather than flow', () => {

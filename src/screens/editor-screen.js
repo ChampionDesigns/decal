@@ -16,7 +16,7 @@ import {
 } from 'src/lib/editor-draft.js';
 import { STEP_ACTION } from 'src/components/ui-action-key-rail.js';
 import {
-    commitPlan, COMMIT_GESTURE, SAVE_OPERATION, CHANGE_TELL,
+    commitPlan, COMMIT_GESTURE, SAVE_OPERATION, CHANGE_TELL, changeCountOf,
 } from 'src/lib/editor-commit.js';
 import {
     profileFailureSentence, PROFILE_VISIBILITY, profileVisibilityOf,
@@ -71,6 +71,7 @@ import 'src/components/ui-stepper.js';
 import 'src/components/ui-switch.js';
 import 'src/components/ui-settings-row.js';
 import 'src/components/ui-toast.js';
+import 'src/components/ui-empty-state.js';
 
 export const EDITOR_TABS = Object.freeze([
     Object.freeze({ value: 'steps', label: 'Steps' }),
@@ -84,6 +85,7 @@ export const EDITOR_REGIONS = Object.freeze(['steps', 'settings', 'preview', 'ov
 
 const EMPTY_REGIONS = Object.freeze(Object.fromEntries(EDITOR_REGIONS.map((r) => [r, false])));
 
+const DRAFT_UNSAVED_REFUSAL = 'This profile has unsaved changes. Save them, or discard them, before leaving.';
 export class EditorScreen extends UiElement {
     static properties = {
         boot: { attribute: false },
@@ -125,11 +127,23 @@ export class EditorScreen extends UiElement {
          * band's own three tracks are #31's and nothing here reaches into them. */
         ui-page-header {
             grid-row: 1;
+            grid-column: 1;
             min-inline-size: 0;
         }
 
         editor-body {
             grid-row: 2;
+            grid-column: 1;
+            min-inline-size: 0;
+            min-block-size: 0;
+        }
+
+        #recovery {
+            grid-row: 2;
+            grid-column: 1;
+            display: grid;
+            align-content: center;
+            background-color: var(--ui-fascia);
             min-inline-size: 0;
             min-block-size: 0;
         }
@@ -296,6 +310,8 @@ export class EditorScreen extends UiElement {
     /** The operation the last save took, so the answer knows which draft rule applies. */
     #pending = null;
 
+    /** The draft as it was sent, so a later edit to it can be seen. */
+    #submitted = null;
     /** The last save status announced, so one outcome is announced exactly once. */
     #announced = SAVE_STATUS.IDLE;
 
@@ -368,6 +384,11 @@ export class EditorScreen extends UiElement {
     }
 
     #owns(region) { return Boolean(this._draft) && this._callerRegions[region] !== true; }
+
+    get #unseated() {
+        if (this._draft !== null) return false;
+        return EDITOR_REGIONS.every((region) => this._callerRegions[region] !== true);
+    }
 
     #noteCallerMounts() {
         const next = {};
@@ -483,12 +504,13 @@ export class EditorScreen extends UiElement {
         const tabs = EDITOR_TABS.map(({ value, label }) => ({ value, label: t(label) }));
         const identity = this._draft !== null;
         const steps = this._draft && Array.isArray(this._draft.steps) ? this._draft.steps : null;
+        const unseated = this.#unseated;
 
         return html`
             <ui-page-header
                 id="band"
                 heading=${identity ? '' : t('Profile editor')}
-                commit
+                ?commit=${!unseated}
                 change-count=${this.#count}
                 @commit=${this.#onCommit}
                 @cancel=${this.#onCancel}
@@ -511,7 +533,11 @@ export class EditorScreen extends UiElement {
                                 >${penIcon()}</ui-icon-button
                             >
                         </div>
-                        <p id="totals" class="ui-caption ui-numeric">${this.#totalsLine()}</p>
+                        ${this.#saving
+                            ? html`<p id="saving" class="ui-caption" role="status"
+                                >${t('Saving…')}</p>`
+                            : html`<p id="totals" class="ui-caption ui-numeric"
+                                >${this.#totalsLine()}</p>`}
                     </div>` : nothing}
 
                 <ui-tab-bar
@@ -570,6 +596,22 @@ export class EditorScreen extends UiElement {
                 </editor-review-panel>
             </editor-body>
 
+            ${unseated ? html`
+                <div id="recovery">
+                    <ui-empty-state
+                        id="recovery-state"
+                        heading=${t('No profile is open')}
+                        body=${t('This editor was opened without a profile. Choose one to start editing.')}
+                    >
+                        <ui-button
+                            id="recovery-open"
+                            slot="actions"
+                            variant="primary"
+                            @click=${this.#onOpenLibrary}
+                            >${t('Choose a profile')}</ui-button
+                        >
+                    </ui-empty-state>
+                </div>` : nothing}
             <ui-dialog
                 id="versions"
                 heading=${t('Previous versions')}
@@ -584,24 +626,23 @@ export class EditorScreen extends UiElement {
                     .ranges=${this.#ranges}
                     .steps=${steps}
                     .source=${this}
+                    ?power-exit-offered=${this.#modes.powerExit}
                 ></editor-overlays>` : nothing}
             </slot>
 
-            <ui-dialog id="discard-dialog" heading=${t('Discard your changes?')}>
+            <ui-dialog id="discard-dialog" standard-actions heading=${t('Discard your changes?')}>
                 <div slot="body">
                     <p>${t('{count} changes will be lost.', { count: this.#count })}</p>
                 </div>
-                <div slot="actions">
-                    <ui-button id="discard-cancel" @click=${this.#onDiscardCancel}
+                    <ui-button id="discard-cancel" slot="actions" @click=${this.#onDiscardCancel}
                         >${t('Keep editing')}</ui-button
                     >
-                    <ui-button id="discard-confirm" variant="primary" @click=${this.#onDiscardConfirm}
-                        >${t('Discard')}</ui-button
+                    <ui-button id="discard-confirm" slot="actions" variant="danger" @click=${this.#onDiscardConfirm}
+                        >${t('Discard changes')}</ui-button
                     >
-                </div>
             </ui-dialog>
 
-            <ui-dialog id="rename-dialog" heading=${t('Edit profile name')}>
+            <ui-dialog id="rename-dialog" standard-actions heading=${t('Edit profile name')}>
                 <div slot="body">
                     <ui-text-field
                         id="rename-field"
@@ -614,14 +655,12 @@ export class EditorScreen extends UiElement {
                             >${t(this._renameRefusal)}</p>`
                         : nothing}
                 </div>
-                <div slot="actions">
-                    <ui-button id="rename-cancel" @click=${this.#onRenameCancel}
+                    <ui-button id="rename-cancel" slot="actions" @click=${this.#onRenameCancel}
                         >${t('Cancel')}</ui-button
                     >
-                    <ui-button id="rename-save" variant="primary" @click=${this.#onRenameConfirm}
+                    <ui-button id="rename-save" slot="actions" variant="primary" @click=${this.#onRenameConfirm}
                         >${t('Save')}</ui-button
                     >
-                </div>
             </ui-dialog>
 
             <ui-toast id="notice"></ui-toast>
@@ -697,12 +736,13 @@ export class EditorScreen extends UiElement {
         const record = state && state.record ? state.record : null;
         const served = record && typeof record === 'object' ? record.profile ?? null : null;
 
+        const editedSinceSubmitting = this.#movedOnSinceSubmitting();
         if (!record) {
             this._draft = null;
         } else if (this.#pending === SAVE_OPERATION.IN_PLACE && this._draft && served) {
             this._draft = { ...this._draft, title: served.title };
         } else if (record !== this.#seatedFrom) {
-            this._draft = served;
+            if (!editedSinceSubmitting) this._draft = served;
         }
         this.#seatedFrom = record;
 
@@ -711,9 +751,16 @@ export class EditorScreen extends UiElement {
             this.#announced = status;
             if (status !== SAVE_STATUS.SAVING && status !== SAVE_STATUS.IDLE) {
                 this.#pending = null;
-                this.#announce(state);
+                this.#submitted = null;
+                if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
+                    this.#sayNewerEditsKept();
+                } else {
+                    this.#announce(state);
+                }
 
-                if (status === SAVE_STATUS.SAVED && this.#closeOnSaved) {
+                if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
+                    this.#closeOnSaved = false;
+                } else if (status === SAVE_STATUS.SAVED && this.#closeOnSaved) {
                     this.#closeOnSaved = false;
                     this.#leave();
                 } else if (status !== SAVE_STATUS.SAVED) {
@@ -1293,6 +1340,15 @@ export class EditorScreen extends UiElement {
     /** The count alone — what the band renders and what the discard question counts. */
     get #count() { return this.#change.count; }
 
+    get #saving() { return this._state?.save === SAVE_STATUS.SAVING; }
+    #movedOnSinceSubmitting() {
+        if (this.#pending !== SAVE_OPERATION.NEW_VERSION) return false;
+        if (this.#submitted === null || this._draft === null) return false;
+        if (this._draft === this.#submitted) return false;
+        const change = changeCountOf(this._draft, this.#submitted);
+        return change.tell !== CHANGE_TELL.COMPARED || change.count > 0;
+    }
+
     /** The record the editor has open, or null. */
     get #record() { return this._state?.record ?? null; }
 
@@ -1305,15 +1361,19 @@ export class EditorScreen extends UiElement {
             dirty: change.count > 0,
             tell: change.tell,
             seated: Boolean(this.#record),
+            persisted: Boolean(this.#record?.id),
         });
         if (plan.close && !plan.operation) { this.#leave(); return plan; }
 
         if (!plan.operation || !this.#store) return this.#nothingToSave(plan);
+        if (this.#saving) return this.#alreadySaving(plan);
 
         const body = plan.operation === SAVE_OPERATION.NEW_VERSION ? this._draft : profile;
         if (!body) return this.#nothingToSave(plan);
         this.#pending = plan.operation;
-        this.#store[plan.operation](body);
+        this.#submitted = plan.operation === SAVE_OPERATION.NEW_VERSION ? body : null;
+        Promise.resolve(this.#store[plan.operation](body))
+            .catch((error) => this.#saveThrew(error));
 
         /* THE LEAVE IS DEFERRED TO THE OUTCOME. `plan.close` is the request; the store's
          * SAVED publish is when it is honoured. See `#onStoreState`, which carries the
@@ -1331,14 +1391,49 @@ export class EditorScreen extends UiElement {
         return plan;
     }
 
+    #alreadySaving(plan) {
+        this.#log('info', `editor: a save is already in flight — the ${plan.operation} was not sent`);
+        this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
+        return plan;
+    }
+
+    #saveThrew(error) {
+        this.#pending = null;
+        this.#submitted = null;
+        this.#closeOnSaved = false;
+        this.#log('error', `editor: the save threw — ${error?.message ?? error}`);
+        this.#store?.clearSave?.();
+        this.#toast(this.#i18n.t('The save did not finish. Try again.'), 'warn');
+    }
+
+    #sayNewerEditsKept() {
+        this.#toast(
+            this.#i18n.t('Saved. The changes you made since are still unsaved.'), 'ok',
+        );
+    }
+
+    /** Show one line on the screen's own toast. */
+    #toast(message, tone) {
+        const toast = this.renderRoot?.querySelector?.('#notice');
+        if (toast && typeof toast.show === 'function') toast.show(message, { tone });
+    }
+
     /** Leave the editor. The shell owns navigation, so this ASKS (app-root.js:375). */
     #leave() {
+        this.#leaving = true;
         this.dispatchEvent(new CustomEvent('navigate', {
             detail: { back: true },
             bubbles: true,
             composed: true,
         }));
     }
+
+    #onOpenLibrary = () => {
+        this.dispatchEvent(new CustomEvent('library-open', {
+            bubbles: true,
+            composed: true,
+        }));
+    };
 
     #announce(state) {
         const t = this.#i18n.t;
@@ -1435,13 +1530,17 @@ export class EditorScreen extends UiElement {
         if (this.#store) this.#commit(COMMIT_GESTURE.SAVE);
     }
 
+    get #draftIsDirty() { return this.#count > 0; }
+    canLeaveRoute() {
+        if (this.#leaving || !this.#draftIsDirty) return true;
+        this.renderRoot?.querySelector?.('#discard-dialog')?.show();
+        return { allow: false, reason: this.#i18n.t(DRAFT_UNSAVED_REFUSAL) };
+    }
+
+    #leaving = false;
     #onCancel(event) {
         event.stopPropagation();
-        if (this.#count > 0) {
-            this.renderRoot?.querySelector?.('#discard-dialog')?.show();
-            return;
-        }
-        this.#leave();
+        if (this.canLeaveRoute() === true) this.#leave();
     }
 
     #onDiscardCancel = () => {

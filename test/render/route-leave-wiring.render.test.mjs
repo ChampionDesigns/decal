@@ -6,7 +6,10 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { launch, BENCH } from '../harness/index.js';
+import { launch, BENCH, GATE_A_GEOMETRIES } from '../harness/index.js';
+import {
+    EDITOR, mountEditor, seatProfile, editingProfile,
+} from '../harness/editor.js';
 
 const SHELL_MODULES = ['/test/fixtures/app-shell-fixture.js', '/test/fixtures/probe-screen.js'];
 
@@ -144,6 +147,101 @@ describe('the route leave contract, over the shell that ships @ bench', () => {
         assert.ok(questions.count > 0,
             'the route the earlier refusal armed is not a standing permission to leave');
         assert.equal(back.route, 'live', 'so this refusal was honoured too');
+        assert.deepEqual(page.pageErrors, []);
+    }));
+});
+
+const geometry = GATE_A_GEOMETRIES[0];
+const DISCARD = 'editor-screen >>> #discard-dialog';
+
+/** Dirty the draft the way the matrix does — a composed `step-change` at the host. */
+async function editSomething(page) {
+    await page.evalFn((sel) => {
+        window.__h.need(sel).dispatchEvent(new CustomEvent('step-change', {
+            detail: { index: 0, row: 'temperature', field: 'temperature', value: 88 },
+            bubbles: true,
+            composed: true,
+        }));
+        return true;
+    }, EDITOR.screen);
+    await page.settle(4);
+}
+
+const askEditor = (page) => page.evalFn((sel) => {
+    const answer = window.__h.need(sel).canLeaveRoute({ from: 'editor', to: 'live', kind: 'history' });
+    return answer === true ? { allow: true, reason: null } : { allow: false, reason: answer.reason };
+}, EDITOR.screen);
+
+const dialogOpen = (page) => page.evalFn((sel) => window.__h.need(sel).open === true, DISCARD);
+
+describe('the editor answers the router with its own unsaved work @ bench', () => {
+    const staged = (fn) => browser.withPage({ geometry }, async (page) => {
+        await mountEditor(page, { matrix: null, fields: 0 });
+        await seatProfile(page, { profile: editingProfile() });
+        await page.evalFn(() => {
+            window.__wires = [];
+            document.addEventListener('navigate', (event) => window.__wires.push(
+                event.detail ? JSON.parse(JSON.stringify(event.detail)) : null,
+            ));
+            return true;
+        });
+        return fn(page);
+    });
+
+    const navigations = (page) => page.evalFn(() => window.__wires.slice());
+
+    test('a clean draft leaves without a question', () => staged(async (page) => {
+        assert.deepEqual(await askEditor(page), { allow: true, reason: null });
+        assert.equal(await dialogOpen(page), false, 'and nothing was asked of the person');
+        assert.deepEqual(page.pageErrors, []);
+    }));
+
+    test('an unsaved draft refuses, says why, and offers the way out', () => staged(async (page) => {
+        await editSomething(page);
+        const answer = await askEditor(page);
+        await page.settle(4);
+
+        assert.equal(answer.allow, false, 'Back does not take the draft');
+        assert.ok(answer.reason && answer.reason.length > 0,
+            'and the router is handed a sentence rather than a silent refusal');
+        assert.equal(await dialogOpen(page), true,
+            'the same dialog Cancel raises — a refusal the person cannot see is a dead button');
+        assert.deepEqual(await navigations(page), [], 'and nothing left');
+        assert.deepEqual(page.pageErrors, []);
+    }));
+
+    test('Cancel and the router reach the ONE decision', () => staged(async (page) => {
+        await editSomething(page);
+        await page.click(EDITOR.cancel);
+        await page.settle(6);
+
+        assert.equal(await dialogOpen(page), true, 'Cancel asks the same question');
+        assert.equal((await askEditor(page)).allow, false, 'and so does the router');
+
+        await page.click('editor-screen >>> #discard-confirm');
+        await page.settle(6);
+
+        const left = await navigations(page);
+        assert.equal(left.length, 1, 'answering it leaves');
+        assert.equal(left[0].back, true);
+        /* The leave a confirmed discard raises comes back as the router's own question,
+         * and it must not be answered on the draft the person just discarded. */
+        assert.deepEqual(await askEditor(page), { allow: true, reason: null },
+            'the discard the person agreed to is not re-asked on the way out');
+        assert.deepEqual(page.pageErrors, []);
+    }));
+
+    test('Keep editing leaves the refusal standing', () => staged(async (page) => {
+        await editSomething(page);
+        await page.click(EDITOR.cancel);
+        await page.settle(6);
+        await page.click('editor-screen >>> #discard-cancel');
+        await page.settle(6);
+
+        assert.equal(await dialogOpen(page), false, 'the dialog closed');
+        assert.deepEqual(await navigations(page), [], 'and nothing left');
+        assert.equal((await askEditor(page)).allow, false,
+            'the draft is still unsaved, so the router is still told no');
         assert.deepEqual(page.pageErrors, []);
     }));
 });

@@ -266,6 +266,34 @@ test('approved selector, file and modal UX through the full app', async t => {
             assert.equal(await page.evalFn(() => __ux.screen().shadowRoot.getElementById('filter').value), '');
             await chooseOther(page);
         });
+
+        await t.test('Rename and Discard use separated standard footer actions and retain their behaviors', async () => {
+            await page.click(`${S} >>> #act-edit`);
+            assert.equal(await until(page, '__ux.root.route === "editor"'), true);
+            await page.click(`${E} >>> #title-pencil`);
+            await page.evalFn(() => { __ux.screen().shadowRoot.getElementById('rename-field').value = ''; });
+            await page.click(`${E} >>> #rename-save`);
+            assert.match(await read(page, 'rename-refusal'), /needs a name/);
+            const gap = await page.evalFn(() => {
+                const r = __ux.screen().shadowRoot, a = r.getElementById('rename-cancel').getBoundingClientRect();
+                const b = r.getElementById('rename-save').getBoundingClientRect();
+                return { gap: b.left - a.right, width: b.width, scale: parseFloat(document.documentElement.style.getPropertyValue('--ui-app-scale')) };
+            });
+            assert.ok(gap.gap >= 18 * gap.scale - 1); assert.ok(gap.width >= 128 * gap.scale - 1);
+            await capture(page, '13-rename-validation');
+            await page.click(`${E} >>> #rename-cancel`);
+            await page.evalFn(() => { const e = __ux.screen(); e._draft = { ...e._draft, notes: 'A changed note for the discard check.' }; });
+            await page.click(`${E} >>> #band >>> #cancel`);
+            assert.equal(await page.evalFn(() => __ux.screen().shadowRoot.getElementById('discard-dialog').open), true);
+            assert.equal(await page.evalFn(() => __ux.screen().shadowRoot.getElementById('discard-confirm').variant), 'danger');
+            assert.equal(await read(page, 'discard-confirm'), 'Discard changes');
+            await capture(page, '13-discard');
+            await page.click(`${E} >>> #discard-cancel`);
+            assert.match(await page.evalFn(() => __ux.screen()._draft.notes), /changed note/);
+            await page.click(`${E} >>> #band >>> #cancel`);
+            await page.click(`${E} >>> #discard-confirm`);
+            assert.equal(await until(page, '__ux.root.route === "selector"'), true);
+        });
         assert.deepEqual(page.pageErrors, []);
     } finally { await browser.close(); }
 });

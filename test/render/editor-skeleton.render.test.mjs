@@ -83,6 +83,9 @@ async function fillReview(page) {
                     num('pressure', 'stepTarget', 9, { pump: 'pressure' })],
                 [['t', 'Lever profile '], ['lev', 'spring 4.0 bar']],
                 [['t', 'Move on after '], num('seconds', 'stepSeconds', 25)],
+                [['t', 'Hold hydraulic power at '],
+                    num('power', 'stepTarget', 6, { pump: 'power' })],
+                [['t', 'Or move on at '], num('volume', 'stepVolume', 40)],
             ],
         });
         panel.columns = [
@@ -904,6 +907,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle(4);
                 await selectPanel(page, 'settings');
                 census.add(await scanRules(page, HOSTS), 'settings-composed');
+                await mountEditor(page, { matrix: null, fields: 0 });
+                census.add(await scanRules(page, HOSTS), 'unseated');
 
                 const sheets = census.sheets();
                 assert.equal(sheets.length, HOSTS.length,

@@ -7,6 +7,8 @@ import { css, html } from 'lit';
 import { UiElement } from 'src/components/base.js';
 import { STEP_MATRIX_ROWS } from 'src/lib/step-matrix-rows.js';
 import { exitBand } from 'src/lib/exit-sentence.js';
+import { exitValueMin } from 'src/lib/exit-validity.js';
+import { deepActiveElement } from 'src/lib/focus-trap.js';
 import { resolveRange } from 'src/screens/editor-dialog-parts.js';
 import { I18nController } from 'src/lib/i18n.js';
 
@@ -34,6 +36,15 @@ const ROW_LABEL = new Map(STEP_MATRIX_ROWS.map((row) => [row.key, row.label]));
 function pressedIn(event) {
     const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
     return path[0] ?? event.target ?? null;
+}
+
+function invokerOf(event) {
+    const named = event?.detail?.invoker ?? null;
+    if (named && typeof named.focus === 'function') return named;
+    const active = deepActiveElement();
+    const body = globalThis.document?.body ?? null;
+    if (active && active !== body && typeof active.focus === 'function') return active;
+    return pressedIn(event);
 }
 
 export class EditorOverlays extends UiElement {
@@ -85,7 +96,7 @@ export class EditorOverlays extends UiElement {
     #onLeverEdit = (event) => {
         const index = event.detail?.index;
         if (!Number.isInteger(index)) return;
-        this.openLever({ index, invoker: pressedIn(event) });
+        this.openLever({ index, invoker: invokerOf(event) });
     };
 
     constructor() {
@@ -170,23 +181,33 @@ export class EditorOverlays extends UiElement {
             });
             return;
         }
-        /* The cell that was tapped is the restore target on the way back. Without it the
-         * reopening dialog takes `deepActiveElement()`, which is inside the closing pad. */
-        this.#resume = { index, draft, invoker: pressedIn(event) };
+        const floor = Math.max(
+            Number.isFinite(range.min) ? range.min : 0,
+            Number.isFinite(range.step)
+                ? exitValueMin(draft?.condition, range.step)
+                : exitValueMin(draft?.condition),
+        );
+        const invoker = invokerOf(event);
+        this.#resume = { index, draft };
         this.openNumpad({
             origin: 'exit-dialog',
             field: 'exitCondition',
-            range,
+            range: Number.isFinite(floor) && floor !== range.min
+                ? { ...range, min: floor }
+                : range,
             value: event.detail?.value ?? draft?.value,
             index,
             row: 'condition',
             heading: 'Threshold',
-            invoker: pressedIn(event),
+            invoker,
         });
     };
 
     /** Where an `exit-dialog` keypad returns to, or null. */
     #resume = null;
+
+    /** What the exit dialog returns focus to, held across a keypad trip. */
+    #exitInvoker = null;
 
     /** Reopen the exit dialog after its keypad, with `value` folded into the draft. */
     #returnToExitDialog(value) {
@@ -196,7 +217,7 @@ export class EditorOverlays extends UiElement {
         const draft = Number.isFinite(value)
             ? { ...resume.draft, value }
             : resume.draft;
-        return this.openExitCondition({ index: resume.index, draft, invoker: resume.invoker });
+        return this.openExitCondition({ index: resume.index, draft });
     }
 
     #attach() {
@@ -225,7 +246,7 @@ export class EditorOverlays extends UiElement {
 
     #routeStepEdit(event) {
         const { index, row, field, value, range } = event.detail ?? {};
-        const invoker = pressedIn(event);
+        const invoker = invokerOf(event);
         if (!range) {
             this.#refuse('step-edit carried no range, so the matrix itself has none', { index, row, field });
             return;
@@ -250,7 +271,7 @@ export class EditorOverlays extends UiElement {
         const index = Number.isInteger(detail.index) ? detail.index : 0;
 
         if (slot === 'condition') {
-            this.openExitCondition({ index, invoker: pressedIn(event) });
+            this.openExitCondition({ index, invoker: invokerOf(event) });
             return;
         }
         const route = EXIT_SLOT_FIELD[slot];
@@ -266,7 +287,7 @@ export class EditorOverlays extends UiElement {
             index,
             row: slot,
             heading: record?.subject ?? '',
-            invoker: pressedIn(event),
+            invoker: invokerOf(event),
         });
     }
 
@@ -279,7 +300,7 @@ export class EditorOverlays extends UiElement {
             this.openExitCondition({
                 index,
                 step: { ...(this.#stepAt(index) ?? {}), exit: { type: detail.type } },
-                invoker: pressedIn(event),
+                invoker: invokerOf(event),
             });
             return;
         }
@@ -300,7 +321,7 @@ export class EditorOverlays extends UiElement {
             index,
             row: slot,
             heading: record?.subject ?? '',
-            invoker: pressedIn(event),
+            invoker: invokerOf(event),
         });
     }
 
@@ -316,7 +337,7 @@ export class EditorOverlays extends UiElement {
             limitKey: field,
             value: event.detail?.value,
             heading: host.label ?? host.getAttribute('data-editor-label') ?? '',
-            invoker: pressedIn(event),
+            invoker: invokerOf(event),
         });
     }
 
@@ -378,8 +399,9 @@ export class EditorOverlays extends UiElement {
         if (!dialog) return false;
         dialog.index = index;
         dialog.step = step ?? this.#stepAt(index);
+        if (draft === null) this.#exitInvoker = invoker;
         /* Open first, then close what it replaces — see openNumpad. */
-        dialog.show({ invoker, reason: 'press', draft });
+        dialog.show({ invoker: this.#exitInvoker ?? invoker, reason: 'press', draft });
         this.#closeOthers(dialog);
         return true;
     }

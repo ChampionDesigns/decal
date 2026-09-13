@@ -111,6 +111,8 @@ describe(`profile versions @ ${GEOMETRY.name}`, () => {
                     'the save closed the editor by itself');
                 assert.ok(await L(page, `clickRowTitled('${SUBJECT}')`),
                     'the profile still has exactly one row to go back into');
+                assert.equal(await L(page, `filterList('${SUBJECT}')`), true,
+                    'the editor is opened from a filtered library');
                 assert.equal(await L(page, 'pressEdit()'), 'editor-screen');
             }
             const tip = await L(page, 'editor()');
@@ -158,6 +160,13 @@ describe(`profile versions @ ${GEOMETRY.name}`, () => {
                 'the visible row is the version that was restored');
 
             /* AND READ IT BACK OFF THE SCREEN, which is the only proof that matters. */
+            assert.equal(await page.evalFn(() => document.querySelector('app-root').shadowRoot
+                .querySelector('selector-screen').shadowRoot.getElementById('hidden-toggle')
+                .getAttribute('aria-pressed')), 'false',
+            'returning after restore keeps the visible library; the hidden former tip must not switch the view');
+            assert.equal(await page.evalFn(() => document.querySelector('app-root').shadowRoot
+                .querySelector('selector-screen').shadowRoot.getElementById('filter').value), '',
+            'saving a different record reveals that saved version rather than restoring the old filter');
             assert.equal(await L(page, `clickRowTitled('${SUBJECT}')`), rootId);
             assert.equal(await L(page, 'pressEdit()'), 'editor-screen');
             const reopened = await L(page, 'editor()');
