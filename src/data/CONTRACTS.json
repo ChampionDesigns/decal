@@ -14,13 +14,13 @@
   "rowRule": "A row exists for exactly one of the three reasons above and says which. A row is never added because a route might be useful — inventing surface is how a table stops being evidence.",
   "absentRoutes": [
     {
-      "wanted": "R2 — a machine limits endpoint (from, resolving )",
+      "wanted": "R2 — a machine limits endpoint (asked for by the ranges decision, and the answer to the open question of where numeric bounds come from)",
       "wantedBy": "item one-ranges-table. Every numeric input in the profile editor, plus the numpad hints and the settings fields, take their bounds from it once it exists.",
       "servedAt": null,
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "basis": "mechanical sweep of lib/src/services/webserver at the pin, RE-COUNTED at this pin: 149 app.get|put|post|delete|options('/api/v1/…') registrations — 62 GET, 46 POST, 24 PUT, 16 DELETE, 1 OPTIONS over 106 distinct paths. NONE matches limit|range|bound|envelope|constraint, and no /api/v1 or /ws/v1 string literal anywhere in lib/ does either. The three nearest new candidates were opened and all three refuse: GET /machine/capabilities answers a bare array of feature-name strings with no numbers, GET /machine/stopAtWeight answers {grams} — the current target, not a bound, and GET /machine/calibration/<target> answers measured values, not a permitted range.",
-      "interim": "'s decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
-      "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint (the notes ) and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (the notes 's ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
+      "interim": "The decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
+      "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint, and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (in the notes' ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
     },
     {
       "wanted": "R5 — per-shot outcome scalars on the shot SUMMARY: duration, peak pressure, average flow (and average pressure, peak flow after first drop, time to first drop)",
@@ -160,7 +160,7 @@
       ],
       "retires": [],
       "notes": [
-        "The reset decision excluded this route on 'no work of any kind on reset-to-default'.: the rule was written when the seven values were mostly invisible in this skin, and on that day every one of them became a control on a page."
+        "The reset decision excluded this route on 'no work of any kind on reset-to-default'. That was reversed: the rule was written when the seven values were mostly invisible in this skin, and on that day every one of them became a control on a page."
       ]
     },
     {
@@ -266,7 +266,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (the owner, )"
+        "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (the owner's decision)"
       ],
       "gates": [
         {
@@ -292,7 +292,7 @@
       ],
       "retires": [],
       "notes": [
-        "having been in the generated route table and called by nothing since the table was generated. the owner: \"After each save there should still only be one profie, but we should be able to go back to a previous version\". A content save was already POST /profiles with parentId — a real version chain, correctly written — and nothing ever hid the record it superseded, so both stayed visible and the list grew by one on every save. This route is the missing move.",
+        "having been in the generated route table and called by nothing since the table was generated. The owner asked: \"After each save there should still only be one profie, but we should be able to go back to a previous version\". A content save was already POST /profiles with parentId — a real version chain, correctly written — and nothing ever hid the record it superseded, so both stayed visible and the list grew by one on every save. This route is the missing move.",
         "IT IS NOT A DELETE AND MUST NOT BE WORDED AS ONE. Hiding a superseded version takes it off the LIST; getProfilesByIdLineage still returns it, the editor's Previous versions dialog still shows it, and restoring it is a save like any other. Nothing in this build removes a profile record except deleteProfilesByIdPurge.",
         "WHY THE SAVE PATH NEVER SENDS 'hidden' FOR AN isDefault RECORD: 's restore-to-factory offer list is `hidden AND isDefault` (profile-rules.js restorableProfiles), which means 'bundled profiles you removed'. Hiding a bundled parent because the user derived from it would put a factory profile in that list without the user having removed anything. The full argument is in src/lib/profile-lineage.js."
       ]
@@ -321,14 +321,14 @@
         {
           "kind": "d6-second-half-deferred",
           "meaning": "this is the ONLY route that actually removes a profile record — DELETE /profiles/<id> is a soft delete (Visibility.deleted / .hidden), which is why the listing has to filter client-side",
-          "action": "v1 does not call it. ships restore-to-factory and defers the purge (the notes deferred table, 'Purging deleted profiles | (second half)'). src/stores/profile-library-store.js names it in D6_PURGE_IS_DEFERRED so the boundary is greppable, and test/profile-library-store.test.mjs asserts no call site exists."
+          "action": "v1 does not call it. That decision ships restore-to-factory and defers the purge (the notes' deferred table: 'Purging deleted profiles', second half). src/stores/profile-library-store.js names it in D6_PURGE_IS_DEFERRED so the boundary is greppable, and test/profile-library-store.test.mjs asserts no call site exists."
         }
       ],
       "retires": [],
       "notes": [
         "Rowed because tonight's tests assert something about it: that nothing in src/ calls it. The row is the boundary, not an intention to use the route."
       ],
-      "action": "'s second half on the owner's decision (\"build it behind a confirm that says plainly it cannot be undone\"). src/stores/profile-library-store.js purge() is the caller and D6_PURGE_IS_LANDED records the crossing. It is the only route that actually removes a profile record, which is what the confirm in front of it says."
+      "action": "The second half, landed on the owner's decision (\"build it behind a confirm that says plainly it cannot be undone\"). src/stores/profile-library-store.js purge() is the caller and D6_PURGE_IS_LANDED records the crossing. It is the only route that actually removes a profile record, which is what the confirm in front of it says."
     },
     {
       "id": "deleteStoreByNamespaceByKey",
@@ -728,7 +728,7 @@
       "retires": [],
       "notes": [
         "[] is ReaPrime's own answer for a non-Bengle machine, not a failure and not a reason to guess from a model string.",
-        "this array is what replaces the previous skin's three `bengleOnly` settings leaves (the previous skin's module cupwarmer,:550 ledstrip,:572 calib_loadcell), each gated on isBengleModel(model) = String(model).toLowerCase().includes('bengle') (the previous skin's module). That module's header says 'no capability endpoint the skin consults' — false at this pin, and the three capability names it needs (cupWarmer, ledStrip, scaleCalibration) are all in the served seven.",
+        "this array is what replaces the previous skin's three `bengleOnly` settings leaves (its settings module: the cupwarmer, ledstrip and calib_loadcell leaves), each gated on isBengleModel(model) = String(model).toLowerCase().includes('bengle') (the previous skin's module). That module's header says 'no capability endpoint the skin consults' — false at this pin, and the three capability names it needs (cupWarmer, ledStrip, scaleCalibration) are all in the served seven.",
         "the mock has no fixture for this route and answers 503 by design, so against the mock `entries` stays null and every gate reads UNKNOWN. A screen that renders its machine pages anyway is a finding, not a nicety."
       ]
     },
@@ -851,7 +851,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled)., live-capability-gates-ghc: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
+        "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled). Under `live-capability-gates-ghc`: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
       ],
       "gates": [
         {
@@ -1028,7 +1028,7 @@
       ],
       "retires": [],
       "notes": [
-        "for the profile generator's own gate. the owner asked for the three add-a-profile doors the previous skin has; two of them live behind plugins, and this row is how the app finds out whether they are there."
+        "for the profile generator's own gate. The owner asked for the three add-a-profile doors the previous skin has; two of them live behind plugins, and this row is how the app finds out whether they are there."
       ]
     },
     {
@@ -1247,7 +1247,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-library-store.js versionsOf ( 's entry point — puts it in the detail pane's overflow menu)"
+        "src/stores/profile-library-store.js versionsOf (the lineage entry point — it lives in the detail pane's overflow menu)"
       ],
       "gates": [
         {
@@ -1264,7 +1264,7 @@
       "retires": [],
       "notes": [
         "(accepted): editing keeps the old version. ReaPrime already stores parentId and content hashes; this route is how the selector makes the previous version findable.",
-        "WAVE 5.5 ADDS NO SECOND CALLER, deliberately. The editor's job is a SENTENCE, and the sentence's inputs — `parentId` plus the two hashes — ride on every ProfileRecord the editor already holds (the record it opened from, and the record a save returns). `profile-lineage.js` reads them and computes nothing. puts the versions ENTRY POINT on the selector's detail-pane overflow menu and built it there; a second one in the editor would be the same surface twice with two states to keep in step. `test/editor-save-semantics.test.mjs` asserts the editor store's transport never sees `/lineage`.",
+        "WAVE 5.5 ADDS NO SECOND CALLER, deliberately. The editor's job is a SENTENCE, and the sentence's inputs — `parentId` plus the two hashes — ride on every ProfileRecord the editor already holds (the record it opened from, and the record a save returns). `profile-lineage.js` reads them and computes nothing. The versions ENTRY POINT sits on the selector's detail-pane overflow menu and was built there; a second one in the editor would be the same surface twice with two states to keep in step. `test/editor-save-semantics.test.mjs` asserts the editor store's transport never sees `/lineage`.",
         "UPSTREAM ASK, RECORDED RATHER THAN WORKED AROUND (21 Aug): _handleGetLineage should carry `on ArgumentError catch (e) { return jsonNotFound(...); }` the way its siblings do. Four of them already map ArgumentError — _handleDelete (profile_handler.dart:191-192) and _handleRestoreDefault (:308-309) to 404, _handleUpdate (:173-174) and _handlePurge (:326-327) to 400 — and this one maps it to nothing, which is why a missing id reads as a server fault. The skin does NOT pre-check the id to manufacture the 404 upstream owes: that would be a second copy of the server's answer, and it would go stale the day the clause lands. Until then getProfilesById is the only route that can say 'no such profile'.",
         "THE ROW SAID THE OPPOSITE UNTIL 21 AUG, in both directions: a 404 on an EMPTY lineage (unreachable) and no mention that a missing id is a 500. The consumer transcribed it — profile-library-store.js versionsOf carried a dead 404 -> NONE branch while the real missing-id 500 fell through to FAILED, so the one outcome that could not happen had a sentence and the one that could was logged as a fault. Text entered at 025811b; retired here."
       ]
@@ -1427,7 +1427,7 @@
         {
           "kind": "not-conditional",
           "meaning": "plain jsonOk on the one route where a 304 would be worth the most",
-          "action": "this absence is the entire justification for keeping ONE IDB mirror of the latest shot (the notes )."
+          "action": "this absence is the entire justification for keeping ONE IDB mirror of the latest shot (the port notes)."
         },
         {
           "kind": "the-expensive-read-is-the-picked-one",
@@ -1502,7 +1502,7 @@
         "CB-26"
       ],
       "notes": [
-        "Meta-only and cheap: this is the poll for 'has a new shot landed', after which ONE getShotsById fetches the record ( replaced a loop that re-listed six times per shot).",
+        "Meta-only and cheap: this is the poll for 'has a new shot landed', after which ONE getShotsById fetches the record (it replaced a loop that re-listed six times per shot).",
         "Plain jsonOk — no ETag.",
         "The rea-routes.js `latestShot` helper was deleted in w0b's fix pass (zero consumers).",
         "WAVE 5.6 re-read _getLatestShot at the pin and DELIBERATELY DID NOT CALL IT. History reads a PAGE with order=desc, so the newest shot is items[0] of a response it already holds; calling this as well would be a second request for a row in hand. The row stays `declared` — a route the client knows about and does not call — rather than being flipped on the strength of a nearby caller. test/history-contract.test.mjs asserts the shots store never reaches it."
@@ -1570,7 +1570,7 @@
         {
           "kind": "settled-by-this-table",
           "meaning": "THIS ROUTE NEVER RETURNS 404. `jsonOk(await store.get(...))` is unconditional; a missing key is a 200 with null.",
-          "action": "absent == a null body. The `status === 404` branch rea-kv-backend.js inherited from the old client HAS BEEN DELETED ( — a fallback for a status the handler cannot produce): get() now throws on any non-ok status and maps a null body to undefined, and the comment standing where the branch was records why. The recorded one-line follow-up is DONE; this gate described the pre-deletion tree as current until 21 Aug. test/gate-d.test.mjs re-asserts that the handler still spells no jsonNotFound, so the day it grows one this gate fails rather than quietly outliving its evidence."
+          "action": "absent == a null body. The `status === 404` branch rea-kv-backend.js inherited from the old client HAS BEEN DELETED (it was a fallback for a status the handler cannot produce): get() now throws on any non-ok status and maps a null body to undefined, and the comment standing where the branch was records why. The recorded one-line follow-up is DONE; this gate described the pre-deletion tree as current until 21 Aug. test/gate-d.test.mjs re-asserts that the handler still spells no jsonNotFound, so the day it grows one this gate fails rather than quietly outliving its evidence."
         }
       ],
       "retires": [
@@ -1971,8 +1971,8 @@
         "CB-17"
       ],
       "notes": [
-        "Recorded with no caller so the first firmware screen cannot re-import the defect. Nothing in flashes anything.",
-        "CONSUMED SINCE WAVE 5.8. The note above said \"Recorded with no caller so the first firmware screen cannot re-import the defect\" — this is that screen. the owner: \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\" is retired by `rea-transport.js`'s `onLine`, which reads the stream a line at a time in the one place every request passes through."
+        "Recorded with no caller so the first firmware screen cannot re-import the defect. Nothing flashed anything at that point.",
+        "CONSUMED SINCE WAVE 5.8. The note above said \"Recorded with no caller so the first firmware screen cannot re-import the defect\" — this is that screen. The owner reversed the earlier decision: \"I should be able to pick a file, but it should also have a 'latest' button that pulls it.\" That contract bug is retired by `rea-transport.js`'s `onLine`, which reads the stream a line at a time in the one place every request passes through."
       ]
     },
     {
@@ -2444,7 +2444,7 @@
         {
           "kind": "content-addressed-idempotent-create",
           "meaning": "`create` computes the record id from the profile, calls `_storage.get(record.id)`, and RETURNS THE EXISTING RECORD when one is stored — without storing anything and WITHOUT applying the `parentId` that was sent. `_handleCreate` answers `jsonCreated` either way",
-          "action": "A 201 DOES NOT MEAN CREATED, and the returned record's parentId may not be the one you sent.: report the record, and answer 'was anything stored?' with null rather than reading it off the status code. `editor-commit.js saveReportFrom` returns `stored: null` for exactly this."
+          "action": "A 201 DOES NOT MEAN CREATED, and the returned record's parentId may not be the one you sent. So: report the record, and answer 'was anything stored?' with null rather than reading it off the status code. `editor-commit.js saveReportFrom` returns `stored: null` for exactly this."
         },
         {
           "kind": "id-covers-content-only",
@@ -2476,7 +2476,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/profile-library-store.js restoreToFactory ( first half)"
+        "src/stores/profile-library-store.js restoreToFactory (the first half — restore, not purge)"
       ],
       "gates": [
         {
@@ -2777,7 +2777,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/led-strip-store.js preview() — 's decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
+        "src/stores/led-strip-store.js preview() — the decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
       ],
       "gates": [
         {
@@ -2925,7 +2925,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). the owner,: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
+        "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). The owner asked: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
       ],
       "gates": [
         {
@@ -2982,7 +2982,7 @@
       ],
       "retires": [],
       "notes": [
-        "The low-water alert height in millimetres. the previous skin's own band is 0-30 in steps of 5 (the previous skin's module), carried in machine-limits.js as waterAlertLevel."
+        "The low-water alert height in millimetres. The previous skin's own band is 0-30 in steps of 5 (the previous skin's module), carried in machine-limits.js as waterAlertLevel."
       ]
     },
     {
@@ -3101,13 +3101,13 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). the owner,: \"with the previous skin, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
+        "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). The owner asked: \"with the previous skin, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
       ],
       "gates": [
         {
           "kind": "a-200-is-not-a-tare",
           "meaning": "TWO refusals sit behind this route and only one of them answers. ReaPrime refuses with a 400 carrying type:'block_tare_during_shot' — visible, and reported as a refusal. The FIRMWARE also refuses, silently: doLCTare() returns early while a shot runs, because a mid-pour re-zero moves the mass reference under the running shot and stop-at-weight would over-deliver. The MMR write still succeeds, so a 200 says nothing about whether the scale actually tared.",
-          "action": "Confirm by watching the weight settle near zero, which is what reaprime's own integrated_scale_capability doc advises: 'a tare must be confirmed by watching the weight, not the flag'. On timeout, name the likely cause rather than reporting a bare failure. the previous skin learned this the same way (f813dea) — it had been toasting 'Scale tared' over a refusal."
+          "action": "Confirm by watching the weight settle near zero, which is what reaprime's own integrated_scale_capability doc advises: 'a tare must be confirmed by watching the weight, not the flag'. On timeout, name the likely cause rather than reporting a bare failure. The previous skin learned this the same way (f813dea) — it had been toasting 'Scale tared' over a refusal."
         }
       ],
       "retires": [],
@@ -3482,7 +3482,7 @@
       "bug": "CB-06",
       "what": "SteamSequencer binds milk temperature to `sensors.entries.first`, i.e. whichever sensor registered first — on a Bengle running the observer that is almost certainly the puck estimator, and milkTemperature comes back null",
       "where": "lib/src/controllers/steam_sequencer.dart _trackFirstSensor",
-      "policy": "upstream. is the same defect filed twice."
+      "policy": "upstream. The same defect carries a second contract-bug number in the list."
     },
     {
       "bug": "CB-12",

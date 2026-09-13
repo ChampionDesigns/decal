@@ -51,7 +51,7 @@ describe('the dead suites died with their modules', () => {
             return RETIRED.includes(base);
         });
         assert.deepEqual(offenders, [],
-            'fused.js, detector.js and are DROP/REPLACE and stay dead');
+            'a retired module and its suite stay dead — no file may take one of these names back');
     });
 
     test('and nothing imports one, so none of them comes back by the side door', () => {

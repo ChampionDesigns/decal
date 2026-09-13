@@ -500,7 +500,7 @@
     {"key":"Saved"},
     {"key":"Saved.","note":"Editor: a save landed and the server said nothing about what became of the previous version."},
     {"key":"Saved. One record, updated in place.","note":"Editor: the saved id came back unchanged — one record, no second version."},
-    {"key":"Saved. The previous version is kept.","note":"Editor: the saved record carries parentId = the id the editor opened from, so ReaPrime linked them ()."},
+    {"key":"Saved. The previous version is kept.","note":"Editor: the saved record carries parentId = the id the editor opened from, so ReaPrime linked them."},
     {"key":"Saved. The previous version was not kept.","note":"Editor: the id moved and no parent link came back."},
     {"key":"Scale"},
     {"key":"Scale Power Mode"},

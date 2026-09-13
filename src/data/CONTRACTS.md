@@ -30,8 +30,8 @@ bench.
 
 The table is `src/data/CONTRACTS.json`, beside the client it gates.
 
-**The capture mock reads this same table** (the checks rule 4). The handover this section once
-deferred to the `mock-fixtures-contract-check` item was taken by it: `tools/
+**The capture mock reads this same table** (rule 4 of the capture-mock checks). The handover
+this section once deferred to the `mock-fixtures-contract-check` item was taken by it: `tools/
 check_mock_contract.py` checks `tools/rea-fixtures/` against these rows, the provisional
 fixture-derived mock table and `mock_rea.contract_table_path()`'s
 three-deep candidate chain are deleted, and the "more than half of these rows have no
@@ -66,12 +66,12 @@ A row exists for exactly one of three reasons, and says which:
 
 * **`consumed`** — a caller exists in `src/` today. `consumedBy` names it.
 * **`declared`** — the client states something about the route without calling it: the
- conditional-ETag registry, the cache register, the socket table. A claim about a route is
- still a claim, so it is still a row.
+  conditional-ETag registry, the cache register, the socket table. A claim about a route is
+  still a claim, so it is still a row.
 * **`recorded`** — no caller. The row exists because a **handler-body gate** or a **retired
- contract bug** attaches to it, and a test asserts something about it. `postFeedback` is
- the clearest case: the gate has to exist *before* the first feedback screen, because the
- screen is the thing that must hide itself.
+  contract bug** attaches to it, and a test asserts something about it. `postFeedback` is
+  the clearest case: the gate has to exist *before* the first feedback screen, because the
+  screen is the thing that must hide itself.
 
 A row is never added because a route might be useful. Inventing surface is how a table
 stops being evidence — the same reason the client's helper surface is demand-driven while
@@ -82,7 +82,7 @@ its route table is complete.
 | route | gate |
 |---|---|
 | `POST /feedback` | **503 = the feature is absent.** The first thing the handler does is check for a build-time GitHub token. The route is registered, so a reachability check that asks only "does the route exist" says yes and the form ships dead. Hide the form. |
-| `POST /machine/profile` | **400 `Unsupported profile` is the machine refusing.** `setProfile` is called outside `runDeviceWrite` specifically so the refusal is a clean 400 rather than the catch-all 500. the refusal rule: send the profile, surface the message; never pre-strip a step to dodge it. |
+| `POST /machine/profile` | **400 `Unsupported profile` is the machine refusing.** `setProfile` is called outside `runDeviceWrite` specifically so the refusal is a clean 400 rather than the catch-all 500. The refusal rule: send the profile, surface the message; never pre-strip a step to dodge it. |
 | `GET /shots` | **The limit is clamped 1–100 for the query and echoed UNCLAMPED in the body.** Ask for 200, receive 100, read `limit: 200`. Even the echo hides it. |
 | `GET /shots` | **`{items, total, limit, offset}`** — never `{shots}`. |
 | cup warmer, pre-heat, LED strip, scale calibration | **404 = the feature is absent** (`_bengleFirmwareGate`). Not "route missing", not an error to show. |
@@ -90,14 +90,14 @@ its route table is complete.
 | `PUT /presence/schedules/<id>` | **Absence means unchanged.** `keepAwakeFor` clears only when the key is PRESENT carrying 0 or null. |
 | `GET /store/<ns>/<key>` | **A missing key is 200-with-null.** This handler has no 404 path at all. |
 | `POST /machine/firmware` | **NDJSON progress stream**, not a JSON document. `response.json()` turns a successful flash into a reported failure. |
-| `GET /shots/latest` | **200 carrying `null`** when nothing has ever been stored. That null is the answer (). |
+| `GET /shots/latest` | **200 carrying `null`** when nothing has ever been stored. That null is the answer. |
 
 ## `gate-d`
 
 ```
-node scripts/gate-d.js # human output, exit 1 on any violation
-node scripts/gate-d.js --json # machine-readable, for the wave GATE agent
-node scripts/gate-d.js --no-source # skip the worktree half, and say so
+node scripts/gate-d.js              # human output, exit 1 on any violation
+node scripts/gate-d.js --json       # machine-readable, for the wave GATE agent
+node scripts/gate-d.js --no-source  # skip the worktree half, and say so
 npm run gate-d
 ```
 
@@ -136,13 +136,12 @@ that happened to differ.)
 ## When ReaPrime moves
 
 1. Re-pin `scripts/lib/rea-source.js`, and move the reference worktree to the new commit —
- `gate-d` reads the worktree's HEAD, so a re-pin without a checkout fails the gate outright
- rather than re-checking rows against the old tree.
+   `gate-d` reads the worktree's HEAD, so a re-pin without a checkout fails the gate
+   outright rather than re-checking rows against the old tree.
 2. Regenerate `rea-routes.generated.js` (`node scripts/generate-rea-routes.js`).
 3. `gate-d` now fails on **every** row. That is the point: re-open each handler, re-check
- path, verb, body and response, and stamp the row. A row you did not re-read does not get
- the new stamp.
+   path, verb, body and response, and stamp the row. A row you did not re-read does not get
+   the new stamp.
 4. Where the re-check finds the **server** wrong, the fix goes upstream on a clean
- upstream-cut branch — never worked around in the skin. The four ReaPrime-side
- contract bugs are listed in `reaPrimeSide` and swept in
- the contract bug sweep.
+   upstream-cut branch — never worked around in the skin. The four ReaPrime-side contract
+   bugs are listed in `reaPrimeSide` and swept in the contract bug sweep.

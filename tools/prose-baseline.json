@@ -3063,11 +3063,6 @@
         "Slate:55c354b894ef"
       ]
     },
-    "test/stale-key-fixtures.test.mjs": {
-      "a file not in this repo": [
-        "fused.js:3a65615648cc"
-      ]
-    },
     "test/steam-chart.test.mjs": {
       "another skin": [
         "the old skin:ff38c8988146"

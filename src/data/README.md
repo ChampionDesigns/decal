@@ -22,21 +22,21 @@ key, so a rename upstream is one file to change and it announces itself on the f
 ### The four rules
 
 1. **Never port a fallback path.** No `?? computeR(...)`, no delta-plus-EMA weight
- flow, no zero standing in for a measurement. A missing channel is a gap or a dash.
- The old skin's fallbacks are how seven renames shipped as silent misreadings.
+   flow, no zero standing in for a measurement. A missing channel is a gap or a dash.
+   The old skin's fallbacks are how seven renames shipped as silent misreadings.
 2. **Key presence is the validity signal** for the three `*Derived` channels and every
- estimator channel outside the always-present six. ReaPrime omits rather than nulls and
- says so in its own comment. On the **scale** the keys are unconditional, so there a
- *null* is the absence signal — a real shape difference, not an inconsistency.
+   estimator channel outside the always-present six. ReaPrime omits rather than nulls and
+   says so in its own comment. On the **scale** the keys are unconditional, so there a
+   *null* is the absence signal — a real shape difference, not an inconsistency.
 3. **In a stored shot, absence is permanent.** No `sensors` key means unavailable for that
- shot forever: `MachineSnapshot.fromJson` reads a fixed key list with no unknown-key bag,
- so anything else in the row was dropped the first time ReaPrime read it. Render a gap;
- never fall through to the derived channel and present it as the same measurement.
+   shot forever: `MachineSnapshot.fromJson` reads a fixed key list with no unknown-key bag,
+   so anything else in the row was dropped the first time ReaPrime read it. Render a gap;
+   never fall through to the derived channel and present it as the same measurement.
 4. **No machine-type branch.** There is deliberately no reader for `machine.weight`,
- `machine.weightFlow` or `machine.milkTemperature` — `633f6f68` deleted all three.
- Gravimetric flow is `scale.weightFlow` for every machine; milk temperature is the milk
- probe's `temperature`. A frame still carrying a dead name is *reported* through
- `deadKeys`, never read.
+   `machine.weightFlow` or `machine.milkTemperature` — `633f6f68` deleted all three.
+   Gravimetric flow is `scale.weightFlow` for every machine; milk temperature is the milk
+   probe's `temperature`. A frame still carrying a dead name is *reported* through
+   `deadKeys`, never read.
 
 ### Tests
 
@@ -68,18 +68,18 @@ beside it in `rea-address.js`; painting nowhere near it.
 ### The four rules here
 
 1. **No fallback.** No stale-cache-on-error, no `?? null`, no retry, no silent
- refetch behind a 304. Five catch blocks in the old client manufactured an answer from a
- transport failure; one of them made an unreachable server indistinguishable from a
- wrong password.
+   refetch behind a 304. Five catch blocks in the old client manufactured an answer from a
+   transport failure; one of them made an unreachable server indistinguishable from a
+   wrong password.
 2. **Injection, not ambient state.** `createReaTransport` throws without a `fetch` and a
- `baseUrl`. `reaBaseUrl()` is pure over values the caller read. The old client computed
- its base URL at import time and could not be tested without a loader hook.
+   `baseUrl`. `reaBaseUrl()` is pure over values the caller read. The old client computed
+   its base URL at import time and could not be tested without a loader hook.
 3. **The server owns the refusal.** A `power` exit is sent so ReaPrime refuses it at
- arm time with a typed 400 rather than the skin pre-stripping it into a silent
- behaviour change. One sanitizer, so the save path and the arm path cannot diverge.
+   arm time with a typed 400 rather than the skin pre-stripping it into a silent
+   behaviour change. One sanitizer, so the save path and the arm path cannot diverge.
 4. **Caches carry a named payoff, and there are two.** `de1SettingsCache` (60 s) and
- `de1AdvancedSettingsCache` (40 s): no push stream, no ETag, fifteen serialized MMR
- reads between them. Everything else revalidates or refetches.
+   `de1AdvancedSettingsCache` (40 s): no push stream, no ETag, fifteen serialized MMR
+   reads between them. Everything else revalidates or refetches.
 
 ### Tests
 
@@ -102,7 +102,7 @@ the transport notes).
 
 | module | what it owns |
 |---|---|
-| `../../vendor/reconnecting-websocket.js` | Joe Walnes' wrapper, now an ES module and DOM-free, with **both local patches intact** . Reconnect is its job and nothing else's. Five changes, all named: `vendor/README.md`. |
+| `../../vendor/reconnecting-websocket.js` | Joe Walnes' wrapper, now an ES module and DOM-free, with **both local patches intact**. Reconnect is its job and nothing else's. Five changes, all named: `vendor/README.md`. |
 | `rea-ws-channels.js` | the endpoint table as data — path, handler symbol, accepted commands — plus `classifyMessage`, the one implementation of **frame vs envelope**. Three channels multiplex something that is not a frame. |
 | `rea-sockets.js` | the policy: one socket per key, close-before-open, silence-the-superseded, replay dies with the socket, refcounted, error-envelope-is-a-signal, bounded attempts where absence is normal. |
 | `rea-fanout.js` | one source, many observers, **one** frame of replay — ReaPrime's `shareReplay(1)` mirrored, and the seed this layer's stores consume. Not a buffer: the shot-so-far is a store, not a socket. |
@@ -113,15 +113,15 @@ the transport notes).
 ### The rules that are specific to sockets
 
 1. **A frame is not the only thing on the wire.** The scale interleaves
- `{"status":…}`, the devices socket interleaves command results, and any handler may
- answer `{"error":…}`. An error envelope is a **signal**: never stored, never replayed,
- acted on. Reading one as a frame produces a plausible wrong value, not an error.
+   `{"status":…}`, the devices socket interleaves command results, and any handler may
+   answer `{"error":…}`. An error envelope is a **signal**: never stored, never replayed,
+   acted on. Reading one as a frame produces a plausible wrong value, not an error.
 2. **Replay is only ever "the newest frame from the source you are subscribed to now".**
- Dropped on close and on retarget — a frame from the previous sensor id is the
- machine-swap defect wearing a disguise.
+   Dropped on close and on retarget — a frame from the previous sensor id is the
+   machine-swap defect wearing a disguise.
 3. **No send queue, no synthesised disconnect frame.** The same rule, in socket form.
 4. **Reconnect belongs to the vendored wrapper; re-discovery belongs to `rea-sensors.js`.**
- Those are the only two lifecycle jobs the client keeps.
+   Those are the only two lifecycle jobs the client keeps.
 
 ### Tests
 
