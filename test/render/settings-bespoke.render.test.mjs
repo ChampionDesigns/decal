@@ -889,7 +889,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the grid reports the two colours the machine holds, and Both is not one', async () => {
-
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
                 const grid = await page.evalFn(() => {
@@ -909,7 +908,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the wheel is asked for Slate’s rendered diameter, in design units', async () => {
-
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
                 const seen = await page.evalFn(() => {
@@ -1193,7 +1191,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the page gives its one instruction ONCE, exactly as its sibling does', async () => {
-
                 const leaves = [
                     ['units-language', 'units-language-select-language', 'The language this app is written in.'],
                     ['units-language', 'units-language-units', 'Celsius or Fahrenheit, and how the time is written.'],
@@ -1224,7 +1221,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('one name for the select, and it is Slate\'s more precise pair', async () => {
-
                 await show('units-language', 'units-language-select-language');
                 const named = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1267,7 +1263,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     });
                     assert.ok(report.length > 0, `${leafId} shows no empty state`);
                     for (const state of report) {
-
                         assert.equal(state.textAlign, 'center', `${leafId}/${state.id} is not centred`);
                         near(state.leftGap, state.rightGap, `${leafId}/${state.id} sits off-centre`, 2.01);
                     }
@@ -1279,7 +1274,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('the named component is on screen for each of the nine', async () => {
                 await serve(['ledStrip', 'scaleCalibration', 'wakeSchedule']);
                 const expected = {
-
                     'machine-machine-info': 'ui-button',
                     'machine-sleep-wake-schedules': 'ui-list-row',
                     'display-skin': 'ui-card-grid',
@@ -1337,7 +1331,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the update list states its count in words, and draws no bar under them', async () => {
-
                 await show('updates', 'updates-skin-app');
                 const got = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1456,7 +1449,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the MACHINE page shows what a search found too — it showed nothing at all', async () => {
-
                 await show('connection', 'connection-machine');
                 await page.evalFn(() => window.__settings.stores().scaleConnect.scan());
                 await page.settle();
@@ -1473,7 +1465,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the chip prints a WORD, not ReaPrime’s wire token', async () => {
-
                 await show('connection', 'connection-machine');
                 await page.evalFn(() => window.__settings.stores().scaleConnect.scan());
                 await page.settle();
@@ -1493,7 +1484,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the Preferred column is NAMED, once, over the track it belongs to', async () => {
-
                 await show('connection', 'connection-machine');
                 const report = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1520,7 +1510,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('both pages say that Search does not connect for you', async () => {
-
                 for (const leaf of ['connection-machine', 'connection-scale']) {
                     await show('connection', leaf);
                     const said = await page.evalFn(() => window.__settings.bespokeEl()
@@ -1530,7 +1519,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a REFUSED device action is reported where the button was pressed', async () => {
-
                 await page.evalFn(() => window.__settings.failRoute('PUT /devices/forget'));
                 await show('connection', 'connection-machine');
 
@@ -1577,7 +1565,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a FAILED read says so — it used to take the whole section with it', async () => {
-
                 await show('connection', 'connection-machine');
                 const said = await page.evalFn(async () => {
                     const store = window.__settings.stores().scaleConnect;
@@ -1639,7 +1626,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('nothing flashes without a class check and a confirmation', () => {
-
             const pick = (p, name, size, marker = null) => p.evalFn(async ([n, bytes, mark]) => {
                 const body = new Uint8Array(bytes);
                 if (mark !== null) new DataView(body.buffer).setUint32(4, mark, true);
@@ -1673,7 +1659,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('DE1 FIRMWARE IS REFUSED ON A BENGLE, and the refusal names both', async () => {
-
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({}));
                 await page.settle();
@@ -1698,7 +1683,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a machine that has not said what it is refuses a GOOD image', async () => {
-
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({
                     machine: { build: 336, model: 'Unknown' },
@@ -1720,7 +1704,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * ═══════════════════════════════════════════════════════════════════ */
 
         describe('every control a bespoke leaf draws has a size', () => {
-
             test('no field, button, switch or bank is zero-wide or outside its pane', async () => {
                 await serve(['cupWarmer', 'integratedScale', 'stopAtWeight', 'ledStrip',
                     'scaleCalibration', 'preheat', 'wakeSchedule']);
@@ -1767,7 +1750,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('the app-settings rows show what the app is set to', () => {
-
             test('gateway mode, log level and update checks read; the folder is a reading', async () => {
                 await show('extensions', 'extensions-decent-app-settings');
                 const rows = await page.evalFn(() => {
@@ -1796,7 +1778,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('the setpoint and the plate reading are two numbers', () => {
-
             test('the stepper shows the setpoint and the reading row shows the plate', async () => {
                 await serve(['cupWarmer', 'preheat']);
                 await page.evalFn(() => window.__settings.cupWarmerState({
@@ -1846,7 +1827,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * ═══════════════════════════════════════════════════════════════════ */
 
         describe('a bespoke leaf keeps the page rhythm where its two halves meet', () => {
-
             const seamOf = (categoryId, leafId) => page.evalFn(async (c, l) => {
                 await window.__settings.selectCategory(c);
                 await window.__settings.selectLeaf(l);
@@ -1876,7 +1856,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('Default load settings says what the reset would actually change', () => {
-
             test('every NOW cell reads the machine, and the reset would move five of eight', async () => {
                 await show('calibration', 'calibration-default-load-settings');
                 const table = await page.evalFn(() => {
@@ -1900,7 +1879,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a reset repaints THIS page, not just the ones you visit next', async () => {
-
                 await show('calibration', 'calibration-default-load-settings');
                 const nowColumn = () => page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -2779,7 +2757,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             };
 
             test('the command DOES reach the channel — the wire was never the problem', async () => {
-
                 await show('updates', 'updates-skin-app');
                 const before = (await page.evalFn(() => window.__settings.updateCommands())).length;
                 await pressCheck();
@@ -2979,7 +2956,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('ONE STATUS, and it says which of the three things is happening', async () => {
-
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
                 await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
@@ -3011,14 +2987,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('A REAL POINTER DRAG ON THE WHEEL REACHES THE STRIP, and coalesces on the way',
                 async () => {
-
                     await serve(['ledStrip']);
                     await show('accessories', 'accessories-lighting');
                     await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
                     await page.settle();
 
                     const before = await page.evalFn(() => {
-
                         window.__settings.bespokeEl().shadowRoot.getElementById('led-wheel')
                             .scrollIntoView({ block: 'center' });
                         window.__settings.clearWire();
@@ -3112,7 +3086,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the brightness slider is named, and zero says Off rather than nothing', async () => {
-
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
 
@@ -3165,7 +3138,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('POWER FOLLOWS THE SELECTED ZONE — Front leaves the rear strip alone', async () => {
-
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
 
@@ -3387,7 +3359,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .shadowRoot.querySelectorAll('[data-schedule]')]
                     .map((row) => row.querySelector('.ui-heading')?.textContent?.trim() ?? null));
                 if (rows.length > 0) {
-
                     for (const label of rows) {
                         assert.match(String(label), /(AM|PM)/i,
                             `a schedule row still prints the wire string: ${label}`);
@@ -3460,7 +3431,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the row prints the date the machine recorded, not a word that never changes', async () => {
-
                 await page.evalFn(() => window.__settings.stores().settings.set('language', 'en'));
                 await show('updates', 'updates-skin-app');
                 await page.evalFn(() => window.__settings.skinChecked('NSX-skin', '2026-08-12T05:59:27Z'));
@@ -3601,7 +3571,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('release notes are a LINK and never Slate’s pasted markdown', async () => {
-
                 await show('updates', 'updates-skin-app');
                 await page.evalFn(() => window.__settings.appUpdateFrame({
                     phase: 'available',
@@ -3735,7 +3704,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a Bengle is told the app carries nothing for it, NOT that it is up to date', async () => {
-
                 const DE1_ONLY = ['DE1Pro', 'DE1XL', 'DE1XXL', 'DE1XXXL'];
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(([models]) => window.__settings.firmwareCatalog({
@@ -3788,7 +3756,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the warning comes before the buttons, is tinted, and agrees with the dialog', async () => {
-
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({}));
                 await page.settle();
@@ -3846,7 +3813,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a machine WITH an account is not shown instructions for linking one', async () => {
-
                 await page.evalFn(() => window.__settings.accountState({ loggedIn: true }));
                 await show('help', 'help-talk-to-decent');
                 const got = await pane();
@@ -3857,7 +3823,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the chip is a word and the sentence is a heading, which is Slate’s own shape', async () => {
-
                 await page.evalFn(() => window.__settings.accountState({ loggedIn: false }));
                 await show('help', 'help-talk-to-decent');
                 const out = await pane();
@@ -4178,7 +4143,6 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the system-info helper names what is actually attached, and no firmware', async () => {
-
                 await show('help', 'help-send-feedback');
                 const got = await feedback();
                 assert.doesNotMatch(got.text, /firmware/i);

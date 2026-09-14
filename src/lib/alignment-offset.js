@@ -45,7 +45,6 @@ export function alignmentControlState({ offset = 0, hasComparison = false, hasTi
     });
 }
 
-
 /** Strict typed entry: invalid or out-of-range text never moves either shot. */
 export function parseAlignmentOffset(text) {
     if (typeof text !== 'string' || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text.trim())) return null;

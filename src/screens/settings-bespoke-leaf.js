@@ -754,7 +754,6 @@ export class SettingsBespokeLeaf extends UiElement {
         }
 
         .doc-link {
-
             color: var(--ui-accent-ink);
             text-decoration: underline;
             text-underline-offset: 0.15em;
@@ -1960,7 +1959,6 @@ export class SettingsBespokeLeaf extends UiElement {
         const was = this.#lastUpdatePhase;
         this.#lastUpdatePhase = phase;
         if (phase === 'checking') {
-
             if (this._updateAnswered) this._updateAnswered = false;
             return;
         }
@@ -2633,7 +2631,6 @@ export class SettingsBespokeLeaf extends UiElement {
         if (!file || !store?.installFile) return;
         const verdict = await this.#firmwareVerdict(file);
         if (!verdict.ok) {
-
             this._flashRejected = verdict;
             return;
         }
@@ -3341,7 +3338,6 @@ export class SettingsBespokeLeaf extends UiElement {
         const draft = this._feedback ?? { type: 'bug', description: '', includeLogs: true, includeSystemInfo: true };
 
         if (state?.status === FEEDBACK_STATUS.SENT) {
-
             const number = Number.isInteger(state.issueNumber) ? state.issueNumber : null;
             const url = typeof state.issueUrl === 'string' && state.issueUrl !== '' ? state.issueUrl : null;
             return html`<ui-empty-state

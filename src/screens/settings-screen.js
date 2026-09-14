@@ -735,7 +735,6 @@ export class SettingsScreen extends UiElement {
         }
     };
 
-
     #onLeafChange = (event) => {
         if (event.detail?.row !== DENSITY_ROW) return;
         if (event.detail?.ok === false) return;

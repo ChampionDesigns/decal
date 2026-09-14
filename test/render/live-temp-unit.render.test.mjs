@@ -356,4 +356,3 @@ describe('a temperature tile with no reading', () => {
         }));
     }
 });
-

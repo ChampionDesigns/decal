@@ -74,7 +74,6 @@ const LED_BODY = Object.freeze({
 });
 
 describe('led-colour: the four converters, and only the four', () => {
-
     test('8 -> 16 shifts into the high byte, which is what the MACHINE holds', () => {
         assert.equal(led8to16(0x4a), '4A00');
         assert.equal(led8to16(0xff), 'FF00');
@@ -96,7 +95,6 @@ describe('led-colour: the four converters, and only the four', () => {
     });
 
     test('16 -> 8 -> 16 is the identity for a CANONICAL colour and nothing else', () => {
-
         for (const wire of ['FF00D900A000', 'FF00D3008E00', 'FF0022000000', '000000000000']) {
             assert.equal(ledHex8ToColour16(ledColour16ToHex8(wire)), wire, `canonical ${wire}`);
             assert.equal(canonicalColour16(wire), wire);
@@ -128,7 +126,6 @@ describe('led-colour: the four converters, and only the four', () => {
     });
 
     test('the preview pair is addressed by ROUTE ID, never spelled, and the composite is still not ported', () => {
-
         for (const [path, code] of Object.entries(CODE)) {
             assert.doesNotMatch(code, /ledPreviewComposite/, `${path} ports the composite`);
             assert.doesNotMatch(code, /previewLedStrip/, `${path} spells a Dart method name`);
@@ -150,7 +147,6 @@ describe('led-colour: the four converters, and only the four', () => {
 });
 
 describe('the palette is a draft, the strip follows it, and Save is the only store', () => {
-
     function slowStore() {
         const parked = [];
         const previewParked = [];
@@ -270,7 +266,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('THE KEEPING STEP IS NEVER POSTED — the PUT is the persistence', async () => {
-
         const transport = transportOf(({ key, body }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
             if (key === 'PUT /machine/ledStrip') return ok({ ...body });
@@ -295,7 +290,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('a colour chosen while the Save is out is REFUSED, not silently discarded', async () => {
-
         const { store, parked } = slowStore();
         await store.load();
         await store.preview('frontStrip', 'awake', '#4a0924');
@@ -360,7 +354,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('leaving the picker ends the preview and KEEPS the draft', async () => {
-
         const { store, transport } = slowStore();
         await store.load();
         await store.preview('frontStrip', 'awake', '#112233');
@@ -377,7 +370,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('a frame still waiting when the picker closes is dropped, not sent after the clear', async () => {
-
         const { store, transport, previewParked, previews, state } = slowStore();
         await store.load();
         state.holdPreview = true;
@@ -486,7 +478,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('POWER FOLLOWS THE SELECTED ZONE — the rear strip is not the front’s business', async () => {
-
         const { store } = slowStore();
         await store.load();
         const front = ['frontStrip', 'frontSwitch'];
@@ -546,7 +537,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
             if (key === 'PUT /machine/ledStrip') return ok({ ...body });
             if (key === 'POST /machine/ledStrip/preview'
                 || key === 'POST /machine/ledStrip/preview/clear') {
-
                 return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
             }
             if (key === 'POST /machine/ledStrip/reset') return ok({ ...LED_BODY });
@@ -565,7 +555,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('a read issued before a Save cannot answer over it', async () => {
-
         let releaseGet = 'seed';
         const transport = transportOf(async ({ key, body }) => {
             if (key === 'GET /machine/ledStrip') {
@@ -598,7 +587,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('a read does not clear the refusal of the write before it', async () => {
-
         const transport = transportOf(({ key }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
             if (key === 'PUT /machine/ledStrip') return bad(503, { error: 'busy' });
@@ -624,7 +612,6 @@ describe('the palette is a draft, the strip follows it, and Save is the only sto
     });
 
     test('a read that is discarded puts back the status it displaced', async () => {
-
         let releaseGet = 'seed';
         let releasePut = null;
         const transport = transportOf(async ({ key, body }) => {
@@ -1025,7 +1012,6 @@ describe('the installed skins, read once for two leaves', () => {
     });
 
     test('NO update verdict is synthesised for a SKIN', () => {
-
         for (const path of ['src/stores/skins-store.js']) {
             assert.doesNotMatch(CODE[path], /updateAvailable/, `${path} invents a verdict nothing serves`);
         }
@@ -1049,7 +1035,6 @@ describe('the installed skins, read once for two leaves', () => {
     });
 
     test('the Reload after a switch goes to the host entry point, not to this origin', () => {
-
         const leaf = CODE['src/screens/settings-bespoke-leaf.js'];
         assert.match(leaf, /hostEntryUrl\(/, 'nothing on the Skin page uses the entry point');
         assert.match(leaf, /hostServesThisPage\(/,
@@ -1057,7 +1042,6 @@ describe('the installed skins, read once for two leaves', () => {
     });
 
     test('the sentence above the tiles no longer promises a reload that does not happen', () => {
-
         assert.equal(SOURCE['src/screens/settings-bespoke-leaf.js'].includes('The screen reloads itself.'),
             false, 'the page still promises an automatic reload it does not perform');
     });
@@ -1105,7 +1089,6 @@ describe('which build of Decaid this tablet runs, read once and never invented',
     });
 
     test('the server’s own two spellings of "I do not know" are ABSENCE, not values', () => {
-
         const info = readAppInfo({
             ...INFO, commit: 'unknown', commitShort: 'UNKNOWN', branch: '  ', localIp: '',
         });
@@ -1132,7 +1115,6 @@ describe('which build of Decaid this tablet runs, read once and never invented',
     });
 
     test('the update feed now has a reader, which is the whole of this repair', () => {
-
         const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
             const path = `${dir}/${entry.name}`;
             if (entry.isDirectory()) return walk(path);
@@ -1164,7 +1146,6 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
     });
 
     test('an unparseable string is null — never a guess and never today', () => {
-
         assert.equal(shortDate('nonsense'), null);
         assert.equal(shortDate(''), null);
         assert.equal(shortDate(null), null);
@@ -1173,7 +1154,6 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
     });
 
     test('the module owns a DATE and wall-clock.js still owns the time of day', () => {
-
         assert.doesNotMatch(stripComments(read('src/lib/wall-clock.js')), /shortDate/);
         assert.doesNotMatch(stripComments(read('src/lib/short-date.js')), /hourCycle|CLOCK_FORMAT/);
     });
@@ -1186,7 +1166,6 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
     });
 
     test('shortDateTime refuses anything that is not a finite number of milliseconds', () => {
-
         assert.equal(shortDateTime('2026-08-12T05:59:27Z'), null, 'a string is not the shape this takes');
         assert.equal(shortDateTime(Number.NaN), null);
         assert.equal(shortDateTime(null), null);
@@ -1226,13 +1205,11 @@ describe('plugin-pages: the destination lives where a screen AND a store can bot
 });
 
 describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has', () => {
-
     const BESPOKE_IDS = Object.keys(BESPOKE_LEAVES);
     const LEAF = SOURCE['src/screens/settings-bespoke-leaf.js'];
     const LEAF_CODE = CODE['src/screens/settings-bespoke-leaf.js'];
 
     test('the registry declares TWENTY bespoke leaves', () => {
-
         assert.equal(BESPOKE_IDS.length, 20);
         const known = new Set(allLeaves().map((leaf) => leaf.id));
         for (const id of BESPOKE_IDS) {
@@ -1367,7 +1344,6 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
 });
 
 describe('the pill dissolved into the row, and the screen is the confirmation', () => {
-
     test('the wrapper is gone, and no file in the cluster reaches for it', () => {
         assert.equal(existsSync(fileURLToPath(new URL('../src/components/ui-toggle-pill.js', import.meta.url))), false,
             '#56 is retired: the pill is a shape attribute on #5 (DQ-610)');
@@ -1392,7 +1368,6 @@ describe('the pill dissolved into the row, and the screen is the confirmation', 
     });
 
     test('#29 names a switch because there is no wrapper between them — why the retirement is SAFE', () => {
-
         const row = stripComments(read('src/components/ui-settings-row.js'));
         assert.match(row, /assignedElements\(\{\s*flatten:\s*true\s*\}\)/,
             'the naming walk is over assigned elements, which do not include a child’s shadow root');
@@ -1445,7 +1420,6 @@ describe('every route this cluster calls has a row, and the row names this calle
     });
 
     test('the preview pair is no longer excluded, and the keeping step is no longer consumed', () => {
-
         const excluded = read('src/data/EXCLUDED.md');
         assert.match(excluded, /ledStrip\/preview/);
         assert.match(excluded, /REMOVED at the re-pin/);

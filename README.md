@@ -38,7 +38,7 @@ npm run a8 # tests must not assert on source text
 npm run gate-d # route coverage against the pinned ReaPrime
 npm run mock-contract # the mock answers what the fixtures record
 npm run gate-wire # every custom event has both an emitter and a listener
-npm run gate-export # every function src exports is reached from src
+npm run gate-export # no new export in src goes unreached
 npm run private-scan # no keys, home paths or absent-document citations
 npm run prose-scan # every comment and prose string is about the code, not the work
 npm test # the suite
