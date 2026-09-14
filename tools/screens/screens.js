@@ -665,15 +665,10 @@ const LEAF_STATES = allLeaves().map((leaf) => {
         fixture: 'settings',
         mock: 'park',
         geometries: ['desktop'],
-        notes: 'The single-plot branch on the power page with the second plot chosen, which is the '
-            + 'one frame that shows the pressure-flow trajectory at its full track. Pressure '
-            + 'against flow: the only chart in the skin whose x axis is not time, which is why the '
-            + 'colour is the time axis and the key beside it is that axis\'s legend, named rather '
-            + 'than hidden. The correspondence marks are in this frame: round instants on A\'s '
-            + 'clock, a filled dot on A\'s path with its label, a hollow ring on B\'s at the instant '
-            + 'the offset says corresponds, and a faint dotted link between them. Declared into the '
-            + 'floor only: at the bench both plots show and the row would duplicate the power '
-            + 'frame.',
+        notes: 'One settings leaf, photographed in its own right rather than through an '
+            + 'archetype. The row exists because the leaf does: the set is derived from the '
+            + 'navigation, not written by hand. The served capability array is handed over so '
+            + 'that a gated leaf shows its content rather than its refusal.',
         async drive(api) {
             await api.mount();
             await api.capabilities([...SERVED_CAPABILITIES]);
