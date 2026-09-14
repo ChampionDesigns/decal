@@ -213,11 +213,12 @@ describe('exemptions', () => {
         const report = await runGuards({ root, roots: ['src', 'styles'], checkExemptions: true });
         const rot = report.violations.filter((v) => /exempt path does not exist/.test(v.message));
 
-        assert.equal(rot.length, 4, `\n${formatReport(report)}`);
+        assert.equal(rot.length, 5, `\n${formatReport(report)}`);
         assert.deepEqual(
             [...new Set(rot.map((v) => v.file))].sort(),
-            ['styles/chart-channels.css', 'styles/document.css', 'tools/gallery/index.html'],
-            'chart-channels is missing for two guards, document.css for one, the gallery for one',
+            ['styles/chart-channels.css', 'styles/document.css',
+                'tools/gallery/index.html', 'tools/screens/index.html'],
+            'chart-channels is missing for two guards, document.css for one, both host pages for one',
         );
         assert.ok(!rot.some((v) => v.file === 'styles/tokens.css'),
             'tokens.css is on disk, so it must never be reported missing');

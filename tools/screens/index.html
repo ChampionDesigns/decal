@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decal screens</title>
+<link rel="icon" href="data:,">
+
+<!-- SCAFFOLDING, NOT SHIPPING SURFACE. The screen half of the capture walk: one
+     full-viewport mount host and no chrome, so a screen is photographed at the box it
+     ships at rather than inside the gallery's stage. The states are driven by the test
+     suites' own fixtures, so the capture and the assertion stand on one fixture.
+
+     The importmap is index.html's, re-rooted ../../ because this page is two levels
+     down. Same keys. -->
+<script type="importmap">
+{
+  "imports": {
+    "lit": "../../vendor/lit.js",
+    "uplot": "../../vendor/uPlot.esm.js",
+    "iro": "../../vendor/iro.js",
+    "reconnecting-websocket": "../../vendor/reconnecting-websocket.js",
+    "easymde": "../../vendor/easymde.min.js",
+    "src/": "../../src/"
+  }
+}
+</script>
+
+<!-- The same three global sheets the app links, so a screen here sees the tokens it
+     will see in the app. -->
+<link rel="stylesheet" href="../../styles/tokens.css">
+<link rel="stylesheet" href="../../styles/chart-channels.css">
+<link rel="stylesheet" href="../../styles/document.css">
+
+<style>
+    /* Tokens only — Gate C reads this block, because tools/ is inside the scan roots. */
+    html, body {
+        margin: 0;
+        block-size: 100%;
+        color: var(--ui-text);
+        background-color: var(--ui-canvas);
+    }
+
+    /* The mount is the FITTED box, not the raw viewport: app-root is drawn at a
+       reference height and scaled (src/lib/app-fit.js), so a capture of a raw-viewport
+       mount is a capture of a layout the tablet never shows. Same three properties
+       app-root carries in styles/document.css. */
+    #mount {
+        display: block;
+        zoom: var(--ui-app-scale, 1);
+        inline-size: var(--ui-app-w, 100%);
+        block-size: var(--ui-app-h, 100dvh);
+        overflow: hidden;
+    }
+
+    /* The selector and settings fixtures mount into `#stage`, the id their own render
+       suites' stage carries, so screens.js creates that host inside #mount. It fills
+       the mount by default; a collapsed-split state narrows it. */
+    #stage {
+        display: block;
+        inline-size: 100%;
+        block-size: 100%;
+    }
+
+    /* Only visible when a state fails to drive, so the PNG says which one. */
+    #fault {
+        position: fixed;
+        inset-block-start: 0;
+        inset-inline: 0;
+        padding: var(--ui-space-3);
+        font-family: var(--ui-font-family);
+        font-size: var(--ui-text-note);
+        color: var(--ui-text);
+        background-color: var(--ui-surface);
+        border-block-end: var(--ui-border-w) solid var(--ui-line);
+    }
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script type="module" src="./screens.js"></script>
+</body>
+</html>
