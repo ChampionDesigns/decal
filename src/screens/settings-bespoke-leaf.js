@@ -2,7 +2,7 @@
  * <settings-bespoke-leaf> — the settings leaves that need layout no archetype covers.
  */
 
-import { css, html, nothing } from 'lit';
+import { css, html, nothing, render as renderTemplate } from 'lit';
 
 import { UiElement, selectionSurface } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
@@ -38,8 +38,8 @@ import 'src/components/ui-select.js';
 import 'src/components/ui-numeric-keypad.js';
 import 'src/components/ui-badge.js';
 
-import { LED_BANKS, LED_STATUS } from 'src/stores/led-strip-store.js';
-import { CAL_STEP, CAL_LOAD, CAL_STATUS_NONE, isCalibrationInProgress } from 'src/stores/calibration-store.js';
+import { LED_BANKS, LED_STATUS, LED_REFUSAL } from 'src/stores/led-strip-store.js';
+import { CAL_STEP, CAL_LOAD, CAL_REFUSAL, CAL_STATUS_NONE, isCalibrationInProgress } from 'src/stores/calibration-store.js';
 import { KEEP_AWAKE_RANGE, PRESENCE_STATUS } from 'src/stores/presence-store.js';
 import { PLUGINS_STATUS, VISUALIZER_PLUGIN_ID, pluginHasSettings, settingFields } from 'src/stores/plugins-store.js';
 import { ACCOUNT_STATUS } from 'src/stores/decent-account-store.js';
@@ -47,21 +47,31 @@ import { SUPPORT_STATUS, SUPPORT_REFUSAL, SEND_STATUS } from 'src/stores/decent-
 import { FEEDBACK_STATUS, FEEDBACK_REFUSAL, FEEDBACK_TYPES } from 'src/stores/feedback-store.js';
 import { SCAN_STATUS } from 'src/stores/scale-connect-store.js';
 import { DEVICE_STATE, DEVICE_TYPE } from 'src/data/rea-devices.js';
+
 import { hasReading } from 'src/data/reading.js';
-import { valueOf, FEED_STATUS } from 'src/stores/feed-store.js';
+import { valueOf } from 'src/stores/feed-store.js';
+import { READING_FRESHNESS, freshnessOf } from 'src/lib/feed-freshness.js';
 
 import { checkFirmwareImage, catalogCarriesNothingFor, IMAGE_VERDICT, FIRMWARE_HEADER_BYTES, MACHINE_CLASS_NAMES } from 'src/lib/firmware-image.js';
 import { SETTINGS_ROWS } from 'src/lib/settings-leaves.js';
 import { leafFor, leafShownOn, navName, shownOnMachine } from 'src/lib/settings-nav.js';
 import { REQUEST_STATUS } from 'src/stores/machine-state-store.js';
 import { SCREENSAVER_DEFAULT_IMAGE } from 'src/components/ui-screensaver.js';
+import { SCREENSAVER_IMAGE_LIMIT } from 'src/lib/screensaver-images.js';
+import { settingsImagesFor } from 'src/screens/settings-images.js';
 import { MACHINE_STATE } from 'src/data/machine-state.js';
 import { BINDABLE_ACTIONS, bindingsByAction, conflictFor, keyLabel, normaliseKey, withBinding } from 'src/lib/key-bindings.js';
+
 import { shortDate, shortDateTime } from 'src/lib/short-date.js';
+
+import { failureRefusal } from 'src/lib/history-viewer.js';
+
 import { clockTime, clockTimeFromMinutes, normaliseClockFormat } from 'src/lib/wall-clock.js';
 /* The wire's own "HH:MM" -> {h24, m}, from the module that owns that parse. A schedule's
  * `time` arrives as that string and the label above needs the pair. */
 import { parseTime24 } from 'src/lib/time-picker-core.js';
+
+import { hostEntryUrl, hostServesThisPage } from 'src/lib/host-exit.js';
 
 export const BESPOKE_NUMBER_FIELDS = Object.freeze({
     'schedule-keep-awake': Object.freeze({ heading: 'Stay awake for', range: KEEP_AWAKE_RANGE }),
@@ -81,6 +91,7 @@ export const LED_PRESETS = Object.freeze([
     Object.freeze({ hex: '#ff2200', label: 'Red' }),
     Object.freeze({ hex: '#0ca581', label: 'Green' }),
     Object.freeze({ hex: '#00c2d1', label: 'Cyan' }),
+
     Object.freeze({ hex: '#7a3ff2', label: 'Purple' }),
     Object.freeze({ hex: '#315c70', label: 'Slate Blue' }),
     Object.freeze({ hex: '#ffffff', label: 'Cool White' }),
@@ -179,20 +190,30 @@ const MACHINE_INFO_UNITS = Object.freeze({ voltage: 'V', tankTemp: '\u00B0C' });
 /** The internal capability bitmask. "Profile Mode Caps 15" answers no question a user has. */
 const MACHINE_INFO_INTERNAL_KEYS = new Set(['profileModeCaps', 'ProfileModeCaps']);
 
-const SAVER_IMAGE_LIMIT = 12;
-
-function readAsDataUrl(file) {
-    return new Promise((resolve) => {
-        try {
-            const reader = new FileReader();
-            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(file);
-        } catch {
-            resolve(null);
-        }
-    });
-}
+const MAX_INLINE_SAVER_ISSUES = 4;
+const SAVER_TILE_REASON = Object.freeze({
+    unreadable: 'This file could not be opened',
+    'file-too-large': 'Over the 4 MiB app limit',
+    'image-too-large': 'Over the 4096 px edge limit',
+    timeout: 'This file took too long to open',
+    'not-saved': 'This image could not be saved',
+    checking: 'Checking image…',
+    capacity: 'Over the active image limit',
+});
+const SAVER_FILE_REASON = Object.freeze({
+    ...SAVER_TILE_REASON,
+    'file-too-large': 'File exceeds this app’s 4 MiB limit.',
+    'image-too-large': 'Image exceeds this app’s 4096-pixel longest-edge limit.',
+    'not-image': 'Not an image file',
+    'not-used': 'Only one file can replace an image',
+    capacity: 'Not added to the 12-image selection',
+    cancelled: 'Reading was cancelled',
+});
+const SAVER_OPERATION_REASON = Object.freeze({
+    storage: 'Image changes could not be saved. Current images are kept.',
+    unconfirmed: 'Image changes could not be confirmed. Check the current images before trying again.',
+    'target-gone': 'That image was removed or changed. Choose the image to replace again.',
+});
 
 export const RESET_FIELDS = Object.freeze([
     Object.freeze({ field: 'fan', value: 55 }),
@@ -205,15 +226,19 @@ export const RESET_FIELDS = Object.freeze([
     Object.freeze({ field: 'steamPurgeMode', value: 0 }),
 ]);
 
-function defaultsDetail(t, pages) {
-    if (pages.length === 0) {
-        return t('These settings go back to the machine’s own values.');
-    }
-    const names = pages.map((name) => t(name));
-    const list = names.length === 1
-        ? names[0]
-        : `${names.slice(0, -1).join(', ')} ${t('and')} ${names[names.length - 1]}`;
-    return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
+function defaultsDetail(t, pages, flowDefault) {
+    const opening = pages.length === 0
+        ? t('These settings go back to the machine’s own values.')
+        : (() => {
+            const names = pages.map((name) => t(name));
+            const list = names.length === 1
+                ? names[0]
+                : `${names.slice(0, -1).join(', ')} ${t('and')} ${names[names.length - 1]}`;
+            return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
+        })();
+
+    if (flowDefault === null || flowDefault === undefined) return opening;
+    return `${opening} ${t('The machine’s flow calibration goes back to {n}. Your load-cell calibration is not touched.', { n: flowDefault })}`;
 }
 
 const PLUGIN_FIELD_COPY = Object.freeze({
@@ -225,13 +250,14 @@ const PLUGIN_FIELD_COPY = Object.freeze({
             heading: 'Minimum shot duration',
             caption: 'Shorter shots are not uploaded, so a flush or a mistake does not become a record. In seconds.',
         },
+
         BackSync: {
-            heading: 'Upload older shots',
-            caption: 'Look back through shots already on the machine and send any that were missed.',
+            heading: 'Sync edits from Visualizer',
+            caption: 'Copy notes, TDS, yield and bean details you edited on Visualizer back onto your own shots.',
         },
         BackSyncIntervalSeconds: {
-            heading: 'How often to look back',
-            caption: 'In seconds.',
+            heading: 'Check for edits every',
+            caption: 'In seconds. The minimum is 60.',
         },
     }),
 });
@@ -335,6 +361,7 @@ export class SettingsBespokeLeaf extends UiElement {
         _schedule: { state: true },
 
         _flashPending: { state: true },
+
         _flashRejected: { state: true },
 
         _typing: { state: true },
@@ -348,11 +375,6 @@ export class SettingsBespokeLeaf extends UiElement {
         /* Internal: the reset was refused. Reported rather than swallowed. */
         _defaultsFailed: { state: true },
 
-        /* Internal: the staged settings for one plugin (`{id, values}`). Staged rather
-         * than written per keystroke, because `POST /plugins/<id>/settings` RELOADS the
-         * plugin on every write. */
-        _pluginDraft: { state: true },
-        /** Which plugin's settings dialog is open, or null. */
         _pluginSettingsFor: { state: true },
 
         /* Internal: the last Open press produced no window. `window.open` returning null
@@ -371,6 +393,12 @@ export class SettingsBespokeLeaf extends UiElement {
         /* Internal: which night-mode time is open in the picker, `sleep` or `morning`. */
         _nightEdit: { state: true },
 
+        _scheduleRefused: { state: true },
+        _pluginRefused: { state: true },
+        _nightRefused: { state: true },
+
+        _updateAnswered: { state: true },
+
         _updateRefusal: { state: true },
 
         /* Internal: the WiFi scale address being typed. */
@@ -384,6 +412,7 @@ export class SettingsBespokeLeaf extends UiElement {
     };
 
     static styles = [typeRoles, css`
+
         :host {
             display: grid;
             gap: var(--ui-space-5);
@@ -417,6 +446,7 @@ export class SettingsBespokeLeaf extends UiElement {
         .caution {
             display: block;
             margin: 0;
+
             max-inline-size: var(--ui-measure);
             padding: var(--ui-space-3) var(--ui-space-4);
             border-inline-start: 3px solid var(--ui-status-danger);
@@ -479,6 +509,10 @@ export class SettingsBespokeLeaf extends UiElement {
             gap: var(--ui-space-5);
             align-content: start;
             min-inline-size: 0;
+        }
+
+        #led-editing .spaced {
+            margin-inline-start: var(--ui-space-2);
         }
 
         /* The four current colours: zone down the side, bank across the top. */
@@ -720,6 +754,7 @@ export class SettingsBespokeLeaf extends UiElement {
         }
 
         .doc-link {
+
             color: var(--ui-accent-ink);
             text-decoration: underline;
             text-underline-offset: 0.15em;
@@ -862,6 +897,46 @@ export class SettingsBespokeLeaf extends UiElement {
             text-align: end;
         }
 
+        .saver-tile {
+            flex: 0 0 var(--_ui-thumb-size);
+            inline-size: var(--_ui-thumb-size);
+            min-inline-size: 0;
+            overflow: hidden;
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background: var(--ui-surface);
+        }
+        .saver-picture { position: relative; block-size: calc(var(--_ui-thumb-size) * 0.625); }
+        .saver-picture .thumb { inline-size: 100%; block-size: 100%; border: 0; border-radius: 0; }
+        .saver-name { margin: 0; padding: var(--ui-space-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .saver-warning {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            align-content: center;
+            gap: var(--ui-space-1);
+            padding: var(--ui-space-2);
+            background: color-mix(in srgb, var(--ui-status-danger) 10%, var(--ui-surface));
+            color: var(--ui-text);
+            font-size: var(--ui-text-note);
+            line-height: 1.3;
+        }
+        .saver-warning strong { font-weight: var(--ui-weight-medium); }
+        .saver-warning span { font-size: var(--ui-text-xs); }
+        .saver-warning[data-status="checking"] { background: var(--ui-key); color: var(--ui-muted); }
+        .saver-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--ui-space-1);
+            padding: var(--ui-space-2);
+        }
+        .saver-actions > * { min-inline-size: 0; }
+        .saver-details { border: var(--ui-border-w) solid var(--ui-line); border-radius: var(--ui-radius); padding: var(--ui-space-4); }
+        .saver-details summary { cursor: pointer; font-size: var(--ui-text-base); }
+        .saver-file-results { display: grid; gap: var(--ui-space-3); padding: 0; margin: var(--ui-space-4) 0 0; list-style: none; }
+        .saver-file-results li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--ui-space-4); align-items: center; font-size: var(--ui-text-note); }
+        .saver-file-results span { min-inline-size: 0; overflow-wrap: anywhere; }
+
         .thumbs {
             display: flex;
             flex-wrap: wrap;
@@ -877,7 +952,7 @@ export class SettingsBespokeLeaf extends UiElement {
             border: var(--ui-border-w) solid var(--ui-line);
         }
 
-        .group[data-inert] {
+        .group[data-inert] :where(h3, p, img) {
             opacity: var(--ui-opacity-disabled);
         }
 
@@ -908,7 +983,12 @@ export class SettingsBespokeLeaf extends UiElement {
     /** The last machine step seen, so the walk can notice a zeroing run finishing. */
     #lastStep = null;
 
+    #lastUpdatePhase = null;
+
     #loadKey = null;
+    #saverImages = null;
+    #saverTiles = new Map();
+    #stopSaverImages = null;
 
     constructor() {
         super();
@@ -927,16 +1007,20 @@ export class SettingsBespokeLeaf extends UiElement {
         this._schedule = null;
         this._typing = null;
         this._confirm = null;
+
         this._machineState = null;
         this._procedureSeen = null;
         this._defaultsFailed = false;
-        this._pluginDraft = null;
         this._pluginSettingsFor = null;
         this._pluginOpenFailed = false;
         this._feedback = null;
         this._support = null;
         this._supportIncomplete = false;
+        this._scheduleRefused = false;
+        this._pluginRefused = false;
+        this._nightRefused = false;
         this._nightEdit = null;
+        this._updateAnswered = false;
         this._updateRefusal = null;
         this._wifiHost = '';
         this._flashPending = null;
@@ -953,28 +1037,44 @@ export class SettingsBespokeLeaf extends UiElement {
     disconnectedCallback() {
         super.disconnectedCallback?.();
         this.#drop();
+
         this.#stopCapture();
+
+        void Promise.resolve(this.deps?.led?.endPreview?.()).catch(() => {});
     }
 
     updated(changed) {
         super.updated?.(changed);
         if (changed.has('deps') || changed.has('theme')) this.#watch();
         if (changed.has('leafId') || changed.has('deps')) {
+            if (this.leafId !== 'display-screen-saver') this.#saverTiles.clear();
             this.#lastStep = null;
+            this.#lastUpdatePhase = null;
             this._calStarted = false;
             this._calZeroed = false;
+
             this._schedule = null;
             this._confirm = null;
+
             this._flashPending = null;
             this._flashRejected = null;
             this._defaultsFailed = false;
-            this._pluginDraft = null;
+
             this._pluginOpenFailed = false;
             this._feedback = null;
             this._nightEdit = null;
+                this._scheduleRefused = false;
+            this._pluginRefused = false;
+            this._nightRefused = false;
+            this._updateAnswered = false;
             this._updateRefusal = null;
             this._wifiHost = '';
+
             this.deps?.scaleConnect?.clearWriteError?.();
+
+            this.deps?.calibration?.clearRefusal?.();
+
+            void Promise.resolve(this.deps?.led?.endPreview?.()).catch(() => {});
             this.#stopCapture();
             this._captureAction = null;
             this._bindingConflict = null;
@@ -984,6 +1084,8 @@ export class SettingsBespokeLeaf extends UiElement {
     }
 
     #drop() {
+        this.#stopSaverImages?.();
+        this.#stopSaverImages = null;
         for (const off of this.#unwatch) off();
         this.#unwatch = [];
     }
@@ -991,10 +1093,12 @@ export class SettingsBespokeLeaf extends UiElement {
     #watch() {
         this.#drop();
         const bump = () => { this._version += 1; };
+        if (this.leafId === 'display-screen-saver') this.#bindSaverImages();
+
         const scaleFeed = this.deps?.scaleFeed;
         if (scaleFeed && typeof scaleFeed.subscribe === 'function') {
             this.#unwatch.push(scaleFeed.subscribe((state) => {
-                const reading = state && state.status !== FEED_STATUS.STALE ? valueOf(state) : null;
+                const reading = freshnessOf(state) === READING_FRESHNESS.FRESH ? valueOf(state) : null;
                 const grams = reading?.ok === true && hasReading(reading.weight)
                     ? Number(reading.weight)
                     : NaN;
@@ -1002,6 +1106,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 if (next !== this._scaleWeight) this._scaleWeight = next;
             }));
         }
+
         const machineFeed = this.deps?.machineFeed;
         if (machineFeed && typeof machineFeed.subscribe === 'function') {
             this.#unwatch.push(machineFeed.subscribe((state) => {
@@ -1014,6 +1119,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 }
             }));
         }
+
         const updateFeed = this.deps?.appUpdate?.feed;
         if (updateFeed && typeof updateFeed.subscribe === 'function') {
             this.#unwatch.push(updateFeed.subscribe(bump));
@@ -1024,14 +1130,15 @@ export class SettingsBespokeLeaf extends UiElement {
         }
         const settings = this.deps?.settings;
         if (settings && typeof settings.subscribe === 'function') {
-            for (const key of ['theme', 'language', 'lastBrightness', 'keyboardBindings']) {
-                try { this.#unwatch.push(settings.subscribe(key, bump)); } catch { /* not a settings key here */ }
+            for (const key of ['theme', 'language', 'lastBrightness', 'keyboardBindings', 'screensaverImages', 'screensaverType']) {
+                try { this.#unwatch.push(settings.subscribe(key, bump)); } catch {  }
             }
         }
         const watchAllowed = this.deps?.watchAllowed;
         if (typeof watchAllowed === 'function') {
             this.#unwatch.push(watchAllowed(() => { bump(); this.#load(); }));
         }
+
         if (this.theme && typeof this.theme.subscribe === 'function') {
             this.#unwatch.push(this.theme.subscribe(bump));
         }
@@ -1057,6 +1164,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 break;
             case 'updates-skin-app':
                 go(deps.skins?.load());
+
                 go(deps.appInfo?.load());
                 break;
             case 'units-language-select-language':
@@ -1075,22 +1183,32 @@ export class SettingsBespokeLeaf extends UiElement {
                 /* GATED BEFORE THE READ, like the LED and load-cell leaves above: on a
                  * machine with no wake scheduling there is nothing to ask for. */
                 if (this.#allowed('wakeSchedule')) go(deps.presence?.load());
+
                 go(deps.settings?.load('clockFormat'));
+                break;
+            case 'display-screen-saver':
+                this.#bindSaverImages();
+
+                go(deps.settings?.load('screensaverImages'));
                 break;
             case 'extensions-plugins':
                 go(deps.plugins?.load());
                 break;
             case 'extensions-visualizer':
+
                 go(Promise.resolve(deps.plugins?.load()).then(() => deps.plugins?.loadSettings(VISUALIZER_PLUGIN_ID)));
                 break;
             case 'help-talk-to-decent':
+
                 go(Promise.resolve(deps.account?.load()).then(() => {
                     if (deps.account?.get?.()?.loggedIn === true) return deps.support?.load();
                     return null;
                 }));
+
                 go(deps.machineInfo?.load());
                 go(deps.appInfo?.load());
                 break;
+
             case 'connection-machine':
                 go(deps.scaleConnect?.loadDevices());
                 go(deps.scaleConnect?.loadPreferred());
@@ -1104,6 +1222,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 go(deps.settings?.load('keyboardBindings'));
                 break;
             case 'accessories-usb-charger':
+
                 go(deps.app?.load());
                 /* AND THE CLOCK FORMAT, for the same reason the schedules leaf reads it. */
                 go(deps.settings?.load('clockFormat'));
@@ -1126,6 +1245,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const t = this.#i18n.t;
         const id = this._typing;
         const field = id ? this.#numberField(id) : null;
+
         if (!field) return nothing;
         return html`<ui-numeric-keypad
             id="number-pad"
@@ -1221,6 +1341,7 @@ export class SettingsBespokeLeaf extends UiElement {
             case 'connection-scale': return this.#scaleConnection();
             case 'help-keyboard-shortcuts': return this.#keyboard();
             case 'calibration-default-load-settings': return this.#defaults();
+
             default: return nothing;
         }
     }
@@ -1329,6 +1450,11 @@ export class SettingsBespokeLeaf extends UiElement {
                         body=${t('Add one to have the machine heat up before you get to it.')}
                     ></ui-empty-state>`
                     : state.schedules.map((schedule) => this.#scheduleRow(schedule))}
+
+                ${this._scheduleRefused && !this._schedule
+                    ? this.#refusal('schedules-refusal', 'That change was not saved.',
+                        state.writeError ?? null)
+                    : nothing}
             </section>
 
             ${this.#scheduleDialog()}
@@ -1356,6 +1482,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 ?checked=${schedule.enabled === true}
                 @change=${(event) => this.#onScheduleEnabled(schedule.id, event)}
             ></ui-switch>
+
             <ui-button
                 slot="favourite"
                 variant="danger"
@@ -1419,18 +1546,31 @@ export class SettingsBespokeLeaf extends UiElement {
                         @edit=${this.#onNumberEdit}
                     ></ui-stepper>
                 </div>
+
+                ${this._scheduleRefused
+                    ? this.#refusal('schedule-refusal', 'That schedule was not saved.',
+                        this.deps?.presence?.get?.()?.writeError ?? null)
+                    : nothing}
             </div>
             <ui-button slot="actions" variant="ghost" @click=${this.#onScheduleCancel}>${t('Cancel')}</ui-button>
             <ui-button slot="actions" variant="primary" @click=${this.#onScheduleSave}>${t('Save')}</ui-button>
         </ui-dialog>`;
     }
 
-    #onScheduleAdd = () => { this._schedule = draftFrom(null); };
+    #onScheduleAdd = () => {
+        this._schedule = draftFrom(null);
+        this._scheduleRefused = false;
+    };
 
-    #onScheduleCancel = () => { this._schedule = null; };
+    #onScheduleCancel = () => {
+        this._schedule = null;
+        this._scheduleRefused = false;
+    };
 
     #onScheduleDialogClose = (event) => {
-        if (event?.detail?.open === false) this._schedule = null;
+        if (event?.detail?.open !== false) return;
+        this._schedule = null;
+        this._scheduleRefused = false;
     };
 
     #onScheduleTime = (event) => {
@@ -1458,6 +1598,8 @@ export class SettingsBespokeLeaf extends UiElement {
         const draft = this._schedule;
         const presence = this.deps?.presence;
         if (!draft || !presence) return;
+
+        this._scheduleRefused = false;
         const ok = draft.id
             ? await presence.updateSchedule(draft.id, {
                 time: draft.time, days: draft.days, keepAwakeFor: draft.keepAwakeFor,
@@ -1465,17 +1607,23 @@ export class SettingsBespokeLeaf extends UiElement {
             : await presence.addSchedule({
                 time: draft.time, days: draft.days, enabled: true, keepAwakeFor: draft.keepAwakeFor,
             });
+
         if (ok) this._schedule = null;
+        this._scheduleRefused = !ok;
     };
 
-    #onScheduleEnabled(id, event) {
+    async #onScheduleEnabled(id, event) {
         const next = event?.detail?.checked;
         if (typeof next !== 'boolean') return;
-        void this.deps?.presence?.updateSchedule(id, { enabled: next });
+        this._scheduleRefused = false;
+        const ok = await this.deps?.presence?.updateSchedule(id, { enabled: next });
+        this._scheduleRefused = !ok;
     }
 
-    #onScheduleDelete(id) {
-        void this.deps?.presence?.deleteSchedule(id);
+    async #onScheduleDelete(id) {
+        this._scheduleRefused = false;
+        const ok = await this.deps?.presence?.deleteSchedule(id);
+        this._scheduleRefused = !ok;
     }
 
     #skin() {
@@ -1490,14 +1638,14 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`${this.#themeBank()}
         <section class="group" id="skins">
             <h3 class="ui-heading">${t('Active skin')}</h3>
-            <p class="ui-caption prose">${t('Tap a skin to switch to it. The screen reloads itself.')}</p>
+            <p class="ui-caption prose">${t('Tap a skin to switch to it, then press Reload. The screen does not reload itself.')}</p>
             ${failed
                 ? html`<p id="skin-failed" class="ui-caption prose"
                     >${t('The machine refused to switch skins. It is still serving the one you are looking at.')}</p>`
                 : nothing}
             ${switched
                 ? html`<div class="fact-head" id="skin-switched">
-                    <span class="ui-body">${t('Skin changed. Reload to see it.')}</span>
+                    <span class="ui-body">${t('Skin changed. Reload to open it.')}</span>
                     <ui-button variant="primary" @click=${this.#onReload}>${t('Reload')}</ui-button>
                 </div>`
                 : nothing}
@@ -1516,7 +1664,14 @@ export class SettingsBespokeLeaf extends UiElement {
     /** The reload the switch needs. The one navigation this element performs. */
     #onReload = () => {
         const view = this.ownerDocument?.defaultView ?? null;
-        if (view && view.location && typeof view.location.reload === 'function') view.location.reload();
+        const location = view?.location ?? null;
+        if (!location) return;
+        const entry = hostServesThisPage(view) ? hostEntryUrl(location) : null;
+        if (entry && typeof location.assign === 'function') {
+            location.assign(entry);
+            return;
+        }
+        if (typeof location.reload === 'function') location.reload();
     };
 
     #themeBank() {
@@ -1573,6 +1728,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const state = this.deps?.skins?.get?.() ?? null;
         const skins = state?.skins ?? [];
         const checked = skins.filter((skin) => skin.lastChecked !== null).length;
+
         const moved = new Map((state?.updated ?? []).map((entry) => [entry.id, entry]));
 
         const installed = skins.length === 0
@@ -1591,11 +1747,13 @@ export class SettingsBespokeLeaf extends UiElement {
         const updating = state?.updating === true;
         const failed = state?.updateError ?? null;
         const ran = state?.updateRan === true;
+
         const checkedText = [checked, skins.length].join(' / ');
 
         return html`<section class="group" id="updates">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Installed skins')}</h3>
+
                 <ui-button
                     id="skins-update"
                     variant="primary"
@@ -1604,6 +1762,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 >${t(updating ? 'Updating' : 'Update all skins')}</ui-button>
             </div>
             <p class="ui-caption prose">${t('Downloads and installs the newest version of every skin that came from a source. Switch skins in Display › Skin.')}</p>
+
             ${ran
                 ? html`<p id="updates-outcome" class="ui-caption prose"
                     >${moved.size === 0
@@ -1642,6 +1801,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 <span class="skin-meta">
                     <span class="ui-caption ui-numeric">${skinVersionText(skin.version)}</span>
                     <span class="ui-microcap">${when}</span>
+
                     ${updated && skinVersionText(updated.to) !== ''
                         ? html`<ui-badge class="skin-updated" variant="attention"
                             >${t('Updated to {version}', { version: skinVersionText(updated.to) })}</ui-badge>`
@@ -1650,6 +1810,7 @@ export class SettingsBespokeLeaf extends UiElement {
             </span>
             <span></span>
             <span class="device-actions">
+
                 ${skin.id === state?.defaultId || skin.bundled
                     ? nothing
                     : html`<ui-button
@@ -1679,12 +1840,21 @@ export class SettingsBespokeLeaf extends UiElement {
         const installable = frame?.installable === true;
         const progress = Number.isFinite(frame?.progress) ? frame.progress : null;
         const busy = phase === 'checking' || phase === 'downloading' || phase === 'installing';
-        const available = phase === 'available' && latest !== null;
         const error = typeof frame?.error === 'string' ? frame.error : null;
+
+        this.#noticeUpdate(phase);
+
+        const running = typeof frame?.currentVersion === 'string' ? frame.currentVersion : null;
+
+        const named = latest !== null;
+        const upToDate = named && running !== null && latest === running;
+        const available = named && !upToDate;
+        const offerInstall = available && phase !== 'error';
 
         return html`<section class="group" id="app-info">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Decaid')}</h3>
+
                 <ui-button
                     id="app-check"
                     ?disabled=${busy || !this.deps?.appUpdate}
@@ -1718,16 +1888,19 @@ export class SettingsBespokeLeaf extends UiElement {
             </dl>
 
             <div class="fact-head">
+
                 <span class="ui-caption" id="app-update-state"
-                    >${available
-                        ? t('{version} is available.', { version: latest })
-                        : (phase === 'checking'
-                            ? t('Looking for a newer build…')
-                            : (phase === 'downloading' || phase === 'installing'
-                                ? t('Installing the update.')
-                                : (latest === null
-                                    ? t('Whether a newer build exists is not known.')
-                                    : t('This is the newest build.'))))}</span>
+                    >${phase === 'checking'
+                        ? t('Looking for a newer build…')
+                        : (phase === 'downloading' || phase === 'installing'
+                            ? t('Installing the update.')
+                            : (available
+                                ? t('{version} is available.', { version: latest })
+                                : (upToDate
+                                    ? t('This is the newest build.')
+                                    : (this._updateAnswered
+                                        ? t('No newer build was found.')
+                                        : t('Whether a newer build exists is not known.')))))}</span>
                 ${available
                     ? html`<ui-badge id="app-update-badge" variant="attention"
                         >${t('Update available')}</ui-badge>`
@@ -1743,7 +1916,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     label=${t('Downloading the update')}
                 ></ui-progress-track>`}
 
-            ${available && installable
+            ${offerInstall && installable
                 ? html`<div class="device-actions">
                     <ui-button
                         id="app-install"
@@ -1754,7 +1927,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>`
                 : nothing}
 
-            ${available && !installable
+            ${offerInstall && !installable
                 ? html`<p id="app-install-elsewhere" class="ui-caption prose"
                     >${t('This build cannot install updates itself. Open the release page to get the new version.')}</p>`
                 : nothing}
@@ -1783,6 +1956,18 @@ export class SettingsBespokeLeaf extends UiElement {
         </section>`;
     }
 
+    #noticeUpdate(phase) {
+        const was = this.#lastUpdatePhase;
+        this.#lastUpdatePhase = phase;
+        if (phase === 'checking') {
+
+            if (this._updateAnswered) this._updateAnswered = false;
+            return;
+        }
+        if (was !== 'checking') return;
+        if (phase === 'idle' || phase === 'available') this._updateAnswered = true;
+    }
+
     #onCheckUpdate = () => {
         const result = this.deps?.appUpdate?.check?.();
         const reason = result && result.ok === false
@@ -1807,6 +1992,7 @@ export class SettingsBespokeLeaf extends UiElement {
     #language() {
         const t = this.#i18n.t;
         const languages = this.deps?.languages ?? [];
+
         const current = this.deps?.settings?.value?.('language') ?? this.deps?.defaultLanguage;
 
         const options = languages.map((language) => ({
@@ -1858,6 +2044,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const button = this.#walkButton(state, stage);
         const limits = this.deps?.limits ?? null;
         const range = limits && limits.calibrationWeight ? limits.calibrationWeight : null;
+
         const wantsWeight = stage >= 3 && Boolean(range);
 
         return html`<ui-wizard-column
@@ -1889,12 +2076,17 @@ export class SettingsBespokeLeaf extends UiElement {
 
                 <p id="status" class="ui-caption" role="status">${this.#walkStatus(state)}</p>
 
+                ${snapshot?.refusal
+                    ? this.#refusal('cal-refusal', this.#calRefusal(snapshot.refusal), snapshot.reason)
+                    : nothing}
+
                 <div class="actions">
                     <ui-button
                         id="cal-primary"
                         variant=${button.variant}
                         @click=${() => this.#walkPress(button)}
                     >${t(button.label)}</ui-button>
+
                     ${stage > 1
                         ? html`<ui-button
                             id="cal-restart"
@@ -1917,7 +2109,9 @@ export class SettingsBespokeLeaf extends UiElement {
         }
         if (status === 'noZero') return 2;
         if (status === 'incomplete') return 4;
+
         if (status === 'ok') return 5;
+
         return this._calZeroed ? 3 : 2;
     }
 
@@ -1962,6 +2156,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const wasZeroing = this.#lastStep === CAL_STEP.ZEROING;
         const status = state?.status ?? CAL_STATUS_NONE;
         if (wasZeroing && step === CAL_STEP.COMPLETE && status === CAL_STATUS_NONE) this._calZeroed = true;
+
         if (wasZeroing && step === CAL_STEP.IDLE) this._calZeroed = false;
         if (step === CAL_STEP.ERROR) { this._calZeroed = false; this._calStarted = false; }
         this.#lastStep = step;
@@ -2015,6 +2210,15 @@ export class SettingsBespokeLeaf extends UiElement {
         return `${t(sentence)}${cell}`;
     }
 
+    #calRefusal(refusal) {
+        switch (refusal) {
+            case CAL_REFUSAL.REJECTED: return 'The machine would not do that now.';
+            case CAL_REFUSAL.BAD_REQUEST: return 'The machine would not accept that weight.';
+            case CAL_REFUSAL.UNSUPPORTED: return 'This machine does not calibrate its load cells here.';
+            default: return 'That step was not sent. The machine may be busy, or not connected.';
+        }
+    }
+
     #walkPress({ command = null, walk = null } = {}) {
         if (walk === 'start') { this._calStarted = true; this._calZeroed = false; }
         if (walk === 'finish') { this._calStarted = false; this._calZeroed = false; }
@@ -2043,6 +2247,10 @@ export class SettingsBespokeLeaf extends UiElement {
         }
 
         const current = store.hex(ledLeadZone(this._ledZone), this._ledBank) ?? '';
+        const refusal = this.#ledRefusal(snapshot.refusal);
+
+        const saving = snapshot.writing === true;
+        const zones = ledZonesFor(this._ledZone);
 
         return html`<div id="lighting">
             <div class="column">
@@ -2069,7 +2277,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>
 
                 <div class="group">
-                    <h3 class="ui-heading">${t('Current colours')}</h3>
+                    <h3 class="ui-heading">${t('Colours')}</h3>
                     <div id="current">
                         <span></span>
                         ${LED_BANK_ITEMS.map((bank) => html`<span
@@ -2099,48 +2307,99 @@ export class SettingsBespokeLeaf extends UiElement {
                         .columns=${LED_PRESET_COLUMNS}
                         value=${current}
                         label=${t('Preset colours')}
+                        ?disabled=${saving}
                         @swatch-select=${this.#onSwatch}
                     ></ui-colour-swatch-row>
                 </div>
             </div>
 
             <div class="column">
+
+                <div class="group">
+                    <p id="led-editing" class="ui-caption prose">
+                        <strong>${t(LED_ZONE_ITEMS.find((z) => z.value === this._ledZone)?.label ?? '')}</strong>
+                        ·
+                        <strong>${t(LED_BANK_ITEMS.find((b) => b.value === this._ledBank)?.label ?? '')}</strong>
+                        <span class="ui-numeric spaced">${current}</span>
+                    </p>
+
+                    <ui-colour-wheel
+                        id="led-wheel"
+                        size="440"
+                        label=${t('Zone colour')}
+                        brightness-label=${t('Brightness')}
+                        off-label=${t('Off')}
+                        value=${current}
+                        ?disabled=${saving}
+                        @colour-input=${this.#onWheel}
+                        @colour-change=${this.#onWheel}
+                    ></ui-colour-wheel>
+                </div>
+
                 <div class="group inline">
                     <h3 class="ui-heading" id="led-power-label">${t('Power')}</h3>
                     <ui-switch
                         id="led-power"
                         aria-labelledby="led-power-label"
-                        ?checked=${store.isOn(this._ledBank) === true}
+                        ?checked=${store.isOn(this._ledBank, zones) === true}
+                        ?disabled=${saving}
                         @change=${(event) => this.#onPower(event)}
                     ></ui-switch>
                 </div>
 
                 <div class="group">
-                    <p id="led-editing" class="ui-caption prose">
-                        ${t('Editing')}
-                        <strong>${t(LED_ZONE_ITEMS.find((z) => z.value === this._ledZone)?.label ?? '')}</strong>
-                        ·
-                        <strong>${t(LED_BANK_ITEMS.find((b) => b.value === this._ledBank)?.label ?? '')}</strong>
-                        <span class="ui-numeric">${current}</span>
-                    </p>
-                    <ui-colour-wheel
-                        id="led-wheel"
-                        size="440"
-                        label=${t('Zone colour')}
-                        value=${current}
-                        @colour-input=${this.#onWheel}
-                        @colour-change=${this.#onWheel}
-                    ></ui-colour-wheel>
-                    <p id="led-preview-note" class="ui-caption prose"
-                        >${t('The wheel picks the colour and the slider sets its brightness. Colours change on the machine as you pick them, and the asleep colours only show while the machine is asleep.')}</p>
+                    <p id="led-status" class="ui-caption prose" role="status"
+                        >${saving
+                            ? t('Saving the colours…')
+                            : (snapshot.previewing === true
+                                ? t('Showing on the machine. Save keeps these colours.')
+                                : t('Save keeps these colours.'))}</p
+                    >
+
+                    ${refusal
+                        ? html`<p id="led-refusal" class="ui-caption prose" role="status"
+                            >${refusal}</p
+                        >`
+                        : nothing}
                 </div>
 
             </div>
         </div>`;
     }
 
+    #refusal(id, sentence, said = null) {
+        const t = this.#i18n.t;
+        const words = typeof said === 'string' && said.trim() !== ''
+            ? said.trim()
+            : (said && said.ok === false
+                ? (({ heading, body }) => `${heading} ${body}`)(failureRefusal(said, t))
+                : '');
+        return html`<p id=${id} class="ui-caption prose" role="status"
+            >${t(sentence)}${words === '' ? '' : ` ${words}`}</p
+        >`;
+    }
+
+    #ledRefusal(refusal) {
+        const t = this.#i18n.t;
+        switch (refusal) {
+            case LED_REFUSAL.PREVIEW_FAILED:
+                return t('The strip did not show that colour. The colour is still here — press Save to keep it.');
+            case LED_REFUSAL.WRITE_FAILED:
+                return t('The machine would not take those colours. It may be busy, or not connected.');
+            case LED_REFUSAL.NO_STATE:
+                return t('The machine has not said what its colours are, so there is nothing to change yet.');
+            case LED_REFUSAL.BAD_COLOUR:
+            case LED_REFUSAL.BAD_TARGET:
+                return t('That colour was not sent, because the page asked for something the machine does not have.');
+            default:
+                return null;
+        }
+    }
+
     #onPower(event) {
-        void this.deps?.led?.power(Boolean(event.detail?.checked), this._ledBank);
+        void this.deps?.led?.power(
+            Boolean(event.detail?.checked), this._ledBank, ledZonesFor(this._ledZone),
+        );
     }
 
     #pickCell(zone, bank) {
@@ -2192,6 +2451,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 : (Number.isFinite(target.build) ? String(target.build) : null))
             : null;
         const available = catalog.updateAvailable;
+
         const carriesNothing = catalogCarriesNothingFor(catalog);
         const headline = carriesNothing === true
             ? t('This app carries no firmware for this machine')
@@ -2205,6 +2465,7 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`<section class="group" id="firmware">
             <div class="fact-head">
                 <h3 class="ui-heading">${t('Machine firmware')}</h3>
+
                 <ui-button
                     id="firmware-check"
                     ?disabled=${busy || checking}
@@ -2225,6 +2486,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     <dt class="ui-body">${t('Images carried')}</dt>
                     <dd class="ui-body ui-numeric">${String((catalog.artifacts ?? []).length)}</dd>
                 </div>
+
                 <div class="fact" data-term="newest">
                     <dt class="ui-body">${t('Newest carried')}</dt>
                     <dd class="ui-body ui-numeric">${targetName ?? MACHINE_INFO_DASH}</dd>
@@ -2240,6 +2502,7 @@ export class SettingsBespokeLeaf extends UiElement {
             >
 
             <div class="device-actions">
+
                 ${catalog.recommendedArtifactId
                     ? html`<ui-button
                         id="firmware-latest"
@@ -2303,6 +2566,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
     #firmwareRefusal(rejected) {
         const t = this.#i18n.t;
+
         const name = (machineClass) => t(MACHINE_CLASS_NAMES[machineClass] ?? '');
         switch (rejected?.verdict) {
             case IMAGE_VERDICT.WRONG_MACHINE:
@@ -2353,8 +2617,12 @@ export class SettingsBespokeLeaf extends UiElement {
                 label=${t('Firmware progress')}
                 value-text=${fraction === null ? say[flash.state] ?? '' : `${Math.round(fraction * 100)}%`}
             ></ui-progress-track>
+
             <p id="firmware-state" class="ui-caption prose"
-                >${say[flash.state] ?? flash.state}${flash.error ? ` — ${flash.error}` : ''}</p
+                >${say[flash.state] ?? flash.state}${flash.error ? ` — ${flash.error}` : ''}${
+                    Number.isFinite(flash.detail?.status)
+                        ? ` ${t('The machine answered {status}.', { status: flash.detail.status })}`
+                        : ''}</p
             >
         </div>`;
     }
@@ -2365,6 +2633,7 @@ export class SettingsBespokeLeaf extends UiElement {
         if (!file || !store?.installFile) return;
         const verdict = await this.#firmwareVerdict(file);
         if (!verdict.ok) {
+
             this._flashRejected = verdict;
             return;
         }
@@ -2384,9 +2653,11 @@ export class SettingsBespokeLeaf extends UiElement {
             id: 'descale',
             state: MACHINE_STATE.DESCALING,
             heading: 'Descaling cycle',
+
             caption: 'Takes around 20 minutes and cannot be interrupted once started. Before you begin:',
             action: 'Start',
             confirm: 'Start the descaling cycle?',
+
             detail: 'This cannot be stopped once it has started.',
             steps: [
                 'Fill the tank with descaling solution.',
@@ -2394,6 +2665,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 'Empty the drip tray and put it back.',
                 'Put a container under the group and the steam wand.',
             ],
+
             running: 'The machine is descaling.',
             done: 'The descaling cycle has finished.',
             link: Object.freeze({
@@ -2408,18 +2680,23 @@ export class SettingsBespokeLeaf extends UiElement {
             id: 'air-purge',
             state: MACHINE_STATE.AIR_PURGE,
             heading: 'Air purge',
+
             caption: 'Purges the remaining water from inside the machine. Run it before packing the machine, so it does not leak in transport or freeze in storage. Before you begin:',
             action: 'Start',
             confirm: 'Purge the water from the machine?',
+
             detail: 'The machine is left empty of water afterwards.',
             steps: [
                 'Empty the water tank and put it back.',
                 'Remove the portafilter from the group.',
+
                 'Empty the drip tray and put it back.',
                 'Leave the steam wand pointing into the tray.',
             ],
+
             running: 'Now removing water from your espresso machine.',
             done: 'You can turn your machine off once it is out of water. It will then be ready for transport.',
+
             blockedBy: MACHINE_STATE.NEEDS_WATER,
             blockedReason: 'Out of water',
             blockedRemedy: 'Press the stop button on the group head to override, then tap Start again.',
@@ -2442,6 +2719,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
         const machine = this._machineState;
         const isRunning = machine !== null && machine === state;
+
         const finished = !isRunning && this._procedureSeen === state;
         const blocked = blockedBy !== null && machine === blockedBy;
 
@@ -2508,6 +2786,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
     #runProcedure(state) {
         this._confirm = null;
+
         if (this._procedureSeen === state) this._procedureSeen = null;
         Promise.resolve(this.deps?.machineState?.request?.(state)).catch(() => {});
     }
@@ -2535,9 +2814,15 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`
             <section class="group" id="plugin-list">
                 <h3 class="ui-heading">${t('Installed plugins')}</h3>
+
                 <div class="plugins">
                     ${state.plugins.map((plugin) => this.#pluginRow(plugin))}
                 </div>
+
+                ${this._pluginRefused
+                    ? this.#refusal('plugins-refusal', 'That change was not saved.',
+                        state.writeError ?? null)
+                    : nothing}
             </section>
             ${this._pluginOpenFailed
                 ? html`<p id="plugin-open-failed" class="ui-caption prose"
@@ -2596,14 +2881,12 @@ export class SettingsBespokeLeaf extends UiElement {
 
     #openPluginSettings(pluginId) {
         this._pluginSettingsFor = pluginId;
-        this._pluginDraft = null;
         const load = this.deps?.plugins?.loadSettings?.(pluginId);
         if (load && typeof load.catch === 'function') load.catch(() => {});
     }
 
     #closePluginSettings = () => {
         this._pluginSettingsFor = null;
-        this._pluginDraft = null;
     };
 
     #pluginSettingsDialog() {
@@ -2619,7 +2902,23 @@ export class SettingsBespokeLeaf extends UiElement {
             @open-change=${(event) => {
                 if (event?.detail?.open === false) this.#closePluginSettings();
             }}
-        >${this.#pluginForm(id, null)}</ui-dialog>`;
+        >
+            ${this.#pluginForm(id, null, { inDialog: true })}
+
+            <ui-button
+                id="plugin-settings-close"
+                slot="actions"
+                @click=${() => this.renderRoot
+                    .getElementById('plugin-settings-dialog')?.requestClose('close')}
+            >${t('Close')}</ui-button>
+            <ui-button
+                id="plugin-save"
+                slot="actions"
+                variant="primary"
+                ?disabled=${(Object.keys(this.deps?.plugins?.draftFor?.(id) ?? {}).length) === 0}
+                @click=${() => this.#onPluginSave(id)}
+            >${t('Save')}</ui-button>
+        </ui-dialog>`;
     }
 
     #openPluginPage(pluginId, endpointId) {
@@ -2635,17 +2934,19 @@ export class SettingsBespokeLeaf extends UiElement {
         if (!opened) this._pluginOpenFailed = true;
     }
 
-    #onPluginEnabled(id, event) {
+    async #onPluginEnabled(id, event) {
         const next = event?.detail?.checked;
         if (typeof next !== 'boolean') return;
-        void this.deps?.plugins?.setEnabled(id, next);
+        this._pluginRefused = false;
+        const ok = await this.deps?.plugins?.setEnabled(id, next);
+        this._pluginRefused = !ok;
     }
 
     #visualizer() {
         return this.#pluginForm(VISUALIZER_PLUGIN_ID, 'Visualizer');
     }
 
-    #pluginForm(pluginId, title) {
+    #pluginForm(pluginId, title, { inDialog = false } = {}) {
         const t = this.#i18n.t;
         const store = this.deps?.plugins;
         const manifest = store?.plugin?.(pluginId) ?? null;
@@ -2660,11 +2961,13 @@ export class SettingsBespokeLeaf extends UiElement {
         }
 
         const fields = settingFields(manifest, values);
-        const draft = this._pluginDraft?.id === pluginId ? this._pluginDraft.values : {};
+
+        const draft = store?.draftFor?.(pluginId) ?? {};
         const dirty = Object.keys(draft).length;
 
         return html`
             <section class="group" id="plugin-state">
+
                 ${title ? html`<h3
                     class="ui-heading"
                 >${t(title)}</h3>` : nothing}
@@ -2680,24 +2983,36 @@ export class SettingsBespokeLeaf extends UiElement {
                         @change=${(event) => this.#onPluginEnabled(pluginId, event)}
                     ></ui-switch>
                 </div>
+
+                ${this._pluginRefused && !dirty
+                    ? this.#refusal('plugin-enable-refusal', 'That change was not saved.',
+                        this.deps?.plugins?.get?.()?.writeError ?? null)
+                    : nothing}
             </section>
 
             ${fields.length === 0
                 ? nothing
                 : html`<section class="group" id="plugin-settings">
-                <h3 class="ui-heading">${t('Settings')}</h3>
+
+                ${inDialog ? nothing : html`<h3 class="ui-heading">${t('Settings')}</h3>`}
                     ${fields.map((field) => this.#pluginField(pluginId, field, draft))}
                     <div class="sw-row">
                         <span class="ui-caption">${dirty
                             ? `${dirty} ${t(dirty === 1 ? 'change not saved' : 'changes not saved')}`
                             : t('Saving reloads the plugin.')}</span>
-                        <ui-button
+
+                        ${inDialog ? nothing : html`<ui-button
                             id="plugin-save"
                             variant="primary"
                             ?disabled=${dirty === 0}
                             @click=${() => this.#onPluginSave(pluginId)}
-                        >${t('Save')}</ui-button>
+                        >${t('Save')}</ui-button>`}
                     </div>
+
+                    ${this._pluginRefused
+                        ? this.#refusal('plugin-refusal', 'Those settings were not saved.',
+                            this.deps?.plugins?.get?.()?.writeError ?? null)
+                        : nothing}
                 </section>`}
         `;
     }
@@ -2741,6 +3056,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     ?checked=${shown === undefined ? field.fallback === true : shown === true}
                     @change=${(event) => this.#onPluginField(pluginId, field.key, event.detail?.checked)}
                 ></ui-switch>`
+
                 : html`<ui-text-field
                     label=${t(copy.heading)}
                     hide-label
@@ -2758,15 +3074,16 @@ export class SettingsBespokeLeaf extends UiElement {
 
     #onPluginField(pluginId, key, value) {
         if (value === undefined) return;
-        const draft = this._pluginDraft?.id === pluginId ? this._pluginDraft.values : {};
-        this._pluginDraft = { id: pluginId, values: { ...draft, [key]: value } };
+        this.deps?.plugins?.stageSetting?.(pluginId, key, value);
     }
 
     async #onPluginSave(pluginId) {
-        const draft = this._pluginDraft?.id === pluginId ? this._pluginDraft.values : null;
-        if (!draft || Object.keys(draft).length === 0) return;
-        const ok = await this.deps?.plugins?.writeSettings(pluginId, draft);
-        if (ok) this._pluginDraft = null;
+        const store = this.deps?.plugins;
+        if (!store?.draftFor?.(pluginId)) return;
+
+        this._pluginRefused = false;
+        const ok = await store.commitDraft(pluginId);
+        this._pluginRefused = !ok;
     }
 
     #decentAccount() {
@@ -2807,11 +3124,13 @@ export class SettingsBespokeLeaf extends UiElement {
                         ${[
                             'Leave this skin and open Account in ReaPrime.',
                             'Sign in with your Decent email and password.',
+
                             'Come back here — this page will show the message box.',
                         ].map((step) => html`<li class="ui-body"
                             >${t(step)}</li
                         >`)}
                     </ol>
+
                     <p class="ui-caption prose"
                         >${t('No account? You can still reach a human at')}
                         <a
@@ -2828,6 +3147,7 @@ export class SettingsBespokeLeaf extends UiElement {
     #supportThread() {
         const t = this.#i18n.t;
         const store = this.deps?.support ?? null;
+
         if (!store) return nothing;
         const state = store?.get?.() ?? null;
         const messages = Array.isArray(state?.messages) ? state.messages : [];
@@ -2865,6 +3185,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
     #supportMessage(message) {
         const t = this.#i18n.t;
+
         const language = this.deps?.settings?.value?.('language') ?? this.deps?.defaultLanguage;
         const when = message.at === null ? null : shortDateTime(message.at * MS_PER_SECOND, language);
         return html`<li class="message" data-from=${message.from === null ? 'you' : 'decent'}>
@@ -2938,6 +3259,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 : html`<div class="form-row" data-control="switch">
                     <div class="sw-label">
                         <span class="ui-heading">${t('Attach machine details')}</span>
+
                         <span class="ui-caption">${t('Adds the model, firmware version, serial number and app version to the end of your message.')}</span>
                     </div>
                     <ui-switch
@@ -2974,6 +3296,7 @@ export class SettingsBespokeLeaf extends UiElement {
             ['Model', info?.model],
             ['Firmware', info?.version],
             ['Serial', info?.serialNumber],
+
             ['App Version', app?.version],
         ].filter(([, value]) => typeof value === 'string' && value !== '');
         return lines.length === 0 ? null : lines;
@@ -2983,6 +3306,7 @@ export class SettingsBespokeLeaf extends UiElement {
         if (value === undefined) return;
         const draft = this._support ?? EMPTY_SUPPORT_DRAFT;
         this._support = { ...draft, [key]: value };
+
         if (this._supportIncomplete) this._supportIncomplete = false;
         const status = this.deps?.support?.get?.()?.send?.status;
         if (status === SEND_STATUS.SENT || status === SEND_STATUS.REFUSED) {
@@ -3017,6 +3341,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const draft = this._feedback ?? { type: 'bug', description: '', includeLogs: true, includeSystemInfo: true };
 
         if (state?.status === FEEDBACK_STATUS.SENT) {
+
             const number = Number.isInteger(state.issueNumber) ? state.issueNumber : null;
             const url = typeof state.issueUrl === 'string' && state.issueUrl !== '' ? state.issueUrl : null;
             return html`<ui-empty-state
@@ -3057,6 +3382,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     .value=${draft.type}
                     @change=${(event) => this.#onFeedbackField('type', event.detail?.value)}
                 ></ui-bank>
+
                 <span id="feedback-type-hint" class="ui-caption"
                     >${t(FEEDBACK_TYPES.find((entry) => entry.value === draft.type)?.hint ?? '')}</span>
             </div>
@@ -3088,7 +3414,9 @@ export class SettingsBespokeLeaf extends UiElement {
             </div>
             <div class="form-row" data-control="switch">
                 <div class="sw-label">
+
                     <span class="ui-heading">${t('Attach system information')}</span>
+
                     <span class="ui-caption">${t('Appends the app version, build and platform to the report.')}</span>
                 </div>
                 <ui-switch
@@ -3100,12 +3428,14 @@ export class SettingsBespokeLeaf extends UiElement {
 
             <p class="ui-caption prose"
                 >${t('Screenshots are not sent — ReaPrime does not read them from this route.')}</p>
+
             <p id="feedback-destination" class="ui-caption prose"
                 >${t('Feedback is filed as an issue on ReaPrime’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
             ${refusal === FEEDBACK_REFUSAL.FAILED
                 ? html`<span id="feedback-failed" class="ui-caption"
                     >${state.message ?? t('Sending failed.')}</span>`
                 : nothing}
+
             <ui-button
                 id="feedback-send"
                 class="bindings-reset"
@@ -3136,6 +3466,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const t = this.#i18n.t;
         const document_ = this.deps?.app?.document ?? null;
         const charging = document_?.chargingState ?? null;
+
         const savingBattery = document_?.chargingMode !== 'disabled';
         const nightOn = savingBattery && document_?.nightModeEnabled === true;
 
@@ -3204,19 +3535,29 @@ export class SettingsBespokeLeaf extends UiElement {
                 auto-advance
                 @change=${this.#onNightTime}
             ></ui-time-picker>
+
+            ${this._nightRefused
+                ? this.#refusal('night-refusal', 'That time was not saved. The machine may be busy, or not connected.')
+                : nothing}
             <ui-button slot="actions" variant="primary" @click=${() => { this._nightEdit = null; }}
                 >${t('Done')}</ui-button>
         </ui-dialog>`;
     }
 
-    #onNightTime = (event) => {
+    #onNightTime = async (event) => {
         const value = event?.detail?.value;
         const minutes = timeToMinutes(value);
         if (minutes === null || !this._nightEdit) return;
         const field = this._nightEdit === 'sleep' ? 'nightModeSleepTime' : 'nightModeMorningTime';
-        /* THE STORE RE-READS ITSELF ON A SUCCESSFUL WRITE, so there is nothing to
-         * refresh here and no second copy to keep in step. */
-        Promise.resolve(this.deps?.app?.write?.({ [field]: minutes })).catch(() => {});
+        this._nightRefused = false;
+
+        let ok = false;
+        try {
+            ok = await this.deps?.app?.write?.({ [field]: minutes });
+        } catch {
+            ok = false;
+        }
+        this._nightRefused = !ok;
     };
 
     #deviceList(type) {
@@ -3243,6 +3584,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     ? html`<p id="devices-error" class="ui-caption prose" role="status"
                         >${t('This machine could not be asked what it remembers.')}</p>`
                     : html`
+
                         <p class="ui-caption prose" id="devices-search-note"
                             >${t('Search looks for devices nearby. Nothing is connected automatically.')}</p>
                         ${known.length === 0
@@ -3252,6 +3594,7 @@ export class SettingsBespokeLeaf extends UiElement {
                                 body=${t('Press Search to look for one. A device stays on this list once it has been connected.')}
                             ></ui-empty-state>`
                             : html`<div class="devices">
+
                                 <div class="device-head" aria-hidden="true">
                                     <span></span>
                                     <span></span>
@@ -3272,6 +3615,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const t = this.#i18n.t;
         const store = this.deps?.scaleConnect;
         const connected = device.state === DEVICE_STATE.CONNECTED;
+
         const word = device.available === false
             ? 'Unavailable'
             : (DEVICE_WORD[device.state] ?? 'Unknown');
@@ -3281,6 +3625,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 <span class="ui-heading">${device.name ?? device.id}</span>
                 <span class="ui-caption">${device.id}</span>
             </span>
+
             <ui-status-chip class="device-state">${t(word)}</ui-status-chip>
             <ui-switch
                 class="device-preferred"
@@ -3297,6 +3642,7 @@ export class SettingsBespokeLeaf extends UiElement {
                         class="device-disconnect"
                         @click=${() => { void store?.disconnectDevice(device.id); }}
                     >${t('Disconnect')}</ui-button>`
+
                     : html`<ui-button
                         class="device-connect"
                         @click=${() => {
@@ -3374,6 +3720,7 @@ export class SettingsBespokeLeaf extends UiElement {
             <section class="group" id="wifi">
                 <h3 class="ui-heading">${t('WiFi scales')}</h3>
                 <p class="ui-caption prose">${t('A WiFi scale is reached by address rather than found by scanning.')}</p>
+
                 ${state?.endpoints === null && state?.error
                     ? html`<p id="wifi-error" class="ui-caption prose" role="status"
                         >${t('This machine could not be asked which addresses it holds.')}</p>`
@@ -3403,6 +3750,7 @@ export class SettingsBespokeLeaf extends UiElement {
                         @click=${this.#onWifiAdd}
                     >${t('Add')}</ui-button>
                 </div>
+
                 ${state?.writeError?.op === 'endpoint'
                     ? html`<span id="wifi-refusal" class="ui-caption" role="status"
                         >${t('That address was refused.')}${state.writeError.reason
@@ -3429,6 +3777,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
         return html`<section class="group" id="bindings">
             <h3 class="ui-heading">${t('Keyboard shortcuts')}</h3>
+
             <p class="ui-caption prose"
                 >${t('Tap Rebind, then press a key on a connected USB or Bluetooth keyboard. These keys work on the Live screen, and only on a machine with no group-head controller.')}</p>
 
@@ -3452,6 +3801,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 ? html`<span id="binding-conflict" class="ui-caption"
                     >${t('That key already runs')} ${t(this._bindingConflict)}.</span>`
                 : nothing}
+
             <ui-button
                 id="bindings-reset"
                 class="bindings-reset"
@@ -3499,86 +3849,141 @@ export class SettingsBespokeLeaf extends UiElement {
             .catch(() => {});
     };
 
+    #bindSaverImages() {
+        const controller = settingsImagesFor(this.deps?.settings, this.ownerDocument?.defaultView);
+        if (controller === this.#saverImages && this.#stopSaverImages) return;
+        this.#stopSaverImages?.();
+        this.#saverImages = controller;
+        this.#stopSaverImages = controller?.subscribe(() => { this._version += 1; }) ?? null;
+    }
+
+    #saverFileName(file, index = 0) {
+        return file.name || this.#i18n.t('Image {n}', { n: index + 1 });
+    }
+
     #screenSaver() {
         const t = this.#i18n.t;
         const settings = this.deps?.settings;
-        const images = settings?.value?.('screensaverImages');
-        const list = Array.isArray(images) ? images : [];
-        const type = settings?.value?.('screensaverType');
-        const inert = type !== 'image';
+        const state = this.#saverImages?.get() ?? { images: [], issues: [], active: 0, busy: false, checking: false, outcome: null };
+        const inert = settings?.value?.('screensaverType') !== 'image';
+        const pending = state.busy || state.checking;
+        const full = state.active >= SCREENSAVER_IMAGE_LIMIT;
+        const active = state.images.filter((image) => image.status === 'active');
+        const inactive = state.images.filter((image) => image.status !== 'active');
+        const failures = state.issues.filter((issue) => !issue.targetId);
+        const visible = [...active, ...[...inactive, ...failures].slice(0, MAX_INLINE_SAVER_ISSUES)];
+        const hasCustom = state.images.length > 0 || state.issues.length > 0;
+        const visibleIds = new Set(visible.map((file) => file.id));
+        for (const id of this.#saverTiles.keys()) if (!visibleIds.has(id)) this.#saverTiles.delete(id);
 
         return html`
-            <section class="group" id="saver-images" ?data-inert=${inert}>
+            <section class="group" id="saver-images" ?data-inert=${inert} aria-busy=${pending ? 'true' : 'false'}>
                 <div class="fact-head">
                     <h3 class="ui-heading">${t('Images')}</h3>
                     <div class="sw-row">
-                        <ui-file-button
-                            id="saver-pick-files"
-                            multiple
-                            accept="image/*"
-                            ?disabled=${inert}
-                            @file-pick=${this.#onSaverPick}
-                        >${t('Choose images')}</ui-file-button>
-                        <ui-file-button
-                            id="saver-pick-folder"
-                            directory
-                            accept="image/*"
-                            ?disabled=${inert}
-                            @file-pick=${this.#onSaverPick}
-                        >${t('Choose a folder')}</ui-file-button>
-                        ${list.length > 0
-                            ? html`<ui-button
-                                id="saver-clear"
-                                variant="danger"
-                                ?disabled=${inert}
-                                @click=${this.#onSaverClear}
-                            >${t('Use the built-in image')}</ui-button>`
-                            : nothing}
+                        <ui-file-button id="saver-pick-files" multiple accept="image/*"
+                            ?disabled=${inert || pending || full} @file-pick=${this.#onSaverPick}>${t('Add images')}</ui-file-button>
+                        <ui-file-button id="saver-pick-folder" directory accept="image/*"
+                            ?disabled=${inert || pending || full} @file-pick=${this.#onSaverPick}>${t('Add a folder')}</ui-file-button>
+                        ${hasCustom || state.busy ? html`<ui-button id="saver-clear" variant="danger" ?disabled=${inert}
+                            @click=${this.#onSaverClear}>${t('Use the built-in image')}</ui-button>` : nothing}
                     </div>
                 </div>
-                ${list.length > 0
-                    ? html`<p id="saver-count" class="ui-caption prose"
-                        >${t('{n} images chosen. A folder is read when you pick it — add it again if its contents change.', { n: list.length })}</p>`
-                    : html`<p id="saver-default-note" class="ui-caption prose"
-                        >${t('Using the built-in image. Choose your own to replace it.')}</p>`}
+                ${hasCustom ? html`<p id="saver-count" class="ui-caption prose"
+                    >${t('{n} of {limit} active images', { n: state.active, limit: SCREENSAVER_IMAGE_LIMIT })}</p>` : nothing}
+
+                ${!inert && !state.active && !state.checking ? html`<p id="saver-default-note" class="ui-caption prose"
+                    >${t('Using the built-in image. Add images to use your own.')}</p>` : nothing}
+                <p class="ui-caption prose" id="saver-limits">${t('App limits: 4 MiB per file and 4096 pixels on the longest edge.')}</p>
+                <p class="ui-caption prose">${t('A folder is read when you pick it. Existing images are kept; use Replace to change one.')}</p>
+                ${full ? html`<p id="saver-capacity" class="ui-caption prose"
+                    >${t('All 12 active image slots are in use. Replace or remove an image before adding more.')}</p>` : nothing}
+                ${this.#saverOutcome(state)}
                 <div class="thumbs">
-                    ${(list.length > 0 ? list : [SCREENSAVER_DEFAULT_IMAGE]).map((src, index) => html`<img
-                        class="thumb"
-                        data-thumb=${index}
-                        src=${src}
-                        alt=""
-                    >`)}
+                    ${!active.length ? html`<div class="saver-tile saver-built-in"><div class="saver-picture"
+                        ><img class="thumb" src=${SCREENSAVER_DEFAULT_IMAGE} alt=""></div
+                        ><p class="saver-name ui-caption">${t('Built-in image')}</p></div>` : nothing}
+                    ${visible.map((file) => this.#saverTile(file, state, inert || pending))}
                 </div>
             </section>
         `;
     }
 
-    #onSaverPick = async (event) => {
-        const picked = (event?.detail?.files ?? [])
-            .filter((file) => typeof file?.type === 'string' && file.type.startsWith('image/'))
-            .slice(0, SAVER_IMAGE_LIMIT);
-        if (picked.length === 0) return;
-        const urls = [];
-        for (const file of picked) {
-            const url = await readAsDataUrl(file);
-            if (url) urls.push(url);
-        }
-        if (urls.length === 0) return;
-        await this.deps?.settings?.set('screensaverImages', urls);
-    };
+    #saverTile(file, state, disabled) {
+        const t = this.#i18n.t;
+        const index = state.images.findIndex((image) => image.id === file.id);
+        const fullName = this.#saverFileName(file, Math.max(0, index));
+        const name = fullName.split(/[\\/]/).at(-1) || fullName;
+        const issue = state.issues.find((entry) => entry.targetId === file.id);
+        const warning = issue?.status ?? (file.status === 'active' ? null : file.status);
+        let tile = this.#saverTiles.get(file.id);
+        if (!tile) { tile = this.ownerDocument.createElement('div'); tile.className = 'saver-tile'; this.#saverTiles.set(file.id, tile); }
+        tile.dataset.saverId = String(file.id);
+        tile.dataset.saverStatus = file.status;
+        renderTemplate(html`
+            <div class="saver-picture">
+                ${file.url && file.status === 'active' ? html`<img class="thumb" data-thumb=${index} src=${file.url} alt="">` : nothing}
+                ${warning ? html`<div class="saver-warning" data-status=${warning}>
+                    <strong>${t(SAVER_TILE_REASON[warning] ?? SAVER_TILE_REASON.unreadable)}</strong>
+                    <span>${t(file.status === 'active' ? 'Current image kept' : warning === 'checking' ? 'Please wait' : 'Not active')}</span>
+                </div>` : nothing}
+            </div>
+            <p class="saver-name ui-caption" title=${fullName}>${name}</p>
+            <div class="saver-actions">
+                <ui-file-button class="saver-replace" accept="image/*" ?disabled=${disabled || (file.status !== 'active' && state.active >= SCREENSAVER_IMAGE_LIMIT)}
+                    label=${t('Replace {name}', { name: fullName })}
+                    @file-pick=${(event) => { void this.#saverImages?.replace(file.id, event.detail?.files); }}>${t('Replace')}</ui-file-button>
+                <ui-button class="saver-remove" ?disabled=${disabled} label=${t('Remove {name}', { name: fullName })}
+                    @click=${() => { void this.#saverImages?.remove(file.id); }}>${t('Remove')}</ui-button>
+            </div>
+        `, tile);
+        return tile;
+    }
 
-    /** Back to the bundled picture: the stored list goes, and the default shows again. */
-    #onSaverClear = async () => {
-        await this.deps?.settings?.set('screensaverImages', []);
-    };
+    #onSaverPick = (event) => { void this.#saverImages?.add(event.detail?.files); };
+    #onSaverClear = () => { void this.#saverImages?.clear(); };
+
+    #saverOutcome(state) {
+        const t = this.#i18n.t;
+        const outcome = state.outcome;
+        const files = outcome?.files ?? [];
+        const added = files.filter((file) => file.status === 'added').length;
+        const replaced = files.filter((file) => file.status === 'replaced').length;
+        const skipped = files.filter((file) => !['added', 'replaced'].includes(file.status)).length;
+        const details = [
+            ...state.images.filter((image) => !['active', 'checking'].includes(image.status)).map((image, index) => ({ ...image, name: this.#saverFileName(image, state.images.indexOf(image)), removable: true })),
+            ...state.issues.map((issue) => ({ ...issue, removable: true })),
+            ...files.filter((file) => ['capacity', 'not-image', 'not-used', 'cancelled'].includes(file.status)),
+        ];
+        return html`
+            ${state.busy || state.checking ? html`<p id="saver-progress" class="ui-caption prose" role="status"
+                >${t(state.checking ? 'Checking stored images…' : outcome?.phase === 'reading'
+                    ? 'Checking file {n} of {total}…' : outcome?.phase === 'saving' ? 'Saving image changes…' : 'Processing image changes…', { n: outcome?.reading, total: outcome?.total })}</p>` : nothing}
+            ${outcome && !state.busy ? html`<p id="saver-outcome" class="ui-caption prose" role="status"
+                >${outcome.failure ? t(SAVER_OPERATION_REASON[outcome.failure] ?? SAVER_OPERATION_REASON.storage)
+                    : t('Last selection: {added} added, {replaced} replaced, {skipped} not added.', { added, replaced, skipped })}</p>` : nothing}
+            ${details.length ? html`<details id="saver-details" class="saver-details">
+                <summary>${t('Files needing attention ({n})', { n: details.length })}</summary>
+                <ul class="saver-file-results">${details.map((file, index) => html`<li>
+                    <span>${this.#saverFileName(file, index)}</span>
+                    <span>${t(SAVER_FILE_REASON[file.status] ?? SAVER_FILE_REASON.unreadable)}</span>
+                    ${file.removable ? html`<ui-button ?disabled=${state.busy || this.deps?.settings?.value?.('screensaverType') !== 'image'}
+                        label=${t('Remove {name}', { name: this.#saverFileName(file, index) })}
+                        @click=${() => { void this.#saverImages?.remove(file.id); }}>${t('Remove')}</ui-button>` : nothing}
+                </li>`)}</ul>
+            </details>` : nothing}
+        `;
+    }
 
     #defaults() {
         const t = this.#i18n.t;
         const client = this.deps?.de1Settings ?? null;
         const read = this.deps?.machineValue ?? (() => undefined);
+
         const machineClass = typeof this.deps?.machineClass === 'function'
             ? this.deps.machineClass()
             : null;
+
         const resets = RESET_FIELDS.map((row) => {
             const registryRow = SETTINGS_ROWS.find((entry) => entry.field === row.field);
             const candidate = registryRow ? leafFor(registryRow.leaf) : null;
@@ -3588,7 +3993,10 @@ export class SettingsBespokeLeaf extends UiElement {
             const leaf = reachable ? candidate : null;
             return { ...row, registryRow, leaf };
         });
+
         const pages = [...new Set(resets.map((row) => row.leaf).filter(Boolean).map(navName))];
+
+        const flowDefault = RESET_FIELDS.find((row) => row.field === 'flowMultiplier')?.value ?? null;
 
         return html`
             <section class="group" id="defaults">
@@ -3601,8 +4009,9 @@ export class SettingsBespokeLeaf extends UiElement {
                         @click=${() => { this._confirm = 'defaults'; }}
                     >${t('Restore defaults')}</ui-button>
                 </div>
+
                 <p class="ui-caption prose"
-                    >${t('Puts eight machine settings back to the values the machine ships with. Nothing else is touched — no profile, no calibration, no shot history.')}</p>
+                    >${t('Puts eight machine settings back to the values the machine ships with, the flow calibration among them. Your load-cell calibration, your profiles and your shot history are not touched.')}</p>
 
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>
@@ -3632,7 +4041,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 id="defaults-confirm"
                 .open=${this._confirm === 'defaults'}
                 question=${t('Restore these eight settings?')}
-                detail=${defaultsDetail(t, pages)}
+                detail=${defaultsDetail(t, pages, flowDefault)}
                 confirm-label=${t('Restore defaults')}
                 tone="destructive"
                 @confirm=${this.#onDefaultsConfirm}
@@ -3649,6 +4058,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const result = await client.resetSettings();
         this._defaultsFailed = !result?.ok;
         if (!result?.ok) return;
+
         await this.deps?.reloadMachine?.();
         this._version += 1;
     };
@@ -3678,6 +4088,7 @@ export function draftFrom(schedule) {
         id: schedule.id,
         time: typeof schedule.time === 'string' ? schedule.time : '07:00',
         days: [...(schedule.daysOfWeek ?? [])].sort((a, b) => a - b),
+
         keepAwakeFor: Number.isFinite(schedule.keepAwakeFor) ? schedule.keepAwakeFor : 0,
     };
 }

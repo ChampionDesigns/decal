@@ -74,10 +74,12 @@ const LED_BODY = Object.freeze({
 });
 
 describe('led-colour: the four converters, and only the four', () => {
+
     test('8 -> 16 shifts into the high byte, which is what the MACHINE holds', () => {
         assert.equal(led8to16(0x4a), '4A00');
         assert.equal(led8to16(0xff), 'FF00');
         assert.equal(led8to16(0), '0000');
+
         assert.equal(ledRgbToColour16({ r: 0xff, g: 0xd9, b: 0xa0 }), 'FF00D900A000');
         assert.equal(ledRgbToColour16({ r: 0xff, g: 0x22, b: 0x00 }), 'FF0022000000');
     });
@@ -94,6 +96,7 @@ describe('led-colour: the four converters, and only the four', () => {
     });
 
     test('16 -> 8 -> 16 is the identity for a CANONICAL colour and nothing else', () => {
+
         for (const wire of ['FF00D900A000', 'FF00D3008E00', 'FF0022000000', '000000000000']) {
             assert.equal(ledHex8ToColour16(ledColour16ToHex8(wire)), wire, `canonical ${wire}`);
             assert.equal(canonicalColour16(wire), wire);
@@ -124,12 +127,18 @@ describe('led-colour: the four converters, and only the four', () => {
         assert.match(ledColour16ToHex8('FFFFAAAA5555'), /^#[0-9a-f]{6}$/);
     });
 
-    test('the three that were NOT ported have no spelling anywhere in the cluster', () => {
+    test('the preview pair is addressed by ROUTE ID, never spelled, and the composite is still not ported', () => {
+
         for (const [path, code] of Object.entries(CODE)) {
             assert.doesNotMatch(code, /ledPreviewComposite/, `${path} ports the composite`);
-            assert.doesNotMatch(code, /previewLedStrip/, `${path} calls a route that does not exist`);
-            assert.doesNotMatch(code, /ledStrip\/preview/, `${path} spells a route that does not exist`);
+            assert.doesNotMatch(code, /previewLedStrip/, `${path} spells a Dart method name`);
+            assert.doesNotMatch(code, /['\"`]\/machine\/ledStrip/, `${path} spells a path`);
         }
+        const store = CODE['src/stores/led-strip-store.js'];
+        assert.match(store, /postMachineLedStripPreview['\"]/, 'the drag has to reach the strip');
+        assert.match(store, /postMachineLedStripPreviewClear/, 'and something has to end it');
+        assert.doesNotMatch(store, /postMachineLedStripCommit/,
+            'the keeping step runs an empty method and its refusal was reportable');
     });
 
     test('the validity helpers agree with the wire format', () => {
@@ -140,84 +149,302 @@ describe('led-colour: the four converters, and only the four', () => {
     });
 });
 
-describe('D7: pendingColour, one write in flight, latest-wins — and no clock', () => {
-    /** A store over a transport whose PREVIEWS park until they are released. */
+describe('the palette is a draft, the strip follows it, and Save is the only store', () => {
+
     function slowStore() {
         const parked = [];
+        const previewParked = [];
+        const previews = [];
+        const state = { holdPreview: false };
         const transport = transportOf(({ key, body }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            if (key === 'PUT /machine/ledStrip') {
+                return new Promise((resolve) => parked.push(() => resolve(ok({ ...body }, 200))));
+            }
             if (key === 'POST /machine/ledStrip/preview') {
-                return new Promise((resolve) => parked.push(
-                    () => resolve(reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' }))));
+                previews.push(body);
+                const answer = reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+                if (!state.holdPreview) return answer;
+                return new Promise((resolve) => previewParked.push(() => resolve(answer)));
             }
-            if (key === 'PUT /machine/ledStrip') return ok({ status: 'accepted' }, 200);
             if (key === 'POST /machine/ledStrip/preview/clear') {
-                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
-            }
-            if (key === 'POST /machine/ledStrip/commit') {
                 return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
             }
             if (key === 'POST /machine/ledStrip/reset') return ok({ ...LED_BODY });
             return bad(503);
         });
-        return { store: createLedStripStore({ transport }), transport, parked };
+        return {
+            store: createLedStripStore({ transport }), transport, parked, previewParked, previews, state,
+        };
     }
 
-    test('N rapid changes put exactly ONE write on the wire at a time', async () => {
-        const { store, transport, parked } = slowStore();
+    const posted = (transport, path) => transport.calls.filter((call) => call.path.endsWith(path));
+
+    test('a drag reaches the STRIP and never the stored palette', async () => {
+        const { store, transport, previews } = slowStore();
         await store.load();
 
         const hexes = ['#ffaa55', '#ffd9a0', '#eaf2ff', '#ff7a00', '#ff2200', '#0ca581', '#00c2d1'];
-        const drain = hexes.map((hex) => store.preview('frontStrip', 'awake', hex));
+        for (const hex of hexes) void store.preview('frontStrip', 'awake', hex);
+        await store.previewSettled();
 
-        /* Seven intents, and the wire has one. Nothing is queued: the six that arrived
-         * while the first was in flight overwrote each other in `pendingColour`. */
-        assert.equal(parked.length, 1, 'one preview on the wire');
+        assert.ok(previews.length > 0, 'a drag put nothing on the wire — the strip cannot follow it');
+        assert.equal(store.get().previewing, true, 'and the store does not know a colour is showing');
+
+        assert.equal(transport.calls.filter((call) => call.method === 'PUT').length, 0,
+            'a drag wrote the stored palette');
         assert.equal(store.counters().intents, 7);
-        assert.equal(store.counters().sent, 1);
+        assert.equal(store.counters().sent, 0);
+        assert.equal(store.get().dirty, true, 'and the header counts one thing to save');
+        assert.equal(store.hex('frontStrip', 'awake'), '#00c2d1', 'the picker shows the last colour');
 
-        parked.shift()();                      // the first write answers
-        await new Promise((r) => setTimeout(r, 0));
-        assert.equal(parked.length, 1, 'the NEXT write goes out, not six of them');
-
-        parked.shift()();
-        await Promise.all(drain);
-        await store.settled();
-
-        const previews = transport.calls.filter((c) => c.path.endsWith('/ledStrip/preview'));
-        assert.equal(previews.length, 2, 'seven intents, two writes');
-        assert.equal(store.counters().peakInFlight, 1, 'never two writes at once');
-        assert.equal(store.counters().dropped, 5);
+        const last = previews[previews.length - 1];
+        assert.equal(last.frontStrip, ledHex8ToColour16('#00c2d1'));
+        assert.equal(last.backStrip, undefined,
+            'a strip the body does not name is left alone — naming it would push a colour at it');
     });
 
-    test('the LAST colour wins — the machine ends on it, not on an intermediate', async () => {
+    test('a drag against a slow strip keeps ONE request in flight and sends the newest', async () => {
+        const { store, previewParked, previews, state } = slowStore();
+        await store.load();
+        state.holdPreview = true;
+
+        void store.preview('frontStrip', 'awake', '#ff2200');
+
+        assert.equal(previewParked.length, 1);
+        for (const hex of ['#0ca581', '#00c2d1', '#7a3ff2']) {
+            void store.preview('frontStrip', 'awake', hex);
+        }
+        assert.equal(previewParked.length, 1, 'four frames, four requests — the slot is not a slot');
+        assert.equal(store.counters().previewPeak, 1, 'never two previews at once');
+        assert.equal(store.counters().coalesced, 2, 'the frames a newer one replaced');
+
+        previewParked.shift()();
+        while (previewParked.length === 0) await new Promise((resolve) => { setTimeout(resolve, 1); });
+        assert.equal(previewParked.length, 1, 'the freed slot took the newest waiting frame');
+        previewParked.shift()();
+        state.holdPreview = false;
+        await store.previewSettled();
+
+        assert.equal(previews.length, 2, 'four frames cost two requests');
+        assert.equal(previews[1].frontStrip, ledHex8ToColour16('#7a3ff2'),
+            'the colour the finger stopped on is the one the strip was left showing');
+    });
+
+    test('a frame that repeats the colour already showing is not sent', async () => {
+        const { store, previews } = slowStore();
+        await store.load();
+        for (let i = 0; i < 4; i += 1) {
+            await store.preview('frontStrip', 'awake', '#112233');
+            await store.previewSettled();
+        }
+        assert.equal(previews.length, 1, 'a finger resting on one colour kept the write path busy');
+    });
+
+    test('Save sends ONE palette — the reviewed one — and ends the preview', async () => {
         const { store, transport, parked } = slowStore();
         await store.load();
 
-        const drain = ['#ff2200', '#0ca581', '#00c2d1', '#7a3ff2']
-            .map((hex) => store.preview('backStrip', 'awake', hex));
-        while (parked.length) {
-            parked.shift()();
-            await new Promise((r) => setTimeout(r, 0));
+        for (const hex of ['#ff2200', '#0ca581', '#00c2d1', '#7a3ff2']) {
+            void store.preview('backStrip', 'awake', hex);
         }
-        await Promise.all(drain);
+        await store.previewSettled();
+        const saving = store.commit();
+        assert.equal(parked.length, 1, 'one write, whatever the drag did');
+        parked.shift()();
+        assert.equal(await saving, true);
         await store.settled();
 
-        const last = transport.calls.filter((c) => c.path.endsWith('/ledStrip/preview')).pop();
-        assert.equal(last.body.backStrip, ledHex8ToColour16('#7a3ff2'),
-            'the machine is left wearing the colour the user stopped on');
-        assert.equal(store.hex('backStrip', 'awake'), '#7a3ff2');
-        /* THE OTHER STRIP IS SENT AS IT STANDS, never dropped: a body that named only
-         * the strip that moved would leave the other one to the firmware, and a body
-         * that sent it black would darken it. */
-        assert.equal(last.body.frontStrip, LED_BODY.frontStrip.awake);
-        /* THE BODY IS EXACTLY THE TWO STRIPS. The old assertion also pinned an untouched
-         * `backStrip.sleeping`, which the flat preview body has no room for; the shape
-         * itself is pinned instead, so a body that grew a bank, or started sending
-         * `frontSwitch` (which has no live register at all), fails here. */
-        assert.deepEqual(Object.keys(last.body).sort(), ['backStrip', 'frontStrip']);
-        /* AND NOTHING WAS STORED. The stored palette moves only on save. */
-        assert.equal(transport.calls.filter((c) => c.method === 'PUT').length, 0);
+        const puts = transport.calls.filter((call) => call.method === 'PUT');
+        assert.equal(puts.length, 1, 'four intents, one write');
+        assert.equal(puts[0].body.backStrip.awake, ledHex8ToColour16('#7a3ff2'),
+            'the machine is given the colour the user stopped on');
+
+        assert.equal(puts[0].body.frontStrip.awake, LED_BODY.frontStrip.awake);
+        assert.equal(puts[0].body.backStrip.sleeping, LED_BODY.backStrip.sleeping);
+        assert.equal(store.counters().peakInFlight, 1, 'never two writes at once');
+        assert.equal(store.get().dirty, false, 'and there is nothing left to save');
+
+        assert.equal(posted(transport, '/ledStrip/preview/clear').length, 1);
+        assert.equal(store.get().previewing, false);
+    });
+
+    test('THE KEEPING STEP IS NEVER POSTED — the PUT is the persistence', async () => {
+
+        const transport = transportOf(({ key, body }) => {
+            if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            if (key === 'PUT /machine/ledStrip') return ok({ ...body });
+            if (key === 'POST /machine/ledStrip/preview'
+                || key === 'POST /machine/ledStrip/preview/clear') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+            }
+            return bad(503, { error: 'the fixture was never meant to answer this' });
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.previewSettled();
+
+        assert.equal(await store.commit(), true, 'a save that stored the palette reported a failure');
+        assert.equal(posted(transport, '/ledStrip/commit').length, 0,
+            'a request that runs an empty method was posted, and its refusal was reportable');
+        assert.equal(store.get().refusal, null);
+        assert.equal(store.get().dirty, false);
+        assert.equal(store.hex('frontStrip', 'awake'), '#112233');
+        assert.equal(LED_REFUSAL.NOT_KEPT, undefined, 'the state it produced is gone with it');
+    });
+
+    test('a colour chosen while the Save is out is REFUSED, not silently discarded', async () => {
+
+        const { store, parked } = slowStore();
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#4a0924');
+        await store.previewSettled();
+
+        const saving = store.commit();
+        assert.equal(store.get().writing, true, 'the page has to be able to show it is saving');
+
+        const moved = await store.preview('frontStrip', 'awake', '#3f094a');
+        assert.equal(moved, false, 'the edit was taken, and the save is about to throw it away');
+        assert.equal(store.hex('frontStrip', 'awake'), '#4a0924',
+            'the reviewed colour is what is being saved and what the page must keep showing');
+
+        parked.shift()();
+        assert.equal(await saving, true);
+        assert.equal(store.hex('frontStrip', 'awake'), '#4a0924');
+        assert.equal(store.get().dirty, false, 'and nothing is left half-saved');
+        assert.equal(store.get().writing, false, 'the picker comes back');
+    });
+
+    test('the power switch is refused during a Save too, and by the same rule', async () => {
+        const { store, parked } = slowStore();
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#4a0924');
+        const saving = store.commit();
+        assert.equal(await store.power(false, 'awake', ['frontStrip']), false);
+        assert.equal(store.hex('frontStrip', 'awake'), '#4a0924');
+        parked.shift()();
+        await saving;
+    });
+
+    test('Cancel drops the colour, ends the preview, and takes the machine’s own answer', async () => {
+        for (const resets of [ok({ ...LED_BODY }), bad(503)]) {
+            const transport = transportOf(({ key }) => {
+                if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+                if (key === 'POST /machine/ledStrip/preview'
+                    || key === 'POST /machine/ledStrip/preview/clear') {
+                    return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+                }
+                if (key === 'POST /machine/ledStrip/reset') return resets;
+                return bad(500);
+            });
+            const store = createLedStripStore({ transport });
+            await store.load();
+            void store.preview('frontStrip', 'awake', '#112233');
+            await store.previewSettled();
+            assert.equal(store.get().dirty, true);
+            assert.equal(store.get().previewing, true);
+
+            await store.reset();
+            assert.equal(store.get().dirty, false, 'Cancel leaves nothing staged');
+            assert.equal(store.get().draft, null);
+            assert.equal(store.get().previewing, false, 'and nothing showing');
+            assert.equal(posted(transport, '/ledStrip/preview/clear').length, 1,
+                'Cancel left the tried colour standing on the strip until the next sleep');
+            assert.equal(store.hex('frontStrip', 'awake'),
+                ledColour16ToHex8(LED_BODY.frontStrip.awake),
+                'and the picker is back on the palette the machine holds');
+            assert.equal(transport.calls.filter((call) => call.method === 'PUT').length, 0,
+                'nothing was ever stored, so there is nothing to write back');
+        }
+    });
+
+    test('leaving the picker ends the preview and KEEPS the draft', async () => {
+
+        const { store, transport } = slowStore();
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.previewSettled();
+
+        assert.equal(await store.endPreview(), true);
+        assert.equal(posted(transport, '/ledStrip/preview/clear').length, 1);
+        assert.equal(store.get().previewing, false);
+        assert.equal(store.get().dirty, true, 'walking to another leaf threw the edit away');
+        assert.equal(store.hex('frontStrip', 'awake'), '#112233');
+
+        assert.equal(await store.endPreview(), true);
+        assert.equal(posted(transport, '/ledStrip/preview/clear').length, 1);
+    });
+
+    test('a frame still waiting when the picker closes is dropped, not sent after the clear', async () => {
+
+        const { store, transport, previewParked, previews, state } = slowStore();
+        await store.load();
+        state.holdPreview = true;
+        void store.preview('frontStrip', 'awake', '#ff2200');
+        void store.preview('frontStrip', 'awake', '#00c2d1');
+
+        const leaving = store.endPreview();
+        previewParked.shift()();
+        state.holdPreview = false;
+        await leaving;
+
+        assert.equal(previews.length, 1, 'the abandoned frame was sent anyway');
+        assert.equal(posted(transport, '/ledStrip/preview/clear').length, 1);
+        const order = transport.calls.map((call) => call.path);
+        assert.ok(order.lastIndexOf('/machine/ledStrip/preview')
+            < order.indexOf('/machine/ledStrip/preview/clear'),
+            'a preview landed after the clear, so the strip kept the colour the picker abandoned');
+    });
+
+    test('a refused preview keeps the draft and says which refusal it is', async () => {
+        const transport = transportOf(({ key }) => {
+            if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            if (key === 'POST /machine/ledStrip/preview') return bad(503, { error: 'busy' });
+            return bad(500);
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.previewSettled();
+
+        assert.equal(store.get().refusal, LED_REFUSAL.PREVIEW_FAILED);
+
+        assert.notEqual(store.get().refusal, LED_REFUSAL.WRITE_FAILED);
+        assert.equal(store.get().dirty, true, 'the edit is still there to save');
+        assert.equal(store.hex('frontStrip', 'awake'), '#112233');
+        assert.equal(store.get().previewing, false, 'and nothing is standing on the strip');
+    });
+
+    test('a refused Save keeps the draft, so the values are still there to try again', async () => {
+        const transport = transportOf(({ key }) => {
+            if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            if (key === 'PUT /machine/ledStrip') return bad(500, { error: 'machine busy' });
+            if (key === 'POST /machine/ledStrip/preview') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+            }
+            return bad(500);
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.previewSettled();
+
+        assert.equal(await store.commit(), false);
+        assert.equal(store.get().refusal, LED_REFUSAL.WRITE_FAILED, 'and it says so');
+        assert.equal(store.get().dirty, true, 'the header still counts the change');
+        assert.equal(store.hex('frontStrip', 'awake'), '#112233', 'the colour is still on screen');
+
+        assert.equal(store.get().previewing, true);
+    });
+
+    test('a Save with nothing staged writes nothing', async () => {
+        const transport = transportOf(({ key }) => (key === 'GET /machine/ledStrip'
+            ? ok({ ...LED_BODY }) : bad(500)));
+        const store = createLedStripStore({ transport });
+        await store.load();
+        assert.equal(await store.commit(), true);
+        assert.equal(transport.calls.filter((call) => call.method !== 'GET').length, 0);
     });
 
     test('THE PATH CONTAINS NO TIMER — asserted against the source, all four spellings', () => {
@@ -242,11 +469,7 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         assert.equal(store.get().status, LED_STATUS.UNAVAILABLE);
         assert.equal(await store.preview('frontStrip', 'awake', '#ffaa55'), false);
         assert.equal(store.get().refusal, LED_REFUSAL.NO_STATE);
-        /* NO WRITE OF ANY METHOD. This counted PUTs while PUT was the only write; now
-         * that the drag previews on POST and the save still PUTs, counting one method
-         * would let the other through. "Refused before the wire" means nothing but the
-         * read ever left. */
-        assert.deepEqual(transport.calls.filter((c) => c.method !== 'GET'), []);
+        assert.equal(transport.calls.filter((call) => call.method !== 'GET').length, 0);
     });
 
     test('a zone or bank the machine does not have is refused before the wire', async () => {
@@ -256,8 +479,54 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         await store.load();
         assert.equal(await store.preview('sideStrip', 'awake', '#ffaa55'), false);
         assert.equal(await store.preview('frontStrip', 'dozing', '#ffaa55'), false);
+        assert.equal(await store.power(true, 'awake', ['sideStrip']), false);
+        assert.equal(await store.power(true, 'awake', []), false);
         assert.equal(store.get().refusal, LED_REFUSAL.BAD_TARGET);
-        assert.deepEqual(transport.calls.filter((c) => c.method !== 'GET'), []);
+        assert.equal(transport.calls.filter((call) => call.method !== 'GET').length, 0);
+    });
+
+    test('POWER FOLLOWS THE SELECTED ZONE — the rear strip is not the front’s business', async () => {
+
+        const { store } = slowStore();
+        await store.load();
+        const front = ['frontStrip', 'frontSwitch'];
+
+        assert.equal(await store.power(false, 'awake', front), true);
+        assert.equal(store.hex('frontStrip', 'awake'), '#000000');
+        assert.equal(store.hex('frontSwitch', 'awake'), '#000000');
+        assert.equal(store.hex('backStrip', 'awake'), ledColour16ToHex8(LED_BODY.backStrip.awake),
+            'Power off beside "Front" darkened the rear strip');
+        assert.equal(store.hex('frontStrip', 'sleeping'), ledColour16ToHex8(LED_BODY.frontStrip.sleeping),
+            'and the other bank is not the switch’s business either');
+
+        assert.equal(store.isOn('awake', front), false);
+        assert.equal(store.isOn('awake', ['backStrip']), true);
+        assert.equal(store.isOn('awake', LED_ZONES), true);
+
+        assert.equal(await store.power(true, 'awake', front), true);
+        assert.equal(store.hex('frontStrip', 'awake'), ledColour16ToHex8(LED_BODY.frontStrip.awake));
+    });
+
+    test('Power previews too, on the zones it darkened and no others', async () => {
+        const { store, previews } = slowStore();
+        await store.load();
+        await store.power(false, 'awake', ['frontStrip', 'frontSwitch']);
+        await store.previewSettled();
+
+        assert.equal(previews.length, 1, 'turning the strip off is something a person expects to SEE');
+        assert.equal(previews[0].frontStrip, COLOUR16_OFF);
+        assert.equal(previews[0].backStrip, undefined,
+            'the rear strip was named in a body that had no business naming it');
+    });
+
+    test('Both is a real selection, and it is what turns everything off in one press', async () => {
+        const { store, previews } = slowStore();
+        await store.load();
+        await store.power(false, 'awake', LED_ZONES);
+        await store.previewSettled();
+        for (const zone of LED_ZONES) assert.equal(store.hex(zone, 'awake'), '#000000');
+        assert.deepEqual(Object.keys(previews[0]).sort(), ['backStrip', 'frontStrip'],
+            'the front switch has no live register and cannot be previewed');
     });
 
     test('404 is the feature gate; 503 on the read is transient and stays transient', async () => {
@@ -271,14 +540,13 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
             'a 503 must not read as "this machine has no LED strip"');
     });
 
-    test('commit survives the 202 with a null body, and reset takes the returned state', async () => {
-        const transport = transportOf(({ key }) => {
+    test('the two volatile routes survive the 202 with a null body, and reset takes the state', async () => {
+        const transport = transportOf(({ key, body }) => {
             if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
-            /* THE SAVE IS THE PUT, and commit follows it. The route writes the four
-             * stored registers; the 202 below is the no-op that trails it. */
-            if (key === 'PUT /machine/ledStrip') return ok({ status: 'accepted' }, 200);
-            if (key === 'POST /machine/ledStrip/commit') {
-                /* jsonAccepted() with no data: 202, EMPTY body, application/json. */
+            if (key === 'PUT /machine/ledStrip') return ok({ ...body });
+            if (key === 'POST /machine/ledStrip/preview'
+                || key === 'POST /machine/ledStrip/preview/clear') {
+
                 return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
             }
             if (key === 'POST /machine/ledStrip/reset') return ok({ ...LED_BODY });
@@ -286,15 +554,133 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
         });
         const store = createLedStripStore({ transport });
         await store.load();
-        assert.equal(await store.commit(), true, 'a null body on a 2xx is success, not a decode failure');
-        /* The save went out, carrying the whole palette, before the commit no-op. */
-        const saves = transport.calls.filter((c) => c.method === 'PUT');
-        assert.equal(saves.length, 1, 'commit SAVES; it is not a bare no-op');
-        assert.equal(saves[0].body.frontStrip.awake, LED_BODY.frontStrip.awake);
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.previewSettled();
+        assert.equal(store.get().previewing, true, 'a null body on a 2xx is success, not a decode failure');
+        assert.equal(await store.commit(), true);
         assert.equal(await store.reset(), true);
         assert.equal(store.get().status, LED_STATUS.READY);
-        /* The reset reply IS the new state — no second GET. */
-        assert.equal(transport.calls.filter((c) => c.path.endsWith('/ledStrip') && c.method === 'GET').length, 1);
+
+        assert.equal(transport.calls.filter((call) => call.path.endsWith('/ledStrip') && call.method === 'GET').length, 1);
+    });
+
+    test('a read issued before a Save cannot answer over it', async () => {
+
+        let releaseGet = 'seed';
+        const transport = transportOf(async ({ key, body }) => {
+            if (key === 'GET /machine/ledStrip') {
+                if (releaseGet === 'seed') { releaseGet = null; return ok({ ...LED_BODY }); }
+                await new Promise((resolve) => { releaseGet = resolve; });
+                return ok({ ...LED_BODY });
+            }
+            if (key === 'PUT /machine/ledStrip') return ok({ ...body });
+            if (key === 'POST /machine/ledStrip/preview'
+                || key === 'POST /machine/ledStrip/preview/clear') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+            }
+            return bad(503);
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        assert.equal(store.hex('frontStrip', 'awake'), '#ffc180', 'the seeded palette');
+
+        const reading = store.load();
+        while (typeof releaseGet !== 'function') await new Promise((resolve) => { setTimeout(resolve, 1); });
+        await store.preview('frontStrip', 'awake', '#00c2d1');
+        assert.equal(await store.commit(), true, 'the PUT lands');
+
+        releaseGet();
+        await reading;
+
+        assert.equal(store.hex('frontStrip', 'awake'), '#00c2d1',
+            'an older read put back the palette the machine no longer holds');
+        assert.equal(store.get().dirty, false);
+    });
+
+    test('a read does not clear the refusal of the write before it', async () => {
+
+        const transport = transportOf(({ key }) => {
+            if (key === 'GET /machine/ledStrip') return ok({ ...LED_BODY });
+            if (key === 'PUT /machine/ledStrip') return bad(503, { error: 'busy' });
+            if (key === 'POST /machine/ledStrip/preview'
+                || key === 'POST /machine/ledStrip/preview/clear') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+            }
+            if (key === 'POST /machine/ledStrip/reset') return ok({ ...LED_BODY });
+            return bad(500);
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#112233');
+        await store.commit();
+        assert.equal(store.get().refusal, LED_REFUSAL.WRITE_FAILED);
+
+        await store.load();
+        assert.equal(store.get().refusal, LED_REFUSAL.WRITE_FAILED,
+            'a leaf re-entry erased the one reason the person can act on');
+
+        assert.equal(await store.reset(), true);
+        assert.equal(store.get().refusal, null);
+    });
+
+    test('a read that is discarded puts back the status it displaced', async () => {
+
+        let releaseGet = 'seed';
+        let releasePut = null;
+        const transport = transportOf(async ({ key, body }) => {
+            if (key === 'GET /machine/ledStrip') {
+                if (releaseGet === 'seed') { releaseGet = null; return ok({ ...LED_BODY }); }
+                await new Promise((resolve) => { releaseGet = resolve; });
+                return ok({ ...LED_BODY });
+            }
+            if (key === 'PUT /machine/ledStrip') {
+                await new Promise((resolve) => { releasePut = resolve; });
+                return ok({ ...body });
+            }
+            if (key === 'POST /machine/ledStrip/preview'
+                || key === 'POST /machine/ledStrip/preview/clear') {
+                return reaSuccess({ status: 202, data: null, method: 'POST', url: 'test' });
+            }
+            return bad(503);
+        });
+        const store = createLedStripStore({ transport });
+        await store.load();
+        await store.preview('frontStrip', 'awake', '#00c2d1');
+        await store.previewSettled();
+
+        const saving = store.commit();
+        while (typeof releasePut !== 'function') await new Promise((resolve) => { setTimeout(resolve, 1); });
+
+        const reading = store.load();
+        while (typeof releaseGet !== 'function') await new Promise((resolve) => { setTimeout(resolve, 1); });
+        assert.equal(store.get().status, LED_STATUS.LOADING, 'the spinner is owed while the GET is out');
+
+        releasePut();
+        assert.equal(await saving, true);
+        releaseGet();
+        await reading;
+
+        assert.equal(store.get().status, LED_STATUS.READY,
+            'a discarded read left the leaf saying the lighting cannot be read');
+        assert.equal(store.hex('frontStrip', 'awake'), '#00c2d1',
+            'and the palette on the page is still the one the machine was given');
+    });
+
+    test('a machine that goes away takes the preview slot with it', async () => {
+        const { store, previews, previewParked, state } = slowStore();
+        await store.load();
+        state.holdPreview = true;
+        void store.preview('frontStrip', 'awake', '#ff2200');
+        void store.preview('frontStrip', 'awake', '#00c2d1');
+
+        store.forget();
+        previewParked.shift()();
+        state.holdPreview = false;
+        await store.previewSettled();
+
+        assert.equal(previews.length, 1, 'a frame was posted at whatever machine answers next');
+        assert.equal(store.get().previewing, false);
+        assert.equal(store.get().strip, null);
     });
 
     test('readLedStrip fills every zone and bank, and black is the server’s own default', () => {
@@ -309,7 +695,7 @@ describe('D7: pendingColour, one write in flight, latest-wins — and no clock',
     });
 });
 
-describe('D9: the load-cell wizard is a thin client over the machine’s own state', () => {
+describe('the load-cell wizard is a thin client over the machine’s own state', () => {
     function calStore(script) {
         const transport = transportOf(script);
         return { store: createCalibrationStore({ transport, setTimer: () => null, clearTimer: () => {} }), transport };
@@ -317,7 +703,7 @@ describe('D9: the load-cell wizard is a thin client over the machine’s own sta
 
     const IDLE = { step: 'idle', detectedCell: 'none', subState: 'settling', secondsRemaining: 0, status: 'none' };
 
-    test('CB-15 is dead: the commands are the machine’s three and the body key is its own', async () => {
+    test('the commands are the machine’s three and the body key is its own', async () => {
         const { store, transport } = calStore(({ key, body }) => {
             if (key === 'GET /machine/scaleCalibration') return ok({ ...IDLE });
             if (key === 'PUT /machine/scaleCalibration') {
@@ -429,6 +815,7 @@ describe('D9: the load-cell wizard is a thin client over the machine’s own sta
         for (const gone of ['left', 'right', 'calibrateScale', 'buildCalibrateBody']) {
             assert.doesNotMatch(leaf, new RegExp(`command:\\s*'${gone}'`), `${gone} is CB-15's vocabulary`);
         }
+
         const wired = [...leaf.matchAll(/command:\s*'([a-z]+)'/g)].map((m) => m[1]);
         assert.deepEqual([...new Set(wired)].sort(), ['abort', 'latch', 'zero'],
             'the only commands the wizard can send are the three the handler declares');
@@ -516,7 +903,7 @@ describe('one field, one door, decided in a table', () => {
         assert.ok(!('flowMultiplier' in await port.read()));
     });
 
-    test('a half that fails makes the whole write false — D11 must not clear staged intents', async () => {
+    test('a half that fails makes the whole write false, and staged intents are not cleared', async () => {
         const port = createMachineFieldsPort({
             settings: { read: async () => ({}), write: async () => true },
             calibration: { readFlow: async () => {}, get: () => ({ flowMultiplier: 1 }), writeFlow: async () => false },
@@ -638,6 +1025,7 @@ describe('the installed skins, read once for two leaves', () => {
     });
 
     test('NO update verdict is synthesised for a SKIN', () => {
+
         for (const path of ['src/stores/skins-store.js']) {
             assert.doesNotMatch(CODE[path], /updateAvailable/, `${path} invents a verdict nothing serves`);
         }
@@ -647,6 +1035,7 @@ describe('the installed skins, read once for two leaves', () => {
         const code = Object.values(CODE).join('\n');
         assert.doesNotMatch(code, /postWebuiSkinsInstallUrl/,
             'installing from a typed URL is how a tablet serves something nobody vetted');
+
         const store = CODE['src/stores/skins-store.js'];
         const elsewhere = CLUSTER_FILES
             .filter((path) => path !== 'src/stores/skins-store.js')
@@ -657,6 +1046,20 @@ describe('the installed skins, read once for two leaves', () => {
             assert.doesNotMatch(elsewhere, new RegExp(id),
                 `${id} belongs to skins-store.js; a second caller here is a second answer`);
         }
+    });
+
+    test('the Reload after a switch goes to the host entry point, not to this origin', () => {
+
+        const leaf = CODE['src/screens/settings-bespoke-leaf.js'];
+        assert.match(leaf, /hostEntryUrl\(/, 'nothing on the Skin page uses the entry point');
+        assert.match(leaf, /hostServesThisPage\(/,
+            'the entry point is used unconditionally — a skin the host did not serve has none');
+    });
+
+    test('the sentence above the tiles no longer promises a reload that does not happen', () => {
+
+        assert.equal(SOURCE['src/screens/settings-bespoke-leaf.js'].includes('The screen reloads itself.'),
+            false, 'the page still promises an automatic reload it does not perform');
     });
 });
 
@@ -702,6 +1105,7 @@ describe('which build of Decaid this tablet runs, read once and never invented',
     });
 
     test('the server’s own two spellings of "I do not know" are ABSENCE, not values', () => {
+
         const info = readAppInfo({
             ...INFO, commit: 'unknown', commitShort: 'UNKNOWN', branch: '  ', localIp: '',
         });
@@ -728,6 +1132,7 @@ describe('which build of Decaid this tablet runs, read once and never invented',
     });
 
     test('the update feed now has a reader, which is the whole of this repair', () => {
+
         const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
             const path = `${dir}/${entry.name}`;
             if (entry.isDirectory()) return walk(path);
@@ -759,6 +1164,7 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
     });
 
     test('an unparseable string is null — never a guess and never today', () => {
+
         assert.equal(shortDate('nonsense'), null);
         assert.equal(shortDate(''), null);
         assert.equal(shortDate(null), null);
@@ -780,6 +1186,7 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
     });
 
     test('shortDateTime refuses anything that is not a finite number of milliseconds', () => {
+
         assert.equal(shortDateTime('2026-08-12T05:59:27Z'), null, 'a string is not the shape this takes');
         assert.equal(shortDateTime(Number.NaN), null);
         assert.equal(shortDateTime(null), null);
@@ -788,7 +1195,7 @@ describe('shortDate: a stamp, "never", and a string that is not a date', () => {
 });
 
 describe('plugin-pages: the destination lives where a screen AND a store can both read it', () => {
-    test('the DYE2 pair is the manifest\'s own spelling, and it is the decided endpoint', () => {
+    test('the DYE2 pair is the manifest\'s own spelling', () => {
         assert.equal(DYE2_PLUGIN.id, 'dye2.reaplugin');
         assert.equal(DYE2_PLUGIN.page, 'bean-picker');
         assert.equal(DYE2_PLUGIN_ID, DYE2_PLUGIN.id);
@@ -803,6 +1210,7 @@ describe('plugin-pages: the destination lives where a screen AND a store can bot
         assert.ok(manifest, `no plugin ${DYE2_PLUGIN.id} in the recorded listing`);
         const http = manifest.api.filter((entry) => entry.type === 'http').map((entry) => entry.id);
         assert.ok(http.includes(DYE2_PLUGIN.page), `the manifest declares ${http.join(', ')}`);
+
         assert.ok(!http.includes('ui'),
             'if DYE2 grows a `ui` endpoint, the Plugins page can find its own front door and this pair '
             + 'should be re-argued rather than kept');
@@ -818,11 +1226,12 @@ describe('plugin-pages: the destination lives where a screen AND a store can bot
 });
 
 describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has', () => {
+
     const BESPOKE_IDS = Object.keys(BESPOKE_LEAVES);
     const LEAF = SOURCE['src/screens/settings-bespoke-leaf.js'];
     const LEAF_CODE = CODE['src/screens/settings-bespoke-leaf.js'];
 
-    test('§4.4 named nine; the registry declares TWENTY', () => {
+    test('the registry declares TWENTY bespoke leaves', () => {
 
         assert.equal(BESPOKE_IDS.length, 20);
         const known = new Set(allLeaves().map((leaf) => leaf.id));
@@ -842,7 +1251,7 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
     });
 
     test('THE BESPOKE HALF RENDERS NO ROW AND NO HEADING — the primitive owns both', () => {
-        assert.doesNotMatch(LEAF_CODE, /ui-settings-row/, 'a second row shape is a block');
+        assert.doesNotMatch(LEAF_CODE, /ui-settings-row/, 'a second row shape here is a block');
         assert.doesNotMatch(LEAF_CODE, /<h2/, 'the one leaf heading is <settings-leaf>’s');
         assert.doesNotMatch(LEAF_CODE, /leaf-heading/);
     });
@@ -851,16 +1260,24 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
         const composed = new Set([...LEAF_CODE.matchAll(/<(ui-[a-z-]+)/g)].map((m) => m[1]));
         const inventory = new Set([
             'ui-card', 'ui-card-grid', 'ui-definition-card', 'ui-tile-grid', 'ui-wizard-column',
+
             'ui-select',
             'ui-colour-swatch-row', 'ui-slider', 'ui-progress-track', 'ui-empty-state',
             'ui-bank', 'ui-button', 'ui-stepper',
+
             'ui-switch',
+
             'ui-file-button',
+
             'ui-colour-wheel',
+
             'ui-dialog', 'ui-time-picker', 'ui-list-row', 'ui-confirm-dialog',
             'ui-text-field', 'ui-notes-editor', 'ui-status-chip', 'ui-keycap',
+
             'ui-numeric-keypad',
+
             'ui-badge',
+
             'ui-icon-button',
         ]);
         for (const tag of composed) {
@@ -881,13 +1298,15 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
         }
     });
 
-    test('T21 / T1: not one of the three dead measures is spelled in this cluster', () => {
+    test('not one of the three dead measures is spelled in this cluster', () => {
         for (const [path, code] of Object.entries(CODE)) {
             for (const dead of [/\b885\b/, /\b1200px\b/, /\b760px\b/, /\b1263\b/]) {
                 assert.doesNotMatch(code, dead, `${path} carries a dead measure`);
             }
         }
+
         const capped = [...LEAF_CODE.matchAll(/max-inline-size:\s*([^;]+);/g)].map((m) => m[1].trim());
+
         assert.ok(capped.length > 0, 'the prose measure vanished — this guard now checks nothing');
         assert.deepEqual([...new Set(capped)], ['var(--ui-measure)'],
             'the only measure a section may name is the PROSE one; the leaf measure is the pane’s');
@@ -895,17 +1314,20 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
         const sized = [...LEAF_CODE.replace(/\bsize="\d+"/g, '')
             .matchAll(/(?:^|\s)(inline-size|width|max-width):\s*([^;]+);/g)]
             .map((m) => `${m[1]}: ${m[2].trim()}`);
+
         assert.deepEqual(sized, [
             'inline-size: 100%',
             'inline-size: var(--_ui-form-control-w)',
             'inline-size: var(--_ui-thumb-size)',
-        ], 'a tile filling its track, one form control, and a fixed thumbnail');
+            'inline-size: 100%',
+            'inline-size: var(--_ui-thumb-size)',
+        ], 'a language tile, form control, image card, fitted picture and fixed thumbnail');
 
         assert.match(LEAF_CODE, /--_ui-lighting-col-min:\s*420px/);
         assert.match(LEAF_CODE, /repeat\(auto-fit, minmax\(min\(var\(--_ui-lighting-col-min\), 100%\), 1fr\)\)/);
     });
 
-    test('A3: the three gated leaves ask before they render AND before they read', () => {
+    test('the three gated leaves ask before they render AND before they read', () => {
         for (const capability of ['ledStrip', 'scaleCalibration', 'wakeSchedule']) {
             assert.match(LEAF_CODE, new RegExp(`#allowed\\('${capability}'\\)`), `${capability} is not gated`);
         }
@@ -928,7 +1350,7 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
         assert.match(LEAF_CODE, /if \(this\.#allowed\('scaleCalibration'\)\) go\(deps\.calibration\?\.read\(\)\)/);
     });
 
-    test('A3 is a state, not a one-shot verdict: the leaf subscribes to the answer', () => {
+    test('the capability answer is a state, not a one-shot verdict: the leaf subscribes to it', () => {
         const model = stripComments(read('src/screens/settings-model.js'));
         assert.match(model, /watchAllowed:\s*\(listener\)/, 'the model hands the leaf an edge, not just a predicate');
         assert.match(model, /capabilities\?\.subscribe === 'function'/);
@@ -944,7 +1366,8 @@ describe('bespoke-leaves-nine: TWENTY, named, and each one a leaf the tree has',
     });
 });
 
-describe('Q14: #56 dissolved into #5, and the screen is the confirmation', () => {
+describe('the pill dissolved into the row, and the screen is the confirmation', () => {
+
     test('the wrapper is gone, and no file in the cluster reaches for it', () => {
         assert.equal(existsSync(fileURLToPath(new URL('../src/components/ui-toggle-pill.js', import.meta.url))), false,
             '#56 is retired: the pill is a shape attribute on #5 (DQ-610)');
@@ -957,19 +1380,19 @@ describe('Q14: #56 dissolved into #5, and the screen is the confirmation', () =>
         }
     });
 
-    test('the brightness control is a SLIDER and no toggle — which is what Slate renders', () => {
+    test('the brightness control is a SLIDER and no toggle', () => {
         const row = SETTINGS_ROWS.find((entry) => entry.id === 'display-screen-brightness');
         assert.ok(row, 'the brightness row is in the registry');
         assert.equal(row.archetype, ARCHETYPE.SLIDER);
         assert.notEqual(row.archetype, ARCHETYPE.SWITCH, 'never a switch, and never a pill');
-        /* READ DIRECTLY: `CODE` is the bespoke cluster's own files, and the renderer is
-         * not one of them — which is the point, since the control left that cluster. */
+
         const renderer = stripComments(read('src/screens/settings-leaf.js'));
         assert.match(renderer, /case ARCHETYPE\.SLIDER:/);
         assert.match(renderer, /<ui-slider/);
     });
 
     test('#29 names a switch because there is no wrapper between them — why the retirement is SAFE', () => {
+
         const row = stripComments(read('src/components/ui-settings-row.js'));
         assert.match(row, /assignedElements\(\{\s*flatten:\s*true\s*\}\)/,
             'the naming walk is over assigned elements, which do not include a child’s shadow root');
@@ -979,16 +1402,14 @@ describe('Q14: #56 dissolved into #5, and the screen is the confirmation', () =>
 describe('every route this cluster calls has a row, and the row names this caller', () => {
     const rest = new Map(CONTRACTS.rest.map((row) => [row.id, row]));
 
-    /* TWELVE SINCE THE RE-PIN: the two ledStrip preview routes exist now and the strip
-     * store calls both. See the last test in this block for what they replaced. */
     const ADOPTED = [
-        'getMachineLedStrip', 'putMachineLedStrip', 'postMachineLedStripCommit',
-        'postMachineLedStripReset', 'postMachineLedStripPreview', 'postMachineLedStripPreviewClear',
-        'getMachineScaleCalibration', 'putMachineScaleCalibration',
+        'getMachineLedStrip', 'putMachineLedStrip', 'postMachineLedStripPreview',
+        'postMachineLedStripPreviewClear',
+        'postMachineLedStripReset', 'getMachineScaleCalibration', 'putMachineScaleCalibration',
         'getMachineCalibration', 'postMachineCalibration', 'getWebuiSkins', 'getWebuiSkinsDefault',
     ];
 
-    test('all twelve are `consumed` and pinned at the table’s own commit', () => {
+    test('all eleven are `consumed` and pinned at the table’s own commit', () => {
         for (const id of ADOPTED) {
             const row = rest.get(id);
             assert.ok(row, `${id} has no contract row`);
@@ -1023,50 +1444,17 @@ describe('every route this cluster calls has a row, and the row names this calle
         }
     });
 
-    test('the two ledStrip preview routes are NO LONGER forbidden — they exist, and the store calls them', () => {
-        /* THIS TEST USED TO ASSERT THE OPPOSITE, and the truth under it moved at the
-         * re-pin rather than the test going wrong.
-         *
-         * `POST /machine/ledStrip/preview` and `.../preview/clear` did not exist in the
-         * app at 2b047d02 — EXCLUDED.md's row cited `de1handler.dart addRoutes` for the
-         * fact that the only ledStrip routes were GET, PUT, commit and reset, and the
-         * row said in as many words that the resolution was an upstream feature ask.
-         * The ask landed: both handlers are in `de1handler.dart` at 42f67f69, so the
-         * row was removed and `led-strip-store.js` now previews on the preview route
-         * instead of writing the four stored registers on every drag frame.
-         *
-         * So the standing claim is inverted, and it is asserted from BOTH ends — the
-         * exclusion is gone AND the routes are consumed rows this cluster addresses —
-         * because either half alone would pass on a row that was simply deleted. */
+    test('the preview pair is no longer excluded, and the keeping step is no longer consumed', () => {
+
         const excluded = read('src/data/EXCLUDED.md');
-        assert.doesNotMatch(excluded, /ledStrip\/preview/,
-            'a route the app serves and this skin calls is listed as deliberately not built');
+        assert.match(excluded, /ledStrip\/preview/);
+        assert.match(excluded, /REMOVED at the re-pin/);
 
-        for (const id of ['postMachineLedStripPreview', 'postMachineLedStripPreviewClear']) {
-            const row = rest.get(id);
-            assert.ok(row, `${id} has no contract row`);
-            assert.equal(row.status, 'consumed');
-            assert.equal(row.checkedCommit, CONTRACTS.pinnedCommit);
-        }
-        assert.equal(rest.get('postMachineLedStripPreview').route, '/machine/ledStrip/preview');
-        assert.equal(rest.get('postMachineLedStripPreviewClear').route, '/machine/ledStrip/preview/clear');
-
-        /* THE CALLER, BY ID. The paths still come from the generated table — the
-         * clause that stopped this cluster spelling one is the test above, and it
-         * still holds for these two. */
-        const store = CODE['src/stores/led-strip-store.js'];
-        assert.match(store, /'postMachineLedStripPreview'/,
-            'preview() no longer addresses the preview route');
-        assert.match(store, /'postMachineLedStripPreviewClear'/,
-            'nothing ends a preview, so a previewed colour stands until the next sleep or wake');
-        /* AND NO LEDSTRIP PATH IS SPELLED, ABSOLUTE OR RELATIVE. The banned spelling
-         * used to be `preview/clear` in any form; narrowing the ban to an `/api/v1`
-         * literal would make it a strict subset of the NO PATH IS SPELLED test above
-         * and let a relative '/machine/ledStrip/preview/clear' through. Both forms are
-         * refused, so these two routes stay addressed by id like the other ten. */
+        const commit = rest.get('postMachineLedStripCommit');
+        assert.equal(commit.status, 'recorded');
+        assert.deepEqual(commit.consumedBy, []);
         for (const [path, code] of Object.entries(CODE)) {
-            assert.doesNotMatch(code, /['"`][^'"`]*\/machine\/ledStrip/,
-                `${path} spells a ledStrip path instead of addressing the route by id`);
+            assert.doesNotMatch(code, /postMachineLedStripCommit/, `${path} still posts the keeping step`);
         }
     });
 });

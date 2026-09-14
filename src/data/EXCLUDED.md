@@ -29,6 +29,15 @@ excluded, because the work is somewhere else.
 | `setCupWarmerPrewarm` — `PUT /machine/cupWarmer` with `{prewarmEnabled, prewarmLeadMinutes}` | That handler returns 400 unconditionally for a body without `temperature` or `enabled`. The real route is `PUT /api/v1/machine/cupWarmer/preheat` with `{enabled, leadMinutes}`. The old comment block documents the wrong response shape in both directions. | `de1handler.dart` `PUT /api/v1/machine/cupWarmer` and `PUT /api/v1/machine/cupWarmer/preheat`. |
 | The `orderBy` query parameter on `GET /shots` | No handler reads it. The real parameter is `order=asc\|desc`. `rest_v1.yml` documents `orderBy` anyway, so a generated client would faithfully emit a dead parameter — one of the two upstream schema fixes. | `shots_handler.dart` `_getShots` reads `params['order']` only. |
 
+**The `previewLedStrip` / `clearLedStripPreview` row was REMOVED at the re-pin**, by the rule
+above and not by anyone needing the thing: its citation no longer holds. It read "these
+endpoints have never existed in ReaPrime", and `POST /machine/ledStrip/preview` and
+`.../preview/clear` are both registered at `42f67f69` (`de1handler.dart`), so the generated
+route table now carries them and the path could not stay on the guard list. What the row
+recorded is still true and now lives on the contract table's `putMachineLedStrip` row: the
+PUT is the SAVE — every one of its four registers is a flash write — and the preview pair is
+what drives the strip without storing anything.
+
 ## Duplicates — one of each, by construction
 
 | Not built | Why | Citation |

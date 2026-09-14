@@ -164,6 +164,21 @@ describe('2. /machine/ledStrip x6 — de1handler.dart:208,:224,:261,:302,:311,:3
             assert.match(row(id).responseShape, /202, no body/, `${id} lost its row`);
         }
         assert.equal(TABLE.rest.filter((r) => /ledStrip\/preview/.test(r.path)).length, 2);
+        /* The status is what says a route is addressed rather than merely known about, so it
+         * moves with the caller in both directions. */
+        for (const id of ['postMachineLedStripPreview', 'postMachineLedStripPreviewClear']) {
+            assert.equal(row(id).status, 'consumed', `${id} is called and not marked consumed`);
+            assert.match(row(id).consumedBy.join(' '), /led-strip-store\.js/);
+        }
+
+        /* `commitLedStrip()` is an empty method in every implementation at the pin, so the
+         * request bought nothing. The row keeps its handler evidence and loses its caller. */
+        assert.match(
+            readReaFile('lib/src/models/device/impl/de1/unified_de1/led_strip_capability.dart').text,
+            /Future<void> commitLedStrip\(\) async \{\}/,
+        );
+        assert.equal(row('postMachineLedStripCommit').status, 'recorded');
+        assert.deepEqual(row('postMachineLedStripCommit').consumedBy, []);
     });
 
     test('PUT answers 200 with the READ-BACK state, not {status:accepted}; commit is 202 no body', () => {

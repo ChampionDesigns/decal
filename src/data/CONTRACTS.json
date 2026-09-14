@@ -2022,10 +2022,8 @@
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/ledStrip/commit)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
-      "status": "consumed",
-      "consumedBy": [
-        "src/stores/led-strip-store.js commit()"
-      ],
+      "status": "recorded",
+      "consumedBy": [],
       "gates": [
         {
           "kind": "404-is-feature-absent",
@@ -2777,7 +2775,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/led-strip-store.js preview() — the decided write pattern: pendingColour, one write in flight, latest-wins, NO TIMER of any kind on the path"
+        "src/stores/led-strip-store.js commit() — the STORING write, sent once on Save and never during a drag"
       ],
       "gates": [
         {
@@ -2818,7 +2816,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/led-strip-store.js"
+        "src/stores/led-strip-store.js preview() and power() — the drag write: one request in flight, a latest-wins slot, no timer"
       ],
       "gates": [
         {
@@ -2853,7 +2851,7 @@
       "checkedCommit": "42f67f69334197a08cc0f4138ca05302616e977a",
       "status": "consumed",
       "consumedBy": [
-        "src/stores/led-strip-store.js"
+        "src/stores/led-strip-store.js endPreview() — reached from commit(), reset(), and the leaf’s leave and disconnect paths"
       ],
       "gates": [
         {

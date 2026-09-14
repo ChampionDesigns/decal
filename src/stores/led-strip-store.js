@@ -1,7 +1,9 @@
 /**
  * The LED strip, and its write pattern.
+ *
+ * A picked colour stages a draft and shows it on the live registers; only Save writes the
+ * stored palette. No timer anywhere on the path.
  */
-
 import { callRoute } from '../data/rea-routes.js';
 import { createStore } from './store.js';
 import { ledColour16ToHex8, ledHex8ToColour16, isColour16, COLOUR16_OFF } from '../lib/led-colour.js';
@@ -9,13 +11,12 @@ import { ledColour16ToHex8, ledHex8ToColour16, isColour16, COLOUR16_OFF } from '
 const NOOP_LOGGER = Object.freeze({ debug() {}, info() {}, warn() {}, error() {} });
 
 /**
- * The three zones ReaPrime's `LedStripState` carries, in its own key order
- * (`led_strip.dart:73-79`). Not a display list — the ORDER a payload is built in, so a
- * round trip cannot reorder the document.
+ * The three zones ReaPrime's `LedStripState` carries, in its own key order. Not a display
+ * list — the ORDER a payload is built in, so a round trip cannot reorder the document.
  */
 export const LED_ZONES = Object.freeze(['frontStrip', 'backStrip', 'frontSwitch']);
 
-/** The two banks of `ZoneLedState` (`led_strip.dart:44-47`). */
+/** The two banks of `ZoneLedState`. */
 export const LED_BANKS = Object.freeze(['awake', 'sleeping']);
 
 export const LED_DEFAULT_ON = 'FFFFAAAA5555';
@@ -31,30 +32,54 @@ export const LED_STATUS = Object.freeze({
     UNAVAILABLE: 'unavailable',
 });
 
-/** Why a preview did not go out. Reportable — the leaf says which, never a shrug. */
+/** Why a write did not go out. Reportable — the leaf says which, never a shrug. */
 export const LED_REFUSAL = Object.freeze({
     NO_STATE: 'noState',
     BAD_COLOUR: 'badColour',
     BAD_TARGET: 'badTarget',
     WRITE_FAILED: 'writeFailed',
+    PREVIEW_FAILED: 'previewFailed',
 });
 
 const EMPTY_STATE = Object.freeze({
     status: LED_STATUS.NOT_LOADED,
     /** The strip as last read or last written, in wire form. Null until READY. */
     strip: null,
+    /** The unsaved palette, or null. What the picker and the grid read. */
+    draft: null,
     /** The last refusal, or null. */
     refusal: null,
     /** Bumped on every change, so one subscription re-renders a leaf. */
     version: 0,
-    /** True while a PUT is on the wire. The leaf may show it; nothing depends on it. */
+    /** True while a save is on the wire. The picker refuses while it is. */
     writing: false,
     dirty: false,
+    /** True while the live registers hold something the stored palette does not. */
+    previewing: false,
 });
+
+const looksLikeStrip = (body) => !!body && typeof body === 'object' && !Array.isArray(body)
+    && LED_ZONES.some((zone) => body[zone] && typeof body[zone] === 'object');
 
 /** A zone/bank pair that exists. Anything else is a caller bug, refused rather than sent. */
 const isTarget = (zone, bank) => LED_ZONES.includes(zone) && LED_BANKS.includes(bank);
 
+/**
+ * The two zones with live registers. `frontSwitch` has none, so it is never previewed and
+ * never darkened; it catches up when the colour is saved.
+ */
+const PREVIEW_ZONES = Object.freeze(['frontStrip', 'backStrip']);
+
+/** The preview route's flat body for the zones being edited, or null when none of them show. */
+function previewBodyFor(strip, zones, bank) {
+    const body = {};
+    for (const zone of PREVIEW_ZONES) {
+        if (zones.includes(zone)) body[zone] = strip[zone][bank];
+    }
+    return Object.keys(body).length === 0 ? null : body;
+}
+
+/** A served body as a frozen strip state, or null when it is not one. */
 export function readLedStrip(body) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
     const out = {};
@@ -89,7 +114,7 @@ function withBank(strip, bank, pick) {
     return Object.freeze(next);
 }
 
-const bankIsLit = (strip, bank) => LED_ZONES.some((zone) => strip[zone][bank] !== COLOUR16_OFF);
+const bankIsLit = (strip, bank, zones) => zones.some((zone) => strip[zone][bank] !== COLOUR16_OFF);
 
 /**
  * @param {object} deps
@@ -103,21 +128,31 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
     const log = logger.scope ? logger.scope('ledStrip') : logger;
     const store = createStore({ ...EMPTY_STATE }, { label: 'ledStrip', logger: log, freeze: false });
 
-    let pendingColour = null;
-
-    /** The promise of the running drain, or null. Its existence IS "a write in flight". */
-    let pump = null;
-
-    /** How many PUTs are on the wire. Never above 1; the drill asserts the maximum. */
-    let inFlight = 0;
-    let peakInFlight = 0;
-
-    /** How many PUTs were actually sent — the drop count is (intents - sent). */
     let sent = 0;
     let intents = 0;
+    let inFlight = 0;
+    let peakInFlight = 0;
+    let previews = 0;
+    let coalesced = 0;
+    let previewPeak = 0;
+    /** The next preview body, or null. The latest-wins slot: all but the last are dropped. */
+    let pendingPreview = null;
+    /** Bumped by `forget()`, so an answer from the machine that went away is discarded. */
+    let previewEpoch = 0;
+    /** The promise of the running preview loop, or null. */
+    let showing = null;
+    let previewSent = null;
+    /** The promise of the running save, or null. Its existence IS "a write in flight". */
+    let saving = null;
+    let issued = 0;
+    let newestAnswer = 0;
+    const asked = () => ++issued;
+    const outranked = (op) => op < newestAnswer;
+    const answered = (op) => { newestAnswer = op; return op; };
+    const arrived = () => answered(++issued);
+    let displacedStatus = EMPTY_STATE.status;
 
     const lastLit = new Map();
-
     function remember(before, after) {
         for (const zone of LED_ZONES) {
             for (const bank of LED_BANKS) {
@@ -130,101 +165,97 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
     }
 
     const publish = (patch) => store.set({ ...store.get(), ...patch, version: store.get().version + 1 });
+    /** The draft if there is one, otherwise the stored strip. Everything reads through this. */
+    const shown = () => { const held = store.get(); return held.draft ?? held.strip; };
+
+    function stage(next) {
+        remember(shown(), next);
+        publish({ draft: next, dirty: true, refusal: null });
+        return true;
+    }
+
+    function showOnStrip(body) {
+        if (!body) return;
+        if (pendingPreview !== null) coalesced += 1;
+        pendingPreview = body;
+        if (showing) return;
+        showing = (async () => {
+            try {
+                while (pendingPreview !== null) {
+                    const next = pendingPreview;
+                    pendingPreview = null;
+                    const spelling = JSON.stringify(next);
+                    if (spelling === previewSent) continue;
+                    previews += 1;
+                    previewPeak = Math.max(previewPeak, 1);
+                    const epoch = previewEpoch;
+                    const result = await callRoute(transport, 'postMachineLedStripPreview', { body: next });
+                    if (epoch !== previewEpoch) continue;
+                    if (!result.ok) {
+                        log.warn(`ledStrip preview refused: ${result.status ?? 'no status'}`);
+                        publish({ refusal: LED_REFUSAL.PREVIEW_FAILED });
+                        continue;
+                    }
+                    previewSent = spelling;
+                    if (store.get().previewing !== true) publish({ previewing: true });
+                }
+            } finally {
+                showing = null;
+            }
+        })();
+    }
 
     /**
-     * The two colours the preview route takes, or null when there is no strip yet.
-     *
-     * THE LIVE REGISTERS ARE FRONT AND REAR. `frontSwitch` has none, so it is never
-     * sent and never darkened; it catches up when the colour is saved.
-     *
-     * THE COLOUR COMES FROM THE BANK BEING EDITED, not from the machine's current one.
-     * That is the whole point: it is what makes an ASLEEP colour visible while the
-     * machine is awake, which a stored write cannot do.
-     *
-     * A wire colour IS the 12-hex spelling the route takes, so nothing is converted.
+     * END THE PREVIEW. The strips go back to the stored palette for the state the machine
+     * is actually in — the firmware picks the bank, because it is the only place that
+     * knows. A preview otherwise stands until the next sleep or wake.
      */
-    function previewBody(strip, bank) {
-        if (!strip || !LED_BANKS.includes(bank)) return null;
-        return { frontStrip: strip.frontStrip[bank], backStrip: strip.backStrip[bank] };
-    }
-
-    /** Say the strip is showing something NVM does not hold. See `dirty` on the state. */
-    const markDirty = () => { if (!store.get().dirty) publish({ dirty: true }); };
-
-    async function sendOne(intent) {
-        const strip = store.get().strip;
-        if (!strip) {
-            publish({ refusal: LED_REFUSAL.NO_STATE });
+    async function endPreview() {
+        pendingPreview = null;
+        await (showing ?? Promise.resolve());
+        previewSent = null;
+        if (store.get().previewing !== true) return true;
+        const result = await callRoute(transport, 'postMachineLedStripPreviewClear');
+        if (!result.ok) {
+            log.warn(`ledStrip preview clear refused: ${result.status ?? 'no status'}`);
             return false;
         }
-        const next = intent.kind === 'strip'
-            ? intent.strip
-            : withColour(strip, intent.zone, intent.bank, intent.wire);
-        remember(strip, next);
-        inFlight += 1;
-        peakInFlight = Math.max(peakInFlight, inFlight);
-        publish({ strip: next, writing: true, refusal: null });
-        try {
-            sent += 1;
-            /* THE PREVIEW ROUTE, NOT THE SAVE. `putMachineLedStrip` writes the four
-             * STORED registers and every one of them is a flash write, so dragging
-             * against it wrote flash on every frame and saved a colour the finger only
-             * passed over. This route writes the two LIVE registers: nothing is stored,
-             * nothing reaches flash, and it is the only way to show an ASLEEP colour on
-             * an awake machine — the firmware applies a stored colour only when it is
-             * already in the state that colour belongs to.
-             *
-             * A STRIP THE BODY DOES NOT NAME IS LEFT ALONE, so a zone group that moves
-             * one strip must not darken the other. `frontSwitch` has no live register
-             * and is therefore never sent; it catches up on the save. */
-            const body = previewBody(next, intent.bank);
-            if (!body) return true;
-            const result = await callRoute(transport, 'postMachineLedStripPreview', { body });
-            if (!result.ok) {
-                log.warn(`ledStrip preview refused: ${result.status ?? 'no status'}`);
-                publish({ refusal: LED_REFUSAL.WRITE_FAILED, status: result.status === 404
-                    ? LED_STATUS.UNSUPPORTED
-                    : store.get().status });
-                return false;
-            }
-            return true;
-        } finally {
-            inFlight -= 1;
-            if (inFlight === 0) publish({ writing: pendingColour !== null });
-        }
-    }
-
-    async function drain() {
-        while (pendingColour !== null) {
-            const intent = pendingColour;
-            pendingColour = null;
-            await sendOne(intent);
-        }
+        if (pendingPreview === null && showing === null) publish({ previewing: false });
+        return true;
     }
 
     return {
         subscribe: (listener) => store.subscribe(listener),
         get: () => store.get(),
 
-        /** The strip as wire colours, or null. */
-        strip: () => store.get().strip,
-
-        /** One zone/bank as '#RRGGBB', or null when there is no state to read. */
+        /** One zone/bank as '#RRGGBB', read from the draft, or null when there is nothing to read. */
         hex(zone, bank) {
-            const strip = store.get().strip;
+            const strip = shown();
             if (!strip || !isTarget(zone, bank)) return null;
             return ledColour16ToHex8(strip[zone][bank]);
         },
 
         /** Instrumentation for the write drill. Numbers, not behaviour. */
-        counters: () => Object.freeze({ intents, sent, peakInFlight, dropped: intents - sent }),
+        counters: () => Object.freeze({
+            intents, sent, peakInFlight, dropped: intents - sent, previews, coalesced, previewPeak,
+        }),
 
         /**
-         * Read the strip. 404 is the feature gate; 503 is hydration and is transient.
+         * Read the strip. 404 is the feature gate; 503 is hydration and is transient. An
+         * answer a later save has already superseded is discarded.
          */
         async load() {
-            publish({ status: LED_STATUS.LOADING, refusal: null });
+            const op = asked();
+            const standing = store.get().status;
+            if (standing !== LED_STATUS.LOADING) displacedStatus = standing;
+            publish({ status: LED_STATUS.LOADING });
             const result = await callRoute(transport, 'getMachineLedStrip');
+            if (outranked(op)) {
+                log.info('discarding a strip a save has already answered for');
+                if (store.get().status === LED_STATUS.LOADING) publish({ status: displacedStatus });
+                return store.get();
+            }
+            answered(op);
             if (!result.ok) {
                 const status = result.status === 404 ? LED_STATUS.UNSUPPORTED : LED_STATUS.UNAVAILABLE;
                 log.info(`ledStrip read: ${status} (${result.status ?? 'no status'})`);
@@ -235,9 +266,16 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
                 log.warn('ledStrip answered a body that is not a strip state');
                 return publish({ status: LED_STATUS.UNAVAILABLE, strip: null });
             }
-            return publish({ status: LED_STATUS.READY, strip, refusal: null });
+            return publish({ status: LED_STATUS.READY, strip });
         },
 
+        /**
+         * Stage a colour on one zone or several and show it on the live registers.
+         *
+         * @param {string|string[]} zone
+         * @param {string} bank
+         * @param {string} hex  '#RRGGBB'
+         */
         preview(zone, bank, hex) {
             intents += 1;
             const zones = Array.isArray(zone) ? zone : [zone];
@@ -245,7 +283,8 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
                 publish({ refusal: LED_REFUSAL.BAD_TARGET });
                 return Promise.resolve(false);
             }
-            const strip = store.get().strip;
+            if (store.get().writing) return Promise.resolve(false);
+            const strip = shown();
             if (!strip) {
                 publish({ refusal: LED_REFUSAL.NO_STATE });
                 return Promise.resolve(false);
@@ -255,103 +294,109 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
                 publish({ refusal: LED_REFUSAL.BAD_COLOUR });
                 return Promise.resolve(false);
             }
-
-            pendingColour = zones.length === 1
-                ? { kind: 'colour', zone: zones[0], bank, wire }
-                : {
-                    kind: 'strip',
-                    bank,
-                    strip: withBank(strip, bank, (one, current) => (
-                        zones.includes(one) ? wire : current)),
-                };
-            markDirty();
-            if (pump) return pump;
-            pump = drain().finally(() => { pump = null; });
-            return pump;
+            const next = zones.length === 1
+                ? withColour(strip, zones[0], bank, wire)
+                : withBank(strip, bank, (one, current) => (zones.includes(one) ? wire : current));
+            stage(next);
+            showOnStrip(previewBodyFor(next, zones, bank));
+            return Promise.resolve(true);
         },
 
-        isOn(bank) {
-            const strip = store.get().strip;
+        /** Whether any of `zones` is lit on this bank. Null when the target does not exist. */
+        isOn(bank, zones) {
+            const strip = shown();
+            const scope = Array.isArray(zones) ? zones : [zones];
             if (!strip || !LED_BANKS.includes(bank)) return null;
-            return bankIsLit(strip, bank);
+            if (scope.length === 0 || !scope.every((one) => LED_ZONES.includes(one))) return null;
+            return bankIsLit(strip, bank, scope);
         },
 
-        power(on, bank) {
+        /** Black out `zones` on this bank, or restore what each one last was. */
+        power(on, bank, zones) {
             intents += 1;
-            if (!LED_BANKS.includes(bank)) {
+            const scope = Array.isArray(zones) ? zones : [zones];
+            if (!LED_BANKS.includes(bank)
+                || scope.length === 0 || !scope.every((one) => LED_ZONES.includes(one))) {
                 publish({ refusal: LED_REFUSAL.BAD_TARGET });
                 return Promise.resolve(false);
             }
-            const strip = store.get().strip;
+            if (store.get().writing) return Promise.resolve(false);
+            const strip = shown();
             if (!strip) {
                 publish({ refusal: LED_REFUSAL.NO_STATE });
                 return Promise.resolve(false);
             }
-
             const next = withBank(strip, bank, (zone, current) => {
+                if (!scope.includes(zone)) return current;
                 if (!on) return COLOUR16_OFF;
                 if (current !== COLOUR16_OFF) return current;
                 const remembered = lastLit.get(`${zone}:${bank}`);
                 return isColour16(remembered) ? remembered : LED_DEFAULT_ON;
             });
-
-            pendingColour = { kind: 'strip', bank, strip: next };
-            /* THE POWER SWITCH DIRTIES TOO. Turning the strip off is as much a change to
-             * what the machine will show at the next power cycle as picking a colour is. */
-            markDirty();
-            if (pump) return pump;
-            pump = drain().finally(() => { pump = null; });
-            return pump;
+            stage(next);
+            showOnStrip(previewBodyFor(next, scope, bank));
+            return Promise.resolve(true);
         },
 
-        /** Resolves when nothing is pending and nothing is on the wire. Tests only. */
-        settled: () => pump ?? Promise.resolve(),
+        /** Resolves when the save is off the wire. Tests only. */
+        settled: () => saving ?? Promise.resolve(),
+
+        /** Resolves when the preview loop has drained. Tests only. */
+        previewSettled: () => showing ?? Promise.resolve(),
+
+        endPreview,
 
         /**
-         * SAVE. The preview showed the colour; this is what stores it.
-         *
-         * TWO CALLS, AND THE FIRST IS THE ONE THAT MATTERS. `putMachineLedStrip` writes
-         * the four stored registers — the awake and asleep colours the firmware applies
-         * on every transition — and the app writes only the ones that changed, so a
-         * palette re-saved unchanged costs no flash write at all. `commit` follows it
-         * because the route exists and a machine whose save IS a separate step would
-         * need it; on this firmware it is an accepted no-op.
+         * SAVE. The preview showed the colour; this is what stores it. The answer is the
+         * read-back state, so the store holds what the firmware kept rather than what was
+         * sent, and the preview ends once it is safely stored.
          */
-        async commit() {
-            const strip = store.get().strip;
-            if (!strip) {
-                publish({ refusal: LED_REFUSAL.NO_STATE });
-                return false;
-            }
-            const saved = await callRoute(transport, 'putMachineLedStrip', { body: strip });
-            if (!saved.ok) {
-                if (saved.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
-                else publish({ refusal: LED_REFUSAL.WRITE_FAILED });
-                return false;
-            }
-            const result = await callRoute(transport, 'postMachineLedStripCommit', { body: {} });
-            if (!result.ok && result.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
-            if (result.ok) publish({ dirty: false });
-            return Boolean(result.ok);
+        commit() {
+            if (saving) return saving;
+            const draft = store.get().draft;
+            if (!draft) return Promise.resolve(true);
+            inFlight += 1;
+            peakInFlight = Math.max(peakInFlight, inFlight);
+            publish({ writing: true, refusal: null });
+            saving = (async () => {
+                sent += 1;
+                const put = await callRoute(transport, 'putMachineLedStrip', { body: draft });
+                arrived();
+                if (!put.ok) {
+                    log.warn(`ledStrip save refused: ${put.status ?? 'no status'}`);
+                    publish({
+                        refusal: LED_REFUSAL.WRITE_FAILED,
+                        status: put.status === 404 ? LED_STATUS.UNSUPPORTED : store.get().status,
+                    });
+                    return false;
+                }
+                const settled = (looksLikeStrip(put.data) ? readLedStrip(put.data) : null) ?? draft;
+                publish({
+                    status: LED_STATUS.READY,
+                    strip: settled,
+                    draft: null,
+                    dirty: false,
+                    refusal: null,
+                });
+                await endPreview();
+                return true;
+            })().finally(() => {
+                inFlight -= 1;
+                saving = null;
+                publish({ writing: false });
+            });
+            return saving;
         },
 
         /**
-         * END THE PREVIEW. The strips go back to the stored palette for the state the
-         * machine is actually in — the firmware picks the bank, because it is the only
-         * place that knows. A preview otherwise stands until the next sleep or wake.
-         */
-        async clearPreview() {
-            const result = await callRoute(transport, 'postMachineLedStripPreviewClear', { body: {} });
-            if (!result.ok && result.status === 404) publish({ status: LED_STATUS.UNSUPPORTED });
-            return Boolean(result.ok);
-        },
-
-        /**
-         * Reload NVM and take the answer. The route RETURNS the reloaded state, so this
-         * never re-GETs — the contract row says so in as many words.
+         * Drop the draft, end the preview and reload NVM. The route RETURNS the reloaded
+         * state, so this never re-GETs — the contract row says so in as many words.
          */
         async reset() {
+            await endPreview();
+            if (store.get().draft !== null) publish({ draft: null, dirty: false, refusal: null });
             const result = await callRoute(transport, 'postMachineLedStripReset', { body: {} });
+            arrived();
             if (!result.ok) {
                 const status = result.status === 404 ? LED_STATUS.UNSUPPORTED : LED_STATUS.UNAVAILABLE;
                 publish({ status });
@@ -359,19 +404,23 @@ export function createLedStripStore({ transport, logger = NOOP_LOGGER } = {}) {
             }
             const strip = readLedStrip(result.data);
             if (strip === null) return false;
-            /* RELOADING NVM IS DISCARDING THE PREVIEW, so the strip is by definition
-             * showing exactly what NVM holds and there is nothing left to save. */
-            publish({ status: LED_STATUS.READY, strip, refusal: null, dirty: false });
+            publish({
+                status: LED_STATUS.READY, strip, draft: null, refusal: null, dirty: false,
+            });
             return true;
         },
 
         /** The machine went away. No timer to clear, because there is none. */
         forget() {
-            pendingColour = null;
-            /* The memory goes with it: "what colour the front strip was" is a fact
-             * about a machine, and carrying it across a machine change would restore
-             * one machine's colour onto another's strip. */
+            pendingPreview = null;
+            previewSent = null;
+            previewEpoch += 1;
+            /* The memory goes with it: "what colour the front strip was" is a fact about a
+             * machine, and carrying it across a machine change would restore one machine's
+             * colour onto another's strip. */
             lastLit.clear();
+            newestAnswer = ++issued;
+            displacedStatus = EMPTY_STATE.status;
             store.set({ ...EMPTY_STATE });
         },
 

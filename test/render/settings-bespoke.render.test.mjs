@@ -19,6 +19,7 @@ const BESPOKE_PANES = Object.freeze([
     ['updates', 'updates-skin-app'],
     ['units-language', 'units-language-select-language'],
     ['calibration', 'calibration-load-cells'],
+
     ['accessories', 'accessories-lighting'],
 ]);
 
@@ -44,8 +45,10 @@ const paneReport = (page) => page.evalFn(() => {
     return {
         measure: box(pane.shadowRoot.getElementById('leaf')),
         pane: box(pane),
+
         paneContent: pane.clientWidth
             - parseFloat(paneStyle.paddingInlineStart) - parseFloat(paneStyle.paddingInlineEnd),
+
         measureWide: (() => {
             const probe = document.createElement('div');
             probe.style.cssText = 'position:absolute;visibility:hidden;inline-size:var(--ui-measure-wide)';
@@ -180,7 +183,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         /* ═══════════════════════════════════════════════════════════════════
-         * 2. THE ONE MEASURE — and 
+         * 2. THE ONE MEASURE — and
          * ═════════════════════════════════════════════════════════════════ */
 
         describe('eight leaves, one measure (T1, T21)', () => {
@@ -214,6 +217,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await serve(['scaleCalibration']);
                 await show('calibration', 'calibration-load-cells');
                 const wizard = await paneReport(page);
+
                 await show('display', 'display-skin');
                 const other = await paneReport(page);
 
@@ -262,6 +266,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const live = root.getElementById('cal-live');
                 return {
                     card: { width: r.width, height: r.height },
+
                     live: live ? live.textContent.replace(/\s+/g, ' ').trim() : null,
                     surface: section.textContent.replace(/\s+/g, ' ').trim(),
                     status: { height: s.height, text: status.textContent.trim() },
@@ -429,6 +434,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     step: 'error', subState: 'error', secondsRemaining: 0, status: 'badDelta', detectedCell: 'b',
                 });
                 const diagnosed = await wizardReport(page);
+
                 assert.match(diagnosed.status.text, /did not see the weight/i,
                     'badDelta is a sentence, not a status code');
                 assert.doesNotMatch(diagnosed.status.text, /centred/i,
@@ -511,112 +517,119 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 await scale(null);
             });
+
+            test('a weight from a source that gave up reads as an absence too', async () => {
+                await serve(['scaleCalibration']);
+                await show('calibration', 'calibration-load-cells');
+                await drive(IDLE);
+                await freshWalk();
+                await startWalk();
+
+                await scale(0.4);
+                const live = await wizardReport(page);
+                assert.match(live.surface, /0\.4 g/, 'the fresh reading is drawn, or there is nothing to withdraw');
+
+                await scale(0.4, { status: 'unavailable' });
+                const gone = await wizardReport(page);
+                assert.match(gone.live, /\u2013/,
+                    'a source that gave up still holds its last frame, and that is not a reading');
+                assert.doesNotMatch(gone.live, /0\.4/,
+                    'the walk went on printing a weight nobody is measuring');
+
+                await scale(null);
+            });
         });
 
-        describe('the LED preview: one write in flight, latest-wins, no timer', () => {
-            test('N rapid swatch presses leave exactly one write on the wire, last colour wins', async () => {
+        describe('the LED palette is a draft, and Save is the only write', () => {
+            test('N rapid swatch presses leave NOTHING on the wire; Save sends the last colour', async () => {
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
 
                 const drill = await page.evalFn(async () => {
                     const api = window.__settings;
-                    api.holdLed();
                     const before = api.ledCounters();
-                    /* THE SERVER IS SHARED BY EVERY TEST ON THIS PAGE, so what a drag put
-                     * on the wire is a DELTA, never a total. */
-                    const serverBefore = api.server();
+                    const beforeServer = api.server();
 
-                    /* SEVEN PRESSES, THROUGH THE COMPONENT — a swatch click, not a store
-                     * call, so what is exercised is the whole path a finger takes. */
-                    const peak = [];
-                    for (let i = 1; i <= 7; i += 1) {
-                        await api.pickSwatch(i);
-                        peak.push(api.ledParked());
-                    }
-                    const midFlight = api.ledCounters();
+                    for (let i = 1; i <= 7; i += 1) await api.pickSwatch(i);
+                    const midDrag = api.ledCounters();
+                    const duringServer = api.server();
 
-                    /* Let them answer, one round at a time, until the chain drains. */
-                    let rounds = 0;
-                    while (api.ledParked() > 0 && rounds < 10) {
-                        api.releaseLed();
-                        await new Promise((r) => setTimeout(r, 0));
-                        rounds += 1;
-                    }
+                    await api.stores().led.commit();
                     await api.stores().led.settled();
 
-                    const out = {
-                        before, midFlight, after: api.ledCounters(), peak,
-                        parkedNow: api.ledParked(),
-                        serverBefore,
+                    return {
+                        before,
+                        midDrag,
+                        after: api.ledCounters(),
+                        duringServer,
                         server: api.server(),
                         shown: api.stores().led.hex('frontStrip', 'awake'),
                     };
-                    /* PUT THE MOCK BACK. `holdLed()` above sets a flag with no expiry,
-                     * and every later test in this page shares the server. */
-                    api.freeLed();
-                    return out;
                 });
 
-                assert.deepEqual([...new Set(drill.peak)], [1],
-                    `never more than one write on the wire: saw ${JSON.stringify(drill.peak)}`);
-                assert.equal(drill.midFlight.intents, 7, 'seven presses, seven intents');
-                assert.equal(drill.midFlight.sent, 1, 'one of them on the wire');
-                assert.equal(drill.after.peakInFlight, 1);
-                assert.ok(drill.after.sent < drill.after.intents,
-                    'the intermediate colours were DROPPED, not queued');
+                assert.equal(drill.midDrag.intents - drill.before.intents, 7,
+                    'seven presses, seven intents');
+                assert.equal(drill.midDrag.sent, drill.before.sent,
+                    'and NONE of them reached the machine: a PUT stores the palette');
+                assert.equal(drill.duringServer.ledWrites, drill.server.ledWrites - 1,
+                    'exactly one write for the whole drag, and it happened on Save');
+                assert.equal(drill.after.sent - drill.before.sent, 1);
+                assert.equal(drill.after.peakInFlight, 1, 'never two writes at once');
 
-                /* THE DRAG IS ON THE PREVIEW ROUTE NOW, AND IT STORES NOTHING. Seven
-                 * presses used to be seven candidate PUTs of the four STORED registers —
-                 * a flash write per frame, saving a colour the finger only passed over.
-                 * `POST /machine/ledStrip/preview` exists at this pin (de1handler.dart:261)
-                 * and `led-strip-store.js preview()` moved onto it, so the count that says
-                 * "one write on the wire" is the count of previews, and the stored palette
-                 * must not have moved at all. That second half is the point of the change,
-                 * so it is asserted rather than assumed. */
-                assert.equal(drill.server.ledPreviews - drill.serverBefore.ledPreviews, drill.after.sent,
-                    'the previews the server received are not the writes the store counted sending');
-                assert.equal(drill.midFlight.sent, 1, 'and exactly one of the seven was on the wire mid-drill');
-                assert.equal(drill.server.ledWrites - drill.serverBefore.ledWrites, 0,
-                    'a drag wrote the STORED registers — that is a flash write per frame');
-                assert.equal(drill.server.ledCommits - drill.serverBefore.ledCommits, 0,
-                    'a drag committed to NVM');
-                /* AND THE DECIDED NUMBERS, not just "fewer than seven". Two writes — the
-                 * first press, and the single survivor the other six collapsed into —
-                 * and five dropped. This is the same pair test/settings-bespoke.test.mjs
-                 * pins at the store; pinning it here proves the component path collapses
-                 * them too, rather than the store being asked seven times politely. */
-                assert.equal(drill.after.sent, 2, 'seven intents, two writes');
-                assert.equal(drill.after.dropped, 5, 'the five the finger passed over never reached the wire');
-
-                /* LATEST-WINS, AT THE MACHINE. The last preset pressed is the colour the
-                 * fake server is left holding and the colour the row shows. The preview
-                 * body is the route's own flat shape — one 12-hex string per strip. */
-                const expected = drill.server.ledPreviewLast.frontStrip;
+                const expected = drill.server.ledLast.frontStrip.awake;
                 assert.equal(drill.shown.toLowerCase(),
                     `#${expected.slice(0, 2)}${expected.slice(4, 6)}${expected.slice(8, 10)}`.toLowerCase());
             });
 
-            test('the whole path — component, store, colour maths — contains no timer', async () => {
-                const sources = await page.evalFn(async () => {
-                    const paths = [
-                        '/src/stores/led-strip-store.js',
-                        '/src/lib/led-colour.js',
-                        '/src/screens/settings-bespoke-leaf.js',
-                        '/src/components/ui-colour-swatch-row.js',
-                    ];
-                    const out = {};
-                    for (const path of paths) out[path] = await (await fetch(path)).text();
-                    return out;
+            test('a colour picked and cancelled leaves the machine holding what it held', async () => {
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+
+                const run = await page.evalFn(async () => {
+                    const api = window.__settings;
+                    const led = api.stores().led;
+
+                    await api.pickSwatch(1);
+                    await led.commit();
+                    await led.settled();
+                    const saved = api.server();
+
+                    await api.pickSwatch(4);
+                    const picked = {
+                        server: api.server(),
+                        shown: led.hex('frontStrip', 'awake'),
+                        dirty: led.get().dirty,
+                    };
+
+                    await led.reset();
+                    return {
+                        saved,
+                        picked,
+                        after: {
+                            server: api.server(),
+                            shown: led.hex('frontStrip', 'awake'),
+                            dirty: led.get().dirty,
+                        },
+                    };
                 });
-                for (const [path, text] of Object.entries(sources)) {
-                    const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-                    for (const spelling of [/setTimeout/, /setInterval/, /\bdebounce\b/i, /\bthrottle\b/i]) {
-                        assert.doesNotMatch(code, spelling, `${path} schedules the LED write (${spelling})`);
-                    }
-                }
+
+                assert.equal(run.picked.server.ledWrites, run.saved.ledWrites,
+                    'picking a colour must not write the stored palette');
+                assert.deepEqual(run.picked.server.ledLast, run.saved.ledLast,
+                    'the machine is still holding the palette that was saved');
+                assert.equal(run.picked.dirty, true, 'and the header counts one thing to save');
+
+                assert.equal(run.after.dirty, false, 'Cancel leaves nothing staged');
+                assert.equal(run.after.server.ledWrites, run.saved.ledWrites,
+                    'and it writes nothing of its own to put anything back');
+                assert.notEqual(run.after.shown, run.picked.shown,
+                    'the picker is back on the palette the machine holds, not the cancelled colour');
+                const held = run.saved.ledLast.frontStrip.awake;
+                const heldHex = `#${held.slice(0, 2)}${held.slice(4, 6)}${held.slice(8, 10)}`;
+                assert.equal(run.after.shown.toLowerCase(), heldHex.toLowerCase());
             });
 
-            test('OFF blacks every zone of the bank and ON restores what each one was', async () => {
+            test('OFF blacks every SELECTED zone and ON restores what each one was', async () => {
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
 
@@ -628,10 +641,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const zones = ['frontStrip', 'backStrip', 'frontSwitch'];
                     const readAll = () => Object.fromEntries(zones.map((z) => [z, led.hex(z, 'awake')]));
 
-                    /* A KNOWN LIT STATE FIRST, through the component, so the memory is
-                     * filled by the same path a finger fills it by. */
+                    const bank = bespoke.shadowRoot.getElementById('led-zone');
+                    bank.dispatchEvent(new CustomEvent('change', {
+                        detail: { value: 'both' }, bubbles: true, composed: true,
+                    }));
+                    await bespoke.updateComplete;
+
                     await api.pickSwatch(1);
-                    await led.settled();
                     const lit = readAll();
 
                     const press = async (checked) => {
@@ -639,18 +655,24 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         el.dispatchEvent(new CustomEvent('change', {
                             detail: { checked }, bubbles: true, composed: true,
                         }));
-                        await led.settled();
                         await bespoke.updateComplete;
                     };
 
-                    const wasOn = led.isOn('awake');
-                    const beforeCounters = led.counters();
+                    const wasOn = led.isOn('awake', zones);
+                    const beforeServer = api.server();
                     await press(false);
-                    const off = { strip: readAll(), isOn: led.isOn('awake'), counters: led.counters() };
+                    const off = { strip: readAll(), isOn: led.isOn('awake', zones), server: api.server() };
                     await press(true);
-                    const on = { strip: readAll(), isOn: led.isOn('awake') };
+                    const on = { strip: readAll(), isOn: led.isOn('awake', zones) };
 
-                    return { lit, wasOn, off, on, beforeCounters, server: api.server().ledLast };
+                    await press(false);
+                    await led.commit();
+                    await led.settled();
+
+                    return {
+                        lit, wasOn, off, on, beforeServer, server: api.server(),
+                        counters: led.counters(),
+                    };
                 });
 
                 assert.equal(run.wasOn, true, 'the bank starts lit, so there is something to switch off');
@@ -660,15 +682,21 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(hex, '#000000', `${zone} is still lit after the power switch went off`);
                 }
                 assert.equal(run.off.isOn, false, 'a bank with nothing lit is off, derived from the colour');
-
-                assert.equal(run.off.counters.sent - run.beforeCounters.sent, 1,
-                    'three zones went dark in one write, or the latest-wins slot dropped two of them');
-                assert.equal(run.off.counters.peakInFlight, 1);
+                assert.equal(run.off.server.ledWrites, run.beforeServer.ledWrites,
+                    'and the machine has not been written to: the switch drafts like the picker');
 
                 /* ON: exactly what was there before, not a default. */
                 assert.deepEqual(run.on.strip, run.lit,
                     'powering back on must restore the remembered colours, not a warm white');
                 assert.equal(run.on.isOn, true);
+
+                assert.equal(run.server.ledWrites - run.beforeServer.ledWrites, 1,
+                    'three zones went dark in one write');
+                for (const zone of ['frontStrip', 'backStrip', 'frontSwitch']) {
+                    assert.equal(run.server.ledLast[zone].awake, '000000000000',
+                        `${zone} did not travel with the palette that was saved`);
+                }
+                assert.equal(run.counters.peakInFlight, 1);
             });
 
             test('a bank that was never lit comes on at the warm-white default', async () => {
@@ -679,11 +707,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     api.freeLed();
                     const led = api.stores().led;
                     const bespoke = api.bespokeEl();
+                    const bank = bespoke.shadowRoot.getElementById('led-zone');
+                    bank.dispatchEvent(new CustomEvent('change', {
+                        detail: { value: 'both' }, bubbles: true, composed: true,
+                    }));
+                    await bespoke.updateComplete;
                     const press = async (checked) => {
                         bespoke.shadowRoot.getElementById('led-power').dispatchEvent(new CustomEvent('change', {
                             detail: { checked }, bubbles: true, composed: true,
                         }));
-                        await led.settled();
                         await bespoke.updateComplete;
                     };
                     /* Black it out FIRST and forget, so nothing is remembered — the
@@ -698,22 +730,42 @@ for (const geometry of GATE_A_GEOMETRIES) {
                      * the state this test is about, and it is the same two steps a
                      * finger takes: turn the strip off, then Save. */
                     await press(false);
-                    const saved = await led.commit();
-                    if (!saved) throw new Error('the save that blacks the stored palette was refused');
+                    await led.commit();
+                    await led.settled();
                     led.forget();
                     await led.load();
-                    await press(false);
                     await press(true);
                     return {
                         strip: ['frontStrip', 'backStrip', 'frontSwitch']
                             .map((zone) => led.hex(zone, 'awake')),
-                        isOn: led.isOn('awake'),
+                        isOn: led.isOn('awake', ['frontStrip', 'backStrip', 'frontSwitch']),
                     };
                 });
                 /* LED_DEFAULT_ON = 'FFFFAAAA5555' -> #FFAA55. */
                 assert.deepEqual(run.strip.map((hex) => hex.toLowerCase()),
                     ['#ffaa55', '#ffaa55', '#ffaa55']);
                 assert.equal(run.isOn, true);
+            });
+
+            test('the whole path — component, store, colour maths — contains no timer', async () => {
+                const sources = await page.evalFn(async () => {
+                    const paths = [
+                        '/src/stores/led-strip-store.js',
+                        '/src/lib/led-colour.js',
+                        '/src/screens/settings-bespoke-leaf.js',
+                        '/src/components/ui-colour-swatch-row.js',
+                    ];
+                    const out = {};
+                    for (const path of paths) out[path] = await (await fetch(path)).text();
+                    return out;
+                });
+
+                for (const [path, text] of Object.entries(sources)) {
+                    const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+                    for (const spelling of [/setTimeout/, /setInterval/, /\bdebounce\b/i, /\bthrottle\b/i]) {
+                        assert.doesNotMatch(code, spelling, `${path} schedules the LED write (${spelling})`);
+                    }
+                }
             });
 
             test('the switch reads the colour, not a stored flag — a hand-picked black reads off', async () => {
@@ -726,35 +778,30 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const bespoke = api.bespokeEl();
                     for (const zone of ['frontStrip', 'backStrip', 'frontSwitch']) {
                         await led.preview(zone, 'awake', '#000000');
-                        await led.settled();
+                        await led.previewSettled();
                     }
                     await bespoke.updateComplete;
                     const el = bespoke.shadowRoot.getElementById('led-power');
-                    return { checked: el.checked, isOn: led.isOn('awake') };
+                    return { checked: el.checked, isOn: led.isOn('awake', ['frontStrip', 'frontSwitch']) };
                 });
                 assert.equal(state.isOn, false);
                 assert.equal(state.checked, false,
                     'the switch is derived from the strip, so black by hand is Off with no second state');
             });
 
-            test('an uncommitted preview is counted, saved by Save and discarded by Cancel', async () => {
+            test('an unsaved palette is counted, stored by Save and discarded by Cancel', async () => {
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
+
                 await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
                 await page.settle();
-
-                /* A DELTA, NOT A TOTAL. `ledCommits` counts every Save this whole page has
-                 * made, and the cold-start test above now has to commit a black palette to
-                 * create its own precondition — the preview route stopped writing the
-                 * stored registers, so a preview can no longer arrange one. A total made
-                 * this test depend on which tests ran before it. */
-                const commitsBefore = await page.evalFn(() => window.__settings.server().ledCommits);
 
                 const clean = await page.evalFn(() => {
                     const screen = document.querySelector('settings-screen');
                     return {
                         dirty: window.__settings.stores().led.get().dirty,
                         count: Number(screen.shadowRoot.getElementById('band').getAttribute('change-count')),
+                        writes: window.__settings.server().ledWrites,
                         buttons: [
                             Boolean(window.__settings.bespokeEl().shadowRoot.getElementById('led-commit')),
                             Boolean(window.__settings.bespokeEl().shadowRoot.getElementById('led-reset')),
@@ -769,18 +816,22 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const previewed = await page.evalFn(async () => {
                     const led = window.__settings.stores().led;
                     await led.preview('frontStrip', 'awake', '#112233');
-                    await led.settled();
+                    await led.previewSettled();
                     const screen = document.querySelector('settings-screen');
                     await screen.updateComplete;
                     return {
                         dirty: led.get().dirty,
                         count: Number(screen.shadowRoot.getElementById('band').getAttribute('change-count')),
-                        commits: window.__settings.server().ledCommits,
+                        writes: window.__settings.server().ledWrites,
+                        previews: window.__settings.server().ledPreviews,
                     };
                 });
-                assert.equal(previewed.dirty, true, 'a preview lights the machine and persists nothing');
+                assert.equal(previewed.dirty, true, 'a colour chosen is an edit the machine has not been given');
                 assert.equal(previewed.count, 1, 'so the header says there is one thing to save');
-                assert.equal(previewed.commits - commitsBefore, 0, 'and nothing has reached NVM yet');
+                assert.equal(previewed.writes - clean.writes, 0,
+                    'no palette went out with it — the stored one is untouched until Save');
+                assert.ok(previewed.previews > 0,
+                    'and the strip has to have been shown it, or the wheel is dead on the machine');
 
                 const saved = await page.evalFn(async () => {
                     const screen = document.querySelector('settings-screen');
@@ -791,12 +842,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     await new Promise((r) => setTimeout(r, 30));
                     document.removeEventListener('navigate', listener);
                     return {
-                        commits: window.__settings.server().ledCommits,
+                        writes: window.__settings.server().ledWrites,
                         dirty: window.__settings.stores().led.get().dirty,
                         left: seen,
                     };
                 });
-                assert.equal(saved.commits - commitsBefore, 1, 'Save writes NVM — this is the whole finding');
+                assert.equal(saved.writes - previewed.writes, 1,
+                    'Save stores the palette, once — this is the whole finding');
                 assert.equal(saved.dirty, false, 'and there is nothing left to save');
                 assert.deepEqual(saved.left, ['live'], 'then it leaves, as Save does everywhere');
 
@@ -804,35 +856,40 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const cancelled = await page.evalFn(async () => {
                     const led = window.__settings.stores().led;
                     await led.preview('frontStrip', 'awake', '#445566');
-                    await led.settled();
+                    await led.previewSettled();
                     const screen = document.querySelector('settings-screen');
                     await screen.updateComplete;
-                    const before = window.__settings.server().ledResets;
+                    const before = window.__settings.server();
                     screen.shadowRoot.getElementById('band').shadowRoot.getElementById('cancel').click();
                     await new Promise((r) => setTimeout(r, 30));
                     return {
-                        resets: window.__settings.server().ledResets - before,
+                        resets: window.__settings.server().ledResets - before.ledResets,
+                        writes: window.__settings.server().ledWrites - before.ledWrites,
                         dirty: led.get().dirty,
                     };
                 });
                 assert.equal(cancelled.resets, 1,
-                    'Cancel reloads NVM, which is what discarding a preview IS on this route');
+                    'Cancel re-reads the palette, which is what the route is for');
+                assert.equal(cancelled.writes, 0,
+                    'and it writes nothing: the cancelled colour never left the tablet');
                 assert.equal(cancelled.dirty, false);
 
                 await show('accessories', 'accessories-lighting');
                 const nothingToSave = await page.evalFn(async () => {
                     const screen = document.querySelector('settings-screen');
-                    const before = window.__settings.server().ledCommits;
+                    const before = window.__settings.server();
                     screen.shadowRoot.getElementById('band').shadowRoot.getElementById('save').click();
                     await new Promise((r) => setTimeout(r, 30));
-                    return window.__settings.server().ledCommits - before;
+                    const after = window.__settings.server();
+                    return after.ledWrites - before.ledWrites;
                 });
                 assert.equal(nothingToSave, 0,
-                    'a clean page still just closes — Save must not post a commit nobody asked for');
+                    'a clean page still just closes — Save must not write a palette nobody edited');
                 await show('accessories', 'accessories-lighting');
             });
 
             test('the grid reports the two colours the machine holds, and Both is not one', async () => {
+
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
                 const grid = await page.evalFn(() => {
@@ -852,6 +909,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the wheel is asked for Slate’s rendered diameter, in design units', async () => {
+
                 await serve(['ledStrip']);
                 await show('accessories', 'accessories-lighting');
                 const seen = await page.evalFn(() => {
@@ -911,6 +969,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const after = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
                     const chips = [...root.querySelectorAll('#current .chip')];
+
                     const current = chips.filter((el) => el.getAttribute('aria-pressed') === 'true');
                     const style = current.length ? getComputedStyle(current[0]) : null;
                     const other = chips.find((el) => el.getAttribute('aria-pressed') !== 'true');
@@ -922,6 +981,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         currentFill: style?.backgroundColor ?? null,
                         currentBorder: style?.borderTopWidth ?? null,
                         restingBorder: other ? getComputedStyle(other).borderTopWidth : null,
+
                         wantFill: current.length
                             ? current[0].style.getPropertyValue('--_ui-chip-fill').trim()
                             : null,
@@ -950,6 +1010,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const moved = await page.evalFn(async () => {
                     const bespoke = window.__settings.bespokeEl();
                     const bank = bespoke.shadowRoot.getElementById('led-bank');
+
                     const now = bank.getAttribute('value');
                     const other = now === 'sleeping' ? 'awake' : 'sleeping';
                     const before = bespoke.shadowRoot.getElementById('led-presets').getAttribute('value');
@@ -982,6 +1043,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 for (const card of cards) {
                     assert.match(card.version, /^v\d/, `${card.skin} prints ${card.version}`);
                 }
+
                 const beanie = cards.find((card) => card.skin === 'beanie');
                 assert.equal(beanie?.version, 'v0.3.5');
 
@@ -1038,7 +1100,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'the bank shows the stamp, not a value of its own');
 
                 const other = stampBefore === 'dark' ? 'light' : 'dark';
-                await page.click(`settings-screen >>> #bespoke >>> #theme-bank >>> #item-${other === 'dark' ? 0 : 1}`);
+                const target = `settings-screen >>> #bespoke >>> #theme-bank >>> #item-${other === 'dark' ? 0 : 1}`;
+                await page.evalFn((selector) => {
+                    window.__h.need(selector).scrollIntoView({ block: 'center', inline: 'nearest' });
+                    return true;
+                }, target);
+                await page.settle();
+                const visible = await page.evalFn((selector) => {
+                    const button = window.__h.need(selector).getBoundingClientRect();
+                    const pane = __settings.screen().shadowRoot.getElementById('leaf-pane').getBoundingClientRect();
+                    return button.top >= pane.top && button.bottom <= pane.bottom;
+                }, target);
+                assert.equal(visible, true, 'the theme choice is inside the visible scroll pane before the pointer press');
+                await page.click(target);
                 await page.settle();
 
                 const after = await page.evalFn(() => ({
@@ -1050,6 +1124,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                  * so this is what "the theme changed" means. */
                 assert.equal(after.stamp, other, `pressing ${other} did not restamp the root`);
                 assert.equal(after.theme, other);
+
                 assert.equal(after.source, 'stored');
 
                 const shown = await bank();
@@ -1149,6 +1224,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('one name for the select, and it is Slate\'s more precise pair', async () => {
+
                 await show('units-language', 'units-language-select-language');
                 const named = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1191,6 +1267,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     });
                     assert.ok(report.length > 0, `${leafId} shows no empty state`);
                     for (const state of report) {
+
                         assert.equal(state.textAlign, 'center', `${leafId}/${state.id} is not centred`);
                         near(state.leftGap, state.rightGap, `${leafId}/${state.id} sits off-centre`, 2.01);
                     }
@@ -1202,10 +1279,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('the named component is on screen for each of the nine', async () => {
                 await serve(['ledStrip', 'scaleCalibration', 'wakeSchedule']);
                 const expected = {
+
                     'machine-machine-info': 'ui-button',
                     'machine-sleep-wake-schedules': 'ui-list-row',
                     'display-skin': 'ui-card-grid',
+
                     'updates-skin-app': 'ui-button',
+
                     'units-language-select-language': 'ui-select',
                     'calibration-load-cells': 'ui-wizard-column',
                     'accessories-lighting': 'ui-colour-swatch-row',
@@ -1228,10 +1308,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     }));
                 });
                 const terms = rows.map((r) => r.term);
+
                 assert.deepEqual(terms.slice(0, 4),
                     ['Model', 'Firmware version', 'Serial number', 'Group head controller']);
                 assert.equal(rows[0].value, 'Bengle');
                 assert.equal(rows[1].value, '282');
+
                 assert.ok(!terms.some((term) => /profile mode caps/i.test(term)));
             });
 
@@ -1249,11 +1331,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 });
                 assert.ok(grid.cards >= 2);
                 assert.equal(grid.active, 1);
+
                 assert.equal(grid.buttons, grid.cards - 1,
                     'every card but the active one is a press target');
             });
 
             test('the update list states its count in words, and draws no bar under them', async () => {
+
                 await show('updates', 'updates-skin-app');
                 const got = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1328,6 +1412,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const live = rows.find((row) => row.connected);
                 const remembered = rows.find((row) => !row.connected);
                 assert.ok(live, 'the connected machine is marked');
+
                 assert.equal(remembered.word, 'Unavailable');
 
                 assert.deepEqual(live.actions, ['device-disconnect']);
@@ -1371,6 +1456,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the MACHINE page shows what a search found too — it showed nothing at all', async () => {
+
                 await show('connection', 'connection-machine');
                 await page.evalFn(() => window.__settings.stores().scaleConnect.scan());
                 await page.settle();
@@ -1387,6 +1473,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the chip prints a WORD, not ReaPrime’s wire token', async () => {
+
                 await show('connection', 'connection-machine');
                 await page.evalFn(() => window.__settings.stores().scaleConnect.scan());
                 await page.settle();
@@ -1406,6 +1493,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the Preferred column is NAMED, once, over the track it belongs to', async () => {
+
                 await show('connection', 'connection-machine');
                 const report = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1418,6 +1506,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         heads: heads.length,
                         word: cell?.textContent.trim() ?? null,
                         heights,
+
                         aligned: cell && sw
                             ? Math.abs(cell.getBoundingClientRect().left - sw.getBoundingClientRect().left) < 40
                             : false,
@@ -1431,6 +1520,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('both pages say that Search does not connect for you', async () => {
+
                 for (const leaf of ['connection-machine', 'connection-scale']) {
                     await show('connection', leaf);
                     const said = await page.evalFn(() => window.__settings.bespokeEl()
@@ -1440,8 +1530,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a REFUSED device action is reported where the button was pressed', async () => {
+
                 await page.evalFn(() => window.__settings.failRoute('PUT /devices/forget'));
                 await show('connection', 'connection-machine');
+
                 await page.evalFn(async () => {
                     const root = window.__settings.bespokeEl().shadowRoot;
                     if (root.querySelector('.device-forget')) return true;
@@ -1547,6 +1639,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('nothing flashes without a class check and a confirmation', () => {
+
             const pick = (p, name, size, marker = null) => p.evalFn(async ([n, bytes, mark]) => {
                 const body = new Uint8Array(bytes);
                 if (mark !== null) new DataView(body.buffer).setUint32(4, mark, true);
@@ -1580,6 +1673,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('DE1 FIRMWARE IS REFUSED ON A BENGLE, and the refusal names both', async () => {
+
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({}));
                 await page.settle();
@@ -1604,6 +1698,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a machine that has not said what it is refuses a GOOD image', async () => {
+
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({
                     machine: { build: 336, model: 'Unknown' },
@@ -1625,6 +1720,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * ═══════════════════════════════════════════════════════════════════ */
 
         describe('every control a bespoke leaf draws has a size', () => {
+
             test('no field, button, switch or bank is zero-wide or outside its pane', async () => {
                 await serve(['cupWarmer', 'integratedScale', 'stopAtWeight', 'ledStrip',
                     'scaleCalibration', 'preheat', 'wakeSchedule']);
@@ -1671,6 +1767,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('the app-settings rows show what the app is set to', () => {
+
             test('gateway mode, log level and update checks read; the folder is a reading', async () => {
                 await show('extensions', 'extensions-decent-app-settings');
                 const rows = await page.evalFn(() => {
@@ -1699,6 +1796,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('the setpoint and the plate reading are two numbers', () => {
+
             test('the stepper shows the setpoint and the reading row shows the plate', async () => {
                 await serve(['cupWarmer', 'preheat']);
                 await page.evalFn(() => window.__settings.cupWarmerState({
@@ -1720,6 +1818,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 const now = rows.find((r) => r.id === 'accessories-cup-warmer-now');
                 assert.ok(now, 'Slate prints the plate reading and so does this page');
+
                 assert.equal(now.reading, '38.5 °C', 'and it is the live reading, not the setpoint');
                 assert.equal(now.value, null, 'a reading has no control');
             });
@@ -1747,6 +1846,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
          * ═══════════════════════════════════════════════════════════════════ */
 
         describe('a bespoke leaf keeps the page rhythm where its two halves meet', () => {
+
             const seamOf = (categoryId, leafId) => page.evalFn(async (c, l) => {
                 await window.__settings.selectCategory(c);
                 await window.__settings.selectLeaf(l);
@@ -1776,6 +1876,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('Default load settings says what the reset would actually change', () => {
+
             test('every NOW cell reads the machine, and the reset would move five of eight', async () => {
                 await show('calibration', 'calibration-default-load-settings');
                 const table = await page.evalFn(() => {
@@ -1799,6 +1900,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a reset repaints THIS page, not just the ones you visit next', async () => {
+
                 await show('calibration', 'calibration-default-load-settings');
                 const nowColumn = () => page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1937,6 +2039,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     const stepper = row.querySelector('ui-stepper');
                     return { min: stepper.min, max: stepper.max, step: stepper.step };
                 });
+
                 assert.deepEqual(bounds, { min: 5, max: 300, step: 5 });
             });
 
@@ -1953,6 +2056,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 });
                 assert.equal(said.bespoke, false, 'the leaf is not bespoke any more');
+
                 assert.deepEqual(said.rows, [
                     'accessories-cup-warmer-enabled',
                     'accessories-cup-warmer-target',
@@ -2030,6 +2134,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(got.found, true, 'the leaf renders the stepper');
                 assert.equal(got.cellTag, 'button', 'the value cell is pressable');
                 assert.equal(got.editable, true, 'so a tap can open the pad');
+
                 assert.deepEqual({ min: got.min, max: got.max, step: got.step },
                     { min: 5, max: 300, step: 5 });
                 assert.equal(got.unit, 'min');
@@ -2037,12 +2142,15 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('Calibration weight goes by the MACHINE door, under its served key', async () => {
                 await serve(['scaleCalibration']);
+
                 await show('calibration', 'calibration-hardware');
                 await show('calibration', 'calibration-load-cells');
+
                 await page.evalFn(() => window.__settings.calibrationState({
                     step: 'idle', status: 'none', secondsRemaining: 0, subState: 'settling', detectedCell: 'none',
                 }).then(() => true));
                 await page.settle();
+
                 await page.evalFn(() => window.__settings.pressWizard());
                 await page.settle();
                 for (const state of [
@@ -2362,6 +2470,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__settings.failRoute('PUT /machine/state/airPurge'));
                 await revisit('maintenance-transport-mode');
                 await startProcedure('air-purge');
+
                 await page.evalFn(() => window.__settings.failRoute('PUT /machine/state/airPurge', false));
 
                 const purge = await reportOf('air-purge');
@@ -2371,6 +2480,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const descale = await reportOf('descale');
                 assert.equal(descale.refusal, null,
                     'a refusal for a request this page never made is worse than silence');
+
                 assert.doesNotMatch(descale.status ?? '', /asked to start/i,
                     'an acknowledgement of a request this page never made is the same defect');
                 assert.doesNotMatch(descale.status ?? '', /water/i,
@@ -2620,6 +2730,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 for (const field of numbers) {
                     assert.equal(field.inputmode, 'decimal',
                         `${field.key} is a digits-only field and offered QWERTY`);
+
                     assert.equal(field.renderedType, 'text',
                         '#26 refuses type=number on purpose — inputmode is the whole lever');
                 }
@@ -2640,6 +2751,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.equal(field.renderedType, 'password');
                     assert.equal(field.inputmode, null);
                 }
+
                 for (const field of fields) {
                     assert.equal(field.pattern, null);
                     assert.equal(field.invalid, null);
@@ -2667,6 +2779,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             };
 
             test('the command DOES reach the channel — the wire was never the problem', async () => {
+
                 await show('updates', 'updates-skin-app');
                 const before = (await page.evalFn(() => window.__settings.updateCommands())).length;
                 await pressCheck();
@@ -2689,6 +2802,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await pressCheck();
 
                 const after = await decaid();
+
                 assert.notEqual(after.refusal, null,
                     'a press that cannot be delivered must not be silent');
                 assert.match(after.refusal, /update check could not be sent/i);
@@ -2704,6 +2818,505 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__settings.updateSendRefusal(null).then(() => true));
                 await pressCheck();
                 assert.equal((await decaid()).refusal, null);
+            });
+        });
+
+        describe('a refused write is said out loud, on the control that asked', () => {
+            const text = (id) => page.evalFn((elementId) => window.__settings.bespokeEl()
+                .shadowRoot.getElementById(elementId)?.textContent?.trim() ?? null, id);
+
+            const fail = async (key, on = true) => {
+                await page.evalFn(([k, flag]) => window.__settings.failRoute(k, flag), [key, on]);
+            };
+
+            test('a schedule the machine refuses keeps its dialog, its values AND a reason', async () => {
+                await serve(['wakeSchedule']);
+                await show('machine', 'machine-sleep-wake-schedules');
+                await fail('POST /presence/schedules');
+                await page.evalFn(() => {
+                    window.__settings.bespokeEl().shadowRoot.getElementById('schedule-add').click();
+                    return true;
+                });
+                await page.settle();
+                await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    root.getElementById('schedule-dialog').querySelector('[slot="actions"][variant="primary"]').click();
+                    return true;
+                });
+                await page.settle(3);
+
+                const shown = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    return {
+                        open: Boolean(root.getElementById('schedule-dialog')),
+                        refusal: root.getElementById('schedule-refusal')?.textContent?.trim() ?? null,
+                    };
+                });
+                assert.equal(shown.open, true, 'the draft stays on screen, as it always did');
+                assert.notEqual(shown.refusal, null, 'and now the page says why it is still there');
+                assert.match(shown.refusal, /not saved/i);
+                assert.match(shown.refusal, /503|refuse/i,
+                    'the machine own words ride along with the sentence');
+
+                await fail('POST /presence/schedules', false);
+                await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    root.getElementById('schedule-dialog').querySelector('[slot="actions"][variant="primary"]').click();
+                    return true;
+                });
+                await page.settle(3);
+                const after = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    return {
+                        open: Boolean(root.getElementById('schedule-dialog')),
+                        refusal: root.getElementById('schedule-refusal')?.textContent?.trim() ?? null,
+                    };
+                });
+                assert.equal(after.open, false, 'the retry saved it and the dialog shut');
+                assert.equal(after.refusal, null, 'and the sentence went with the refusal');
+            });
+
+            test('a calibration command the machine refuses says so on the wizard', async () => {
+                await serve(['scaleCalibration']);
+                await show('calibration', 'calibration-load-cells');
+                await page.evalFn(() => window.__settings.pressWizard());
+                await page.settle();
+                await fail('PUT /machine/scaleCalibration');
+                await page.evalFn(() => window.__settings.pressWizard());
+                await page.settle(3);
+
+                const refusal = await text('cal-refusal');
+                assert.notEqual(refusal, null, 'a refused Zero must not look like a Zero nobody pressed');
+                assert.match(refusal, /not sent|would not/i);
+                await fail('PUT /machine/scaleCalibration', false);
+            });
+
+            test('a plugin Save the machine refuses keeps the draft and names the failure', async () => {
+                await show('extensions', 'extensions-visualizer');
+                await fail('POST /plugins/visualizer.reaplugin/settings');
+                await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    const row = root.querySelector('#plugin-settings .form-row[data-field="Username"]');
+                    const field = row.querySelector('ui-text-field');
+                    field.value = 'someone-else';
+                    field.dispatchEvent(new CustomEvent('change', {
+                        detail: { value: 'someone-else' }, bubbles: true, composed: true,
+                    }));
+                    return true;
+                });
+                await page.settle();
+                await page.evalFn(() => {
+                    window.__settings.bespokeEl().shadowRoot.getElementById('plugin-save').click();
+                    return true;
+                });
+                await page.settle(3);
+
+                const shown = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    const row = root.querySelector('#plugin-settings .form-row[data-field="Username"]');
+                    return {
+                        refusal: root.getElementById('plugin-refusal')?.textContent?.trim() ?? null,
+                        typed: row.querySelector('ui-text-field')?.value ?? null,
+                        saveDisabled: root.getElementById('plugin-save')?.hasAttribute('disabled') ?? null,
+                    };
+                });
+                assert.notEqual(shown.refusal, null, 'a refused Save must not read as an unpressed one');
+                assert.match(shown.refusal, /not saved/i);
+                assert.equal(shown.typed, 'someone-else', 'and the typed value is still there to retry');
+                assert.equal(shown.saveDisabled, false, 'with the button still live to retry it');
+                await fail('POST /plugins/visualizer.reaplugin/settings', false);
+            });
+
+            test('a night-mode time the machine refuses does not look saved', async () => {
+                await show('accessories', 'accessories-usb-charger');
+                await fail('POST /settings');
+                await page.evalFn(() => {
+                    window.__settings.bespokeEl().shadowRoot.getElementById('night-sleep').click();
+                    return true;
+                });
+                await page.settle();
+                await page.evalFn(() => {
+                    const picker = window.__settings.bespokeEl().shadowRoot.getElementById('night-picker');
+                    picker.dispatchEvent(new CustomEvent('change', {
+                        detail: { value: '05:45' }, bubbles: true, composed: true,
+                    }));
+                    return true;
+                });
+                await page.settle(3);
+
+                const refusal = await text('night-refusal');
+                assert.notEqual(refusal, null,
+                    'this store answers false and publishes nothing, so the page is the only witness');
+                assert.match(refusal, /not saved/i);
+                await fail('POST /settings', false);
+            });
+
+            test('a palette the machine refuses is still on screen, with the reason under it', async () => {
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+                await fail('PUT /machine/ledStrip');
+                await page.evalFn(() => window.__settings.pickSwatch(3));
+                await page.settle();
+                await page.evalFn(async () => {
+                    await window.__settings.stores().led.commit();
+                    await window.__settings.bespokeEl().updateComplete;
+                    return true;
+                });
+                await page.settle(2);
+
+                const shown = await page.evalFn(() => ({
+                    refusal: window.__settings.bespokeEl().shadowRoot
+                        .getElementById('led-refusal')?.textContent?.trim() ?? null,
+                    dirty: window.__settings.stores().led.get().dirty,
+                }));
+                assert.notEqual(shown.refusal, null);
+                assert.match(shown.refusal, /would not take|not connected/i);
+                assert.equal(shown.dirty, true, 'and the change is still staged to try again');
+
+                await fail('PUT /machine/ledStrip', false);
+                await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                await page.settle();
+            });
+
+            test('ONE STATUS, and it says which of the three things is happening', async () => {
+
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+                await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                await page.settle();
+
+                const clean = await text('led-status');
+                assert.notEqual(clean, null, 'a page with no status is a page that says nothing');
+                assert.doesNotMatch(clean, /as you pick them/i,
+                    'the write that stores the colours is not the one a drag makes');
+                assert.doesNotMatch(clean, /only show while the machine is asleep/i,
+                    'the preview route is exactly what shows an asleep colour on an awake machine');
+                assert.match(clean, /Save/, 'so the sentence names the gesture that keeps them');
+                assert.ok(clean.split(/[.!?]/).filter((part) => part.trim() !== '').length <= 2,
+                    `one short status, not a paragraph: ${clean}`);
+
+                await page.evalFn(async () => {
+                    await window.__settings.pickSwatch(4);
+                    await window.__settings.stores().led.previewSettled();
+                    await window.__settings.bespokeEl().updateComplete;
+                    return true;
+                });
+                await page.settle();
+                assert.match(String(await text('led-status')), /showing on the machine/i,
+                    'the strip is following the picker and the page does not say so');
+
+                await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                await page.settle();
+            });
+
+            test('A REAL POINTER DRAG ON THE WHEEL REACHES THE STRIP, and coalesces on the way',
+                async () => {
+
+                    await serve(['ledStrip']);
+                    await show('accessories', 'accessories-lighting');
+                    await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                    await page.settle();
+
+                    const before = await page.evalFn(() => {
+
+                        window.__settings.bespokeEl().shadowRoot.getElementById('led-wheel')
+                            .scrollIntoView({ block: 'center' });
+                        window.__settings.clearWire();
+                        return window.__settings.ledCounters();
+                    });
+                    await page.settle(2);
+
+                    const box = await page.box('settings-screen >>> #bespoke >>> #led-wheel >>> .IroWheel');
+                    const at = (step) => {
+                        const turn = (step * 20 * Math.PI) / 180;
+                        return {
+                            x: box.x + box.width / 2 + Math.cos(turn) * box.width * 0.37,
+                            y: box.y + box.height / 2 + Math.sin(turn) * box.height * 0.37,
+                        };
+                    };
+                    const held = { button: 'left', buttons: 1 };
+                    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at(0) });
+                    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...at(0), ...held, clickCount: 1 });
+                    for (let step = 1; step <= 12; step += 1) {
+                        await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at(step), ...held });
+                        await page.settle(1);
+                    }
+                    await page.send('Input.dispatchMouseEvent', {
+                        type: 'mouseReleased', ...at(12), button: 'left', buttons: 0, clickCount: 1,
+                    });
+                    await page.settle(2);
+
+                    const drag = await page.evalFn(async () => {
+                        const api = window.__settings;
+                        await api.stores().led.previewSettled();
+                        await api.bespokeEl().updateComplete;
+                        return {
+                            wire: api.wire(),
+                            server: api.server(),
+                            counters: api.ledCounters(),
+                            hex: api.stores().led.hex('frontStrip', 'awake'),
+                            dirty: api.stores().led.get().dirty,
+                            status: api.bespokeEl().shadowRoot
+                                .getElementById('led-status').textContent.trim(),
+                        };
+                    });
+
+                    assert.ok(drag.counters.intents - before.intents > 2,
+                        `a real drag has to produce real events: ${drag.counters.intents - before.intents} intents`);
+                    assert.ok(drag.wire.length > 0,
+                        'a drag on the wheel put NOTHING on the wire — the whole finding');
+                    assert.deepEqual([...new Set(drag.wire)], ['POST /machine/ledStrip/preview'],
+                        `a drag sent something other than previews: ${drag.wire.join(', ')}`);
+                    assert.equal(drag.counters.sent, before.sent,
+                        'and it must never touch the stored palette: every PUT is a flash write');
+                    assert.equal(drag.counters.previewPeak, 1, 'one request in flight, never two');
+                    assert.ok(drag.wire.length <= drag.counters.intents - before.intents,
+                        `the slot has to coalesce, or a drag is a request per frame: `
+                        + `${drag.wire.length} requests for ${drag.counters.intents - before.intents} frames`);
+
+                    const shown = drag.server.ledShown.frontStrip;
+                    assert.equal(
+                        `#${shown.slice(0, 2)}${shown.slice(4, 6)}${shown.slice(8, 10)}`.toLowerCase(),
+                        drag.hex.toLowerCase(),
+                        'the strip is showing a colour the picker is not',
+                    );
+                    assert.equal(drag.dirty, true, 'and it is still an edit nobody has saved');
+                    assert.match(drag.status, /showing on the machine/i);
+
+                    await show('machine', 'machine-steam');
+                    await page.settle(2);
+                    const left = await page.evalFn(() => ({
+                        shown: window.__settings.server().ledShown,
+                        clears: window.__settings.server().ledPreviewClears,
+                        dirty: window.__settings.stores().led.get().dirty,
+                    }));
+                    assert.equal(left.shown, null,
+                        'walking to another page left the tried colour on the strip for hours');
+                    assert.ok(left.clears > 0, 'and nothing ended the preview');
+                    assert.equal(left.dirty, true,
+                        'leaving the leaf is not Cancel — the header still counts the edit');
+
+                    await show('accessories', 'accessories-lighting');
+                    await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                    await page.settle();
+                });
+
+            test('the grid is called Colours, because a draft is not what the machine holds', async () => {
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+                const headings = await page.evalFn(() => [...window.__settings.bespokeEl()
+                    .shadowRoot.querySelectorAll('#lighting .ui-heading')].map((el) => el.textContent.trim()));
+                assert.ok(headings.includes('Colours'),
+                    `the grid reads the draft, so "Current colours" is a claim about the machine: ${headings.join(' / ')}`);
+                assert.ok(!headings.includes('Current colours'), 'and the old label is gone');
+            });
+
+            test('the brightness slider is named, and zero says Off rather than nothing', async () => {
+
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+
+                const lit = await page.evalFn(async () => {
+                    const api = window.__settings;
+                    await api.stores().led.reset();
+                    await api.pickSwatch(1);
+                    await api.bespokeEl().updateComplete;
+                    const wheel = api.bespokeEl().shadowRoot.getElementById('led-wheel');
+                    await wheel.updateComplete;
+                    const row = wheel.shadowRoot.getElementById('brightness');
+                    return { text: row?.textContent.replace(/\s+/g, ' ').trim() ?? null };
+                });
+                assert.notEqual(lit.text, null, 'the slider has no name and no value beside it');
+                assert.match(lit.text, /Brightness/, 'the ordinary name, where a label goes');
+                assert.match(lit.text, /\d+%/, 'and the value the slider is showing');
+
+                const dark = await page.evalFn(async () => {
+                    const api = window.__settings;
+                    const bespoke = api.bespokeEl();
+                    bespoke.shadowRoot.getElementById('led-power').dispatchEvent(new CustomEvent('change', {
+                        detail: { checked: false }, bubbles: true, composed: true,
+                    }));
+                    await bespoke.updateComplete;
+                    const wheel = bespoke.shadowRoot.getElementById('led-wheel');
+                    await wheel.updateComplete;
+                    return {
+                        text: wheel.shadowRoot.getElementById('brightness')?.textContent
+                            .replace(/\s+/g, ' ').trim() ?? null,
+                        hex: api.stores().led.hex('frontStrip', 'awake'),
+                    };
+                });
+                assert.equal(dark.hex, '#000000', 'the strip has to be dark, or this proves nothing');
+                assert.match(String(dark.text), /Off/,
+                    'zero brightness with no word for it is what makes a working wheel look broken');
+                assert.doesNotMatch(String(dark.text), /0%/,
+                    'Off is the word; a number beside it would be two answers to one question');
+
+                const near = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    const wheel = root.getElementById('led-wheel').getBoundingClientRect();
+                    const power = root.getElementById('led-power').getBoundingClientRect();
+                    return power.top - wheel.bottom;
+                });
+                assert.ok(near >= 0 && near < 80,
+                    `Power belongs next to the word Off, not a column away: ${near}px below the wheel`);
+
+                await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                await page.settle();
+            });
+
+            test('POWER FOLLOWS THE SELECTED ZONE — Front leaves the rear strip alone', async () => {
+
+                await serve(['ledStrip']);
+                await show('accessories', 'accessories-lighting');
+
+                const run = await page.evalFn(async () => {
+                    const api = window.__settings;
+                    const bespoke = api.bespokeEl();
+                    await api.stores().led.reset();
+                    const bank = bespoke.shadowRoot.getElementById('led-zone');
+                    bank.dispatchEvent(new CustomEvent('change', {
+                        detail: { value: 'front' }, bubbles: true, composed: true,
+                    }));
+                    await bespoke.updateComplete;
+                    await api.pickSwatch(1);
+                    await api.stores().led.previewSettled();
+                    const before = api.stores().led.hex('backStrip', 'awake');
+
+                    const was = api.server();
+                    bespoke.shadowRoot.getElementById('led-power').dispatchEvent(new CustomEvent('change', {
+                        detail: { checked: false }, bubbles: true, composed: true,
+                    }));
+                    await bespoke.updateComplete;
+                    await api.stores().led.previewSettled();
+                    const led = api.stores().led;
+                    return {
+                        before,
+                        front: led.hex('frontStrip', 'awake'),
+                        switchZone: led.hex('frontSwitch', 'awake'),
+                        rear: led.hex('backStrip', 'awake'),
+                        editing: bespoke.shadowRoot.getElementById('led-editing').textContent
+                            .replace(/\s+/g, ' ').trim(),
+                        preview: api.server().ledPreviewLast,
+                        was,
+                    };
+                });
+
+                assert.match(run.editing, /Front/, 'the page has to say Front, or there is no contradiction');
+                assert.equal(run.front, '#000000');
+                assert.equal(run.switchZone, '#000000', 'the switch rides with the front');
+                assert.equal(run.rear, run.before,
+                    'Power off beside "Front" darkened the rear strip');
+                assert.equal(run.preview.backStrip, undefined,
+                    'and named it in a preview body that had no business naming it');
+
+                await page.evalFn(() => window.__settings.stores().led.reset().then(() => true));
+                await page.settle();
+            });
+        });
+
+        describe('the version line is a reading of the versions, never of the phase', () => {
+            const line = () => page.evalFn(() => {
+                const root = window.__settings.bespokeEl().shadowRoot;
+                return {
+                    state: root.getElementById('app-update-state')?.textContent?.trim() ?? null,
+                    badge: root.getElementById('app-update-badge')?.textContent?.trim() ?? null,
+                    install: root.getElementById('app-install')?.textContent?.trim() ?? null,
+                    error: root.getElementById('app-update-error')?.textContent?.trim() ?? null,
+                };
+            });
+
+            const frame = async (value) => {
+                await page.evalFn((f) => window.__settings.appUpdateFrame(f).then(() => true), value);
+                await page.settle();
+            };
+
+            test('a download that failed still says a newer build is there', async () => {
+                await show('updates', 'updates-skin-app');
+                await frame({
+                    phase: 'error',
+                    currentVersion: '1.0.0-bengle.1',
+                    latestVersion: '9.0.0',
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: true,
+                    error: 'Update failed: download interrupted',
+                });
+                const shown = await line();
+                assert.match(shown.state, /9\.0\.0/,
+                    'the version it found does not stop existing because the download failed');
+                assert.doesNotMatch(shown.state, /newest build/i,
+                    'and the installed build is not the newest — that is why there was a download');
+                assert.notEqual(shown.error, null, 'the failure is still reported');
+                assert.equal(shown.install, null,
+                    'and Install is not offered again from an error frame without a fresh check');
+            });
+
+            test('an error that names no version claims nothing at all', async () => {
+                await show('updates', 'updates-skin-app');
+                await frame({
+                    phase: 'error',
+                    currentVersion: '1.0.0-bengle.1',
+                    latestVersion: null,
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: false,
+                    error: 'Update check failed: network unreachable',
+                });
+                const shown = await line();
+                assert.doesNotMatch(shown.state, /newest build/i,
+                    'a check that failed is not a check that found nothing');
+                assert.match(shown.state, /not known/i);
+                assert.equal(shown.badge, null);
+            });
+
+            test('up to date is claimed when the newest version IS the one running', async () => {
+                await show('updates', 'updates-skin-app');
+                await frame({
+                    phase: 'available',
+                    currentVersion: '2.5.0',
+                    latestVersion: '2.5.0',
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: false,
+                });
+                const shown = await line();
+                assert.match(shown.state, /newest build/i,
+                    'two named versions that match is the strongest claim there is');
+                assert.equal(shown.badge, null, 'and nothing is offered');
+                assert.equal(shown.install, null);
+            });
+
+            test('a check that completed and found nothing says THAT, and not more', async () => {
+                await show('updates', 'updates-skin-app');
+                await frame({
+                    phase: 'idle',
+                    currentVersion: '1.0.0-bengle.1',
+                    latestVersion: null,
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: false,
+                });
+
+                assert.match((await line()).state, /not known/i);
+
+                await frame({
+                    phase: 'checking',
+                    currentVersion: '1.0.0-bengle.1',
+                    latestVersion: null,
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: false,
+                });
+                assert.match((await line()).state, /Looking for a newer build/i);
+
+                await frame({
+                    phase: 'idle',
+                    currentVersion: '1.0.0-bengle.1',
+                    latestVersion: null,
+                    releaseUrl: 'https://example.invalid/releases',
+                    installable: false,
+                });
+                const shown = await line();
+                assert.match(shown.state, /No newer build was found/i,
+                    'the server reported its own comparison, and that is what is said');
+                assert.doesNotMatch(shown.state, /newest build/i,
+                    'which is a weaker claim than naming the newest version, on purpose');
+                await frame(null);
             });
         });
 
@@ -2774,6 +3387,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .shadowRoot.querySelectorAll('[data-schedule]')]
                     .map((row) => row.querySelector('.ui-heading')?.textContent?.trim() ?? null));
                 if (rows.length > 0) {
+
                     for (const label of rows) {
                         assert.match(String(label), /(AM|PM)/i,
                             `a schedule row still prints the wire string: ${label}`);
@@ -2805,7 +3419,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
             test('a run that installs something names the version it installed', async () => {
                 await show('updates', 'updates-skin-app');
-                await page.evalFn(() => window.__settings.armSkinUpdate({ decal: '0.1.100' }));
+                await page.evalFn(() => window.__settings.armSkinUpdate({ 'decal': '0.1.100' }));
                 const before = await rows();
                 assert.ok(before.some((row) => row.id === 'decal' && row.text.includes('v0.0.1')),
                     `the fixture serves Decal at v0.0.1: ${JSON.stringify(before)}`);
@@ -2818,10 +3432,10 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const after = await rows();
                 const moved = after.find((row) => row.id === 'decal');
                 assert.ok(moved.text.includes('v0.1.100'), `the row still shows the old version: ${moved.text}`);
+
                 assert.equal(moved.badges.length, 1);
                 assert.match(moved.badges[0], /0\.1\.100/);
-                /* AND ONLY THE ROW THAT MOVED. A badge on a skin nothing happened to
-                 * would be exactly the "up to date" badge this store refuses to invent. */
+
                 for (const row of after.filter((r) => r.id !== 'decal')) {
                     assert.deepEqual(row.badges, [], `${row.id} did not move and must not be badged`);
                 }
@@ -2987,6 +3601,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('release notes are a LINK and never Slate’s pasted markdown', async () => {
+
                 await show('updates', 'updates-skin-app');
                 await page.evalFn(() => window.__settings.appUpdateFrame({
                     phase: 'available',
@@ -3120,6 +3735,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('a Bengle is told the app carries nothing for it, NOT that it is up to date', async () => {
+
                 const DE1_ONLY = ['DE1Pro', 'DE1XL', 'DE1XXL', 'DE1XXXL'];
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(([models]) => window.__settings.firmwareCatalog({
@@ -3172,6 +3788,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the warning comes before the buttons, is tinted, and agrees with the dialog', async () => {
+
                 await show('updates', 'updates-firmware-update');
                 await page.evalFn(() => window.__settings.firmwareCatalog({}));
                 await page.settle();
@@ -3218,15 +3835,18 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await show('help', 'help-talk-to-decent');
                 const got = await pane();
                 assert.equal(got.steps.length, 3);
+
                 assert.doesNotMatch(got.text, /on your phone/i);
                 assert.doesNotMatch(got.text, /add this machine/i);
                 assert.match(got.steps.join(' '), /ReaPrime/);
                 assert.match(got.steps.join(' '), /email and password/i);
+
                 assert.match(got.steps[2], /message box/i,
                     'step three promises the message box, which the linked branch now builds');
             });
 
             test('a machine WITH an account is not shown instructions for linking one', async () => {
+
                 await page.evalFn(() => window.__settings.accountState({ loggedIn: true }));
                 await show('help', 'help-talk-to-decent');
                 const got = await pane();
@@ -3237,6 +3857,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             });
 
             test('the chip is a word and the sentence is a heading, which is Slate’s own shape', async () => {
+
                 await page.evalFn(() => window.__settings.accountState({ loggedIn: false }));
                 await show('help', 'help-talk-to-decent');
                 const out = await pane();
@@ -3334,6 +3955,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const got = await box();
                 assert.equal(got.thread, true);
                 assert.equal(got.compose, true);
+
                 const order = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
                     return [...root.querySelectorAll('section.group')].map((el) => el.id);
@@ -3346,6 +3968,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await linkedPane();
                 const got = await box();
                 assert.equal(got.messages.length, 2);
+
                 assert.match(got.messages[0].text, /grind seems coarse/);
                 assert.match(got.messages[1].text, /1\.2 finer/);
                 /* WHO WROTE IT. `from_user` is the ONLY thing on the record that says so
@@ -3515,6 +4138,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         describe('Help › Send Feedback says where a report goes, and what came back', () => {
             const feedback = () => page.evalFn(() => {
                 const root = window.__settings.bespokeEl().shadowRoot;
+
                 const sentState = root.getElementById('feedback-sent');
                 const sentBody = sentState
                     ? [...sentState.shadowRoot.querySelectorAll('#heading, #body')]
@@ -3548,11 +4172,13 @@ for (const geometry of GATE_A_GEOMETRIES) {
             test('the pane says where the report goes and where an answer comes from', async () => {
                 await show('help', 'help-send-feedback');
                 const got = await feedback();
+
                 assert.match(got.text, /public/i);
                 assert.match(got.text, /help@decentespresso\.com/);
             });
 
             test('the system-info helper names what is actually attached, and no firmware', async () => {
+
                 await show('help', 'help-send-feedback');
                 const got = await feedback();
                 assert.doesNotMatch(got.text, /firmware/i);

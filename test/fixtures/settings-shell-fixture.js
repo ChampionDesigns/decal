@@ -970,15 +970,12 @@ const SERVER = {
      * routes exist: a preview must leave the stored palette alone, and a fixture that fed
      * both into one list could not tell a preview from a save. The body is the route's own
      * flat shape — `{frontStrip, backStrip}`, 12 hex each — not the nested strip state. */
+    ledResets: 0,
     ledPreviews: [],
     ledPreviewClears: 0,
-    /* THE TWO THAT PERSIST, COUNTED SEPARATELY FROM THE ONES THAT DO NOT. A PUT writes the
-     * stored registers and nothing durable; only the commit route reaches NVM, and the
-     * reset route reloads it. Counting all three together would have hidden the defect this
-     * pair exists to pin — a header Save that closed the page without committing anything. */
-    ledCommits: 0,
-    ledResets: 0,
-    /** When true, a live write parks until `releaseLed()` — "a slow mock", the rule's own condition. */
+    /** What the strip is SHOWING: the last previewed colours, or null once a clear lands. */
+    ledShown: null,
+    /** When true, a PUT parks until `releaseLed()` — "a slow mock", the rule's own condition. */
     ledHeld: false,
     ledParked: [],
 };
@@ -1054,9 +1051,8 @@ function createFixtureTransport() {
                     SERVER.ledWrites.push(JSON.parse(JSON.stringify(body)));
                     SERVER.led = JSON.parse(JSON.stringify(body));
                     if (!SERVER.ledHeld) return ok({ status: 'accepted' });
-                    /* PARKED. The write is on the wire and has not answered, which is
-                     * exactly the state the pattern is about: everything the user does
-                     * from here lands in `pendingColour` and all but the last is dropped. */
+                    /* PARKED. The save is on the wire and has not answered, which is the
+                     * state the drill is about: the picker refuses while a Save is running. */
                     return new Promise((resolve) => {
                         SERVER.ledParked.push(() => resolve(ok({ status: 'accepted' })));
                     });
@@ -1066,30 +1062,23 @@ function createFixtureTransport() {
                  * — the stored palette is what `GET /machine/ledStrip` answers and what a
                  * reload gets back, and the whole point of this route is that a preview
                  * does not reach it. The real handler answers `jsonAccepted()` with no
-                 * body (de1handler.dart:295), which is what 202/null is here.
-                 *
-                 * IT PARKS UNDER `holdLed()`, because this is the route the one-write-in-
-                 * flight rule now governs; the PUT it replaced used to be. */
+                 * body, which is what 202/null is here. */
                 case 'POST /machine/ledStrip/preview': {
+                    if (!body || (body.frontStrip === undefined && body.backStrip === undefined)) {
+                        return fail(400, { error: 'name at least one of frontStrip or backStrip' });
+                    }
                     SERVER.ledPreviews.push(JSON.parse(JSON.stringify(body)));
-                    const accepted = () => reaSuccess({ status: 202, data: null, method, url: 'fixture' });
-                    if (!SERVER.ledHeld) return accepted();
-                    return new Promise((resolve) => {
-                        SERVER.ledParked.push(() => resolve(accepted()));
-                    });
+                    SERVER.ledShown = { ...(SERVER.ledShown ?? {}), ...JSON.parse(JSON.stringify(body)) };
+                    return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
                 }
 
                 case 'POST /machine/ledStrip/preview/clear':
                     SERVER.ledPreviewClears += 1;
-                    return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
-
-                case 'POST /machine/ledStrip/commit':
-                    SERVER.ledCommits += 1;
+                    SERVER.ledShown = null;
                     return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
 
                 case 'POST /machine/ledStrip/reset':
                     SERVER.ledResets += 1;
-                    SERVER.led = JSON.parse(JSON.stringify(LED_START));
                     return ok(JSON.parse(JSON.stringify(SERVER.led)));
 
                 case 'GET /machine/scaleCalibration':
@@ -1569,7 +1558,6 @@ const api = {
     /** What the fake server has been told. Numbers and payloads only. */
     server: () => ({
         ledWrites: SERVER.ledWrites.length,
-        ledCommits: SERVER.ledCommits,
         ledResets: SERVER.ledResets,
         ledLast: SERVER.ledWrites.length
             ? SERVER.ledWrites[SERVER.ledWrites.length - 1]
@@ -1580,6 +1568,7 @@ const api = {
         ledPreviewLast: SERVER.ledPreviews.length
             ? SERVER.ledPreviews[SERVER.ledPreviews.length - 1]
             : null,
+        ledShown: SERVER.ledShown === null ? null : JSON.parse(JSON.stringify(SERVER.ledShown)),
         flowMultiplier: SERVER.flowMultiplier,
         calibration: { ...SERVER.calibration },
         /* THE 24 AUG 2026 LEAVES. Each one is what a press on a new surface is supposed

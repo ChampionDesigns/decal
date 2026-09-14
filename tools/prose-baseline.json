@@ -2874,23 +2874,9 @@
     },
     "test/settings-bespoke.test.mjs": {
       "a decision id": [
-        "A3:0a60d22934de",
-        "A3:3c6d27443fcd",
         "A3:f03ba5b79568",
-        "CB-15:279ee1fbc41b",
-        "D11:b0b8774d7d46",
-        "D7:c04c7c8a3dea",
         "D9:30d533de790e",
-        "D9:d90a648b0412",
-        "DQ-610:6f923bb18a03",
-        "Q14:84ba7c41fbf7",
-        "T21:10ac095222e8"
-      ],
-      "a spec section": [
-        "§4.4:82c5a60a4943"
-      ],
-      "another skin": [
-        "Slate:3b85a5d61f22"
+        "DQ-610:6f923bb18a03"
       ]
     },
     "test/settings-contract.test.mjs": {
