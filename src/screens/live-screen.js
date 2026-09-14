@@ -493,7 +493,7 @@ export class LiveScreen extends UiElement {
 
         .identity ui-status-chip {
             margin-inline-start: auto;
-            --_ui-status-chip-size: var(--ui-text-lg);
+            --_ui-status-chip-size: var(--ui-text-2xl);
         }
 
         :host([chart-mode="steam"]) #profile-name,
