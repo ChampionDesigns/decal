@@ -10,6 +10,7 @@
     "a8": "node scripts/a8-source-text.js",
     "gate-d": "node scripts/gate-d.js",
     "gate-wire": "node scripts/gate-wire.js",
+    "gate-export": "node scripts/gate-export.js",
     "i18n": "node scripts/build-i18n.js",
     "mock-contract": "python3 tools/check_mock_contract.py",
     "private-scan": "node scripts/private-scan.js",
