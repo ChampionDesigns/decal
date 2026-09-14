@@ -168,17 +168,24 @@ describe('O1 / O2 / O15: one overlay, one sheet', () => {
 
     const PART_CONSUMERS = Object.freeze([
         'src/screens/editor-screen.js',
+        'src/screens/settings-screen.js',
         'src/screens/step-matrix.js',
     ]);
 
-    test('only the two argued files reach in through a ::part', async () => {
+    test('only the declared consumers reach in through a ::part', async () => {
         const { blocks } = await collectAuthoredCss({});
         const parts = [...new Set(
             blocks.filter((b) => /::part\s*\(/.test(stripCssComments(b.text))).map((b) => b.file),
         )].sort();
         assert.deepEqual(parts, [...PART_CONSUMERS],
-            '::part is the ONE way an outside sheet can style a shadow box. Two files are argued for it '
-            + 'in the comment above this test; a third has to be argued there before it is added here');
+            'Only declared consumers may style an exported shadow part');
+        const searchParts = blocks.filter((block) => block.file === 'src/screens/settings-screen.js')
+            .flatMap(preludes).filter((selector) => selector.includes('::part'))
+            .flatMap((selector) => selector.split(',').map((part) => part.trim())).sort();
+        assert.deepEqual(searchParts, [
+            'settings-bespoke-leaf::part(search-match)',
+            'settings-leaf::part(search-match)',
+        ]);
     });
 
     test('O15: no document-level :has() reaches down into a component', async () => {

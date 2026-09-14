@@ -10,13 +10,13 @@ import { typeRoles } from 'src/components/type-roles.js';
 import { I18nController } from 'src/lib/i18n.js';
 import {
     SETTINGS_TREE,
+    categoriesFor,
     NAV_KIND,
     navName,
     categoryFor,
     categoryOf,
     leafFor,
     isSearching,
-    searchSettings,
     leavesFor,
     leafShownOn,
 } from 'src/lib/settings-nav.js';
@@ -37,13 +37,18 @@ import 'src/components/ui-empty-state.js';
 
 import { NAV_LEVEL } from 'src/screens/settings-master-detail.js';
 
-const LIGHTING_LEAF = 'accessories-lighting';
 import { DEFAULT_ROUTE_ID as HOME_ROUTE } from 'src/lib/app-routes.js';
 import { settingsModelFor, settingsBespokeFor } from 'src/screens/settings-model.js';
+import { COMMIT_REFUSAL } from 'src/stores/settings-leaf-model.js';
 import { DENSITY_ROW, LEAF_KIND, leafKind } from 'src/lib/settings-leaves.js';
+import { searchSettingControls } from 'src/lib/settings-search.js';
+import { highlightSettingsTarget } from 'src/screens/settings-search-focus.js';
 import { applyDensity } from 'src/lib/density.js';
+import { leaveSkin } from 'src/lib/host-exit.js';
 import { FEED } from 'src/stores/live-stores.js';
 
+import { OPERATION, OPERATION_KIND, READ_REFUSAL, WRITE_REFUSAL } from 'src/stores/settings-store.js';
+import { READING_FRESHNESS, freshnessOf } from 'src/lib/feed-freshness.js';
 const QUICKSTART_GUIDE_URL = 'https://decentespresso.com/doc/quickstart/';
 
 const COMMIT_REFUSAL_TEXT = Object.freeze({
@@ -52,12 +57,34 @@ const COMMIT_REFUSAL_TEXT = Object.freeze({
     unknown: 'Nothing was saved. The change is still here — try again.',
 });
 
+const PARTIAL_COMMIT_TEXT = Object.freeze({
+    backendFailed: 'The machine took the change. This tablet could not remember it — try again.',
+    capabilityNotPresent: 'The machine took the change. This tablet cannot remember it here.',
+    unknown: 'The machine took the change. Part of it was not saved — try again.',
+});
+const panelSignature = (value) => [
+    value?.brightness,
+    value?.requestedBrightness,
+    value?.wakeLockOverride,
+].map((field) => (field === undefined ? '-' : String(field))).join('|');
+const SAVE_GROUP = Object.freeze({
+    MACHINE: 'machine',
+    LIGHTING: 'lighting',
+    PLUGIN: 'plugin',
+});
+const LIGHTING_LEAF = 'accessories-lighting';
+const SAVE_GROUP_NAME = Object.freeze({
+    [SAVE_GROUP.MACHINE]: 'Machine settings',
+    [SAVE_GROUP.LIGHTING]: 'Lighting',
+    [SAVE_GROUP.PLUGIN]: 'Plugin settings',
+});
 const WRITE_REFUSAL_TEXT = Object.freeze({
     backendFailed: 'That preference could not be saved on this device.',
     capabilityNotPresent: 'This machine does not have that feature.',
     unknown: 'That preference could not be saved.',
 });
 
+const PENDING_MARKER_BACKSTOP_MS = 15000;
 export class SettingsScreen extends UiElement {
     static properties = {
         boot: { attribute: false },
@@ -72,14 +99,19 @@ export class SettingsScreen extends UiElement {
 
         /** Internal: the search field's text. */
         _query: { state: true },
+        _searchTarget: { state: true },
 
         /** Internal: which nav column column 1 holds while collapsed. */
         _navLevel: { state: true },
 
         _commitRefusal: { state: true },
 
+        _commitRefusalGroup: { state: true },
+        _commitRefusalDetail: { state: true },
         _writeRefusal: { state: true },
 
+        _pendingPreference: { state: true },
+        _readFailure: { state: true },
         _typing: { state: true },
 
         model: { attribute: false },
@@ -92,6 +124,24 @@ export class SettingsScreen extends UiElement {
     };
 
     static styles = [typeRoles, seams, css`
+        .search-result {
+            display: grid;
+            gap: var(--ui-space-1);
+            padding-block: var(--ui-space-3);
+            white-space: normal;
+            font-size: var(--ui-text-base);
+            line-height: 1.4;
+        }
+        .search-context {
+            font-size: var(--ui-text-2xs);
+            font-weight: var(--ui-weight-regular);
+        }
+        settings-leaf::part(search-match),
+        settings-bespoke-leaf::part(search-match) {
+            outline: var(--ui-border-w-strong) solid var(--ui-steel);
+            outline-offset: var(--ui-space-2);
+            border-radius: var(--ui-radius);
+        }
         #bespoke {
             margin-block-start: var(--ui-space-4);
         }
@@ -108,6 +158,14 @@ export class SettingsScreen extends UiElement {
             min-inline-size: 0;
         }
 
+        #refusal-region {
+            grid-row: 3;
+            display: grid;
+            gap: var(--ui-space-2);
+            padding: var(--ui-space-3) var(--ui-space-5);
+            background-color: var(--ui-fascia);
+            min-inline-size: 0;
+        }
         settings-master-detail {
             grid-row: 2;
             min-inline-size: 0;
@@ -131,6 +189,9 @@ export class SettingsScreen extends UiElement {
     `];
 
     #i18n = new I18nController(this);
+    #unwatchNavigation = [];
+    #navigationSource = null;
+    #clearSearchHighlight = null;
 
     /** Held so `disconnectedCallback` can undo it: one subscription, never two. */
     #unwatchModel = null;
@@ -138,11 +199,16 @@ export class SettingsScreen extends UiElement {
     /** The settings store's write-failure subscription, for the life of this screen. */
     #unwatchWriteFailure = null;
 
+    #unwatchOperation = null;
     /** The LED strip store's, so the header's count moves when a preview goes uncommitted. */
     #unwatchLed = null;
 
+    #unwatchPlugins = null;
     /** The display feed, watched for the brightness row. See `#watchPanel`. */
     #unwatchPanel = null;
+    #pendingTimer = null;
+    #readingsSource = null;
+    #readingsFeed = null;
 
     constructor() {
         super();
@@ -152,11 +218,18 @@ export class SettingsScreen extends UiElement {
         this.leafId = SETTINGS_TREE[0].leaves[0].id;
         this._query = '';
         this._navLevel = NAV_LEVEL.LEAVES;
+        this._commitRefusal = null;
+        this._commitRefusalGroup = null;
+        this._commitRefusalDetail = null;
+        this._writeRefusal = null;
+        this._pendingPreference = null;
+        this._readFailure = null;
         this.model = null;
         this.bespoke = null;
         this.theme = null;
         this.densityRoot = null;
         this._typing = null;
+        this.pendingBackstopMs = PENDING_MARKER_BACKSTOP_MS;
     }
 
     connectedCallback() {
@@ -172,36 +245,147 @@ export class SettingsScreen extends UiElement {
         this.#unwatchModel = null;
         this.#unwatchWriteFailure?.();
         this.#unwatchWriteFailure = null;
+        this.#unwatchOperation?.();
+        this.#unwatchOperation = null;
         this.#unwatchLed?.();
         this.#unwatchLed = null;
+        this.#unwatchPlugins?.();
+        this.#unwatchPlugins = null;
         this.#unwatchPanel?.();
         this.#unwatchPanel = null;
+        this.#clearPendingTimer();
+        this.#unwatchNavigation.forEach((stop) => stop());
+        this.#unwatchNavigation = [];
+        this.#navigationSource = null;
+        this.#clearSearchHighlight?.();
     }
 
     updated(changed) {
         super.updated?.(changed);
-        if (changed.has('boot') || changed.has('model')) this.#adoptModel();
+        if (changed.has('boot') || changed.has('model') || changed.has('bespoke')) this.#adoptModel();
+        if (this.categoryId !== this.#category.id || this.leafId !== this.#leaf.id) {
+            this.categoryId = this.#category.id;
+            this.leafId = this.#leaf.id;
+        }
+        if (changed.has('_searchTarget') || changed.has('leafId')) {
+            this.#clearSearchHighlight?.();
+            this.#clearSearchHighlight = this._searchTarget?.leaf.id === this.#leaf.id
+                ? highlightSettingsTarget(this, this._searchTarget)
+                : null;
+        }
     }
 
     get #machineClass() {
-        const capabilities = this.boot?.capabilities ?? null;
-        return typeof capabilities?.machineClass === 'function' ? capabilities.machineClass() : null;
+        return this.boot?.capabilities?.machineClass?.() ?? this.bespoke?.machineClass?.() ?? null;
+    }
+    #capability = (name) => {
+        return this.boot?.capabilities?.capability?.(name) ?? this.bespoke?.capability?.(name) ?? 'unknown';
+    };
+    #watchNavigation() {
+        const source = this.bespoke ?? this.boot?.capabilities;
+        if (source === this.#navigationSource) return;
+        this.#unwatchNavigation.forEach((stop) => stop());
+        this.#unwatchNavigation = [];
+        this.#navigationSource = source;
+        const repaint = () => this.requestUpdate();
+        const capabilities = this.boot?.capabilities;
+        const stop = capabilities?.subscribe?.(repaint) ?? this.bespoke?.watchAllowed?.(repaint);
+        if (typeof stop === 'function') this.#unwatchNavigation.push(stop);
     }
 
     get #machineFeed() {
         const live = this.boot?.live ?? null;
         if (!live || typeof live.feed !== 'function') return null;
         try {
-            return live.feed(FEED.MACHINE);
+            return this.#currentReadingsOf(live.feed(FEED.MACHINE));
         } catch {
             return null;
         }
     }
 
+    #currentReadingsOf(feed) {
+        if (!feed || typeof feed.subscribe !== 'function') return null;
+        if (this.#readingsSource === feed) return this.#readingsFeed;
+        const current = (state) => (state
+            ? {
+                ...state,
+                frame: freshnessOf(state) === READING_FRESHNESS.FRESH ? (state.frame ?? null) : null,
+            }
+            : state);
+        const view = Object.freeze({
+            get: () => current(feed.get?.() ?? null),
+            subscribe: (listener) => feed.subscribe((state) => listener(current(state))),
+        });
+        this.#readingsSource = feed;
+        this.#readingsFeed = view;
+        return view;
+    }
     get #ledPending() {
-        if (this.#leaf.id !== LIGHTING_LEAF) return false;
         const led = this.bespoke?.led ?? null;
         return typeof led?.get === 'function' && led.get().dirty === true;
+    }
+    get #pluginPending() {
+        const plugins = this.bespoke?.plugins ?? null;
+        return typeof plugins?.get === 'function' && plugins.get().dirty === true;
+    }
+    get #pendingGroups() {
+        const groups = [];
+        const model = this.model ?? null;
+        if (model && (this.changeCount > 0 || model.hasPendingWrites === true)) {
+            groups.push(Object.freeze({
+                id: SAVE_GROUP.MACHINE,
+                commit: () => model.commit(),
+                cancel: () => { model.discard?.(); },
+            }));
+        }
+        if (this.#ledPending) {
+            const led = this.bespoke.led;
+            groups.push(Object.freeze({
+                id: SAVE_GROUP.LIGHTING,
+                commit: async () => Object.freeze({
+                    ok: (await led.commit()) !== false,
+                    reason: 'writeFailed',
+                }),
+                cancel: () => { Promise.resolve(led.reset()).catch(() => {}); },
+            }));
+        }
+        if (this.#pluginPending) {
+            const plugins = this.bespoke.plugins;
+            groups.push(Object.freeze({
+                id: SAVE_GROUP.PLUGIN,
+                commit: () => plugins.commitDrafts(),
+                cancel: () => { plugins.discardDrafts(); },
+            }));
+        }
+        return groups;
+    }
+    #refusalRegion() {
+        const t = this.#i18n.t;
+        const saidOnTheLeaf = this._commitRefusalGroup === SAVE_GROUP.LIGHTING
+            && this.leafId === LIGHTING_LEAF;
+        const commit = this._commitRefusal && !saidOnTheLeaf;
+        if (!commit && !this._writeRefusal) return nothing;
+        return html`<div id="refusal-region">
+            ${commit
+                ? html`<p id="commit-refusal" class="ui-caption" role="status"
+                    >${this.#refusalGroupName}${t(this.#refusalSentence)}</p>`
+                : nothing}
+            ${this._writeRefusal
+                ? html`<p id="write-refusal" class="ui-caption" role="status"
+                    >${t(WRITE_REFUSAL_TEXT[this._writeRefusal] ?? WRITE_REFUSAL_TEXT.unknown)}</p>`
+                : nothing}
+        </div>`;
+    }
+    get #refusalGroupName() {
+        if (this._commitRefusal === COMMIT_REFUSAL.MEMORY_NOT_SAVED) return '';
+        const name = SAVE_GROUP_NAME[this._commitRefusalGroup];
+        return name ? `${this.#i18n.t(name)}: ` : '';
+    }
+    get #refusalSentence() {
+        if (this._commitRefusal === COMMIT_REFUSAL.MEMORY_NOT_SAVED) {
+            return PARTIAL_COMMIT_TEXT[this._commitRefusalDetail] ?? PARTIAL_COMMIT_TEXT.unknown;
+        }
+        return COMMIT_REFUSAL_TEXT[this._commitRefusal] ?? COMMIT_REFUSAL_TEXT.unknown;
     }
 
     #adoptModel() {
@@ -209,17 +393,24 @@ export class SettingsScreen extends UiElement {
         if (model && model !== this.model) this.model = model;
         const bespoke = this.bespoke ?? settingsBespokeFor(this.boot);
         if (bespoke && bespoke !== this.bespoke) this.bespoke = bespoke;
+        this.#watchNavigation();
         const led = bespoke?.led ?? null;
         if (!this.#unwatchLed && typeof led?.subscribe === 'function') {
             this.#unwatchLed = led.subscribe(() => this.requestUpdate());
+        }
+        const plugins = bespoke?.plugins ?? null;
+        if (!this.#unwatchPlugins && typeof plugins?.subscribe === 'function') {
+            this.#unwatchPlugins = plugins.subscribe(() => this.requestUpdate());
         }
         const displayFeed = bespoke?.display?.feed ?? null;
         if (!this.#unwatchPanel && typeof displayFeed?.subscribe === 'function') {
             let last = null;
             this.#unwatchPanel = displayFeed.subscribe((state) => {
-                const level = state?.value?.brightness;
-                const next = Number.isFinite(level) ? Math.round(level) : null;
-                if (next !== last) { last = next; this.requestUpdate(); }
+                const next = panelSignature(state?.value ?? null);
+                if (next === last) return;
+                last = next;
+                this.requestUpdate();
+                this.renderRoot?.getElementById('leaf')?.requestUpdate();
             });
         }
         if (!model || typeof model.subscribe !== 'function') return;
@@ -229,23 +420,59 @@ export class SettingsScreen extends UiElement {
         const settings = this.boot?.settings ?? null;
         if (!this.#unwatchWriteFailure && typeof settings?.onWriteFailure === 'function') {
             this.#unwatchWriteFailure = settings.onWriteFailure((failure) => {
+                if (failure?.reason === WRITE_REFUSAL.SUPERSEDED) return;
                 this._writeRefusal = failure?.reason ?? 'unknown';
+            });
+        }
+        if (!this.#unwatchOperation && typeof settings?.onOperation === 'function') {
+            this.#unwatchOperation = settings.onOperation((operation) => {
+                if (operation.kind === OPERATION_KIND.READ) {
+                    if (operation.status === OPERATION.FAILED
+                        && operation.reason === READ_REFUSAL.BACKEND_FAILED) {
+                        this._readFailure = operation.key;
+                        return;
+                    }
+                    if (this._readFailure === operation.key) this._readFailure = null;
+                    return;
+                }
+                if (operation.status === OPERATION.PENDING) {
+                    this._pendingPreference = operation.key;
+                    this.#armPendingTimer();
+                    return;
+                }
+                if (this._pendingPreference === operation.key) {
+                    this._pendingPreference = null;
+                    this.#clearPendingTimer();
+                }
             });
         }
     }
 
+    #armPendingTimer() {
+        this.#clearPendingTimer();
+        this.#pendingTimer = setTimeout(() => {
+            this.#pendingTimer = null;
+            this._pendingPreference = null;
+        }, this.pendingBackstopMs);
+    }
+    #clearPendingTimer() {
+        if (this.#pendingTimer === null) return;
+        clearTimeout(this.#pendingTimer);
+        this.#pendingTimer = null;
+    }
     /** The category currently selected, always a real one. */
     get #category() {
-        return categoryFor(this.categoryId) ?? SETTINGS_TREE[0];
+        const shown = categoriesFor(SETTINGS_TREE, this.#machineClass, this.#capability);
+        return shown.find((category) => category.id === this.categoryId) ?? shown[0];
     }
 
     get #leaf() {
-        const shown = leavesFor(this.#category, this.#machineClass);
+        const shown = leavesFor(this.#category, this.#machineClass, this.#capability);
         const leaf = leafFor(this.leafId);
         if (leaf
             && categoryOf(this.leafId)?.id === this.#category.id
-            && leafShownOn(leaf, this.#machineClass)) return leaf;
-        return shown[0] ?? this.#category.leaves[0];
+            && leafShownOn(leaf, this.#machineClass, this.#capability)) return leaf;
+        return shown[0];
     }
 
     render() {
@@ -257,19 +484,20 @@ export class SettingsScreen extends UiElement {
                 id="band"
                 heading=${t('Settings')}
                 commit
-                change-count=${this.changeCount + (this.#ledPending ? 1 : 0)}
+                change-count=${this.changeCount + (this.#ledPending ? 1 : 0) + (this.#pluginPending ? 1 : 0)}
                 @commit=${this.#onCommit}
                 @cancel=${this.#onCancel}
             ></ui-page-header>
 
-            ${this._commitRefusal
-                ? html`<p id="commit-refusal" class="ui-caption" role="status"
-                    >${t(COMMIT_REFUSAL_TEXT[this._commitRefusal] ?? COMMIT_REFUSAL_TEXT.unknown)}</p>`
+            ${this.#refusalRegion()}
+            ${this._pendingPreference
+                ? html`<p id="preference-pending" class="ui-caption" role="status"
+                    >${t('Saving your choice…')}</p>`
                 : nothing}
 
-            ${this._writeRefusal
-                ? html`<p id="write-refusal" class="ui-caption" role="status"
-                    >${t(WRITE_REFUSAL_TEXT[this._writeRefusal] ?? WRITE_REFUSAL_TEXT.unknown)}</p>`
+            ${this._readFailure
+                ? html`<p id="preference-unread" class="ui-caption" role="status"
+                    >${t('That preference could not be read. This is the last value known.')}</p>`
                 : nothing}
 
             <settings-master-detail id="body" nav-level=${this._navLevel}>
@@ -305,7 +533,7 @@ export class SettingsScreen extends UiElement {
                     id="subnav"
                     @navigate=${this.#onLeafNavigate}
                 >
-                    ${leavesFor(category, this.#machineClass).map((leaf) => html`<ui-subnav-row
+                    ${leavesFor(category, this.#machineClass, this.#capability).map((leaf) => html`<ui-subnav-row
                         data-id=${leaf.id}
                         .value=${leaf.id}
                         summary=${this.model?.navSummary?.(leaf.id) ?? ''}
@@ -391,8 +619,13 @@ export class SettingsScreen extends UiElement {
     #navRows() {
         const t = this.#i18n.t;
         const rows = isSearching(this._query)
-            ? searchSettings(this._query, SETTINGS_TREE, this.#machineClass)
-            : SETTINGS_TREE.map((category) => ({
+            ? searchSettingControls(this._query, {
+                machineClass: this.#machineClass, capability: this.#capability,
+                views: this.model ? (id) => this.model.rows(id) : null, translate: t,
+                fieldVisible: (field) => !field.target.startsWith('night-')
+                    || this.model?.allRows(field.leaf).find((view) => view.id === 'accessories-usb-charger-night')?.checked !== false,
+            })
+            : categoriesFor(SETTINGS_TREE, this.#machineClass, this.#capability).map((category) => ({
                 kind: NAV_KIND.CATEGORY, node: category, category,
             }));
 
@@ -408,54 +641,72 @@ export class SettingsScreen extends UiElement {
             data-id=${row.node.id}
             data-kind=${row.kind}
             data-category=${row.category.id}
+            data-leaf=${row.leaf?.id ?? nothing}
+            data-target=${row.target ?? nothing}
+            data-primitive=${row.primitive ? 'true' : nothing}
             ?current=${this.#isCurrentRow(row)}
-        >${t(navName(row.node))}</ui-nav-row>`);
+        >${row.kind === NAV_KIND.ROW
+            ? html`<span class="search-result"><span>${t(row.heading)}</span><span class="search-context"
+                >${t(navName(row.category))} › ${t(navName(row.leaf))}</span></span>`
+            : t(navName(row.node))}</ui-nav-row>`);
     }
 
     /** A category row is current when it is the category; a leaf result, the leaf. */
     #isCurrentRow(row) {
+        if (row.kind === NAV_KIND.ROW) return row.node.id === this._searchTarget?.node.id;
         return row.kind === NAV_KIND.LEAF
             ? row.node.id === this.#leaf.id
             : row.node.id === this.categoryId;
     }
 
-    #onCommit = (event) => {
-        if (this.#ledPending) {
-            const led = this.bespoke.led;
-            Promise.resolve(led.commit())
-                .then((ok) => {
-                    if (ok === false) {
-                        this._commitRefusal = 'writeFailed';
-                        return;
-                    }
-                    this._commitRefusal = null;
-                    this.#leaveScreen();
-                })
-                .catch(() => { this._commitRefusal = 'unknown'; });
-            return;
-        }
-        if (!event.detail?.dirty || !this.model) {
+    #onCommit = () => {
+        const groups = this.#pendingGroups;
+        if (groups.length === 0) {
+            this.#clearRefusals();
             this.#leaveScreen();
             return;
         }
-        Promise.resolve(this.model.commit())
-            .then((result) => {
-                if (result && result.ok === false) {
-                    this._commitRefusal = result.reason ?? 'unknown';
-                    return;
-                }
-                this._commitRefusal = null;
-                this._writeRefusal = null;
-                this.#leaveScreen();
-            })
-            .catch(() => { this._commitRefusal = 'unknown'; });
+        this.#saveGroups(groups).catch(() => {
+            this._commitRefusal = 'unknown';
+            this._commitRefusalDetail = null;
+        });
     };
 
-    #onCancel = () => {
-        if (this.#ledPending) Promise.resolve(this.bespoke.led.reset()).catch(() => {});
-        this.model?.discard?.();
+    async #saveGroups(groups) {
+        const failed = [];
+        for (const group of groups) {
+            let outcome = null;
+            try {
+                outcome = await group.commit();
+            } catch {
+                outcome = { ok: false, reason: 'unknown' };
+            }
+            if (!outcome || outcome.ok === false) {
+                failed.push({
+                    id: group.id,
+                    reason: outcome?.reason ?? 'unknown',
+                    detail: outcome?.detail ?? null,
+                });
+            }
+        }
+        if (failed.length === 0) {
+            this.#clearRefusals();
+            this.#leaveScreen();
+            return;
+        }
+        this._commitRefusal = failed[0].reason;
+        this._commitRefusalGroup = failed[0].id;
+        this._commitRefusalDetail = failed[0].detail ?? null;
+    }
+    #clearRefusals() {
         this._commitRefusal = null;
+        this._commitRefusalGroup = null;
+        this._commitRefusalDetail = null;
         this._writeRefusal = null;
+    }
+    #onCancel = () => {
+        for (const group of this.#pendingGroups) group.cancel();
+        this.#clearRefusals();
         this.#leaveScreen();
     };
 
@@ -470,7 +721,7 @@ export class SettingsScreen extends UiElement {
     #onLeafAction = (event) => {
         const action = event.detail?.action;
         if (action === 'leave-skin') {
-            this.exit(new URL('../', this.ownerDocument?.location?.href ?? 'about:blank').href);
+            leaveSkin(this.ownerDocument?.defaultView ?? null);
             return;
         }
         if (action === 'scan-devices') {
@@ -484,11 +735,6 @@ export class SettingsScreen extends UiElement {
         }
     };
 
-    /** Overridden in tests. The default is the only navigation this screen performs. */
-    exit = (href) => {
-        const location = this.ownerDocument?.defaultView?.location;
-        if (location && typeof location.assign === 'function') location.assign(href);
-    };
 
     #onLeafChange = (event) => {
         if (event.detail?.row !== DENSITY_ROW) return;
@@ -502,8 +748,15 @@ export class SettingsScreen extends UiElement {
         if (!id) return;
         const categoryId = row.dataset.category ?? id;
         this.categoryId = categoryId;
-        if (row.dataset.kind === NAV_KIND.LEAF) this.leafId = id;
-        else this.leafId = categoryFor(categoryId)?.leaves[0]?.id ?? this.leafId;
+        this._searchTarget = null;
+        if (row.dataset.kind === NAV_KIND.ROW) {
+            this.leafId = row.dataset.leaf;
+            this._searchTarget = {
+                node: { id }, leaf: leafFor(this.leafId), target: row.dataset.target,
+                primitive: row.dataset.primitive === 'true',
+            };
+        } else if (row.dataset.kind === NAV_KIND.LEAF) this.leafId = id;
+        else this.leafId = leavesFor(categoryFor(categoryId), this.#machineClass, this.#capability)[0]?.id ?? this.leafId;
         /* Collapsed, choosing a category steps you INTO it; wide, this selects
          * nothing, because both nav columns are on screen at once. */
         this._navLevel = NAV_LEVEL.LEAVES;
@@ -514,6 +767,7 @@ export class SettingsScreen extends UiElement {
         const id = event.detail?.value ?? event.target?.dataset?.id;
         if (!id) return;
         this._writeRefusal = null;
+        this._searchTarget = null;
         this.leafId = id;
     };
 
@@ -523,6 +777,8 @@ export class SettingsScreen extends UiElement {
 
     #onSearch = (event) => {
         this._query = event.target?.value ?? '';
+        this._searchTarget = null;
+        this._navLevel = NAV_LEVEL.CATEGORIES;
     };
 }
 

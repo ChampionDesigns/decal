@@ -1067,6 +1067,23 @@ describe('D8: one control, and it is a button on the settings row', () => {
         assert.doesNotMatch(renderer, /ui-dialog|ui-confirm-dialog|ui-sheet/, 'no new dialog shape');
         assert.doesNotMatch(renderer, /location|window\./, 'the leaf asks; the screen navigates');
     });
+
+    test('the screen asks the host, rather than computing a destination from its own URL', () => {
+        const screen = stripComments(read('src/screens/settings-screen.js'));
+        assert.match(screen, /leaveSkin\(/, 'nothing in the settings screen calls the exit');
+        assert.equal(screen.includes("new URL('../'"), false,
+            'the screen still resolves `../` against this document — on an origin root that is this skin');
+        assert.equal(/\bexit\s*=\s*\(/.test(screen), false,
+            'the overridable `exit` field outlived its one caller — a second, quieter way to navigate');
+    });
+
+    test('the row says where it goes, and where it cannot', () => {
+        const row = SETTINGS_ROWS.find((entry) => entry.action === 'leave-skin');
+        assert.equal(row.caption.includes('Go back to the page that loaded Decal.'), false,
+            'the caption still describes a destination the code cannot reach');
+        assert.match(row.caption, /browser/,
+            'the caption does not say that a browser tab cannot leave');
+    });
 });
 
 describe('D4 / D5 / D6: what Settings deliberately does not gain', () => {

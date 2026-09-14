@@ -1289,20 +1289,34 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'rule 0: a control that names itself keeps its name (WCAG 2.5.3)');
             });
 
-            test('pressing it asks the screen once, and opens no dialog', async () => {
+            test('pressing it asks the HOST once, navigates nowhere, and opens no dialog', async () => {
                 await showLeaf('display', 'display-skin');
                 const result = await page.evalFn(() => {
+                    const exits = [];
+                    const hadApp = Object.prototype.hasOwnProperty.call(window, 'decentApp');
+                    const previousApp = window.decentApp;
+                    window.decentApp = { exitToDashboard: () => exits.push('dashboard') };
+                    Object.defineProperty(window, '__DECENT_HOST__', {
+                        value: Object.freeze({ platform: 'render-suite' }),
+                        configurable: true,
+                    });
+                    const before = window.location.href;
                     const screen = document.querySelector('settings-screen');
-                    const asked = [];
-                    screen.exit = (href) => asked.push(href);
                     const leaf = screen.shadowRoot.getElementById('leaf');
                     const row = leaf.shadowRoot.querySelector('[data-row="display-skin-leave"]');
                     row.querySelector('ui-button').click();
-                    return { asked, dialogs: leaf.shadowRoot.querySelectorAll('ui-dialog, ui-confirm-dialog').length };
+                    const out = {
+                        exits: exits.length,
+                        moved: window.location.href !== before,
+                        dialogs: leaf.shadowRoot.querySelectorAll('ui-dialog, ui-confirm-dialog').length,
+                    };
+                    delete window.__DECENT_HOST__;
+                    if (hadApp) window.decentApp = previousApp; else delete window.decentApp;
+                    return out;
                 });
-                assert.equal(result.asked.length, 1, 'one control, one navigation');
+                assert.equal(result.exits, 1, 'one control, one exit — through the host, not a URL');
+                assert.equal(result.moved, false, 'it navigated as well as leaving — that is the old `../`');
                 assert.equal(result.dialogs, 0, 'no new dialog shape');
-                assert.match(result.asked[0], /^https?:/, 'it leaves for a real place');
             });
 
             test('D4 reversed: the firmware leaf carries real controls', async () => {
@@ -1324,15 +1338,32 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.doesNotMatch(seen.text, /does not send firmware/i);
             });
 
-            test('the capability list does not decide this leaf: its rows, or none', async () => {
-                await showLeaf('accessories', 'accessories-cup-warmer');
-                const rows = await rowReport(page);
-                assert.deepEqual(rows.map((row) => row.id), [
-                    'accessories-cup-warmer-enabled',
-                    'accessories-cup-warmer-target',
-                    'accessories-cup-warmer-now',
-                ], 'the whole page draws even with the capability list unread; the pre-warm pair '
-                + 'is absent because the machine document says this firmware cannot pre-warm');
+            test('the cup-warmer page requires its served capability and keeps all supported rows', async () => {
+                const previous = await page.evalFn(async () => {
+                    const deps = __settings.screen().bespoke;
+                    if (deps.machineClass() === null) return null;
+                    const { SERVED_CAPABILITIES } = await import('/src/stores/capabilities-store.js');
+                    return SERVED_CAPABILITIES.filter((name) => deps.capability(name) === 'present');
+                });
+                try {
+                    await page.eval("__settings.capabilities(['cupWarmer','preheat'])");
+                    await showLeaf('accessories', 'accessories-cup-warmer');
+                    const rows = await rowReport(page);
+                    assert.deepEqual(rows.map((row) => row.id), [
+                        'accessories-cup-warmer-enabled',
+                        'accessories-cup-warmer-target',
+                        'accessories-cup-warmer-now',
+                        'accessories-cup-warmer-prewarm',
+                        'accessories-cup-warmer-prewarm-lead',
+                    ]);
+                    await page.eval('__settings.capabilities([])');
+                    await page.settle();
+                    assert.equal(await page.eval('__settings.screen().leafId'), 'accessories-usb-charger');
+                    assert.ok(!(await rowReport(page)).some((row) => row.id.startsWith('accessories-cup-warmer')));
+                    assert.equal(await page.exists('settings-screen >>> #subnav [data-id="accessories-cup-warmer"]'), false);
+                } finally {
+                    await page.evalFn((entries) => __settings.capabilities(entries), previous);
+                }
             });
         });
 

@@ -109,13 +109,28 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 }
             });
 
-            test('an EMPTY served array is a real answer and closes them too', async () => {
+            test('an empty served array removes unsupported leaves and selects a usable page', async () => {
                 await serve([]);
-                for (const leafId of GATED) {
-                    const category = BESPOKE_PANES.find(([, id]) => id === leafId)[0];
+                const fallback = {
+                    'accessories-lighting': ['accessories', 'accessories-usb-charger'],
+                    'accessories-cup-warmer': ['accessories', 'accessories-usb-charger'],
+                    'calibration-load-cells': ['calibration', 'calibration-flow-multiplier'],
+                    'machine-sleep-wake-schedules': ['machine', 'machine-steam'],
+                };
+                for (const [leafId, [category, expected]] of Object.entries(fallback)) {
                     await show(category, leafId);
-                    const report = await paneReport(page);
-                    assert.deepEqual(report.bespokeTags, [], `${leafId} rendered on a DE1`);
+                    const actual = await page.evalFn((id) => {
+                        const screen = __settings.screen();
+                        return {
+                            selected: screen.leafId,
+                            rendered: screen.shadowRoot.getElementById('leaf').leafId,
+                            listed: [...screen.shadowRoot.querySelectorAll('ui-nav-row, ui-subnav-row')]
+                                .some((row) => row.dataset.id === id),
+                        };
+                    }, leafId);
+                    assert.equal(actual.listed, false, `${leafId} is not offered`);
+                    assert.equal(actual.selected, expected);
+                    assert.equal(actual.rendered, expected);
                 }
             });
 
