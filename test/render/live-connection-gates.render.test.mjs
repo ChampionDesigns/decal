@@ -200,10 +200,16 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         const settleHold = async (page) => {
             await page.evalFn(() => new Promise((done, fail) => {
-                const from = window.__live.lastPushAt;
+                const pushedAt = window.__live.lastPushAt;
+                if (typeof pushedAt !== 'number') {
+                    fail(new Error('settleHold needs a push first'));
+                    return;
+                }
+                const waitedAt = Date.now();
                 const deadline = performance.now() + 20320;
                 const poll = () => {
-                    if (Date.now() - from >= 320) done();
+                    const now = Date.now();
+                    if (now - pushedAt >= 320 && now - waitedAt >= 320) done();
                     else if (performance.now() > deadline) fail(new Error('the page clock never moved 320 ms'));
                     else setTimeout(poll, 15);
                 };
