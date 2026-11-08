@@ -353,6 +353,7 @@ export class Browser {
         await page.setGeometry(geometry);
         await page.send('Page.addScriptToEvaluateOnNewDocument', { source: PAGE_HELPERS });
         await page.reload({ theme });
+        await page.mouse('mouseMoved', -1, -1);
         return page;
     }
 

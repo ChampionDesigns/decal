@@ -167,6 +167,23 @@ test('the harness dispatches real input through the browser\'s hit test', async 
     });
 });
 
+test('a new page has no hovered element until a test moves the pointer', async () => {
+    const cover = '<div id="cover" style="position:fixed;inset:0"></div>';
+    const hovered = (page) => page.evalFn(() => document.querySelector('#cover').matches(':hover'));
+    await browser.withPage({ geometry: BENCH }, async (page) => {
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'an element at the top left corner is hovered at rest');
+
+        await page.reload();
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'the pointer came back onto the page after a reload');
+
+        await page.mouse('mouseMoved', 5, 5);
+        await page.settle(1);
+        assert.equal(await hovered(page), true, 'a real pointer move should hover the element under it');
+    });
+});
+
 test('the harness reaches :focus-visible after a pointer interaction', async () => {
     await browser.withPage({ geometry: BENCH }, async (page) => {
         await page.mount('<base-fixture></base-fixture>', ['/test/fixtures/base-fixture.js']);
