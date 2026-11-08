@@ -8,7 +8,7 @@ import fs from 'node:fs';
 
 import { launch, BENCH, FLOOR } from './harness/index.js';
 import { frame, readFrame } from './harness/ws.js';
-import { readDocumentShell, mountDocument, REPO_ROOT } from './harness/server.js';
+import { readDocumentShell, mountDocument, REPO_ROOT, HARNESS_PAGE } from './harness/server.js';
 import { assertFocusUnclipped, shadowSegments } from './harness/assertions.js';
 
 test('shadowSegments splits on TOP-LEVEL commas only', () => {
@@ -177,6 +177,10 @@ test('a new page has no hovered element until a test moves the pointer', async (
         await page.reload();
         await page.mount(cover);
         assert.equal(await hovered(page), false, 'the pointer came back onto the page after a reload');
+
+        await page.goto(HARNESS_PAGE);
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'the pointer came back onto the page after a navigation');
 
         await page.mouse('mouseMoved', 5, 5);
         await page.settle(1);
