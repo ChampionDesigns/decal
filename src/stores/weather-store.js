@@ -36,23 +36,28 @@ export function createWeatherStore({
         expiry = null;
     };
 
-    const expireLater = (frame) => {
-        const stated = frame.ageMinutes;
-        const age = typeof stated === 'number' && Number.isFinite(stated) ? stated : 0;
-        if (age > MAX_AGE_MINUTES) return;
-        const arrived = now();
+    let held = null;
+
+    const armExpiry = () => {
+        stopExpiry();
+        if (!held) return;
+        const { frame, age, arrived } = held;
+        const wait = (MAX_AGE_MINUTES - age + 1) * MINUTE_MS - (now() - arrived);
         expiry = setTimer(() => {
             expiry = null;
+            held = null;
             const waited = Math.round((now() - arrived) / MINUTE_MS);
             store.set({ ...frame, ageMinutes: age + waited });
-        }, (MAX_AGE_MINUTES - age + 1) * MINUTE_MS);
+        }, Math.max(0, wait));
     };
 
     const onFrame = (frame) => {
         if (!frame || typeof frame !== 'object') return;
-        stopExpiry();
         store.set(frame);
-        if (frame.ok === true) expireLater(frame);
+        const stated = frame.ageMinutes;
+        const age = typeof stated === 'number' && Number.isFinite(stated) ? stated : 0;
+        held = frame.ok === true && age <= MAX_AGE_MINUTES ? { frame, age, arrived: now() } : null;
+        armExpiry();
     };
 
     return {
@@ -71,6 +76,7 @@ export function createWeatherStore({
             detach = handle && typeof handle.subscribe === 'function'
                 ? handle.subscribe(onFrame)
                 : null;
+            armExpiry();
         },
 
         detach() {

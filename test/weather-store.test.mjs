@@ -161,6 +161,19 @@ describe('a reading still ages when its frames stop', () => {
         assert.equal(clock.pending(), 0);
     });
 
+    test('a reading held across a detach still ages after the next attach', () => {
+        const { sockets, clock, store } = rig();
+        store.attach();
+        sockets.send(reading({ ageMinutes: 100 }));
+        store.detach();
+        clock.advance(10 * MINUTE);
+        store.attach();
+        assert.equal(weatherState(store.get()), WEATHER_STATE.READING);
+        clock.advance(11 * MINUTE);
+        assert.equal(weatherState(store.get()), WEATHER_STATE.HIDDEN);
+        assert.equal(store.get().ageMinutes, 121);
+    });
+
     test('detach stops the count', () => {
         const { sockets, clock, store } = rig();
         store.attach();
