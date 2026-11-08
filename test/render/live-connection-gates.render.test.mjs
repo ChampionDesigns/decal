@@ -200,7 +200,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         const settleHold = async (page) => {
             await page.evalFn(() => new Promise((done, fail) => {
-                const from = Date.now();
+                const from = window.__live.lastPushAt;
                 const deadline = performance.now() + 20320;
                 const poll = () => {
                     if (Date.now() - from >= 320) done();
