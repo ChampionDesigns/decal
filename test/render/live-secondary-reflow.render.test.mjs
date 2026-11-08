@@ -40,6 +40,29 @@ const REGIONS = () => {
     };
 };
 
+/** Wait until Live has drawn the three regions this file measures, and say which is missing. */
+const DRAWN = async (ms) => {
+    const missing = () => {
+        const all = [];
+        const walk = (root) => {
+            for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+        };
+        walk(document);
+        const find = (tag) => all.find((el) => el.tagName === tag) ?? null;
+        const foot = find('LIVE-FOOT');
+        return [
+            find('LIVE-RAIL') ? null : 'rail',
+            find('UI-CHART-CARD') ? null : 'chart card',
+            foot?.shadowRoot?.querySelector('.band') ? null : 'foot band',
+        ].filter(Boolean);
+    };
+    const deadline = performance.now() + ms;
+    while (missing().length && performance.now() < deadline) {
+        await new Promise((done) => { setTimeout(done, 25); });
+    }
+    return missing();
+};
+
 /** Push the rail's rows past the rail, the way a floor on their own boxes would. */
 const GROW = (value) => {
     document.documentElement.style.setProperty('--ui-control-h', value);
@@ -70,6 +93,8 @@ for (const geometry of [FLOOR, BENCH]) {
     describe(`the Live skeleton under pressure @ ${geometry.name}`, () => {
         const live = (fn) => browser.withPage({ geometry }, async (page) => {
             await page.goto('/index.html#/live');
+            const missing = await page.evalFn(DRAWN, 20000);
+            assert.deepEqual(missing, [], `the Live screen drew no ${missing.join(', ')}`);
             await page.settle(12);
             return fn(page);
         });

@@ -132,13 +132,14 @@ rendering test resolves `lit` through the same importmap and reads the same thre
 global sheets the app will. A copy would drift silently the first time a module is
 vendored; if `index.html` loses its importmap this throws instead.
 
-## Two opt-in stresses
+## Three opt-in stresses
 
-Both are off unless the variable is set, and `newPage()` applies them to every page.
+Each is off unless the variable is set, and `newPage()` applies them to every page.
 
 | Variable | What it does | What it finds |
 |---|---|---|
 | `DECAL_RENDER_CPU_THROTTLE=4` | `Emulation.setCPUThrottlingRate` at that rate | a read taken before the render settles |
+| `DECAL_RENDER_LATENCY=50` | `Network.emulateNetworkConditions` adds that many ms to every request | a read taken before a lazily imported screen arrives |
 | `DECAL_RENDER_CLOCK_STEP=-1500@2000` | the page's `Date` steps by -1500 ms every 2000 ms of `performance.now()` | a wait timed on a timer and measured on `Date` |
 
 The clock step copies a loaded WSL2 host, where the wall clock steps back about

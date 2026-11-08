@@ -310,6 +310,16 @@ export function cpuThrottleRate(env = process.env) {
     return rate;
 }
 
+export function networkLatency(env = process.env) {
+    const raw = env.DECAL_RENDER_LATENCY;
+    if (raw === undefined || raw === '') return 0;
+    const ms = Number(raw);
+    if (!Number.isFinite(ms) || ms < 0) {
+        throw new Error(`DECAL_RENDER_LATENCY must be a number of ms of at least 0, got ${JSON.stringify(raw)}`);
+    }
+    return ms;
+}
+
 function pageError(details, expression) {
     const text = details.exception?.description ?? details.text ?? 'unknown page exception';
     const err = new Error(`page threw: ${text}`);
@@ -363,6 +373,13 @@ export class Browser {
         } catch { /* older Chrome: focusVisible()'s own check is the backstop */ }
         const throttle = cpuThrottleRate();
         if (throttle > 1) await page.send('Emulation.setCPUThrottlingRate', { rate: throttle });
+        const latency = networkLatency();
+        if (latency > 0) {
+            await page.send('Network.enable');
+            await page.send('Network.emulateNetworkConditions', {
+                offline: false, latency, downloadThroughput: -1, uploadThroughput: -1,
+            });
+        }
         await page.setGeometry(geometry);
         const step = clockStep();
         if (step) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: clockStepSource(step) });

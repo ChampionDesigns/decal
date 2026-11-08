@@ -6,7 +6,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { launch, BENCH, FLOOR, cpuThrottleRate } from './harness/index.js';
+import { launch, BENCH, FLOOR, cpuThrottleRate, networkLatency } from './harness/index.js';
 import { clockStep, clockStepSource } from './harness/clock-step.js';
 import { frame, readFrame } from './harness/ws.js';
 import { readDocumentShell, mountDocument, REPO_ROOT, HARNESS_PAGE } from './harness/server.js';
@@ -263,11 +263,14 @@ test('the clipping walk measures the scrollport, not the border box', async () =
     });
 });
 
-test('the two stresses are off unless asked for, and refuse a value they cannot use', () => {
+test('the three stresses are off unless asked for, and refuse a value they cannot use', () => {
     assert.equal(cpuThrottleRate({}), 1);
     assert.equal(cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: '4' }), 4);
     assert.throws(() => cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: '0.5' }), /at least 1/);
     assert.throws(() => cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: 'fast' }), /at least 1/);
+    assert.equal(networkLatency({}), 0);
+    assert.equal(networkLatency({ DECAL_RENDER_LATENCY: '50' }), 50);
+    assert.throws(() => networkLatency({ DECAL_RENDER_LATENCY: '-1' }), /at least 0/);
     assert.equal(clockStep({}), null);
     assert.deepEqual(clockStep({ DECAL_RENDER_CLOCK_STEP: '-1500@2000' }), { stepMs: -1500, everyMs: 2000 });
     assert.throws(() => clockStep({ DECAL_RENDER_CLOCK_STEP: '-1500' }), /step ms/);
@@ -302,6 +305,26 @@ test('the stepped clock moves Date and only Date', async () => {
             assert.equal(seen.text, 'string');
         });
     } finally {
+        await browser.close();
+    }
+});
+
+test('the latency stress delays every request the page makes', async () => {
+    const saved = process.env.DECAL_RENDER_LATENCY;
+    process.env.DECAL_RENDER_LATENCY = '300';
+    const browser = await launch();
+    try {
+        await browser.withPage({ geometry: BENCH }, async (page) => {
+            const ms = await page.evalFn(async () => {
+                const t0 = performance.now();
+                await (await fetch(`/index.html?fresh=${Math.random()}`)).text();
+                return performance.now() - t0;
+            });
+            assert.ok(ms >= 290, `a request took ${ms} ms under a 300 ms latency`);
+        });
+    } finally {
+        if (saved === undefined) delete process.env.DECAL_RENDER_LATENCY;
+        else process.env.DECAL_RENDER_LATENCY = saved;
         await browser.close();
     }
 });
