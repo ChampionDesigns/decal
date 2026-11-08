@@ -33,7 +33,7 @@ like any other suite.
 | | |
 |---|---|
 | `launch({ geometry, theme })` | a `Browser` — its own Chrome, its own static server |
-| `browser.newPage({ geometry, theme })` / `withPage(opts, fn)` | a `Page` |
+| `browser.newPage({ geometry, theme })` / `withPage(opts, fn)` | a `Page`, with the pointer outside the viewport so nothing is hovered at rest |
 | `page.mount(markup, [modules])` | import the modules, put the markup in `#mount`, wait for it to settle |
 | `page.goto('/tools/gallery/index.html')` | any page on the served repo root |
 | `page.computed(sel, props, { pseudo })`, `page.prop(sel, prop)` | `getComputedStyle` |

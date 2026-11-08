@@ -1074,3 +1074,49 @@ for (const geometry of GATE_A_GEOMETRIES) {
         }));
     });
 }
+
+describe('the temperature axis keeps its widest band within a shot', () => {
+    const geometry = GATE_A_GEOMETRIES[0];
+    const markup = `
+<div id="stage" style="inline-size: 760px; block-size: 340px; margin: 24px">
+  <ui-chart-card id="t" label="Temperature" y-policy="temp" channels="targetTemp groupTemp mixTemp"
+                 style="display: block; block-size: 340px"></ui-chart-card>
+</div>`;
+
+    test('a narrower band does not move the axis, a wider one does, and a new shot starts again',
+        () => browser.withPage({ geometry }, async (page) => {
+            await page.mount(markup, MODULE);
+            assert.deepEqual(page.pageErrors, [], 'the card must mount without throwing');
+
+            const seen = await page.evalFn(async (sel) => {
+                const { computeTempRange } = await import('/src/lib/chart-autoscale.js');
+                const card = window.__h.need(sel);
+                await card.ready;
+                const flat = (mix) => mix.map(() => 93);
+                const frame = (mix) => [mix.map((_, i) => i), flat(mix), flat(mix), mix];
+                const own = (mix) => computeTempRange(flat(mix), flat(mix), mix);
+                const step = (mix) => ({ drawn: card.yRangeFor(frame(mix)), own: own(mix) });
+                return {
+                    wide: step([93, 60, 70, 80]),
+                    narrow: step([93, 90, 91, 92, 93]),
+                    wider: step([93, 90, 91, 92, 93, 40]),
+                    fresh: step([93, 92, 93]),
+                };
+            }, '#t');
+
+            assert.ok(seen.narrow.own[0] > seen.wide.own[0],
+                `the premise: the second frame's own band is narrower: ${JSON.stringify(seen.narrow.own)} `
+                + `against ${JSON.stringify(seen.wide.own)}`);
+            assert.deepEqual(seen.narrow.drawn, seen.wide.drawn,
+                'a narrower band after a wider one leaves the axis where it was');
+
+            assert.ok(seen.wider.drawn[0] < seen.wide.drawn[0],
+                `a wider band moves the axis: ${JSON.stringify(seen.wider.drawn)} `
+                + `against ${JSON.stringify(seen.wide.drawn)}`);
+            assert.deepEqual(seen.wider.drawn, seen.wider.own, 'and it moves to that band');
+
+            assert.deepEqual(seen.fresh.drawn, seen.fresh.own,
+                'fewer samples is a new shot, and it does not keep the last shot\'s band');
+            assert.deepEqual(page.pageErrors, [], 'and run without throwing');
+        }));
+});
