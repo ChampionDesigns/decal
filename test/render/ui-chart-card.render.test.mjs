@@ -367,13 +367,19 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.send('Input.dispatchTouchEvent', {
                 type: 'touchStart', touchPoints: [{ x: at(1), y }],
             });
-            await page.settle(1);
-            const first = await cursor(page);
+            const cursorOnce = async (done) => {
+                const deadline = performance.now() + 5000;
+                for (;;) {
+                    await page.settle(1);
+                    const read = await cursor(page);
+                    if (done(read) || performance.now() > deadline) return read;
+                }
+            };
+            const first = await cursorOnce((c) => c.active === true && Number.isInteger(c.idx));
             await page.send('Input.dispatchTouchEvent', {
                 type: 'touchMove', touchPoints: [{ x: at(4), y }],
             });
-            await page.settle(1);
-            const moved = await cursor(page);
+            const moved = await cursorOnce((c) => c.idx !== first.idx);
             await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
             await page.send('Emulation.setTouchEmulationEnabled', { enabled: false });
 
