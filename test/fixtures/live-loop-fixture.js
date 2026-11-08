@@ -274,8 +274,9 @@ globalThis.__loop = {
      * says while it is that (`chip`), and the status after a hand call (`afterTick`),
      * which is the old mechanism check and must agree.
      */
-    async stalenessProbe(waitMs = 2400) {
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+    async stalenessProbe(silentMs = 3000) {
+        const waited = await until(() => (boot.live.status().machineSnapshot.ageMs ?? -1) >= silentMs,
+            silentMs + 20000, `${silentMs} ms of machine silence on the store's own clock`);
         const before = boot.live.status();
         const screen = screenEl();
         await screen.updateComplete;
@@ -293,7 +294,7 @@ globalThis.__loop = {
         boot.live.refreshStaleness(Date.now());
         const after = boot.live.status();
         return {
-            waitedMs: waitMs,
+            waitedMs: waited.waitedMs,
             beforeTick: { machine: before.machineSnapshot.status, scale: before.scale.status },
             afterTick: { machine: after.machineSnapshot.status, scale: after.scale.status },
             machineAgeMs: Math.round(before.machineSnapshot.ageMs ?? -1),

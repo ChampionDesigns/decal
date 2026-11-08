@@ -171,7 +171,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 run.canvasFinal = await page.evalFn(() => window.__loop.canvasSample());
             });
 
-            run.staleness = await mark('staleness', () => page.evalFn(() => window.__loop.stalenessProbe(2400)));
+            run.staleness = await mark('staleness', () => page.evalFn(() => window.__loop.stalenessProbe(3000)));
 
             await mark('idle-tail', async () => {
                 await page.evalFn(() => window.__loop.pushMachineFrame('idle'));
