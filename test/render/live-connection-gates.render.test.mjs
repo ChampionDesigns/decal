@@ -199,7 +199,16 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         const settleHold = async (page) => {
-            await page.evalFn(() => new Promise((r) => { setTimeout(r, 320); }));
+            await page.evalFn(() => new Promise((done, fail) => {
+                const from = Date.now();
+                const deadline = performance.now() + 20320;
+                const poll = () => {
+                    if (Date.now() - from >= 320) done();
+                    else if (performance.now() > deadline) fail(new Error('the page clock never moved 320 ms'));
+                    else setTimeout(poll, 15);
+                };
+                poll();
+            }));
             await page.settle(3);
         };
         const show = async (page, key) => {
