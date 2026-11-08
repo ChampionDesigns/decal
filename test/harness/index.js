@@ -5,6 +5,7 @@
 import { launchChrome, sleep } from './cdp.js';
 import { startServer, HARNESS_PAGE, REPO_ROOT } from './server.js';
 import { PAGE_HELPERS } from './page-helpers.js';
+import { clockStep, clockStepSource } from './clock-step.js';
 import { BENCH, FLOOR, DESKTOP, C1, CAPTURE_MATRIX, GATE_A_GEOMETRIES, GEOMETRIES } from './geometry.js';
 
 export { BENCH, FLOOR, DESKTOP, C1, CAPTURE_MATRIX, GATE_A_GEOMETRIES, GEOMETRIES, REPO_ROOT };
@@ -299,6 +300,16 @@ export class Page {
     }
 }
 
+export function cpuThrottleRate(env = process.env) {
+    const raw = env.DECAL_RENDER_CPU_THROTTLE;
+    if (raw === undefined || raw === '') return 1;
+    const rate = Number(raw);
+    if (!Number.isFinite(rate) || rate < 1) {
+        throw new Error(`DECAL_RENDER_CPU_THROTTLE must be a number of at least 1, got ${JSON.stringify(raw)}`);
+    }
+    return rate;
+}
+
 function pageError(details, expression) {
     const text = details.exception?.description ?? details.text ?? 'unknown page exception';
     const err = new Error(`page threw: ${text}`);
@@ -350,7 +361,11 @@ export class Browser {
         try {
             await page.send('Emulation.setFocusEmulationEnabled', { enabled: true });
         } catch { /* older Chrome: focusVisible()'s own check is the backstop */ }
+        const throttle = cpuThrottleRate();
+        if (throttle > 1) await page.send('Emulation.setCPUThrottlingRate', { rate: throttle });
         await page.setGeometry(geometry);
+        const step = clockStep();
+        if (step) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: clockStepSource(step) });
         await page.send('Page.addScriptToEvaluateOnNewDocument', { source: PAGE_HELPERS });
         await page.reload({ theme });
         await page.mouse('mouseMoved', -1, -1);
