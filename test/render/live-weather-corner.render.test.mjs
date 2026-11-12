@@ -199,3 +199,66 @@ for (const geometry of GATE_A_GEOMETRIES) {
             }));
     });
 }
+
+describe('the Live corner, fed by the weather store', () => {
+    const geometry = GATE_A_GEOMETRIES[0];
+
+    const withStore = (fn) => browser.withPage({ geometry }, async (page) => {
+        await page.mount(STAGE, MODULE);
+        await page.settle(6);
+        await page.evalFn(async () => {
+            const { createWeatherStore } = await import('/src/stores/weather-store.js');
+            const { r2MachineLimits } = await import('/src/data/adapters-r.js');
+            let listener = null;
+            const sockets = {
+                channel: () => ({ subscribe: (f) => { listener = f; return () => { listener = null; }; } }),
+            };
+            const weather = createWeatherStore({ sockets });
+            weather.attach();
+            window.__writes = [];
+            const plugins = {
+                writeSettings: async (id, patch) => { window.__writes.push([id, patch]); return true; },
+            };
+            const screen = window.__h.q('live-screen');
+            screen.limits = r2MachineLimits(['cupWarmer']).value;
+            screen.boot = { weather, plugins };
+            await screen.updateComplete;
+            window.__send = (frame) => listener && listener(frame);
+        });
+        await page.settle(4);
+        assert.deepEqual(page.pageErrors, [], 'the screen must mount without throwing');
+        await fn(page);
+        assert.deepEqual(page.pageErrors, [], 'and run without throwing');
+    });
+
+    const corner = (page) => page.evalFn(() => Boolean(window.__h.q('live-screen')
+        .shadowRoot.querySelector('ui-weather-corner')));
+
+    test('a frame from the plugin puts the reading in the corner', () => withStore(async (page) => {
+        assert.equal(await corner(page), false, 'no frame, no corner');
+        await page.evalFn((r) => window.__send(r), FRESH);
+        await page.settle(4);
+        assert.equal(await corner(page), true);
+    }));
+
+    test('pressing the corner opens the detail, and a saved place is written to the plugin',
+        () => withStore(async (page) => {
+            await page.evalFn((r) => window.__send(r), FRESH);
+            await page.settle(4);
+            await page.click('live-screen >>> ui-weather-corner >>> .card');
+            await page.settle(4);
+            const open = await page.evalFn(() => Boolean(window.__h.q('live-screen')
+                .shadowRoot.querySelector('weather-modal')));
+            assert.equal(open, true, 'the corner opens the detail');
+            await page.click('live-screen >>> weather-modal >>> .place .save');
+            await page.settle(2);
+            await page.evalFn(() => {
+                window.__h.q('live-screen').shadowRoot.querySelector('weather-modal')
+                    .shadowRoot.querySelector('#place').value = 'Fitzroy, AU';
+            });
+            await page.click('live-screen >>> weather-modal >>> .place .save');
+            await page.settle(4);
+            assert.deepEqual(await page.eval('window.__writes'),
+                [['weather.reaplugin', { Location: 'Fitzroy, AU' }]]);
+        }));
+});

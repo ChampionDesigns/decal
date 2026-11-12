@@ -132,6 +132,22 @@ rendering test resolves `lit` through the same importmap and reads the same thre
 global sheets the app will. A copy would drift silently the first time a module is
 vendored; if `index.html` loses its importmap this throws instead.
 
+## Three opt-in stresses
+
+Each is off unless the variable is set, and `newPage()` applies them to every page.
+
+| Variable | What it does | What it finds |
+|---|---|---|
+| `DECAL_RENDER_CPU_THROTTLE=4` | `Emulation.setCPUThrottlingRate` at that rate | a read taken before the render settles |
+| `DECAL_RENDER_LATENCY=50` | `Network.emulateNetworkConditions` adds that many ms to every request | a read taken before a lazily imported screen arrives |
+| `DECAL_RENDER_CLOCK_STEP=-1500@2000` | the page's `Date` steps by -1500 ms every 2000 ms of `performance.now()` | a wait timed on a timer and measured on `Date` |
+
+The clock step copies a loaded WSL2 host, where the wall clock steps back about
+1.5 s every 31 s while the monotonic clock does not. Timers run on the monotonic clock
+and the stores stamp arrivals with `Date.now()`, so a test that sleeps a fixed time and
+then expects an age has to wait on `Date` instead. A throttle also slows the frame
+budget tests, which then fail for the reason they exist.
+
 ## The dependency budget is zero
 
 No `node_modules`. `ws.js` is a ~150-line RFC 6455 client because Node 20.20 has
@@ -147,6 +163,7 @@ No `node_modules`. `ws.js` is a ~150-line RFC 6455 client because Node 20.20 has
 | `geometry.js` | `BENCH`, `FLOOR`, `DESKTOP`, `CAPTURE_MATRIX` |
 | `server.js` | the ephemeral static server and the generated mount document |
 | `cdp.js` | Chrome launch (ephemeral port, fresh profile) and the CDP connection |
+| `clock-step.js` | the stepped `Date` for `DECAL_RENDER_CLOCK_STEP` |
 | `page-helpers.js` | the in-page helper blob, as a string |
 | `ws.js` | the WebSocket client |
 

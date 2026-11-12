@@ -147,7 +147,16 @@ describe('a machine command that did not work @ bench', () => {
                 await window.__command.pressKey('espresso');
                 await window.__command.pushMachine('espresso', { pressure: 6 });
                 const confirmed = window.__command.notices();
-                await new Promise((done) => { setTimeout(done, 4200); });
+                const from = Date.now();
+                const deadline = performance.now() + 24200;
+                await new Promise((done, fail) => {
+                    const poll = () => {
+                        if (Date.now() - from >= 4200) done();
+                        else if (performance.now() > deadline) fail(new Error('the page clock never moved 4200 ms'));
+                        else setTimeout(poll, 15);
+                    };
+                    poll();
+                });
                 const later = await window.__command.pushMachine('espresso', { pressure: 6.2 });
                 return { confirmed, later: later.notices };
             });

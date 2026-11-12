@@ -98,10 +98,22 @@ test('startup recovery exposes usable details, copy outcomes and only the valid 
 test('standalone recovery has no dashboard action and Reload performs a real page reload', () => browser.withPage({ geometry: BENCH, theme: 'light' }, async (page) => {
     await failedShell(page, false);
     assert.equal(await page.eval("Boolean(document.querySelector('app-root').shadowRoot.getElementById('recovery-dashboard'))"), false);
-    await page.click('app-root >>> #recovery-reload');
-    for (let i = 0; i < 40; i++) {
-        if (await page.eval("document.readyState==='complete' && !document.querySelector('app-root')")) return;
-        await new Promise((resolve) => setTimeout(resolve, 25));
-    }
-    assert.fail('the harness page did not reload');
+    const button = await page.box('app-root >>> #recovery-reload');
+    const x = button.left + button.width / 2;
+    const y = button.top + button.height / 2;
+    const reloaded = new Promise((resolve) => {
+        const timer = setTimeout(() => { browser.connection.off('event', onEvent); resolve(false); }, 20000);
+        const onEvent = (msg) => {
+            if (msg.method !== 'Page.loadEventFired' || msg.sessionId !== page.sessionId) return;
+            clearTimeout(timer);
+            browser.connection.off('event', onEvent);
+            resolve(true);
+        };
+        browser.connection.on('event', onEvent);
+    });
+    await page.mouse('mousePressed', x, y, { clickCount: 1 });
+    await page.mouse('mouseReleased', x, y, { clickCount: 1 });
+    assert.equal(await reloaded, true, 'the harness page did not reload');
+    assert.equal(await page.eval("document.readyState==='complete' && !document.querySelector('app-root')"), true,
+        'the harness page did not reload');
 }));
