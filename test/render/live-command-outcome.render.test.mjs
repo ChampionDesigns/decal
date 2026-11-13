@@ -173,6 +173,12 @@ describe('a machine command that did not work @ bench', () => {
                 window.__command.failCommands(503);
                 await window.__command.pressKey('steam');
                 await window.__command.pushMachine('idle', { pressure: 7.2, flow: 1.8 });
+                const pressureOf = () => window.__command.readings()
+                    .find((tile) => tile.label === 'Pressure')?.value;
+                const deadline = performance.now() + 5000;
+                while (pressureOf() !== '7.2' && performance.now() < deadline) {
+                    await new Promise((done) => { setTimeout(done, 20); });
+                }
                 return { notices: window.__command.notices(), readings: window.__command.readings() };
             });
 
