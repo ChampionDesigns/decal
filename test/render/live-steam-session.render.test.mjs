@@ -161,6 +161,36 @@ describe('the Live steam session', () => {
                 'with the pause spent, so the gap is visible on the axis');
         }));
 
+    test('a machine feed that goes stale adds no sample, and the next frame still does',
+        () => stand(async (page) => {
+            const times = () => page.evalFn(() => [...window.__steam.screen.steamDerivation.axis.t]);
+
+            await frames(page, { state: 'steam', substate: 'pouring', count: 30 });
+            const poured = await session(page, { mode: 'steam', samples: 30 });
+            assert.equal(poured.samples, 30);
+            const pouredTimes = await times();
+
+            const status = await page.evalFn(() => {
+                const steam = window.__steam;
+                steam.live.refreshStaleness(Date.now() + 3000);
+                return steam.live.feed(steam.FEED.MACHINE).get().status;
+            });
+            assert.equal(status, 'stale', 'the machine feed is marked stale');
+            const stale = await session(page, { samples: 30 });
+            assert.equal(stale.samples, 30,
+                `the stale publish drew ${stale.samples - 30} samples the machine never sent`);
+            assert.equal(stale.originMs, poured.originMs, 'and kept the origin');
+
+            await frames(page, { state: 'steam', substate: 'pouring', count: 1 });
+            const next = await session(page, { samples: 31 });
+            assert.equal(next.samples, 31, 'a new frame is a new sample');
+            assert.equal(next.originMs, poured.originMs, 'in the same session');
+            assert.equal(next.first, 0, 'on the same axis');
+            assert.ok(next.last > poured.last, 'after the samples before it');
+            assert.deepEqual((await times()).slice(0, 30), pouredTimes,
+                'and the samples before it keep their times');
+        }));
+
     test('a sustained session keeps every sample and rebuilds the plot for neither',
         () => stand(async (page) => {
             /* `y2` and a fixed `yRange` are construction-time properties in uPlot, so the plot is
