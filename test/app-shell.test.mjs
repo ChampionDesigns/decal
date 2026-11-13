@@ -695,6 +695,53 @@ describe('app-boot', () => {
         boot.destroy();
     });
 
+    test('the pending route is the latest screen asked for, until it settles', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+        assert.equal(boot.pendingRoute(), null);
+
+        const first = boot.goto('live');
+        assert.equal(boot.pendingRoute(), 'live');
+        const second = boot.goto('probe');
+        assert.equal(boot.pendingRoute(), 'probe');
+
+        imports.release('src/screens/live-screen.js');
+        await first;
+        assert.equal(boot.pendingRoute(), 'probe', 'an earlier screen that settles last does not clear it');
+
+        imports.release('test/fixtures/probe-screen.js');
+        await second;
+        assert.equal(boot.pendingRoute(), null);
+        assert.equal(boot.state.route.id, 'probe');
+        boot.destroy();
+    });
+
+    test('the pending route is clear before subscribers hear the ready route', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+        const seen = [];
+        const stop = boot.subscribe((state) => { seen.push([state.phase, boot.pendingRoute()]); });
+
+        const only = boot.goto('probe');
+        imports.release('test/fixtures/probe-screen.js');
+        await only;
+        stop();
+        assert.deepEqual(seen.at(-1), [BOOT_PHASE.READY, null]);
+        boot.destroy();
+    });
+
+    test('the pending route is clear after the latest screen fails', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const only = boot.goto('probe');
+        imports.fail('test/fixtures/probe-screen.js', '404 not found');
+        await only;
+        assert.equal(boot.state.phase, BOOT_PHASE.ERROR);
+        assert.equal(boot.pendingRoute(), null);
+        boot.destroy();
+    });
+
     test('stop() detaches every feed and leaves nothing subscribed (bug S10\'s class)', async () => {
         const { boot, createSocket } = bootWith();
         assert.equal(boot.attachments(), 0);
