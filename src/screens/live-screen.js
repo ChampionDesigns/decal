@@ -290,6 +290,7 @@ export class LiveScreen extends UiElement {
         _notes: { state: true },
         /** Whether the weather detail modal is open. */
         _weatherOpen: { state: true },
+        _weatherPending: { state: true },
         _notesDirty: { state: true },
         _notesSaving: { state: true },
         _notesError: { state: true },
@@ -769,6 +770,7 @@ export class LiveScreen extends UiElement {
         this._expanded = false;
         this._notes = false;
         this._weatherOpen = false;
+        this._weatherPending = null;
         this._notesDirty = false;
         this._notesSaving = false;
         this._notesError = '';
@@ -1392,6 +1394,10 @@ export class LiveScreen extends UiElement {
         const detail = event && event.detail ? event.detail : null;
         const location = detail ? detail.location : null;
         if (!location) return;
+        if (this._weatherPending) {
+            if (typeof detail.respond === 'function') detail.respond(false);
+            return;
+        }
         const plugins = this.boot ? this.boot.plugins : null;
         let write;
         if (!plugins || typeof plugins.writeSettings !== 'function') {
@@ -1403,8 +1409,13 @@ export class LiveScreen extends UiElement {
                 write = Promise.reject(error);
             }
         }
+        const pending = { location, answer: write };
+        const settle = () => {
+            if (this._weatherPending === pending) this._weatherPending = null;
+        };
+        write.then(settle, settle);
+        this._weatherPending = pending;
         if (typeof detail.respond === 'function') detail.respond(write);
-        else write.catch(() => {});
     };
 
     #renderWeatherModal() {
@@ -1412,6 +1423,7 @@ export class LiveScreen extends UiElement {
         return html`<weather-modal
             open
             .reading=${this.weather}
+            .pending=${this._weatherPending}
             @weather-location=${this.#saveWeatherLocation}
             @open-change=${this.#onWeatherOpenChange}
         ></weather-modal>`;

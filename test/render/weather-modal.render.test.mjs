@@ -150,6 +150,72 @@ describe('the weather modal', () => {
         assert.deepEqual(after.said, []);
         assert.equal(after.field, true);
     }));
+    const typeDraft = async (page, typed) => {
+        await page.click('#m >>> .place .save');
+        await page.settle(2);
+        await page.evalFn(() => {
+            const field = window.__h.need('#m').shadowRoot.querySelector('#place');
+            field.focus();
+            field.select();
+        });
+        await page.send('Input.insertText', { text: typed });
+        await page.settle(2);
+    };
+
+    const field = (page) => page.evalFn(() => {
+        const root = window.__h.need('#m').shadowRoot;
+        const input = root.querySelector('#place');
+        const failure = root.querySelector('.place .failed');
+        return {
+            value: input ? input.value : null,
+            focused: Boolean(input) && root.activeElement === input,
+            failure: failure ? failure.textContent.replace(/\s+/g, ' ').trim() : '',
+        };
+    });
+
+    const send = async (page, reading) => {
+        await page.evalFn((r) => { window.__h.need('#m').reading = r; }, reading);
+        await page.settle(3);
+    };
+
+    test('a reading with a new place leaves the typed location in the field', () => mount(READING, async (page) => {
+        await typeDraft(page, 'Fitzroy, AU');
+        assert.equal((await field(page)).value, 'Fitzroy, AU', 'the typing reached the field');
+        await send(page, { ...READING, place: 'Carlton, Victoria, Australia', ageMinutes: 1 });
+        const seen = await field(page);
+        assert.equal(seen.value, 'Fitzroy, AU', 'the new place must not replace the typed location');
+        assert.equal(seen.focused, true, 'the field keeps the focus');
+    }));
+
+    test('a reading that turns bad, then good again, leaves the typed location in the field',
+        () => mount(READING, async (page) => {
+            await typeDraft(page, 'Fitzroy, AU');
+            await send(page, { ok: false, reason: 'network' });
+            const bad = await field(page);
+            assert.equal(bad.value, 'Fitzroy, AU', 'a failed reading must not clear the typed location');
+            assert.equal(bad.focused, true, 'the field keeps the focus when the reading fails');
+            await send(page, { ...READING, place: 'Carlton, Victoria, Australia' });
+            const good = await field(page);
+            assert.equal(good.value, 'Fitzroy, AU', 'a good reading must not replace the typed location');
+            assert.equal(good.focused, true, 'the field keeps the focus when the reading returns');
+        }));
+
+    test('a failed save, then a new reading, keeps the typed location and the failure',
+        () => mount(READING, async (page) => {
+            await page.evalFn(() => {
+                window.__h.need('#m').addEventListener('weather-location', (e) => e.detail.respond(false));
+            });
+            await typeDraft(page, 'Fitzroy, AU');
+            await page.press('Enter');
+            await page.settle(3);
+            assert.equal((await field(page)).failure, 'The location was not saved. Try again.');
+            await send(page, { ok: false, reason: 'network' });
+            await send(page, { ...READING, place: 'Carlton, Victoria, Australia' });
+            const seen = await field(page);
+            assert.equal(seen.value, 'Fitzroy, AU', 'the typed location is still in the field');
+            assert.equal(seen.failure, 'The location was not saved. Try again.', 'the failure is still said');
+        }));
+
     test('every literal key the modal asks for is in the string table, with a note', () => mount(READING, async (page) => {
         await page.evalFn(async () => {
             const { translations } = await import('/src/lib/i18n.js');
