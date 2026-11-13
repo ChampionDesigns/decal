@@ -645,18 +645,29 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setGeometry({ ...geometry, deviceScaleFactor: next });
             const after = await page.eval(`(async () => {
                 const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
-                await frame(); await frame();
                 const uPlot = (await import('/vendor/uPlot.esm.js')).default;
                 const { card } = window.__live;
-                const canvas = card.shadowRoot.querySelector('canvas');
-                const host = card.shadowRoot.querySelector('.plot').getBoundingClientRect();
-                return {
-                    ratio: card.pixelRatio,
-                    vendor: uPlot.pxRatio,
-                    platform: window.devicePixelRatio,
-                    attr: canvas.width,
-                    host: host.width,
+                const read = () => {
+                    const canvas = card.shadowRoot.querySelector('canvas');
+                    const host = card.shadowRoot.querySelector('.plot').getBoundingClientRect();
+                    return {
+                        ratio: card.pixelRatio,
+                        vendor: uPlot.pxRatio,
+                        platform: window.devicePixelRatio,
+                        attr: canvas.width,
+                        host: host.width,
+                    };
                 };
+                const drawn = (got) => got.platform === ${next} && got.ratio === ${next}
+                    && got.vendor === ${next} && Math.abs(got.attr - got.host * ${next}) <= 3;
+                const deadline = performance.now() + 5000;
+                await frame(); await frame();
+                let got = read();
+                while (!drawn(got) && performance.now() < deadline) {
+                    await frame();
+                    got = read();
+                }
+                return got;
             })()`);
             await page.setGeometry(geometry);
 
