@@ -262,6 +262,32 @@ describe('the session buffer', () => {
         assert.ok(buffer.get().counts.dropped >= 1, 'the state says samples were dropped');
     });
 
+    test('a reading taken again is not a new sample, and the next frame still is', () => {
+        const buffer = createSteamBuffer({});
+        const held = machine(1);
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: held, at: 1100 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: held, at: 3200 });
+        assert.equal(buffer.get().counts.samples, 2, 'the held reading is drawn once');
+        assert.deepEqual([...buffer.get().axis.t], [0, 0.1]);
+
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(2), at: 3300 });
+        const state = buffer.get();
+        assert.equal(state.counts.samples, 3, 'a new frame is a new sample');
+        assert.deepEqual([...state.axis.t], [0, 0.1, 2.3], 'on the same axis');
+        assert.equal(state.axis.originMs, 1000, 'from the same origin');
+    });
+
+    test('a slow reading taken again is not held twice', () => {
+        const buffer = createSteamBuffer({});
+        const slow = { ok: true, flow: 0, pressure: 1, targetFlow: 1.2, steamTemperature: 150 };
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(20), at: 1000 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: slow, at: 1100 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: slow, at: 3200 });
+        buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(20), at: 3300 });
+        assert.deepEqual([...buffer.get().axis.t], [0, 0.1, 2.3]);
+    });
+
     test('clear throws the session away', () => {
         const buffer = createSteamBuffer({});
         buffer.take({ mode: CHART_MODE.STEAM, pouring: true, machine: machine(0), at: 1000 });

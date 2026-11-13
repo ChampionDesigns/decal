@@ -60,6 +60,8 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
      * session has finished — it issues no session id. */
     let stale = false;
 
+    let lastReading = null;
+
     const reset = () => {
         originMs = null;
         t = [];
@@ -96,6 +98,8 @@ export function createSteamBuffer({ logger = null, now = () => Date.now() } = {}
                 return store.get();
             }
             if (!machine || machine.ok !== true) return store.get();
+            if (machine === lastReading) return store.get();
+            lastReading = machine;
             /* A new session starts from zero, on its first sample, so a finished graph is
              * replaced only when there is something to replace it with. */
             if (stale && originMs !== null) reset();
