@@ -201,7 +201,7 @@ for (const geometry of [FLOOR, BENCH]) {
                 const wheeled = await page.evalFn(BAND_SCROLLED, 5000);
                 assert.ok(wheeled.scrollTop > 0,
                     `a wheel over the squeezed band did not scroll it (overflow-y: ${wheeled.overflowY}) `
-                    + '— its lower rows are cut, not reachable');
+                    + '— its content is cut, not scrollable');
                 /* Not a height comparison: the band's content reflows as it narrows, so the count is
                  * what separates a reflow from a dropped row. */
                 assert.equal(after_.band.nodes, before_.band.nodes,

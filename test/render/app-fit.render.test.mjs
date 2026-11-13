@@ -226,8 +226,9 @@ describe('keyboard navigation holds the blur frame and recovers after closure', 
             assert.ok(Math.abs(await zoomNow() - 0.6675) < 0.0005,
                 'the keyboard shrank the whole panel — the refusal in installFit is gone');
 
-            /* The person taps Cancel. Capture the focusout frame itself, before the
-             * settled-height release or route loading can elapse. */
+            /* The person taps Cancel. Focus moves inside the selector first, which the
+             * document does not see; the focusout it sees comes when going back removes
+             * Cancel. Capture that frame itself, before the settled-height release can elapse. */
             await page.evalFn(() => {
                 window.__fitBlur = null;
                 document.addEventListener('focusout', (event) => {
