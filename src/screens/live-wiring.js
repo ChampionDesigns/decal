@@ -185,6 +185,7 @@ export class LiveWiring {
         this.tankUnit = DEFAULT_TANK_UNIT;
         this.tempUnit = DEFAULT_TEMP_UNIT;
         this.now = () => Date.now();
+        this.steamNow = () => performance.timeOrigin + performance.now();
         this.setTimer = (fn, ms) => setTimeout(fn, ms);
         this.clearTimer = (id) => clearTimeout(id);
 
@@ -875,7 +876,7 @@ export class LiveWiring {
         this.#lastState = state;
         this.#lastSubstate = substate;
 
-        const at = Date.now();
+        const at = this.steamNow();
         const next = chartModeFor(this.chartMode, { state, substate, now: at });
         this.chartMode = next;
         this.steamGuard = steamGuardFor(this.steamGuard, { state, substate, now: at });
@@ -913,7 +914,7 @@ export class LiveWiring {
             this.#steamGuardTimer = setTimeout(() => {
                 this.#steamGuardTimer = null;
                 this.steamGuard = steamGuardFor(this.steamGuard, {
-                    state: this.#lastState, substate: this.#lastSubstate, now: Date.now(),
+                    state: this.#lastState, substate: this.#lastSubstate, now: this.steamNow(),
                 });
                 this.host.requestUpdate();
             }, untilGuard + 16);
