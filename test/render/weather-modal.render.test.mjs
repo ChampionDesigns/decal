@@ -278,7 +278,9 @@ describe('the weather modal', () => {
             translations.t = plain;
             return [...words];
         });
-        assert.ok(drawn.length > 1, 'more than one condition word was drawn');
+        assert.deepEqual(drawn.map(([word]) => word).sort(),
+            ['Clear', 'Drizzle', 'Fog', 'Overcast', 'Partly cloudy', 'Rain', 'Snow', 'Thunderstorm'],
+            'the condition words drawn across every code, by day and by night');
         assert.deepEqual(drawn.filter(([, asked]) => !asked).map(([word]) => word), [],
             'condition words drawn without a lookup in the string table');
         const byKey = new Map(readTable().entries.map((entry) => [entry.key, entry]));
