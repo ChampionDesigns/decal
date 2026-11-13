@@ -22,10 +22,13 @@ export class WeatherModal extends UiElement {
         /** True while a written location is in flight. */
         saving: { type: Boolean },
         editing: { type: Boolean },
+        pending: { attribute: false },
+        _draft: { state: true },
         _failed: { state: true },
     };
 
     #i18n = new I18nController(this);
+    #following = null;
 
     constructor() {
         super();
@@ -33,6 +36,8 @@ export class WeatherModal extends UiElement {
         this.reading = null;
         this.saving = false;
         this.editing = false;
+        this.pending = null;
+        this._draft = '';
         this._failed = false;
     }
 
@@ -190,6 +195,15 @@ export class WeatherModal extends UiElement {
         this.open = false;
     }
 
+    willUpdate(changed) {
+        const pending = this.pending;
+        if (!changed.has('pending') || !pending || !pending.answer) return;
+        if (pending.answer === this.#following) return;
+        this._draft = String(pending.location || '');
+        this.editing = true;
+        this.#follow(pending.answer);
+    }
+
     render() {
         const t = this.#i18n.t;
         const reading = this.reading;
@@ -200,24 +214,25 @@ export class WeatherModal extends UiElement {
             label=${t('Weather')}
             @open-change=${this.#onOpenChange}
         >
-            ${reading && reading.ok ? this.#renderBody(reading) : this.#renderEmpty()}
+            <div class="body">
+                ${reading && reading.ok ? this.#renderReading(reading) : this.#renderEmpty()}
+                ${this.#renderPlace()}
+                ${reading && reading.ok ? this.#renderStamp(reading) : nothing}
+            </div>
         </ui-dialog>`;
     }
 
     #renderEmpty() {
         const t = this.#i18n.t;
-        return html`<div class="body">
-            <p class="note">${t('No reading yet. Set a location below and it will arrive shortly.')}</p>
-            ${this.#renderPlace()}
-        </div>`;
+        return html`<p class="note"
+        >${t('No reading yet. Set a location below and it will arrive shortly.')}</p>`;
     }
 
-    #renderBody(reading) {
+    #renderReading(reading) {
         const t = this.#i18n.t;
         const units = unitsOf(reading);
         const periods = windowOf(reading, MODAL_PERIODS);
-        return html`<div class="body">
-            <div class="now">
+        return html`<div class="now">
                 <span class="glyph">${weatherIcon(markFor(reading.code, reading.isDay))}</span>
                 <div class="stack">
                     <div class="big">
@@ -241,13 +256,13 @@ export class WeatherModal extends UiElement {
                 ${this.#cell(t('Wind'), reading.wind,
                     reading.windFrom ? `${units.wind} ${reading.windFrom}` : units.wind)}
                 ${this.#cell(t('Pressure'), reading.pressure, 'hPa')}
-            </div>
+            </div>`;
+    }
 
-            ${this.#renderPlace()}
-
-            ${typeof reading.ageMinutes === 'number' ? html`<span class="stamp"
-            >${t('Updated')} ${reading.ageMinutes} ${t('min ago')} · Open-Meteo</span>` : nothing}
-        </div>`;
+    #renderStamp(reading) {
+        const t = this.#i18n.t;
+        return typeof reading.ageMinutes === 'number' ? html`<span class="stamp"
+        >${t('Updated')} ${reading.ageMinutes} ${t('min ago')} · Open-Meteo</span>` : nothing;
     }
 
     #renderPart(period, units) {
@@ -295,9 +310,10 @@ export class WeatherModal extends UiElement {
                     id="place"
                     type="text"
                     autofocus
-                    .value=${place}
+                    .value=${this._draft}
                     placeholder=${t('Town or suburb, with the state and country')}
                     aria-label=${t('Location')}
+                    @input=${this.#onInput}
                     @keydown=${this.#onKey}
                 >
                 <button
@@ -315,6 +331,7 @@ export class WeatherModal extends UiElement {
 
     #edit = () => {
         this._failed = false;
+        this._draft = this.reading && this.reading.place ? this.reading.place : '';
         this.editing = true;
         /* The field carries `autofocus`, which `ui-dialog` honours — but only at OPEN.
          * Revealed later it has to be asked for, and after the render that creates it. */
@@ -322,6 +339,10 @@ export class WeatherModal extends UiElement {
             const field = this.renderRoot?.querySelector?.('#place');
             if (field) field.focus();
         });
+    };
+
+    #onInput = (event) => {
+        this._draft = event.target.value;
     };
 
     #onKey = (event) => {
@@ -336,7 +357,8 @@ export class WeatherModal extends UiElement {
     #save = async () => {
         if (this.saving) return;
         const field = this.renderRoot?.querySelector?.('#place');
-        const value = field ? String(field.value || '').trim() : '';
+        if (field) this._draft = field.value;
+        const value = String(this._draft || '').trim();
         if (!value) return;
         this._failed = false;
         let answer;
@@ -353,6 +375,12 @@ export class WeatherModal extends UiElement {
             this.editing = false;
             return;
         }
+        await this.#follow(answer);
+    };
+
+    async #follow(answer) {
+        this.#following = answer;
+        this._failed = false;
         this.saving = true;
         let saved;
         try {
@@ -360,10 +388,12 @@ export class WeatherModal extends UiElement {
         } catch {
             saved = false;
         }
+        if (this.#following !== answer) return;
+        this.#following = null;
         this.saving = false;
         if (saved) this.editing = false;
         else this._failed = true;
-    };
+    }
 
     #onOpenChange = (event) => {
         this.open = Boolean(event.detail && event.detail.open);
