@@ -375,7 +375,7 @@
     {"key":"No profile to preview","note":"Preview chart refusal (profile-preview.js NO_PROFILE)."},
     {"key":"No proxy token available."},
     {"key":"No reading"},
-    {"key":"No reading yet. Set a location below and it will arrive shortly.","note":"Weather dialog: shown when no weather reading has arrived. The location field is below this text."},
+    {"key":"No reading yet. Set a location below and it will arrive shortly.","note":"Weather dialog: shown when no weather reading has arrived. The Location row, with its Set or Change button, is below this text."},
     {"key":"No schedules configured"},
     {"key":"No settings categories found."},
     {"key":"No settings match your search"},
