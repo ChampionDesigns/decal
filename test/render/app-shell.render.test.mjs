@@ -942,6 +942,42 @@ describe('a hash change while a route change is pending @ bench', () => {
                 'the shown screen is not asked to leave for itself');
         }));
 
+    test('a return to the shown route puts in a new screen, so a guard that agreed to leave is not asked again',
+        () => pending(async (page) => {
+            await page.evalFn(() => {
+                window.__latch = (screen) => {
+                    let agreed = false;
+                    screen.__latched = true;
+                    screen.canLeaveRoute = (details) => {
+                        window.__asked.push({ from: details.from, to: details.to, kind: details.kind });
+                        if (agreed) return true;
+                        if (window.__refuse) return { allow: false, reason: 'the test refuses' };
+                        agreed = true;
+                        return true;
+                    };
+                };
+                window.__first = window.__h.q('app-root >>> live-screen');
+                window.__latch(window.__first);
+            });
+            await hashTo(page, 'probe');
+            await hashTo(page, 'live');
+            await release(page, 'probe-screen');
+            const back = await settle(page);
+            assert.equal(back.route, 'live');
+            const kept = await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                const same = screen === window.__first;
+                if (!screen.__latched) window.__latch(screen);
+                window.__refuse = true;
+                return same;
+            });
+            await hashTo(page, 'settings');
+            const end = await settle(page);
+            assert.equal(end.hash, '#/live', 'the refusal puts the address back');
+            assert.equal(end.route, 'live', 'the screen on show was asked, and it refused');
+            assert.equal(kept, false, 'the screen that agreed to leave is not the one on show');
+        }));
+
     test('a hash event for the shown route with nothing pending does nothing',
         () => pending(async (page) => {
             await page.evalFn(async () => {

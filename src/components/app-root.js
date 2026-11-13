@@ -209,6 +209,7 @@ export class AppRoot extends UiElement {
             const from = this.boot?.pendingRoute?.() ?? shown;
             if (from === id) return;
             if (id === shown) {
+                this.#mountScreen(this._boot?.route?.tag ?? null);
                 this.boot.goto(id);
                 return;
             }
@@ -332,6 +333,10 @@ export class AppRoot extends UiElement {
         const current = this.#screen ? this.#screen.tagName.toLowerCase() : null;
         if (tag === current) return;
 
+        this.#mountScreen(tag);
+    }
+
+    #mountScreen(tag) {
         this.#screen?.remove();
         this.#screen = tag && globalThis.document ? globalThis.document.createElement(tag) : null;
         if (this.#screen) this.#screen.boot = this.boot;
