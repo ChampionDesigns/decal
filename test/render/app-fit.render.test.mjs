@@ -173,6 +173,17 @@ describe('keyboard navigation holds the blur frame and recovers after closure', 
         const page = await browser.newPage({ geometry: BENCH });
         try {
             await page.goto('/index.html');
+            const booted = await page.evalFn(async () => {
+                const deadline = performance.now() + 20000;
+                while (performance.now() < deadline) {
+                    const app = document.querySelector('app-root');
+                    if (app?.phase === 'ready' && app.route === 'live'
+                        && app.shadowRoot?.querySelector('live-screen')) return true;
+                    await new Promise(requestAnimationFrame);
+                }
+                return false;
+            });
+            assert.ok(booted, 'the app did not open on Live within 20 seconds');
             await page.evalFn(() => { globalThis.location.hash = '#/selector'; return true; });
             await page.settle(8);
 
@@ -215,8 +226,9 @@ describe('keyboard navigation holds the blur frame and recovers after closure', 
             assert.ok(Math.abs(await zoomNow() - 0.6675) < 0.0005,
                 'the keyboard shrank the whole panel — the refusal in installFit is gone');
 
-            /* The person taps Cancel. Capture the focusout frame itself, before the
-             * settled-height release or route loading can elapse. */
+            /* The person taps Cancel. Focus moves inside the selector first, which the
+             * document does not see; the focusout it sees comes when going back removes
+             * Cancel. Capture that frame itself, before the settled-height release can elapse. */
             await page.evalFn(() => {
                 window.__fitBlur = null;
                 document.addEventListener('focusout', (event) => {
@@ -231,7 +243,14 @@ describe('keyboard navigation holds the blur frame and recovers after closure', 
                 return true;
             });
             await page.click('app-root >>> selector-screen >>> #cancel >>> #btn');
-            const blurred = await page.evalFn(() => window.__fitBlur);
+            const blurred = await page.evalFn(async () => {
+                const deadline = performance.now() + 5000;
+                while (performance.now() < deadline) {
+                    if (window.__fitBlur) return window.__fitBlur;
+                    await new Promise(requestAnimationFrame);
+                }
+                return window.__fitBlur;
+            });
             assert.ok(blurred, 'Cancel did not produce a focusout frame');
             assert.ok(Math.abs(blurred.zoom - 0.6675) < 0.0005,
                 `focusout immediately collapsed the panel to ${blurred.zoom} at ${blurred.designWidth} design units`);

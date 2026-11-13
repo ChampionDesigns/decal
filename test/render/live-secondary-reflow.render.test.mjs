@@ -85,6 +85,32 @@ const SCROLL_RANGE = () => {
     return { max, min, scrollHeight: rail.scrollHeight, clientHeight: rail.clientHeight };
 };
 
+const BAND_TOP = () => {
+    const all = [];
+    const walk = (root) => {
+        for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+    };
+    walk(document);
+    const band = all.find((el) => el.tagName === 'LIVE-FOOT').shadowRoot.querySelector('.band');
+    band.scrollTop = 0;
+    const r = band.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, scrollTop: band.scrollTop };
+};
+
+const BAND_SCROLLED = async (ms) => {
+    const all = [];
+    const walk = (root) => {
+        for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+    };
+    walk(document);
+    const band = all.find((el) => el.tagName === 'LIVE-FOOT').shadowRoot.querySelector('.band');
+    const deadline = performance.now() + ms;
+    while (band.scrollTop === 0 && performance.now() < deadline) {
+        await new Promise(requestAnimationFrame);
+    }
+    return { scrollTop: band.scrollTop, overflowY: getComputedStyle(band).overflowY };
+};
+
 let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
@@ -167,6 +193,15 @@ for (const geometry of [FLOOR, BENCH]) {
                 const after_ = await page.evalFn(REGIONS);
                 assert.ok(after_.band.scrollHeight > after_.band.clientHeight,
                     'the squeezed band did not become scrollable — its content was cut instead');
+                const target = await page.evalFn(BAND_TOP);
+                assert.equal(target.scrollTop, 0);
+                await page.send('Input.dispatchMouseEvent', {
+                    type: 'mouseWheel', x: target.x, y: target.y, deltaX: 0, deltaY: 120,
+                });
+                const wheeled = await page.evalFn(BAND_SCROLLED, 5000);
+                assert.ok(wheeled.scrollTop > 0,
+                    `a wheel over the squeezed band did not scroll it (overflow-y: ${wheeled.overflowY}) `
+                    + '— its content is cut, not scrollable');
                 /* Not a height comparison: the band's content reflows as it narrows, so the count is
                  * what separates a reflow from a dropped row. */
                 assert.equal(after_.band.nodes, before_.band.nodes,
