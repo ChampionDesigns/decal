@@ -205,8 +205,13 @@ export class AppRoot extends UiElement {
 
         this.#onHashChange = () => {
             const id = this.#routeFromLocation();
-            const from = this._boot?.route?.id ?? null;
+            const shown = this._boot?.route?.id ?? null;
+            const from = this.boot?.pendingRoute?.() ?? shown;
             if (from === id) return;
+            if (id === shown) {
+                this.boot.goto(id);
+                return;
+            }
             const answer = this.#leave.request({ from, to: id, kind: LEAVE_KIND.HISTORY });
             /* The address has already moved, so a refusal owes a correction. replaceState,
              * or the correction becomes a history entry of its own and Back stops working. */
