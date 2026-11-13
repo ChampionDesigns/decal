@@ -15,6 +15,7 @@ const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"><li
 /** The feed rate the machine publishes at, and the sustained-session sample count. */
 const HZ = 15;
 const SUSTAINED = 450;
+const DRAWN_LIMIT_MS = 5000;
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -42,7 +43,7 @@ const stand = (fn) => browser.withPage({ geometry: BENCH }, async (page) => {
         await screen.updateComplete;
         const card = screen.renderRoot.getElementById('live-chart');
         await card.ready;
-        window.__steam = { live, FEED, screen, card };
+        window.__steam = { live, FEED, screen, card, stampMs: Date.now() };
     });
     await page.settle(4);
     assert.deepEqual(page.pageErrors, [], 'the screen must mount without throwing');
@@ -56,16 +57,16 @@ const stand = (fn) => browser.withPage({ geometry: BENCH }, async (page) => {
  */
 const frames = (page, { state, substate, count, hz = HZ }) => page.evalFn(
     async (state, substate, count, hz) => {
-        const { live, FEED } = window.__steam;
-        const machine = live.feed(FEED.MACHINE);
+        const steam = window.__steam;
+        const machine = steam.live.feed(steam.FEED.MACHINE);
         const started = performance.now();
-        const epoch = Date.now();
         for (let i = 0; i < count; i += 1) {
             const due = started + (i * 1000) / hz;
             const wait = due - performance.now();
             if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+            steam.stampMs += 1000 / hz;
             machine.accept({
-                timestamp: new Date(epoch + (i * 1000) / hz).toISOString(),
+                timestamp: new Date(steam.stampMs).toISOString(),
                 state: { state, substate },
                 pressure: substate === 'pouring' ? 1.6 : 0,
                 flow: substate === 'pouring' ? 1.8 : 0,
@@ -77,44 +78,58 @@ const frames = (page, { state, substate, count, hz = HZ }) => page.evalFn(
                 steamTemperature: 140 + i / 100,
             });
         }
-        await new Promise((resolve) => setTimeout(resolve, 200));
     },
     state, substate, count, hz,
 );
 
-/** What the screen is publishing about the session on the canvas right now. */
-const session = (page) => page.evalFn(() => {
+/**
+ * What the screen is publishing about the session on the canvas, once it shows every
+ * field of `drawn` or the wait runs out. The last read comes back either way, so a
+ * screen that never draws it fails on the assert that names it.
+ */
+const session = (page, drawn) => page.evalFn(async (drawn, limitMs) => {
     const { screen, card } = window.__steam;
-    const derivation = screen.steamDerivation;
-    const t = derivation && derivation.ok ? derivation.axis.t : [];
-    return {
-        mode: screen.chartMode,
-        settled: screen.steamSettled,
-        samples: derivation && derivation.ok ? derivation.counts.samples : 0,
-        originMs: derivation && derivation.ok ? derivation.axis.originMs : null,
-        first: t.length ? t[0] : null,
-        last: t.length ? t[t.length - 1] : null,
-        plotted: card.plotHandle?.raw?.data?.[0]?.length ?? null,
+    const read = () => {
+        const derivation = screen.steamDerivation;
+        const t = derivation && derivation.ok ? derivation.axis.t : [];
+        return {
+            mode: screen.chartMode,
+            settled: screen.steamSettled,
+            samples: derivation && derivation.ok ? derivation.counts.samples : 0,
+            originMs: derivation && derivation.ok ? derivation.axis.originMs : null,
+            first: t.length ? t[0] : null,
+            last: t.length ? t[t.length - 1] : null,
+            plotted: card.plotHandle?.raw?.data?.[0]?.length ?? null,
+        };
     };
-});
+    const deadline = performance.now() + limitMs;
+    for (;;) {
+        await screen.updateComplete;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const now = read();
+        const shown = Object.entries(drawn).every(([key, value]) => now[key] === value);
+        if (shown || performance.now() > deadline) return now;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+}, drawn, DRAWN_LIMIT_MS);
 
 describe('the Live steam session', () => {
 
     test('restarting inside the ten-second hold starts a new graph at zero',
         () => stand(async (page) => {
             await frames(page, { state: 'steam', substate: 'pouring', count: 30 });
-            const steamed = await session(page);
+            const steamed = await session(page, { mode: 'steam', samples: 30 });
             assert.equal(steamed.mode, 'steam', 'the canvas is the steam graph');
             assert.equal(steamed.samples, 30, 'and it holds the session that was poured');
 
             await frames(page, { state: 'idle', substate: 'idle', count: 3 });
-            const held = await session(page);
+            const held = await session(page, { mode: 'steam', settled: true, samples: 30 });
             assert.equal(held.mode, 'steam', 'the hold keeps the steam canvas');
             assert.equal(held.settled, true, 'and the screen knows it is settling');
             assert.equal(held.samples, 30, 'with the finished session still drawn');
 
             await frames(page, { state: 'steam', substate: 'pouring', count: 15 });
-            const restarted = await session(page);
+            const restarted = await session(page, { settled: false, samples: 15, first: 0, plotted: 15 });
             assert.equal(restarted.settled, false, 'a running session is not settling');
             assert.equal(restarted.samples, 15,
                 `the second steaming carried ${restarted.samples - 15} samples of the first`);
@@ -129,17 +144,17 @@ describe('the Live steam session', () => {
     test('a pause inside one session stays in the same graph',
         () => stand(async (page) => {
             await frames(page, { state: 'steam', substate: 'pouring', count: 15 });
-            const poured = await session(page);
+            const poured = await session(page, { samples: 15 });
             assert.equal(poured.samples, 15);
 
             await frames(page, { state: 'steam', substate: 'idle', count: 15 });
-            const paused = await session(page);
+            const paused = await session(page, { samples: 15, settled: false });
             assert.equal(paused.samples, 15, 'a pause must not empty the graph');
             assert.equal(paused.originMs, poured.originMs, 'nor restart its clock');
             assert.equal(paused.settled, false, 'the machine is still steaming, so nothing is settling');
 
             await frames(page, { state: 'steam', substate: 'pouring', count: 15 });
-            const resumed = await session(page);
+            const resumed = await session(page, { samples: 30 });
             assert.equal(resumed.samples, 30, 'and the second half joins the first');
             assert.equal(resumed.originMs, poured.originMs, 'on the clock the session started on');
             assert.ok(resumed.last > paused.last,
@@ -151,22 +166,23 @@ describe('the Live steam session', () => {
             /* `y2` and a fixed `yRange` are construction-time properties in uPlot, so the plot is
                built again on entering steam. The measurement below starts after that. */
             await frames(page, { state: 'steam', substate: 'pouring', count: 10 });
-            const entered = await session(page);
+            const entered = await session(page, { mode: 'steam', plotted: 10 });
             assert.equal(entered.mode, 'steam');
 
-            const measured = await page.evalFn(async (count, hz) => {
-                const { live, FEED, screen, card } = window.__steam;
-                const machine = live.feed(FEED.MACHINE);
+            const measured = await page.evalFn(async (count, hz, limitMs) => {
+                const steam = window.__steam;
+                const { screen, card } = steam;
+                const machine = steam.live.feed(steam.FEED.MACHINE);
                 const base = { builds: card.buildCount, paints: card.paintCount };
                 const before = screen.steamDerivation.counts.samples;
                 const started = performance.now();
-                const epoch = Date.now();
                 for (let i = 0; i < count; i += 1) {
                     const due = started + (i * 1000) / hz;
                     const wait = due - performance.now();
                     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+                    steam.stampMs += 1000 / hz;
                     machine.accept({
-                        timestamp: new Date(epoch + (i * 1000) / hz).toISOString(),
+                        timestamp: new Date(steam.stampMs).toISOString(),
                         state: { state: 'steam', substate: 'pouring' },
                         pressure: 1.6, flow: 1.8, targetFlow: 1.8,
                         groupTemperature: 92, mixTemperature: 93,
@@ -174,7 +190,15 @@ describe('the Live steam session', () => {
                         steamTemperature: 140 + i / 100,
                     });
                 }
-                await new Promise((resolve) => setTimeout(resolve, 250));
+                const plotted = () => card.plotHandle?.raw?.data?.[0]?.length ?? null;
+                const deadline = performance.now() + limitMs;
+                for (;;) {
+                    await screen.updateComplete;
+                    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const kept = screen.steamDerivation.counts.samples - before;
+                    if ((kept === count && plotted() === before + count) || performance.now() > deadline) break;
+                    await new Promise((resolve) => setTimeout(resolve, 20));
+                }
                 return {
                     sent: count,
                     retained: screen.steamDerivation.counts.samples - before,
@@ -183,7 +207,7 @@ describe('the Live steam session', () => {
                     paints: card.paintCount - base.paints,
                     plotted: card.plotHandle?.raw?.data?.[0]?.length ?? null,
                 };
-            }, SUSTAINED, HZ);
+            }, SUSTAINED, HZ, DRAWN_LIMIT_MS);
 
             assert.equal(measured.retained, SUSTAINED,
                 `${SUSTAINED} frames in, ${measured.retained} kept`);
