@@ -166,7 +166,7 @@ describe('the Live steam session', () => {
             /* `y2` and a fixed `yRange` are construction-time properties in uPlot, so the plot is
                built again on entering steam. The measurement below starts after that. */
             await frames(page, { state: 'steam', substate: 'pouring', count: 10 });
-            const entered = await session(page, { mode: 'steam' });
+            const entered = await session(page, { mode: 'steam', plotted: 10 });
             assert.equal(entered.mode, 'steam');
 
             const measured = await page.evalFn(async (count, hz, limitMs) => {
