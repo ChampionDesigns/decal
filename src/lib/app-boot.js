@@ -325,6 +325,7 @@ export function createAppBoot({
     /** Whether the connection feed's own source was open on the last frame. */
     let sourceLinked = false;
     let destroyed = false;
+    let latestGoto = 0;
 
     const patch = (fields) => store.set({ ...store.get(), ...fields });
 
@@ -628,11 +629,13 @@ export function createAppBoot({
         async goto(routeIdOrHash = initialRouteId) {
             const resolved = resolveRoute(hashFor(routeIdOrHash), routeTable);
             const { route } = resolved;
+            const request = ++latestGoto;
             patch({ phase: BOOT_PHASE.CONNECTING, step: BOOT_STEP.SCREEN, error: null });
             try {
                 await importModule(route.module);
             } catch (error) {
                 note('error', `screen module '${route.module}' failed to load: ${error && error.message}`);
+                if (request !== latestGoto) return store.get();
                 return patch({
                     phase: BOOT_PHASE.ERROR,
                     step: BOOT_STEP.SCREEN,
@@ -643,7 +646,7 @@ export function createAppBoot({
                     },
                 });
             }
-            if (destroyed) return store.get();
+            if (destroyed || request !== latestGoto) return store.get();
             return patch({
                 phase: BOOT_PHASE.READY,
                 step: BOOT_STEP.DONE,

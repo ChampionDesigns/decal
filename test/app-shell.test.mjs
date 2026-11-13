@@ -583,6 +583,118 @@ describe('app-boot', () => {
         boot.destroy();
     });
 
+    function heldImports() {
+        const pending = new Map();
+        const importModule = (specifier) => new Promise((resolve, reject) => {
+            pending.set(specifier, { resolve, reject });
+        });
+        const settle = (specifier) => {
+            const held = pending.get(specifier);
+            assert.ok(held, `${specifier} was asked for`);
+            pending.delete(specifier);
+            return held;
+        };
+        return {
+            importModule,
+            release: (specifier) => settle(specifier).resolve({}),
+            fail: (specifier, message) => settle(specifier).reject(new Error(message)),
+        };
+    }
+
+    const PROBE_TABLE = {
+        live: ROUTES.live,
+        probe: { id: 'probe', tag: 'probe-screen', module: 'test/fixtures/probe-screen.js', label: 'Probe' },
+    };
+
+    test('a screen asked for later wins over an earlier one whose module loads last', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const first = boot.goto('live');
+        const second = boot.goto('probe');
+
+        imports.release('test/fixtures/probe-screen.js');
+        await second;
+        assert.equal(boot.state.phase, BOOT_PHASE.READY);
+        assert.equal(boot.state.route.tag, 'probe-screen');
+
+        imports.release('src/screens/live-screen.js');
+        await first;
+        assert.equal(boot.state.phase, BOOT_PHASE.READY);
+        assert.equal(boot.state.route.tag, 'probe-screen', 'the slow earlier module does not take the route back');
+        boot.destroy();
+    });
+
+    test('an earlier screen whose module fails last does not put the boot in error over a later ready screen', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const first = boot.goto('live');
+        const second = boot.goto('probe');
+
+        imports.release('test/fixtures/probe-screen.js');
+        await second;
+        assert.equal(boot.state.route.tag, 'probe-screen');
+
+        imports.fail('src/screens/live-screen.js', '404 not found');
+        await first;
+        assert.equal(boot.state.phase, BOOT_PHASE.READY);
+        assert.equal(boot.state.error, null);
+        assert.equal(boot.state.route.tag, 'probe-screen');
+        boot.destroy();
+    });
+
+    test('a later screen whose module fails still puts the boot in error after an earlier one loads last', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const first = boot.goto('live');
+        const second = boot.goto('probe');
+
+        imports.fail('test/fixtures/probe-screen.js', '404 not found');
+        await second;
+        assert.equal(boot.state.phase, BOOT_PHASE.ERROR);
+        assert.equal(boot.state.error.specifier, 'test/fixtures/probe-screen.js');
+
+        imports.release('src/screens/live-screen.js');
+        await first;
+        assert.equal(boot.state.phase, BOOT_PHASE.ERROR);
+        assert.equal(boot.state.route, null);
+        assert.equal(boot.state.error.specifier, 'test/fixtures/probe-screen.js');
+        boot.destroy();
+    });
+
+    test('one screen asked for alone becomes the route when its module loads', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const only = boot.goto('probe');
+        assert.equal(boot.state.phase, BOOT_PHASE.CONNECTING);
+        assert.equal(boot.state.step, BOOT_STEP.SCREEN);
+
+        imports.release('test/fixtures/probe-screen.js');
+        const state = await only;
+        assert.equal(state.phase, BOOT_PHASE.READY);
+        assert.equal(state.step, BOOT_STEP.DONE);
+        assert.equal(state.route.tag, 'probe-screen');
+        boot.destroy();
+    });
+
+    test('one screen asked for alone puts the boot in error when its module fails', async () => {
+        const imports = heldImports();
+        const { boot } = bootWith({ routes: PROBE_TABLE, importModule: imports.importModule });
+
+        const only = boot.goto('probe');
+        imports.fail('test/fixtures/probe-screen.js', '404 not found');
+        const state = await only;
+        assert.equal(state.phase, BOOT_PHASE.ERROR);
+        assert.equal(state.step, BOOT_STEP.SCREEN);
+        assert.equal(state.route, null);
+        assert.match(state.error.message, /404/);
+        assert.equal(state.error.specifier, 'test/fixtures/probe-screen.js');
+        boot.destroy();
+    });
+
     test('stop() detaches every feed and leaves nothing subscribed (bug S10\'s class)', async () => {
         const { boot, createSocket } = bootWith();
         assert.equal(boot.attachments(), 0);
