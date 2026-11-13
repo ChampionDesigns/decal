@@ -245,11 +245,9 @@ describe('the weather modal', () => {
             m.reading = { ok: false, reason: 'no_location' };
         });
         await page.settle(2);
-        const asked = await page.evalFn(async (r) => {
-            const { conditionWord } = await import('/src/lib/weather-model.js');
-            const runtime = new Set([conditionWord(r.code, r.isDay), ...r.periods.map((p) => p.label)]);
-            return [...window.__keys].filter((key) => !runtime.has(key));
-        }, READING);
+        const asked = await page.evalFn(() => [...window.__keys]);
+        assert.ok(asked.includes('Partly cloudy'), 'the condition word was asked for');
+        assert.ok(['NIGHT', 'AM', 'PM'].every((label) => asked.includes(label)), 'every period label was asked for');
         assert.ok(asked.includes('No reading yet. Set a location below and it will arrive shortly.'),
             'the no-location state was drawn');
         const byKey = new Map(readTable().entries.map((entry) => [entry.key, entry]));
@@ -257,5 +255,39 @@ describe('the weather modal', () => {
             'keys the weather modal asks for that are not in i18n/source/strings.json');
         assert.deepEqual(asked.filter((key) => !(byKey.get(key).note || '').trim()), [],
             'weather modal keys in the table with no note');
+    }));
+
+    test('every condition word the modal can draw is in the string table, with a note', () => mount(READING, async (page) => {
+        const drawn = await page.evalFn(async () => {
+            const { translations } = await import('/src/lib/i18n.js');
+            const plain = translations.t;
+            const asked = new Set();
+            translations.t = (key, params) => { asked.add(key); return plain(key, params); };
+            const m = window.__h.need('#m');
+            const readings = [{ ...m.reading, code: undefined }];
+            for (let code = 0; code <= 100; code += 1) {
+                readings.push({ ...m.reading, code, isDay: true }, { ...m.reading, code, isDay: false });
+            }
+            const words = new Map();
+            for (const reading of readings) {
+                m.reading = reading;
+                await m.updateComplete;
+                const word = m.shadowRoot.querySelector('.now .word').textContent.trim();
+                words.set(word, asked.has(word));
+            }
+            translations.t = plain;
+            return [...words];
+        });
+        assert.deepEqual(drawn.map(([word]) => word).sort(),
+            ['Clear', 'Drizzle', 'Fog', 'Overcast', 'Partly cloudy', 'Rain', 'Snow', 'Thunderstorm'],
+            'the condition words drawn across every code, by day and by night');
+        assert.deepEqual(drawn.filter(([, asked]) => !asked).map(([word]) => word), [],
+            'condition words drawn without a lookup in the string table');
+        const byKey = new Map(readTable().entries.map((entry) => [entry.key, entry]));
+        const words = drawn.map(([word]) => word);
+        assert.deepEqual(words.filter((word) => !byKey.has(word)), [],
+            'condition words that are not in i18n/source/strings.json');
+        assert.deepEqual(words.filter((word) => !(byKey.get(word).note || '').trim()), [],
+            'condition words in the table with no note');
     }));
 });
