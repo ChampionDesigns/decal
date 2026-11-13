@@ -48,7 +48,7 @@ describe('the two flushes, which are not optimisations', () => {
         assert.equal(readingsDue(last, { ...at(1001) }), true);
     });
 
-    test('a machine state change publishes at once, so the cluster cannot lag the promotion', () => {
+    test('a machine state change publishes at once, even inside the window', () => {
         const last = at(1000);
         assert.equal(readingsDue(last, { ...at(1001), state: 'idle' }), true);
     });

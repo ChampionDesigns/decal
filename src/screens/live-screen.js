@@ -1388,14 +1388,23 @@ export class LiveScreen extends UiElement {
 
     #openWeather = () => { this._weatherOpen = true; };
 
-    #saveWeatherLocation = async (event) => {
-        const location = event?.detail?.location;
+    #saveWeatherLocation = (event) => {
+        const detail = event && event.detail ? event.detail : null;
+        const location = detail ? detail.location : null;
+        if (!location) return;
         const plugins = this.boot ? this.boot.plugins : null;
-        if (!location || !plugins || typeof plugins.writeSettings !== 'function') return;
-        try {
-            await plugins.writeSettings(WEATHER_PLUGIN_ID, { Location: location });
-        } catch {
+        let write;
+        if (!plugins || typeof plugins.writeSettings !== 'function') {
+            write = Promise.resolve(false);
+        } else {
+            try {
+                write = Promise.resolve(plugins.writeSettings(WEATHER_PLUGIN_ID, { Location: location }));
+            } catch (error) {
+                write = Promise.reject(error);
+            }
         }
+        if (typeof detail.respond === 'function') detail.respond(write);
+        else write.catch(() => {});
     };
 
     #renderWeatherModal() {
