@@ -5,6 +5,7 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
+import { readTable } from '../../scripts/build-i18n.js';
 
 const MODULE = ['/src/screens/weather-modal.js'];
 const geometry = GATE_A_GEOMETRIES[0];
@@ -148,5 +149,47 @@ describe('the weather modal', () => {
         }));
         assert.deepEqual(after.said, []);
         assert.equal(after.field, true);
+    }));
+    test('every literal key the modal asks for is in the string table, with a note', () => mount(READING, async (page) => {
+        await page.evalFn(async () => {
+            const { translations } = await import('/src/lib/i18n.js');
+            const plain = translations.t;
+            window.__keys = new Set();
+            translations.t = (key, params) => { window.__keys.add(key); return plain(key, params); };
+            const m = window.__h.need('#m');
+            m.reading = { ...m.reading };
+            m.addEventListener('weather-location', (e) => {
+                e.detail.respond(new Promise((resolve) => { window.__answer = resolve; }));
+            });
+        });
+        await page.settle(2);
+        await page.click('#m >>> .place .save');
+        await page.settle(2);
+        await page.evalFn(() => { window.__h.need('#m').shadowRoot.querySelector('#place').value = 'Fitzroy, AU'; });
+        await page.click('#m >>> .place .save');
+        await page.settle(2);
+        assert.equal(await page.evalFn(() => window.__h.need('#m').saving), true, 'the save is pending');
+        await page.evalFn(() => window.__answer(false));
+        await page.settle(2);
+        assert.equal(await page.evalFn(() => Boolean(window.__h.need('#m').shadowRoot.querySelector('.failed'))),
+            true, 'the failed save is said');
+        await page.evalFn(() => {
+            const m = window.__h.need('#m');
+            m.editing = false;
+            m.reading = { ok: false, reason: 'no_location' };
+        });
+        await page.settle(2);
+        const asked = await page.evalFn(async (r) => {
+            const { conditionWord } = await import('/src/lib/weather-model.js');
+            const runtime = new Set([conditionWord(r.code, r.isDay), ...r.periods.map((p) => p.label)]);
+            return [...window.__keys].filter((key) => !runtime.has(key));
+        }, READING);
+        assert.ok(asked.includes('No reading yet. Set a location below and it will arrive shortly.'),
+            'the no-location state was drawn');
+        const byKey = new Map(readTable().entries.map((entry) => [entry.key, entry]));
+        assert.deepEqual(asked.filter((key) => !byKey.has(key)), [],
+            'keys the weather modal asks for that are not in i18n/source/strings.json');
+        assert.deepEqual(asked.filter((key) => !(byKey.get(key).note || '').trim()), [],
+            'weather modal keys in the table with no note');
     }));
 });
