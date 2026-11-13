@@ -151,9 +151,9 @@ const TABLE = Object.freeze({
 let boot = null;
 let root = null;
 
-/** One-decimal rounding, exactly as `phaseRows` does it — see `live-targets.js`. */
-const round1 = (value) => (typeof value === 'number' && Number.isFinite(value)
-    ? Number(value.toFixed(1))
+/** One decimal place, written the way `phaseRows` writes it — see `live-targets.js`. */
+const oneDecimal = (value) => (typeof value === 'number' && Number.isFinite(value)
+    ? value.toFixed(1)
     : null);
 
 const screenEl = () => root?.shadowRoot?.querySelector('live-screen') ?? null;
@@ -467,7 +467,7 @@ globalThis.__loop = {
                 ? { totalSeconds: phases.total.seconds, totalWeight: phases.total.weight, totalVolume: phases.total.volume }
                 : null,
             rounded: phases && phases.total
-                ? { totalSeconds: round1(phases.total.seconds), totalWeight: round1(phases.total.weight) }
+                ? { totalSeconds: oneDecimal(phases.total.seconds), totalWeight: oneDecimal(phases.total.weight) }
                 : null,
         };
     },
