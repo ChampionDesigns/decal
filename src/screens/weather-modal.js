@@ -22,6 +22,7 @@ export class WeatherModal extends UiElement {
         /** True while a written location is in flight. */
         saving: { type: Boolean },
         editing: { type: Boolean },
+        _failed: { state: true },
     };
 
     #i18n = new I18nController(this);
@@ -32,6 +33,7 @@ export class WeatherModal extends UiElement {
         this.reading = null;
         this.saving = false;
         this.editing = false;
+        this._failed = false;
     }
 
     static styles = [typeRoles, css`
@@ -305,11 +307,14 @@ export class WeatherModal extends UiElement {
                     @click=${this.#save}
                 >${this.saving ? t('Saving') : t('Save')}</button>
             </div>
+            ${this._failed ? html`<span class="note failed" role="alert"
+            >${t('The location was not saved. Try again.')}</span>` : nothing}
             <span class="note">${t('Name the state and country too — four places are called Brunswick.')}</span>
         </div>`;
     }
 
     #edit = () => {
+        this._failed = false;
         this.editing = true;
         /* The field carries `autofocus`, which `ui-dialog` honours — but only at OPEN.
          * Revealed later it has to be asked for, and after the render that creates it. */
@@ -328,16 +333,36 @@ export class WeatherModal extends UiElement {
      * rule the rest of this file follows, and the reason a component here never holds a
      * route.
      */
-    #save = () => {
+    #save = async () => {
+        if (this.saving) return;
         const field = this.renderRoot?.querySelector?.('#place');
         const value = field ? String(field.value || '').trim() : '';
         if (!value) return;
-        this.editing = false;
+        this._failed = false;
+        let answer;
+        let answered = false;
+        const detail = Object.defineProperty({ location: value }, 'respond', {
+            value: (outcome) => { answered = true; answer = outcome; },
+        });
         this.dispatchEvent(new CustomEvent('weather-location', {
-            detail: { location: value },
+            detail,
             bubbles: true,
             composed: true,
         }));
+        if (!answered) {
+            this.editing = false;
+            return;
+        }
+        this.saving = true;
+        let saved;
+        try {
+            saved = (await answer) !== false;
+        } catch {
+            saved = false;
+        }
+        this.saving = false;
+        if (saved) this.editing = false;
+        else this._failed = true;
     };
 
     #onOpenChange = (event) => {

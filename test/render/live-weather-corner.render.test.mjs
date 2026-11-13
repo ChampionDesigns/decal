@@ -216,8 +216,15 @@ describe('the Live corner, fed by the weather store', () => {
             const weather = createWeatherStore({ sockets });
             weather.attach();
             window.__writes = [];
+            window.__answer = true;
             const plugins = {
-                writeSettings: async (id, patch) => { window.__writes.push([id, patch]); return true; },
+                writeSettings: async (id, patch) => {
+                    window.__writes.push([id, patch]);
+                    const answer = window.__answer;
+                    if (answer === 'throw') throw new Error('refused');
+                    if (answer === 'hold') return new Promise((resolve) => { window.__release = resolve; });
+                    return answer;
+                },
             };
             const screen = window.__h.q('live-screen');
             screen.limits = r2MachineLimits(['cupWarmer']).value;
@@ -260,5 +267,86 @@ describe('the Live corner, fed by the weather store', () => {
             await page.settle(4);
             assert.deepEqual(await page.eval('window.__writes'),
                 [['weather.reaplugin', { Location: 'Fitzroy, AU' }]]);
+        }));
+
+    const openField = async (page, typed) => {
+        await page.evalFn((r) => window.__send(r), FRESH);
+        await page.settle(4);
+        await page.click('live-screen >>> ui-weather-corner >>> .card');
+        await page.settle(4);
+        await page.click('live-screen >>> weather-modal >>> .place .save');
+        await page.settle(2);
+        await page.evalFn((value) => {
+            window.__h.q('live-screen').shadowRoot.querySelector('weather-modal')
+                .shadowRoot.querySelector('#place').value = value;
+        }, typed);
+    };
+
+    const place = (page) => page.evalFn(() => {
+        const modal = window.__h.q('live-screen').shadowRoot.querySelector('weather-modal');
+        const root = modal ? modal.shadowRoot : null;
+        const field = root ? root.querySelector('#place') : null;
+        const button = root ? root.querySelector('.place .save') : null;
+        const failure = root ? root.querySelector('.place .failed') : null;
+        return {
+            open: Boolean(modal),
+            field: field ? field.value : null,
+            button: button ? button.textContent.trim() : null,
+            disabled: button ? button.disabled : null,
+            failure: failure ? failure.textContent.replace(/\s+/g, ' ').trim() : '',
+        };
+    });
+
+    for (const [name, answer] of [['returns false', false], ['throws', 'throw']]) {
+        test(`a location write that ${name} keeps the typed place, says so, and a second save tries again`,
+            () => withStore(async (page) => {
+                await openField(page, 'Fitzroy, AU');
+                await page.evalFn((a) => { window.__answer = a; }, answer);
+                await page.click('live-screen >>> weather-modal >>> .place .save');
+                await page.settle(4);
+                const failed = await place(page);
+                assert.equal(failed.open, true, 'the detail stays open');
+                assert.equal(failed.field, 'Fitzroy, AU', 'the typed place is still in the field');
+                assert.equal(failed.button, 'Save');
+                assert.equal(failed.disabled, false);
+                assert.equal(failed.failure, 'The location was not saved. Try again.');
+
+                await page.evalFn(() => { window.__answer = true; });
+                await page.click('live-screen >>> weather-modal >>> .place .save');
+                await page.settle(4);
+                assert.deepEqual(await page.eval('window.__writes'), [
+                    ['weather.reaplugin', { Location: 'Fitzroy, AU' }],
+                    ['weather.reaplugin', { Location: 'Fitzroy, AU' }],
+                ]);
+                const saved = await place(page);
+                assert.equal(saved.open, true);
+                assert.equal(saved.field, null, 'the field closes once the write lands');
+                assert.equal(saved.failure, '');
+            }));
+    }
+
+    test('while the location write runs, the save says Saving and cannot be pressed again',
+        () => withStore(async (page) => {
+            await openField(page, 'Fitzroy, AU');
+            await page.evalFn(() => { window.__answer = 'hold'; });
+            await page.click('live-screen >>> weather-modal >>> .place .save');
+            await page.settle(4);
+            const running = await place(page);
+            assert.equal(running.button, 'Saving');
+            assert.equal(running.disabled, true);
+            assert.equal(running.field, 'Fitzroy, AU');
+            await page.evalFn(() => {
+                window.__h.q('live-screen').shadowRoot.querySelector('weather-modal')
+                    .shadowRoot.querySelector('#place').focus();
+            });
+            await page.press('Enter');
+            await page.settle(2);
+            assert.equal((await page.eval('window.__writes')).length, 1, 'Enter does not send a second write');
+
+            await page.evalFn(() => window.__release(true));
+            await page.settle(4);
+            const saved = await place(page);
+            assert.equal(saved.field, null);
+            assert.equal(saved.failure, '');
         }));
 });
