@@ -52,6 +52,7 @@ export const DEVICE_TYPE = Object.freeze({
     MACHINE: 'machine',
     SCALE: 'scale',
     SENSOR: 'sensor',
+    GRINDER: 'grinder',
 });
 
 const PHASES = new Set(Object.values(CONNECTION_PHASE));

@@ -27,7 +27,7 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         param: 'orderBy',
         handlerFile: 'lib/src/services/webserver/shots_handler.dart',
         handlerSymbol: 'ShotsHandler._getShots',
-        handlerEvidence: "params['order'] at ~:73 and ~:89; no occurrence of 'orderBy' in the handler directory",
+        handlerEvidence: "params['order'] at :92 and :108; no occurrence of 'orderBy' in the handler directory",
         why: 'documented parameter that no handler reads — emitting it would publish a capability the server does not have',
         upstreamAsk: 'Two new upstream asks the count produced',
         stillNeeded: (spec) => hasQueryParam(spec, '/api/v1/shots', 'get', 'orderBy'),
@@ -43,8 +43,8 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         add: Object.freeze(['post']),
         handlerFile: 'lib/src/services/webserver/plugins_handler.dart',
         handlerSymbol: 'PluginsHandler._handlePluginApiEndpoint',
-        handlerEvidence: "app.all('/api/v1/plugins/<id>/<endpoint>', …) at :90; final method = req.method at :184; "
-            + 'the body is read with req.readAsString() and forwarded to the plugin verbatim',
+        handlerEvidence: "app.all('/api/v1/plugins/<id>/<endpoint>', …) at :141; final method = req.method at :392; "
+            + 'the body is read with readBoundedRequestBodyString at :398 and forwarded to the plugin verbatim',
         why: 'documented GET-only against an app.all handler — a spec-faithful client loses the POST passthrough',
         upstreamAsk: 'Two new upstream asks the count produced',
         marks: Object.freeze({ anyMethod: true }),
@@ -59,28 +59,6 @@ export const SPEC_EXCEPTIONS = Object.freeze([
             + 'and regenerate.',
     }),
     Object.freeze({
-        id: 'sensors-list-key-is-id',
-        kind: 'rename-response-key',
-        path: '/api/v1/sensors',
-        method: 'GET',
-        inItems: true,
-        from: 'name',
-        to: 'id',
-        handlerFile: 'lib/src/services/webserver/sensors_handler.dart',
-        handlerSymbol: "SensorsHandler.addRoutes (inline GET /api/v1/sensors)",
-        handlerEvidence: "returns {'id': s.deviceId, 'info': info.toJson()} per sensor; the key 'name' is never emitted",
-        why: 'documented response key that the handler does not emit — the served key is id',
-        upstreamAsk: 'Same class as the two E2 asks',
-        stillNeeded: (spec) => {
-            const props = spec.paths?.['/api/v1/sensors']?.get?.responses?.['200']
-                ?.content?.['application/json']?.schema?.items?.properties;
-            return Boolean(props && props.name && !props.id);
-        },
-        goneMessage:
-            'rest_v1.yml no longer documents /api/v1/sensors list items with a "name" key. The upstream fix has '
-            + 'landed: DELETE the sensors-list-key-is-id exception from scripts/generate-rea-routes.js and regenerate.',
-    }),
-    Object.freeze({
         id: 'account-proxy-query-passthrough',
         kind: 'add-query-params',
         path: '/api/v1/account/proxy/support/api/{endpoint}',
@@ -91,11 +69,12 @@ export const SPEC_EXCEPTIONS = Object.freeze([
         ]),
         handlerFile: 'lib/src/services/webserver/account_proxy_handler.dart',
         handlerSymbol: 'AccountProxyHandler._handleGet',
-        handlerEvidence: "rawQuery: request.requestedUri.query at ~:28, forwarded by "
+        handlerEvidence: "rawQuery: request.requestedUri.query at :25, forwarded by "
             + "DecentProxyService._buildUri as `query: rawQuery`; the two names are ReaPrime's own, from "
-            + "DecentAccountService.emailSerialMismatch ('/support/api/email?subject=$subject&body=$body')",
+            + "DecentAccountService.sendSupportMessage, which emailSerialMismatch calls "
+            + "(Uri(queryParameters: {'subject': subject, 'body': body}) on '/support/api/email?$query')",
         why: 'a verbatim query-string relay documented with no query parameters — a spec-faithful client cannot address the only send path a read-scoped skin token has',
-        upstreamAsk: 'Same class as the three above',
+        upstreamAsk: 'Same class as the two above',
         stillNeeded: (spec) => {
             const op = spec.paths?.['/api/v1/account/proxy/support/api/{endpoint}']?.get;
             if (!op) return false;

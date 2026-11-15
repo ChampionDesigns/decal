@@ -44,8 +44,8 @@ export const FIELD_DOORS = Object.freeze({
     flushFlow: 'workflow',
     flushTimeout: 'workflow',
 
-    /* POST /machine/waterLevels. THE ONE DOOR WITH NO REST READ — see `waterLevelsDoorFor`
-     * below. `refillLevel` is the tank's low-water alert height. */
+    /* POST /machine/waterLevels. THE ONE DOOR THAT READS OFF A SOCKET, not GET — see
+     * `waterLevelsDoorFor` below. `refillLevel` is the tank's low-water alert height. */
     refillLevel: 'waterLevels',
 
     /* GET/POST /presence/settings. The sleep policy — the SCHEDULES beside it are a list

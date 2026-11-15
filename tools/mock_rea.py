@@ -243,10 +243,10 @@ def _derived_or_none(p: float, f: float, value: float):
 def upgrade_recorded_shot(record):
     """Recompute the three derived channels onto a recorded shot, AT SERVE TIME.
 
-    THE DATA TRUTH, at pin 42f67f69 (`lib/src/models/device/machine.dart:64-140`): the
-    derived channels are "computed on read from the raw pressure and flow fields — never
-    stored — so already-recorded history shots gain these channels with zero migration
-    (fromJson does not read them; toJson recomputes them)". `ShotsHandler._getShot`
+    THE DATA TRUTH, at pin 8fee86dd (`lib/src/models/device/machine.dart:66-159`): the
+    derived channels are getters over the raw pressure and flow fields, so they are
+    computed on read and never stored, and already-recorded history shots gain them with
+    zero migration (fromJson does not read them; toJson writes them). `ShotsHandler._getShot`
     answers `jsonOk(shot.toJson())`, which maps every measurement through
     `ShotSnapshot.toJson` -> `machine.toJson()`, which WRITES the three keys above the
     gate and OMITS them below it.
@@ -292,6 +292,33 @@ def upgrade_recorded_shot(record):
             upgraded += 1
         measurements.append({**measurement, "machine": nxt})
     return {**record, "measurements": measurements}, upgraded
+
+
+_SETTINGS = "/api/v1/settings"
+
+
+def upgrade_recorded_settings(record):
+    """Add the settings key the handler at the pin always writes, AT SERVE TIME.
+
+    `settings_handler.dart:47` writes `preferredGrinderDeviceId` in every answer, typed
+    `String?` (`settings_controller.dart:46, :97`), so it is null with no grinder set. The
+    recording predates the key. The key is added as null only when it is absent, and the
+    bytes on disk stay as recorded; `tools/mock-fixture-ledger.json` declares it.
+    """
+    if isinstance(record, dict) and "preferredGrinderDeviceId" not in record:
+        return {**record, "preferredGrinderDeviceId": None}, 1
+    return record, 0
+
+
+def served_body(bare: str, record):
+    """The body the mock serves for a recorded 200 JSON fixture at `bare`, after every
+    serve-time upgrade the ledger declares. The mock and the contract checker both call
+    it, so the checker checks the body that is served."""
+    if _SHOT_BY_ID.match(bare):
+        return upgrade_recorded_shot(record)
+    if bare == _SETTINGS:
+        return upgrade_recorded_settings(record)
+    return record, 0
 
 
 def envelope_for(fixture: pathlib.Path, ledger_path: pathlib.Path | None = None) -> tuple[int, str]:
@@ -506,12 +533,13 @@ class MockRea(http.server.BaseHTTPRequestHandler):
 
         if fixture is not None:
             status, ctype = envelope_for(fixture)
-            #: THE SERVE-TIME UPGRADE — see `upgrade_recorded_shot`. Only the by-id shot
-            #: route, only when the recording is missing what the handler at the pin
-            #: writes, and never a change to the bytes on disk.
-            if status == 200 and _SHOT_BY_ID.match(bare):
-                record, upgraded = upgrade_recorded_shot(json.loads(fixture.read_text()))
-                MockRea.shots_upgraded += upgraded
+            #: THE SERVE-TIME UPGRADES — see `served_body`. Only the by-id shot route and
+            #: the settings route, only when the recording is missing what the handler at
+            #: the pin writes, and never a change to the bytes on disk.
+            if status == 200 and (_SHOT_BY_ID.match(bare) or bare == _SETTINGS):
+                record, upgraded = served_body(bare, json.loads(fixture.read_text()))
+                if _SHOT_BY_ID.match(bare):
+                    MockRea.shots_upgraded += upgraded
                 self._send(status, json.dumps(record).encode(), ctype)
                 return
             self._send(status, fixture.read_bytes(), ctype)
