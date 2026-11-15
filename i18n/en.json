@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "50d26d89bb68344d1e20f8ffc5f6fcf584ec802fe9782f7a3dfea12a0283f808",
+  "sourceSha256": "e237473efb19bcb3fe9c790f5f6dc82d6754cfac42b22edc3ceb9d14ccab5304",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -478,7 +478,7 @@
     "Pump": "Pump",
     "Purges remaining water from inside the machine. Run before packing the machine to prevent leaks during transport.": "Purges remaining water from inside the machine. Run before packing the machine to prevent leaks during transport.",
     "Put the drip tray and platform back on, press Tare, then place your weight and check the reading.": "Put the drip tray and platform back on, press Tare, then place your weight and check the reading.",
-    "Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.": "Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.",
+    "Puts seven machine settings back to the values the machine ships with. ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.": "Puts seven machine settings back to the values the machine ships with. ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.",
     "Quick Adjustments": "Quick Adjustments",
     "Quickstart Guide": "Quickstart Guide",
     "R — resistance (bar·s²/mL²)": "R — resistance (bar·s²/mL²)",
@@ -487,6 +487,7 @@
     "Ramp": "Ramp",
     "Range: 0–100 °C": "Range: 0–100 °C",
     "Rating": "Rating",
+    "ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.": "ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.",
     "ReaPrime did not allow this skin to use the Decent account. Check the account permissions in ReaPrime.": "ReaPrime did not allow this skin to use the Decent account. Check the account permissions in ReaPrime.",
     "Ready": "Ready",
     "Rear": "Rear",
@@ -607,7 +608,6 @@
     "Steaming": "Steaming",
     "Step": "Step",
     "Step actions": "Step actions",
-    "The flow calibration and the load-cell calibration do not change.": "The flow calibration and the load-cell calibration do not change.",
     "The limiters": "The limiters",
     "The location was not saved. Try again.": "The location was not saved. Try again.",
     "The wand puffs quietly, so it is easy to miss.": "The wand puffs quietly, so it is easy to miss.",
