@@ -778,6 +778,8 @@ export const SETTINGS_ROWS = Object.freeze([
         archetype: ARCHETYPE.SWITCH,
         source: SOURCE.MACHINE,
         field: 'automaticUpdateCheck',
+        offOnly: true,
+        offOnlyNote: 'Turn this on in ReaPrime. This skin can only turn it off.',
         heading: 'Automatic update checks',
         caption: 'Look for a newer app every twelve hours.',
     }),

@@ -198,7 +198,7 @@ describe('plugins: the form is the manifest’s, and a secure field has no value
             }
             return bad(500);
         });
-        const store = createPluginsStore({ transport });
+        const store = createPluginsStore({ transport, canManage: true });
         await store.load();
         assert.equal(await store.writeSettings(VISUALIZER_PLUGIN_ID, { Password: 'hunter2' }), true);
         /* THE REPLY AND NOT THE REQUEST: the password went up as text and comes back as
@@ -208,7 +208,7 @@ describe('plugins: the form is the manifest’s, and a secure field has no value
 
     test('a 400 leaves the draft the caller’s problem and reports false', async () => {
         const transport = transportOf(({ key }) => (key === 'GET /plugins' ? ok([{ ...MANIFEST }]) : bad(400)));
-        const store = createPluginsStore({ transport });
+        const store = createPluginsStore({ transport, canManage: true });
         await store.load();
         assert.equal(await store.writeSettings(VISUALIZER_PLUGIN_ID, { Nope: 1 }), false);
         assert.notEqual(store.get().writeError, null);
@@ -220,7 +220,7 @@ describe('plugins: the form is the manifest’s, and a secure field has no value
             if (key.startsWith('POST /plugins/')) return ok({ message: 'ok' });
             return bad(500);
         });
-        const store = createPluginsStore({ transport });
+        const store = createPluginsStore({ transport, canManage: true });
         await store.load();
         await store.setEnabled(VISUALIZER_PLUGIN_ID, false);
         assert.ok(transport.calls.some((c) => c.path === `/plugins/${VISUALIZER_PLUGIN_ID}/disable`));

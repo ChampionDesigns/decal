@@ -22,6 +22,7 @@ export class WeatherModal extends UiElement {
         /** True while a written location is in flight. */
         saving: { type: Boolean },
         editing: { type: Boolean },
+        locked: { type: Boolean },
         pending: { attribute: false },
         _draft: { state: true },
         _failed: { state: true },
@@ -36,6 +37,7 @@ export class WeatherModal extends UiElement {
         this.reading = null;
         this.saving = false;
         this.editing = false;
+        this.locked = false;
         this.pending = null;
         this._draft = '';
         this._failed = false;
@@ -225,7 +227,9 @@ export class WeatherModal extends UiElement {
     #renderEmpty() {
         const t = this.#i18n.t;
         return html`<p class="note"
-        >${t('No reading yet. Set a location below and it will arrive shortly.')}</p>`;
+        >${this.locked
+            ? t('No reading yet. Set a location in ReaPrime and it will arrive shortly.')
+            : t('No reading yet. Set a location below and it will arrive shortly.')}</p>`;
     }
 
     #renderReading(reading) {
@@ -290,6 +294,15 @@ export class WeatherModal extends UiElement {
     #renderPlace() {
         const t = this.#i18n.t;
         const place = this.reading && this.reading.place ? this.reading.place : '';
+        if (this.locked) {
+            return html`<div class="place">
+                <span class="lab">${t('Location')}</span>
+                <div class="row">
+                    <span class="current">${place || t('Not set')}</span>
+                </div>
+                <span class="note locked">${t('Set the location in ReaPrime. This skin cannot change it.')}</span>
+            </div>`;
+        }
         if (!this.editing) {
             return html`<div class="place">
                 <span class="lab">${t('Location')}</span>
@@ -355,7 +368,7 @@ export class WeatherModal extends UiElement {
      * route.
      */
     #save = async () => {
-        if (this.saving) return;
+        if (this.saving || this.locked) return;
         const field = this.renderRoot?.querySelector?.('#place');
         if (field) this._draft = field.value;
         const value = String(this._draft || '').trim();

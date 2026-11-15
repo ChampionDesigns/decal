@@ -3645,7 +3645,7 @@
     {
       "what": "extension-management authorization",
       "where": "webserver_service.dart:580; extension_management_auth.dart:32-54, :95-117, :120-154; settings_handler.dart:73-86, :209",
-      "adds": "401 {error} without a valid bearer token, or 403 {error} for a token without the extensions.manage scope, BEFORE the handler runs, on the plugin and skin management writes listed at extension_management_auth.dart:32-53 (PUT /api/v1/webui/skins/default and POST /api/v1/webui/server/start and /stop among them). POST /api/v1/settings answers the same 401 or 403 when the body sets webUiPath, changes defaultSkinId, or turns automaticUpdateCheck on; a defaultSkinId from a caller without that grant is not applied (settings_handler.dart:209). The GET routes stay open.",
+      "adds": "401 {error} without a valid bearer token, or 403 {error} for a token without the extensions:manage scope, BEFORE the handler runs, on the plugin and skin management writes listed at extension_management_auth.dart:32-53 (PUT /api/v1/webui/skins/default and POST /api/v1/webui/server/start and /stop among them). POST /api/v1/settings answers the same 401 or 403 when the body sets webUiPath, changes defaultSkinId, or turns automaticUpdateCheck on; a defaultSkinId from a caller without that grant is not applied (settings_handler.dart:209). The GET routes stay open.",
       "action": "a 401 or 403 on these routes is a refusal of the caller, not a missing feature and not a transient fault. Do not retry it; show it as not permitted.",
       "onRows": "every row for a listed route",
       "checkedCommit": "8fee86ddc761cd4b0a874178bf1e54b5b4ee7745"

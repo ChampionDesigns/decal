@@ -352,7 +352,12 @@ export function createSettingsLeafModel({
         return false;
     }
 
+    function offOnlyLocked(row) {
+        return Boolean(row.offOnly) && machineLoaded && machineValues.get(row.field) !== true;
+    }
+
     function inertFor(row) {
+        if (offOnlyLocked(row)) return true;
         if (row.supportedBy && fieldNow(row.supportedBy) === false) return true;
         const gates = gatesOf(row);
         if (gates.length === 0) return false;
@@ -364,6 +369,7 @@ export function createSettingsLeafModel({
         if (row.unsupportedNote && row.supportedBy && fieldNow(row.supportedBy) === false) {
             notes.push(row.unsupportedNote);
         }
+        if (row.offOnlyNote && offOnlyLocked(row)) notes.push(row.offOnlyNote);
         if (row.emptyNote && row.archetype === ARCHETYPE.BANK && !inertFor(row)) {
             const value = resolvedValueFor(row);
             const items = itemsFor(row) ?? [];
@@ -638,6 +644,14 @@ export function createSettingsLeafModel({
                 value = fromDisplayTemp(Number(value), display);
             }
             if (row.source === SOURCE.MACHINE) {
+                if (row.offOnly && value === true) {
+                    if (machineValues.get(row.field) !== true) {
+                        return Object.freeze({ ok: false, staged: false, key: row.field, reason: 'offOnly' });
+                    }
+                    staged.delete(row.field);
+                    bump();
+                    return Object.freeze({ ok: true, staged: false, key: row.field });
+                }
                 if (row.capability
                     && settings.gateCapability(row.capability).surface !== 'shown') {
                     return Object.freeze({
