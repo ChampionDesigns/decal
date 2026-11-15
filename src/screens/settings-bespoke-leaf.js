@@ -3363,8 +3363,8 @@ export class SettingsBespokeLeaf extends UiElement {
                 id="feedback-sent"
                 heading=${t('Feedback sent')}
                 body=${number === null
-                    ? t('Thank you. It was filed against the Decide project.')
-                    : t('Thank you. Filed as issue #{number} on the Decide issue tracker.', { number })}
+                    ? t('Thank you. It was filed against the Decaid project.')
+                    : t('Thank you. Filed as issue #{number} on the Decaid issue tracker.', { number })}
             >
                 ${url === null
                     ? nothing
@@ -3451,7 +3451,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 >${t('Screenshots are not sent — Decide does not read them from this route.')}</p>
 
             <p id="feedback-destination" class="ui-caption prose"
-                >${t('Feedback is filed as an issue on Decide’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
+                >${t('Feedback is filed as an issue on Decaid’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
             ${refusal === FEEDBACK_REFUSAL.FAILED
                 ? html`<span id="feedback-failed" class="ui-caption"
                     >${state.message ?? t('Sending failed.')}</span>`

@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "9e686510cf27fda75b278ae3815b9ab2fa83f77a624a4bcff184d736a16c23c4",
+  "sourceSha256": "d383307c5b602d65878ecf23a6054a4c057ef62cbd2907a91c62ec3aaa9f5d85",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -216,7 +216,7 @@
     "Fan Threshold": "Fan Threshold",
     "Fan turns on at": "Fan turns on at",
     "Favourite": "Favourite",
-    "Feedback is filed as an issue on Decide’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.": "Feedback is filed as an issue on Decide’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.",
+    "Feedback is filed as an issue on Decaid’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.": "Feedback is filed as an issue on Decaid’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.",
     "Feel": "Feel",
     "Feels like": "Feels like",
     "Fetching build metadata...": "Fetching build metadata...",
@@ -612,7 +612,7 @@
     "Steaming": "Steaming",
     "Step": "Step",
     "Step actions": "Step actions",
-    "Thank you. It was filed against the Decide project.": "Thank you. It was filed against the Decide project.",
+    "Thank you. It was filed against the Decaid project.": "Thank you. It was filed against the Decaid project.",
     "The limiters": "The limiters",
     "The location was not saved. Try again.": "The location was not saved. Try again.",
     "The wand puffs quietly, so it is easy to miss.": "The wand puffs quietly, so it is easy to miss.",
@@ -666,7 +666,7 @@
     "Temperature": "Temperature",
     "Temperature for flush cycles": "Temperature for flush cycles",
     "Temperature unit": "Temperature unit",
-    "Thank you. Filed as issue #{number} on the Decide issue tracker.": "Thank you. Filed as issue #{number} on the Decide issue tracker.",
+    "Thank you. Filed as issue #{number} on the Decaid issue tracker.": "Thank you. Filed as issue #{number} on the Decaid issue tracker.",
     "That could not be added.": "That could not be added.",
     "That device could not be made the preferred one.": "That device could not be made the preferred one.",
     "That device could not be reached.": "That device could not be reached.",
