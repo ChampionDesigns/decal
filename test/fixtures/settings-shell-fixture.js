@@ -1300,7 +1300,6 @@ function createFixtureTransport() {
                     MACHINE_ADVANCED.heaterPh2Flow = 4;
                     MACHINE_ADVANCED.heaterPh2Timeout = 4;
                     MACHINE_ADVANCED.refillKitSetting = 2;
-                    SERVER.flowMultiplier = 1;
                     return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
 
                 case 'GET /machine/cupWarmer':

@@ -222,11 +222,10 @@ export const RESET_FIELDS = Object.freeze([
     Object.freeze({ field: 'heaterPh2Flow', value: 4 }),
     Object.freeze({ field: 'heaterPh2Timeout', value: 4 }),
     Object.freeze({ field: 'refillKitSetting', value: 2 }),
-    Object.freeze({ field: 'flowMultiplier', value: 1 }),
     Object.freeze({ field: 'steamPurgeMode', value: 0 }),
 ]);
 
-function defaultsDetail(t, pages, flowDefault) {
+function defaultsDetail(t, pages) {
     const opening = pages.length === 0
         ? t('These settings go back to the machine’s own values.')
         : (() => {
@@ -237,8 +236,7 @@ function defaultsDetail(t, pages, flowDefault) {
             return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
         })();
 
-    if (flowDefault === null || flowDefault === undefined) return opening;
-    return `${opening} ${t('The machine’s flow calibration goes back to {n}. Your load-cell calibration is not touched.', { n: flowDefault })}`;
+    return `${opening} ${t('The flow calibration and the load-cell calibration do not change.')}`;
 }
 
 const PLUGIN_FIELD_COPY = Object.freeze({
@@ -3390,6 +3388,12 @@ export class SettingsBespokeLeaf extends UiElement {
                 ? html`<p id="feedback-unconfigured" class="ui-caption prose"
                     >${t('This ReaPrime build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.')}</p>`
                 : nothing}
+            ${refusal === FEEDBACK_REFUSAL.ACCOUNT_REQUIRED
+                ? html`<p id="feedback-account" class="ui-caption prose"
+                    >${t('Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.')}${state.message
+                        ? html` <span id="feedback-account-reason">${state.message}</span>`
+                        : nothing}</p>`
+                : nothing}
             <div class="sw-stack">
                 <span class="ui-heading">${t('What is this about?')}</span>
                 <ui-bank
@@ -4013,7 +4017,6 @@ export class SettingsBespokeLeaf extends UiElement {
 
         const pages = [...new Set(resets.map((row) => row.leaf).filter(Boolean).map(navName))];
 
-        const flowDefault = RESET_FIELDS.find((row) => row.field === 'flowMultiplier')?.value ?? null;
 
         return html`
             <section class="group" id="defaults">
@@ -4028,7 +4031,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>
 
                 <p class="ui-caption prose"
-                    >${t('Puts eight machine settings back to the values the machine ships with, the flow calibration among them. Your load-cell calibration, your profiles and your shot history are not touched.')}</p>
+                    >${t('Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.')}</p>
 
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>
@@ -4057,8 +4060,8 @@ export class SettingsBespokeLeaf extends UiElement {
             <ui-confirm-dialog
                 id="defaults-confirm"
                 .open=${this._confirm === 'defaults'}
-                question=${t('Restore these eight settings?')}
-                detail=${defaultsDetail(t, pages, flowDefault)}
+                question=${t('Restore these seven settings?')}
+                detail=${defaultsDetail(t, pages)}
                 confirm-label=${t('Restore defaults')}
                 tone="destructive"
                 @confirm=${this.#onDefaultsConfirm}

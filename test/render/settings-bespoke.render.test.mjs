@@ -1856,7 +1856,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         });
 
         describe('Default load settings says what the reset would actually change', () => {
-            test('every NOW cell reads the machine, and the reset would move five of eight', async () => {
+            test('every NOW cell reads the machine, and the reset would move five of seven', async () => {
                 await show('calibration', 'calibration-default-load-settings');
                 const table = await page.evalFn(() => {
                     const root = window.__settings.bespokeEl().shadowRoot;
@@ -1866,7 +1866,8 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     });
                 });
 
-                assert.equal(table.length, 8, 'eight settings move, and each one is a line');
+                assert.equal(table.length, 7, 'seven settings move, and each one is a line');
+                assert.equal(table.some((row) => row.field === 'flowMultiplier'), false);
                 const dashes = table.filter((row) => row.now === '\u2014' || row.now === '\u2013' || row.now === '');
                 assert.deepEqual(dashes, [], 'a NOW cell that dashes means the machine was never read');
 
@@ -1875,7 +1876,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(fan.fallback, '55', 'and the factory value is 55');
 
                 const moving = table.filter((row) => row.now !== row.fallback);
-                assert.equal(moving.length, 5, 'five of the eight differ, so the column earns its place');
+                assert.equal(moving.length, 5, 'five of the seven differ, so the column earns its place');
             });
 
             test('a reset repaints THIS page, not just the ones you visit next', async () => {
@@ -1934,8 +1935,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     assert.ok(bengle.reachable.includes(name),
                         `the Page column names "${name}", which this machine's nav does not carry`);
                 }
-                assert.ok(bengle.pages.includes('–'),
-                    'the flow-multiplier row keeps its line and dashes its page');
+                assert.equal(bengle.pages.length, 7, 'seven rows, and no flow-multiplier row');
 
                 assert.ok(bengle.reachable.includes('Flow Multiplier'),
                     'the Flow Multiplier PAGE is in a Bengle nav — the gate is on the row now, '
@@ -1949,10 +1949,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await show('calibration', 'calibration-default-load-settings');
                 const de1 = await survey();
                 assert.equal(de1.machineClass, 'de1', 'the served set says DE1');
-                assert.ok(de1.pages.includes('Flow Multiplier'),
-                    'a DE1 has that page, so its name belongs in the column');
-                assert.match(de1.detail, /flow multiplier/i,
-                    'and in the sentence, from the same derivation');
+                for (const name of de1.pages.filter((value) => value !== '–' && value !== '')) {
+                    assert.ok(de1.reachable.includes(name),
+                        `the Page column names "${name}", which this machine's nav does not carry`);
+                }
+                assert.equal(de1.pages.includes('Flow Multiplier'), false,
+                    'the reset does not write the flow calibration, so its page is not in the column');
+                assert.doesNotMatch(de1.detail, /flow multiplier/i,
+                    'and not in the sentence, from the same derivation');
 
                 await serve(['scaleCalibration']);
             });
@@ -4178,6 +4182,33 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.settle();
                 const got = await feedback();
                 assert.equal(got.failed, 'Failed to create GitHub issue');
+                await page.evalFn(() => window.__settings.feedbackResult(null));
+            });
+
+            test('a 400 Decent account required tells the user to sign in, with the server reason', async () => {
+                await show('help', 'help-send-feedback');
+                await page.evalFn(() => window.__settings.feedbackResult({
+                    status: 400,
+                    body: {
+                        success: false,
+                        error: 'Decent account required',
+                        message: 'You must be logged in to your Decent account to submit feedback.',
+                    },
+                }));
+                await type('the group head leaks');
+                await submit();
+                await page.settle();
+                const got = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    return {
+                        account: root.getElementById('feedback-account')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+                        reason: root.getElementById('feedback-account-reason')?.textContent.trim() ?? null,
+                        empty: root.getElementById('feedback-empty'),
+                    };
+                });
+                assert.match(got.account ?? '', /^Sending feedback needs a Decent account\. Sign in to your Decent account in ReaPrime/);
+                assert.equal(got.reason, 'You must be logged in to your Decent account to submit feedback.');
+                assert.equal(got.empty, null);
                 await page.evalFn(() => window.__settings.feedbackResult(null));
             });
 

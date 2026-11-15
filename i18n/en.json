@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "ad3704ce4ce10182416ec690d44bae02528ffb1f52cde744c426d913e67bc147",
+  "sourceSha256": "50d26d89bb68344d1e20f8ffc5f6fcf584ec802fe9782f7a3dfea12a0283f808",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -478,6 +478,7 @@
     "Pump": "Pump",
     "Purges remaining water from inside the machine. Run before packing the machine to prevent leaks during transport.": "Purges remaining water from inside the machine. Run before packing the machine to prevent leaks during transport.",
     "Put the drip tray and platform back on, press Tare, then place your weight and check the reading.": "Put the drip tray and platform back on, press Tare, then place your weight and check the reading.",
+    "Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.": "Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.",
     "Quick Adjustments": "Quick Adjustments",
     "Quickstart Guide": "Quickstart Guide",
     "R — resistance (bar·s²/mL²)": "R — resistance (bar·s²/mL²)",
@@ -511,6 +512,7 @@
     "Resolution": "Resolution",
     "Restore a previous version. Your current version is kept until you Save.": "Restore a previous version. Your current version is kept until you Save.",
     "Restore factory defaults": "Restore factory defaults",
+    "Restore these seven settings?": "Restore these seven settings?",
     "Restores fan threshold, heater idle temp, heater phase flows, phase 2 timeout, refill kit mode, flow multiplier, and steam purge to factory defaults.": "Restores fan threshold, heater idle temp, heater phase flows, phase 2 timeout, refill kit mode, flow multiplier, and steam purge to factory defaults.",
     "Retry": "Retry",
     "Retry calibration": "Retry calibration",
@@ -549,6 +551,7 @@
     "Send Feedback": "Send Feedback",
     "Send a message": "Send a message",
     "Send message": "Send message",
+    "Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.": "Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.",
     "Sending…": "Sending…",
     "Serial": "Serial",
     "Serial number": "Serial number",
@@ -604,6 +607,7 @@
     "Steaming": "Steaming",
     "Step": "Step",
     "Step actions": "Step actions",
+    "The flow calibration and the load-cell calibration do not change.": "The flow calibration and the load-cell calibration do not change.",
     "The limiters": "The limiters",
     "The location was not saved. Try again.": "The location was not saved. Try again.",
     "The wand puffs quietly, so it is easy to miss.": "The wand puffs quietly, so it is easy to miss.",

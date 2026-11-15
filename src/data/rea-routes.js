@@ -11,6 +11,7 @@ import {
     REA_ROUTE_EXCEPTIONS,
     REA_ROUTES_SOURCE,
 } from './rea-routes.generated.js';
+import { shotsQueryCombinesIdsAndFilter } from './rea-conditional.js';
 
 export {
     REST_ROUTES,
@@ -106,6 +107,9 @@ export function buildQuery(route, query = null) {
             + (exception ? ` (see exception ${exception.id}: ${exception.effect})` : '')
             + `. Documented: ${route.query.map((q) => q.name).join(', ') || 'none'}.`,
         );
+    }
+    if (route.id === 'getShots' && shotsQueryCombinesIdsAndFilter(query)) {
+        throw new ReaRouteError(`${route.id}: ids cannot be combined with a filter. The handler answers 400.`);
     }
     for (const param of route.query) {
         if (param.required && (query[param.name] === undefined || query[param.name] === null)) {
