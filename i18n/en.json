@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "d383307c5b602d65878ecf23a6054a4c057ef62cbd2907a91c62ec3aaa9f5d85",
+  "sourceSha256": "a8e35eeaad4bf0efb02a1956cb73c38346f4f1c13bce60a51b5279f179db1240",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -125,6 +125,7 @@
     "Current temperature": "Current temperature",
     "Custom": "Custom",
     "DE1 Firmware File": "DE1 Firmware File",
+    "Decide": "Decide",
     "Decide address": "Decide address",
     "Decide did not allow this skin to use the Decent account. Check the account permissions in Decide.": "Decide did not allow this skin to use the Decent account. Check the account permissions in Decide.",
     "Decide has not answered for its installed plugins.": "Decide has not answered for its installed plugins.",
@@ -135,7 +136,6 @@
     "Data": "Data",
     "Date": "Date",
     "Days of Week": "Days of Week",
-    "Decaid": "Decaid",
     "Decent Account": "Decent Account",
     "Decent support will reply to your email.": "Decent support will reply to your email.",
     "Decent.app Information": "Decent.app Information",
@@ -852,7 +852,7 @@
     "Enter a value within {range}.": "Enter a value within {range}.",
     "Host": "Host",
     "Hydraulic power (W)": "Hydraulic power (W)",
-    "If this keeps happening, reopen the skin from Decaid or reinstall its app files.": "If this keeps happening, reopen the skin from Decaid or reinstall its app files.",
+    "If this keeps happening, reopen the skin from Decide or reinstall its app files.": "If this keeps happening, reopen the skin from Decide or reinstall its app files.",
     "Import a profile": "Import a profile",
     "Imported {name}.": "Imported {name}.",
     "Importing profile…": "Importing profile…",
@@ -878,7 +878,7 @@
     "Recent values": "Recent values",
     "Refresh profiles": "Refresh profiles",
     "Reload Decal": "Reload Decal",
-    "Reload failed. Open the skin again from Decaid.": "Reload failed. Open the skin again from Decaid.",
+    "Reload failed. Open the skin again from Decide.": "Reload failed. Open the skin again from Decide.",
     "Replace favourite": "Replace favourite",
     "Replace favourite {n}?": "Replace favourite {n}?",
     "Required profile fields are missing: {fields}.": "Required profile fields are missing: {fields}.",

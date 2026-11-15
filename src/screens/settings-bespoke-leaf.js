@@ -1858,7 +1858,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
         return html`<section class="group" id="app-info">
             <div class="fact-head">
-                <h3 class="ui-heading">${t('Decaid')}</h3>
+                <h3 class="ui-heading">${t('Decide')}</h3>
 
                 <ui-button
                     id="app-check"
