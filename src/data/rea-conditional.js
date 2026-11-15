@@ -10,7 +10,8 @@ export const CONDITIONAL_ROUTES = Object.freeze([
         handlerFile: 'lib/src/services/webserver/shots_handler.dart',
         handlerSymbol: 'ShotsHandler._getShots',
         callSites: 2,
-        note: 'Paginated list only. The `ids=` batch branch returns plain jsonOk — see shotsListIsConditional.',
+        note: 'Paginated list only. The `ids=` batch branch returns plain jsonOk, and `ids=` with any '
+            + 'filter is a 400 — see shotsListIsConditional.',
     }),
     Object.freeze({
         path: '/profiles',
@@ -73,17 +74,28 @@ function pathMatches(template, path) {
     return t.every((seg, i) => (seg.startsWith('<') && seg.endsWith('>') ? p[i].length > 0 : seg === p[i]));
 }
 
-const SHOT_FILTER_PARAMS = Object.freeze([
+export const SHOT_FILTER_PARAMS = Object.freeze([
     'grinderId', 'grinderModel', 'beanId', 'beanBatchId',
-    'coffeeName', 'coffeeRoaster', 'profileTitle', 'search',
+    'coffeeName', 'coffeeRoaster', 'profileTitle', 'search', 'minEnjoyment',
 ]);
 
-export function shotsListIsConditional(query = {}) {
+const isSent = (value) => (Array.isArray(value)
+    ? value.some((item) => item !== null && item !== undefined)
+    : value !== null && value !== undefined);
+
+function hasShotIds(query) {
     const rawIds = query.ids;
-    const ids = Array.isArray(rawIds) ? rawIds.join(',') : rawIds;
-    const hasIds = typeof ids === 'string' && ids.split(',').some((id) => id.length > 0);
-    if (!hasIds) return true;
-    return SHOT_FILTER_PARAMS.some((key) => query[key] !== undefined && query[key] !== null);
+    const ids = Array.isArray(rawIds) ? rawIds.filter((id) => id !== null && id !== undefined).join(',') : rawIds;
+    return typeof ids === 'string' && ids.split(',').some((id) => id.length > 0);
+}
+
+/** True when the query sends ids and any filter: the handler answers 400 to that. */
+export function shotsQueryCombinesIdsAndFilter(query = {}) {
+    return hasShotIds(query) && SHOT_FILTER_PARAMS.some((key) => isSent(query[key]));
+}
+
+export function shotsListIsConditional(query = {}) {
+    return !hasShotIds(query);
 }
 
 /**

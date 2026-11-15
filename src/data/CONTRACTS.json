@@ -1400,7 +1400,7 @@
         {
           "kind": "shape-switches-on-query",
           "meaning": "`ids=` with no filter returns a bare array of FULL records (measurements included, :85-105); `ids=` WITH any filter (grinderId, grinderModel, beanId, beanBatchId, coffeeName, coffeeRoaster, profileTitle, search, minEnjoyment, :68-77) is now refused 400 {error:'ids cannot be combined with other filters'} (:79-83) — at 42f67f69 that combination fell through to the paginated object",
-          "action": "read the shape the query you sent produces, and never combine ids with a filter. The conditional-ETag answer switches with it (rea-conditional.js shotsListIsConditional still reads ids-plus-filter as the conditional paginated form)."
+          "action": "read the shape the query you sent produces, and never combine ids with a filter. rea-routes.js buildQuery refuses ids with a filter for getShots before any request, and rea-conditional.js shotsListIsConditional reads every non-empty ids query as the plain jsonOk branch."
         },
         {
           "kind": "conditional",

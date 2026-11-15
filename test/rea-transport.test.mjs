@@ -233,7 +233,7 @@ describe('If-None-Match', () => {
         assert.equal(fetchImpl.calls[1].init.cache, undefined);
     });
 
-    test('the ids= batch form is not conditional; a filtered list is', async () => {
+    test('the ids= batch form is not conditional, with or without a filter', async () => {
         const { transport, fetchImpl } = transportWith(() => jsonResponse(200, [], { ETag: '"y"' }));
         await transport.get('/shots', { query: { ids: 'a,b' } });
         await transport.get('/shots', { query: { ids: 'a,b' } });
@@ -241,7 +241,8 @@ describe('If-None-Match', () => {
 
         await transport.get('/shots', { query: { ids: 'a,b', search: 'ethiopia' } });
         await transport.get('/shots', { query: { ids: 'a,b', search: 'ethiopia' } });
-        assert.equal(fetchImpl.calls[3].headers['If-None-Match'], '"y"');
+        assert.equal(fetchImpl.calls[3].headers['If-None-Match'], undefined,
+            'ids with a filter is a 400, so there is no ETag to send');
     });
 
     test('never sends the wildcard', async () => {
