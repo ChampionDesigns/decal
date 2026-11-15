@@ -86,7 +86,7 @@ async function exerciseEveryAction() {
     await store.loadShot(RECORD.id);
     await store.loadShot(RECORD.id);            // cached: must not call again
     await Promise.all([store.loadShot('shot-second'), store.loadShot('shot-second')]);
-    await store.setEnjoyment(RECORD.id, 72);
+    await store.setEnjoyment(RECORD.id, 7.2);
     await store.setEnjoyment(RECORD.id, null);  // clearing is a value, not an absence
     store.hasMore();
     store.derivationOf(RECORD.id);
@@ -291,7 +291,7 @@ describe('the enjoyment round-trip, as the handler is written', () => {
     test('the patch is the smallest thing that says what changed', async () => {
         const seen = await exerciseEveryAction();
         const put = seen.find((c) => c.method === 'PUT');
-        assert.deepEqual(put.body, { annotations: { enjoyment: 72 } });
+        assert.deepEqual(put.body, { annotations: { enjoyment: 7.2 } });
         assert.equal(put.path, `/shots/${RECORD.id}`);
         assert.equal(put.body.id, undefined,
             'the only 400 on this route is a body id that DISAGREES with the path; omitting it '
@@ -322,7 +322,7 @@ describe('the enjoyment round-trip, as the handler is written', () => {
                 if ((options.method ?? 'GET') === 'PUT') {
                     bodiesRead += 1;
                     // The handler's real success: the WHOLE updated record comes back.
-                    return { ok: true, status: 200, notModified: false, data: { ...RECORD, annotations: { enjoyment: 72 } } };
+                    return { ok: true, status: 200, notModified: false, data: { ...RECORD, annotations: { enjoyment: 7.2 } } };
                 }
                 return { ok: true, status: 200, data: PAGE, notModified: false };
             },
@@ -332,9 +332,9 @@ describe('the enjoyment round-trip, as the handler is written', () => {
         await store.readPage();
         const before = store.get().rows.find((r) => r.id === RECORD.id);
         assert.equal(before.cells.enjoyment.text, '—');
-        await store.setEnjoyment(RECORD.id, 72);
+        await store.setEnjoyment(RECORD.id, 7.2);
         const after = store.get().rows.find((r) => r.id === RECORD.id);
-        assert.equal(after.cells.enjoyment.value, 72, 'the list row moves without a second read');
+        assert.equal(after.cells.enjoyment.value, 7.2, 'the list row moves without a second read');
         assert.equal(bodiesRead, 1);
         assert.equal(walks, 0, 'annotations are not measurements — the echo is never re-walked');
         assert.equal(store.get().reads.list, 1, 'and the page is not re-read to learn our own number');
@@ -348,7 +348,7 @@ describe('the enjoyment round-trip, as the handler is written', () => {
         };
         const store = createShotsStore({ transport });
         await store.readPage();
-        const result = await store.setEnjoyment(RECORD.id, 72);
+        const result = await store.setEnjoyment(RECORD.id, 7.2);
         assert.equal(result.ok, false);
         assert.equal(store.get().rows.find((r) => r.id === RECORD.id).cells.enjoyment.present, false);
         assert.equal(store.get().reads.failed, 1);
@@ -397,7 +397,7 @@ describe('the enjoyment round-trip against the mock', () => {
     test('the enjoyment PUT reaches the route, and the mock refuses to invent a ShotRecord', async () => {
         const transport = createReaTransport({ fetch: (...a) => fetch(...a), baseUrl: `${base}/api/v1` });
         const store = createShotsStore({ transport });
-        const result = await store.setEnjoyment(RECORD.id, 72);
+        const result = await store.setEnjoyment(RECORD.id, 7.2);
         assert.equal(result.ok, false, 'the mock cannot state this success body, and says so');
         const { failure } = result;
         assert.equal(failure.status, 501);

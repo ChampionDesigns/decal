@@ -653,6 +653,31 @@ const api = {
         return held ? JSON.parse(JSON.stringify(held)) : null;
     },
 
+    serveRating(id, enjoyment) {
+        const at = shots.findIndex((s) => s.id === id);
+        if (at < 0) return false;
+        shots[at] = { ...shots[at], annotations: { ...(shots[at].annotations || {}), enjoyment } };
+        return true;
+    },
+
+    async sheetFace() {
+        const control = screen.shadowRoot.querySelector('ui-rating-control');
+        if (!control) return null;
+        control.shadowRoot.getElementById('rate').click();
+        await control.updateComplete;
+        const tile = control?.shadowRoot.querySelector('#sheet-score');
+        const track = control?.shadowRoot.querySelector('#slider')?.shadowRoot.querySelector('input[type="range"]');
+        return tile ? {
+            label: tile.label,
+            value: tile.value,
+            min: track?.min ?? null,
+            max: track?.max ?? null,
+            step: track?.step ?? null,
+            name: track?.getAttribute('aria-label') ?? null,
+            valueText: track?.getAttribute('aria-valuetext') ?? null,
+        } : null;
+    },
+
     /** Step the band to the older shot, through the control that does it. */
     async stepOlder() {
         screen.shadowRoot.getElementById('shot-older').click();

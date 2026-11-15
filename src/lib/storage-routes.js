@@ -253,7 +253,7 @@ export const STORAGE_ROUTES = deepFreeze({
 
     shotRating: {
         layer: LAYERS.none, scope: SCOPES.external, status: STATUSES.retired,
-        owner: 'ReaPrime — ShotAnnotations.enjoyment, written by PUT /api/v1/shots/<id> (deep-merging handler). An annotation lives and dies with its shot.',
+        owner: 'ReaPrime — ShotAnnotations.enjoyment, from 0 to 10, written by PUT /api/v1/shots/<id> (deep-merging handler). An annotation lives and dies with its shot.',
         why: 'Shot-scoped data never goes to KV: `rating:<shotId>` keys orphan forever when the shot is deleted, are invisible to other clients and to export.',
     },
     waterRefillLevel: {

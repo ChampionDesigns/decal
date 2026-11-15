@@ -30,6 +30,8 @@ export const SHOT_ANNOTATION_NUMERIC_KEYS = Object.freeze(
 );
 
 export const ENJOYMENT_KEY = 'enjoyment';
+export const ENJOYMENT_MIN = 0;
+export const ENJOYMENT_MAX = 10;
 
 /** `WorkflowContext` — what the shot was asked to do. */
 export const WORKFLOW_CONTEXT_KEYS = Object.freeze(['targetDoseWeight', 'targetYield']);
