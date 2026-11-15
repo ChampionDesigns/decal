@@ -71,7 +71,7 @@ describe('a rating outranks the record fetch it raced', () => {
         await settle();
         const fetchCall = waiting(GET_RECORD);
 
-        const write = store.setEnjoyment(ID, 72);
+        const write = store.setEnjoyment(ID, 7.2);
         await settle();
         waiting(PUT).answer({});
         await write;
@@ -80,7 +80,7 @@ describe('a rating outranks the record fetch it raced', () => {
         await read;
         await settle();
 
-        assert.equal(store.recordOf(ID).annotations.enjoyment, 72,
+        assert.equal(store.recordOf(ID).annotations.enjoyment, 7.2,
             'the fetched document put the old rating back over the one the machine took');
         assert.equal(store.recordOf(ID).annotations.actualDoseWeight, 17,
             'only the annotation the write owns is put back — the rest of the document is the server\'s');
@@ -95,28 +95,28 @@ describe('a rating outranks the record fetch it raced', () => {
         waiting(GET_RECORD).answer(served(RECORD, { enjoyment: 10 }));
         await read;
 
-        const write = store.setEnjoyment(ID, 72);
+        const write = store.setEnjoyment(ID, 7.2);
         await settle();
         waiting(PUT).answer({});
         await write;
 
-        assert.equal(store.recordOf(ID).annotations.enjoyment, 72);
+        assert.equal(store.recordOf(ID).annotations.enjoyment, 7.2);
     });
 
     test('a read issued AFTER the write settles is the newer answer and wins', async () => {
         const { store, waiting, settle } = harness();
 
-        const write = store.setEnjoyment(ID, 72);
+        const write = store.setEnjoyment(ID, 7.2);
         await settle();
         waiting(PUT).answer({});
         await write;
 
         const read = store.readPage();
         await settle();
-        waiting(GET_PAGE).answer(page({ [ID]: served(RECORD, { enjoyment: 80 }) }));
+        waiting(GET_PAGE).answer(page({ [ID]: served(RECORD, { enjoyment: 8 }) }));
         await read;
 
-        assert.equal(rowFor(store, ID).annotations.enjoyment, 80);
+        assert.equal(rowFor(store, ID).annotations.enjoyment, 8);
     });
 });
 
@@ -129,21 +129,21 @@ describe('a page read lands whole, minus the annotations it is too old to speak 
         await settle();
         const pageCall = waiting(GET_PAGE);
 
-        const write = store.setEnjoyment(ID, 72);
+        const write = store.setEnjoyment(ID, 7.2);
         await settle();
         waiting(PUT).answer({});
         await write;
 
         pageCall.answer(page({
             [ID]: served(RECORD, { enjoyment: 10 }),
-            [OTHER]: served(PAGE.items.find((i) => i.id === OTHER), { enjoyment: 44 }),
+            [OTHER]: served(PAGE.items.find((i) => i.id === OTHER), { enjoyment: 4.4 }),
         }));
         await read;
         await settle();
 
-        assert.equal(rowFor(store, ID).annotations.enjoyment, 72,
+        assert.equal(rowFor(store, ID).annotations.enjoyment, 7.2,
             'the page put the old rating back on the row that was annotated');
-        assert.equal(rowFor(store, OTHER).annotations.enjoyment, 44,
+        assert.equal(rowFor(store, OTHER).annotations.enjoyment, 4.4,
             'and every other row is the page\'s own — the document is not discarded to protect one value');
         assert.equal(store.get().items.length, PAGE.items.length);
         assert.equal(store.get().total, PAGE.total);
@@ -163,7 +163,7 @@ describe('two presses on one annotation, and two annotations on one shot', () =>
         const first = store.setEnjoyment(ID, 10);
         await settle();
         const firstCall = waiting(PUT);
-        const second = store.setEnjoyment(ID, 90);
+        const second = store.setEnjoyment(ID, 9);
         await settle();
         const secondCall = waiting(PUT);
 
@@ -173,7 +173,7 @@ describe('two presses on one annotation, and two annotations on one shot', () =>
         await first;
         await settle();
 
-        assert.equal(rowFor(store, ID).annotations.enjoyment, 90,
+        assert.equal(rowFor(store, ID).annotations.enjoyment, 9,
             'the answer that arrived last was the press that was made first');
     });
 
@@ -185,7 +185,7 @@ describe('two presses on one annotation, and two annotations on one shot', () =>
         waiting(GET_PAGE).answer(PAGE);
         await read;
 
-        const rating = store.setEnjoyment(ID, 72);
+        const rating = store.setEnjoyment(ID, 7.2);
         await settle();
         const ratingCall = waiting(PUT);
         const note = store.setNotes(ID, 'grind one finer');
@@ -199,7 +199,7 @@ describe('two presses on one annotation, and two annotations on one shot', () =>
         await settle();
 
         const row = rowFor(store, ID);
-        assert.equal(row.annotations.enjoyment, 72, 'the note\'s press must not drop the rating');
+        assert.equal(row.annotations.enjoyment, 7.2, 'the note\'s press must not drop the rating');
         assert.equal(row.annotations.espressoNotes, 'grind one finer');
     });
 });

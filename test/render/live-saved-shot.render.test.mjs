@@ -54,7 +54,7 @@ describe('Live after a shot @ bench', () => {
             const written = await page.evalFn(async () => {
                 await window.__savedShot.pullShot({ id: 'shot-new' });
                 const before = window.__savedShot.band();
-                const writes = await window.__savedShot.rate(100);
+                const writes = await window.__savedShot.rate(10);
                 return { before, writes, band: window.__savedShot.band() };
             });
 
@@ -62,8 +62,8 @@ describe('Live after a shot @ bench', () => {
             assert.equal(written.writes.length, 1, 'one press, one write');
             assert.equal(written.writes[0].id, 'shot-new',
                 'the enjoyment was written onto the shot that was just pulled');
-            assert.equal(written.writes[0].enjoyment, 100);
-            assert.equal(written.band.rating, 100, 'and the band reads it back off the list row');
+            assert.equal(written.writes[0].enjoyment, 10);
+            assert.equal(written.band.rating, 10, 'and the band reads it back off the list row');
         });
     });
 
@@ -90,13 +90,13 @@ describe('Live after a shot @ bench', () => {
 
             const after = await page.evalFn(async () => {
                 await window.__savedShot.pullShot({ id: 'shot-first' });
-                const writes = await window.__savedShot.rate(60);
+                const writes = await window.__savedShot.rate(6);
                 return { band: window.__savedShot.band(), writes, held: window.__savedShot.heldIds() };
             });
 
             assert.equal(after.band.shotId, 'shot-first');
             assert.deepEqual(after.held, ['shot-first']);
-            assert.deepEqual(after.writes, [{ id: 'shot-first', enjoyment: 60 }],
+            assert.deepEqual(after.writes, [{ id: 'shot-first', enjoyment: 6 }],
                 'the very first shot on a machine can be rated');
         }, { empty: true });
     });
@@ -134,13 +134,13 @@ describe('Live after a shot @ bench', () => {
                 await window.__savedShot.pullShot({ id: 'shot-late', landAfter: 4 });
                 const waiting = window.__savedShot.band();
                 await window.__savedShot.letItLand();
-                const writes = await window.__savedShot.rate(80);
+                const writes = await window.__savedShot.rate(8);
                 return { waiting, band: window.__savedShot.band(), writes };
             });
 
             assert.equal(landed.waiting.hasRatingControl, false, 'nothing to rate while it was in flight');
             assert.equal(landed.band.shotId, 'shot-late');
-            assert.deepEqual(landed.writes, [{ id: 'shot-late', enjoyment: 80 }]);
+            assert.deepEqual(landed.writes, [{ id: 'shot-late', enjoyment: 8 }]);
         });
     });
 

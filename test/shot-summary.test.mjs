@@ -295,14 +295,14 @@ describe('R5 lands as one field, with nothing to delete', () => {
     test('the summary answers dose, yield and enjoyment today with no fetch at all', () => {
         const rated = {
             ...PAGE.items[0],
-            annotations: { actualDoseWeight: 18, actualYield: 36, enjoyment: 72 },
+            annotations: { actualDoseWeight: 18, actualYield: 36, enjoyment: 7.2 },
         };
         const scalars = summaryScalars(rated);
         assert.equal(scalars.dose, 18);
         assert.equal(scalars.doseSource, 'actual');
         assert.equal(scalars.yield, 36);
         assert.equal(scalars.yieldSource, 'annotation');
-        assert.equal(scalars.enjoyment, 72);
+        assert.equal(scalars.enjoyment, 7.2);
         assert.equal(scalars.ratio, 2);
         // And the R5 six stay null, which is the dash.
         for (const scalar of R5_ABSENT_SCALARS) assert.equal(scalars[scalar], null);

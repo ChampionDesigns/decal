@@ -26,7 +26,7 @@ const RECORD = {
         actualYield: 36.4,
         drinkTds: 9.1,
         drinkEy: 21.3,
-        enjoyment: 80,
+        enjoyment: 8,
         espressoNotes: 'jammy',
     },
     workflow: {
@@ -63,7 +63,7 @@ describe('readShotAnnotations', () => {
         const got = readShotAnnotations(RECORD);
         assert.equal(got.present, true);
         assert.equal(got.actualDoseWeight, 18.2);
-        assert.equal(got.enjoyment, 80);
+        assert.equal(got.enjoyment, 8);
         assert.equal(got.espressoNotes, 'jammy');
     });
 

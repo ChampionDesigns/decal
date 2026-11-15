@@ -3,6 +3,7 @@
  */
 
 import { callRoute } from '../data/rea-routes.js';
+import { ENJOYMENT_MAX, ENJOYMENT_MIN } from '../data/rea-shot-record.js';
 import { deriveFromRecord } from '../lib/shot-derivation.js';
 import { shotRows } from '../lib/shot-summary.js';
 import { createStore } from './store.js';
@@ -218,8 +219,12 @@ export function createShotsStore({
         if (value !== null && !Number.isFinite(value)) {
             throw new Error(
                 'createShotsStore: enjoyment is a nullable double — a finite number, or null '
-                + 'to clear it. ReaPrime does not bound it; the 0..100 scale is the rating '
-                + "control's and belongs to the component, not to the wire.",
+                + 'to clear it.',
+            );
+        }
+        if (value !== null && (value < ENJOYMENT_MIN || value > ENJOYMENT_MAX)) {
+            throw new RangeError(
+                `createShotsStore: enjoyment must be from ${ENJOYMENT_MIN} to ${ENJOYMENT_MAX}, got ${value}`,
             );
         }
         const slot = slotFor(id, 'enjoyment');
