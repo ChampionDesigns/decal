@@ -4181,6 +4181,33 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => window.__settings.feedbackResult(null));
             });
 
+            test('a 400 Decent account required tells the user to sign in, with the server reason', async () => {
+                await show('help', 'help-send-feedback');
+                await page.evalFn(() => window.__settings.feedbackResult({
+                    status: 400,
+                    body: {
+                        success: false,
+                        error: 'Decent account required',
+                        message: 'You must be logged in to your Decent account to submit feedback.',
+                    },
+                }));
+                await type('the group head leaks');
+                await submit();
+                await page.settle();
+                const got = await page.evalFn(() => {
+                    const root = window.__settings.bespokeEl().shadowRoot;
+                    return {
+                        account: root.getElementById('feedback-account')?.textContent.replace(/\s+/g, ' ').trim() ?? null,
+                        reason: root.getElementById('feedback-account-reason')?.textContent.trim() ?? null,
+                        empty: root.getElementById('feedback-empty'),
+                    };
+                });
+                assert.match(got.account ?? '', /^Sending feedback needs a Decent account\. Sign in to your Decent account in ReaPrime/);
+                assert.equal(got.reason, 'You must be logged in to your Decent account to submit feedback.');
+                assert.equal(got.empty, null);
+                await page.evalFn(() => window.__settings.feedbackResult(null));
+            });
+
             test('a sent report names the issue it became, and links to it', async () => {
                 await show('help', 'help-send-feedback');
                 await page.evalFn(() => window.__settings.feedbackResult({

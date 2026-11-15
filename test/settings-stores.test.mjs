@@ -270,6 +270,37 @@ describe('feedback: three refusals, and only one of them is worth retrying', () 
         assert.equal(store.get().reason, FEEDBACK_REFUSAL.NOT_CONFIGURED);
     });
 
+    test('a 400 Decent account required is ACCOUNT_REQUIRED and keeps the server reason', async () => {
+        const store = createFeedbackStore({
+            transport: transportOf(() => bad(400, {
+                success: false,
+                error: 'Decent account required',
+                message: 'You must be logged in to your Decent account to submit feedback.',
+            })),
+        });
+        await store.submit({ description: 'it broke' });
+        assert.equal(store.get().status, FEEDBACK_STATUS.REFUSED);
+        assert.equal(store.get().reason, FEEDBACK_REFUSAL.ACCOUNT_REQUIRED);
+        assert.equal(store.get().message, 'You must be logged in to your Decent account to submit feedback.');
+    });
+
+    test('any other 400 is still EMPTY_DESCRIPTION', async () => {
+        const store = createFeedbackStore({
+            transport: transportOf(() => bad(400, {
+                error: 'Missing required field',
+                message: 'Request must contain a non-empty "description" field',
+            })),
+        });
+        await store.submit({ description: 'it broke' });
+        assert.equal(store.get().reason, FEEDBACK_REFUSAL.EMPTY_DESCRIPTION);
+    });
+
+    test('a 400 with no readable body is still EMPTY_DESCRIPTION', async () => {
+        const store = createFeedbackStore({ transport: transportOf(() => bad(400, 'not json')) });
+        await store.submit({ description: 'it broke' });
+        assert.equal(store.get().reason, FEEDBACK_REFUSAL.EMPTY_DESCRIPTION);
+    });
+
     test('an unknown type is made explicit rather than left to the handler’s orElse', async () => {
         const transport = transportOf(() => ok({}, 201));
         const store = createFeedbackStore({ transport });

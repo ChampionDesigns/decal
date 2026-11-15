@@ -3390,6 +3390,12 @@ export class SettingsBespokeLeaf extends UiElement {
                 ? html`<p id="feedback-unconfigured" class="ui-caption prose"
                     >${t('This ReaPrime build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.')}</p>`
                 : nothing}
+            ${refusal === FEEDBACK_REFUSAL.ACCOUNT_REQUIRED
+                ? html`<p id="feedback-account" class="ui-caption prose"
+                    >${t('Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.')}${state.message
+                        ? html` <span id="feedback-account-reason">${state.message}</span>`
+                        : nothing}</p>`
+                : nothing}
             <div class="sw-stack">
                 <span class="ui-heading">${t('What is this about?')}</span>
                 <ui-bank

@@ -544,6 +544,7 @@
     {"key":"Send Feedback"},
     {"key":"Send a message","note":"Help › Talk to Decent: the compose section's heading."},
     {"key":"Send message","note":"Help › Talk to Decent: the compose box's primary action."},
+    {"key":"Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.","note":"Help › Send Feedback: the handler answered 400 Decent account required. The handler's own reason may follow it."},
     {"key":"Sending…","note":"Help › Talk to Decent: the send button while a request is in flight."},
     {"key":"Serial","note":"A machine fact, in the Talk to Decent attachment block."},
     {"key":"Serial number"},
