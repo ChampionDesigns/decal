@@ -31,7 +31,7 @@ const EMPTY_STATE = Object.freeze({
     writeError: null,
 });
 
-export function createPluginsStore({ transport, logger = null } = {}) {
+export function createPluginsStore({ transport, logger = null, canManage = false } = {}) {
     if (!transport || typeof transport.request !== 'function') {
         throw new Error('createPluginsStore: a transport must be injected (see createReaTransport)');
     }
@@ -71,6 +71,7 @@ export function createPluginsStore({ transport, logger = null } = {}) {
     }
 
     return {
+        canManage,
         subscribe(listener) { return store.subscribe(listener); },
         get() { return store.get(); },
 
@@ -123,6 +124,7 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         },
 
         async writeSettings(id, patch) {
+            if (!canManage) return false;
             if (typeof id !== 'string' || !id) return false;
             if (!patch || typeof patch !== 'object') return false;
             const result = await callRoute(transport, 'postPluginsByIdSettings', { params: { id }, body: patch });
@@ -147,6 +149,7 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         /** Turn one on or off. One call — the handler does both the flag and the load. */
         /** Hold one setting against a plugin until a Save writes it. */
         stageSetting(id, key, value) {
+            if (!canManage) return false;
             if (typeof id !== 'string' || !id) return false;
             if (typeof key !== 'string' || !key) return false;
             if (value === undefined) return false;
@@ -183,6 +186,7 @@ export function createPluginsStore({ transport, logger = null } = {}) {
         },
 
         async setEnabled(id, enabled) {
+            if (!canManage) return false;
             if (typeof id !== 'string' || !id) return false;
             if (typeof enabled !== 'boolean') return false;
             const result = await callRoute(

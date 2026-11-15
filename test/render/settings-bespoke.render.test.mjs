@@ -78,7 +78,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
         before(async () => {
             page = await browser.newPage({ geometry });
             await page.mount(STAGE, MODULES);
-            await page.evalFn(() => window.__settings.mount().then(() => true));
+            await page.evalFn(() => window.__settings.mount({ canManage: true }).then(() => true));
             assert.deepEqual(page.pageErrors, [], 'the screen must mount without throwing');
         });
 

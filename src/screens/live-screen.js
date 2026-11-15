@@ -1424,6 +1424,7 @@ export class LiveScreen extends UiElement {
             open
             .reading=${this.weather}
             .pending=${this._weatherPending}
+            ?locked=${this.boot?.plugins?.canManage === false}
             @weather-location=${this.#saveWeatherLocation}
             @open-change=${this.#onWeatherOpenChange}
         ></weather-modal>`;

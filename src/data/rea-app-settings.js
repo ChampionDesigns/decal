@@ -33,6 +33,7 @@ export function createAppSettingsClient(transport) {
         async write(patch) {
             const body = pick(patch, APP_SETTINGS_WRITE_KEYS);
             if (Object.keys(body).length === 0) return false;
+            if (body.automaticUpdateCheck === true) return false;
             const result = await callRoute(transport, 'postSettings', { body });
             return Boolean(result && result.ok);
         },

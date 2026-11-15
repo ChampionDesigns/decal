@@ -1633,11 +1633,15 @@ export class SettingsBespokeLeaf extends UiElement {
         const switching = state?.switching ?? null;
         const switched = state?.switched ?? null;
         const failed = state?.switchError ?? null;
+        const canManage = this.deps?.skins?.canManage !== false;
 
         return html`${this.#themeBank()}
         <section class="group" id="skins">
             <h3 class="ui-heading">${t('Active skin')}</h3>
-            <p class="ui-caption prose">${t('Tap a skin to switch to it, then press Reload. The screen does not reload itself.')}</p>
+            ${canManage
+                ? html`<p class="ui-caption prose">${t('Tap a skin to switch to it, then press Reload. The screen does not reload itself.')}</p>`
+                : html`<p id="skins-manage-elsewhere" class="ui-caption prose"
+                    >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
             ${failed
                 ? html`<p id="skin-failed" class="ui-caption prose"
                     >${t('The machine refused to switch skins. It is still serving the one you are looking at.')}</p>`
@@ -1655,7 +1659,7 @@ export class SettingsBespokeLeaf extends UiElement {
                     body=${t('The machine has not listed its installed skins.')}
                   ></ui-empty-state>`
                 : html`<ui-card-grid id="skin-grid" columns="2" label=${t('Installed skins')}>
-                    ${skins.map((skin) => this.#skinCard(skin, state.defaultId, switching))}
+                    ${skins.map((skin) => this.#skinCard(skin, state.defaultId, switching, canManage))}
                   </ui-card-grid>`}
         </section>`;
     }
@@ -1695,7 +1699,7 @@ export class SettingsBespokeLeaf extends UiElement {
         void Promise.resolve(this.theme?.set(chosen)).catch(() => {});
     }
 
-    #skinCard(skin, activeId, switching) {
+    #skinCard(skin, activeId, switching, canManage) {
         const t = this.#i18n.t;
         const active = skin.id === activeId;
         const busy = switching === skin.id;
@@ -1709,8 +1713,8 @@ export class SettingsBespokeLeaf extends UiElement {
             </span>
             ${active ? html`<span class="skin-active ui-microcap">${t('Active')}</span>` : nothing}`;
 
-        return active
-            ? html`<ui-card class="skin-card" data-skin=${skin.id} data-active
+        return active || !canManage
+            ? html`<ui-card class="skin-card" data-skin=${skin.id} ?data-active=${active}
                 >${body}</ui-card>`
             : html`<ui-card class="skin-card" data-skin=${skin.id}>
                 <button
@@ -1746,6 +1750,7 @@ export class SettingsBespokeLeaf extends UiElement {
         const updating = state?.updating === true;
         const failed = state?.updateError ?? null;
         const ran = state?.updateRan === true;
+        const canManage = this.deps?.skins?.canManage !== false;
 
         const checkedText = [checked, skins.length].join(' / ');
 
@@ -1756,11 +1761,14 @@ export class SettingsBespokeLeaf extends UiElement {
                 <ui-button
                     id="skins-update"
                     variant="primary"
-                    ?disabled=${updating}
+                    ?disabled=${updating || !canManage}
                     @click=${() => { void this.deps?.skins?.updateAll?.(); }}
                 >${t(updating ? 'Updating' : 'Update all skins')}</ui-button>
             </div>
-            <p class="ui-caption prose">${t('Downloads and installs the newest version of every skin that came from a source. Switch skins in Display › Skin.')}</p>
+            ${canManage
+                ? html`<p class="ui-caption prose">${t('Downloads and installs the newest version of every skin that came from a source. Switch skins in Display › Skin.')}</p>`
+                : html`<p id="updates-manage-elsewhere" class="ui-caption prose"
+                    >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
 
             ${ran
                 ? html`<p id="updates-outcome" class="ui-caption prose"
@@ -1810,7 +1818,7 @@ export class SettingsBespokeLeaf extends UiElement {
             <span></span>
             <span class="device-actions">
 
-                ${skin.id === state?.defaultId || skin.bundled
+                ${skin.id === state?.defaultId || skin.bundled || this.deps?.skins?.canManage === false
                     ? nothing
                     : html`<ui-button
                         class="skin-remove"
@@ -2811,6 +2819,10 @@ export class SettingsBespokeLeaf extends UiElement {
         return html`
             <section class="group" id="plugin-list">
                 <h3 class="ui-heading">${t('Installed plugins')}</h3>
+                ${store?.canManage === false
+                    ? html`<p id="plugins-manage-elsewhere" class="ui-caption prose"
+                        >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`
+                    : nothing}
 
                 <div class="plugins">
                     ${state.plugins.map((plugin) => this.#pluginRow(plugin))}
@@ -2855,6 +2867,7 @@ export class SettingsBespokeLeaf extends UiElement {
             <ui-switch
                 aria-label=${`${t('Enable')} ${plugin.name ?? plugin.id}`}
                 ?checked=${plugin.autoLoad === true}
+                ?disabled=${this.deps?.plugins?.canManage === false}
                 @change=${(event) => this.#onPluginEnabled(plugin.id, event)}
             ></ui-switch>
             <span class="device-actions">
@@ -2908,13 +2921,13 @@ export class SettingsBespokeLeaf extends UiElement {
                 @click=${() => this.renderRoot
                     .getElementById('plugin-settings-dialog')?.requestClose('close')}
             >${t('Close')}</ui-button>
-            <ui-button
+            ${this.deps?.plugins?.canManage === false ? nothing : html`<ui-button
                 id="plugin-save"
                 slot="actions"
                 variant="primary"
                 ?disabled=${(Object.keys(this.deps?.plugins?.draftFor?.(id) ?? {}).length) === 0}
                 @click=${() => this.#onPluginSave(id)}
-            >${t('Save')}</ui-button>
+            >${t('Save')}</ui-button>`}
         </ui-dialog>`;
     }
 
@@ -2958,6 +2971,7 @@ export class SettingsBespokeLeaf extends UiElement {
         }
 
         const fields = settingFields(manifest, values);
+        const canManage = store?.canManage !== false;
 
         const draft = store?.draftFor?.(pluginId) ?? {};
         const dirty = Object.keys(draft).length;
@@ -2977,9 +2991,14 @@ export class SettingsBespokeLeaf extends UiElement {
                         id="plugin-enabled"
                         aria-label=${`${t('Enable')} ${manifest.name ?? pluginId}`}
                         ?checked=${manifest.autoLoad === true}
+                        ?disabled=${!canManage}
                         @change=${(event) => this.#onPluginEnabled(pluginId, event)}
                     ></ui-switch>
                 </div>
+                ${canManage
+                    ? nothing
+                    : html`<p id="plugin-manage-elsewhere" class="ui-caption prose"
+                        >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
 
                 ${this._pluginRefused && !dirty
                     ? this.#refusal('plugin-enable-refusal', 'That change was not saved.',
@@ -2992,8 +3011,8 @@ export class SettingsBespokeLeaf extends UiElement {
                 : html`<section class="group" id="plugin-settings">
 
                 ${inDialog ? nothing : html`<h3 class="ui-heading">${t('Settings')}</h3>`}
-                    ${fields.map((field) => this.#pluginField(pluginId, field, draft))}
-                    <div class="sw-row">
+                    ${fields.map((field) => this.#pluginField(pluginId, field, draft, canManage))}
+                    ${canManage ? html`<div class="sw-row">
                         <span class="ui-caption">${dirty
                             ? `${dirty} ${t(dirty === 1 ? 'change not saved' : 'changes not saved')}`
                             : t('Saving reloads the plugin.')}</span>
@@ -3004,7 +3023,7 @@ export class SettingsBespokeLeaf extends UiElement {
                             ?disabled=${dirty === 0}
                             @click=${() => this.#onPluginSave(pluginId)}
                         >${t('Save')}</ui-button>`}
-                    </div>
+                    </div>` : nothing}
 
                     ${this._pluginRefused
                         ? this.#refusal('plugin-refusal', 'Those settings were not saved.',
@@ -3014,7 +3033,7 @@ export class SettingsBespokeLeaf extends UiElement {
         `;
     }
 
-    #pluginField(pluginId, field, draft) {
+    #pluginField(pluginId, field, draft, canManage = true) {
         const t = this.#i18n.t;
         const staged = Object.hasOwn(draft, field.key);
         const shown = staged ? draft[field.key] : field.value;
@@ -3042,7 +3061,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 ${field.secure
                     ? html`<span class="ui-caption"
                         >${field.isSet === true
-                            ? t('A value is stored. Type a new one to replace it.')
+                            ? (canManage ? t('A value is stored. Type a new one to replace it.') : t('A value is stored.'))
                             : t('Nothing stored yet.')}</span
                     >`
                     : nothing}
@@ -3051,12 +3070,14 @@ export class SettingsBespokeLeaf extends UiElement {
                 ? html`<ui-switch
                     aria-label=${t(copy.heading)}
                     ?checked=${shown === undefined ? field.fallback === true : shown === true}
+                    ?disabled=${!canManage}
                     @change=${(event) => this.#onPluginField(pluginId, field.key, event.detail?.checked)}
                 ></ui-switch>`
 
                 : html`<ui-text-field
                     label=${t(copy.heading)}
                     hide-label
+                    ?disabled=${!canManage}
                     type=${field.secure ? 'password' : field.type === 'number' ? 'number' : 'text'}
                     inputmode=${field.type === 'number' && !field.secure ? 'decimal' : nothing}
                     .value=${shown === undefined || shown === null ? '' : String(shown)}
