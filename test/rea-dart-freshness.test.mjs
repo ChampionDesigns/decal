@@ -109,7 +109,7 @@ describe('rea-devices.js — the ConnectionError tables the banner rule reads', 
         const connectionScoped = all.filter((v) => !SCAN_SCOPED_ERROR_KINDS.includes(v));
         assert.deepEqual(connectionScoped, [
             'scaleConnectFailed', 'machineConnectFailed', 'sensorConnectFailed',
-            'scaleDisconnected', 'machineDisconnected', 'profileUploadFailed',
+            'grinderConnectFailed', 'scaleDisconnected', 'machineDisconnected', 'profileUploadFailed',
         ], 'ConnectionErrorKind has grown or lost a member — classify it in rea-devices.js');
     });
 });

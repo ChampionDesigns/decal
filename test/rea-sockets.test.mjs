@@ -345,10 +345,11 @@ describe('send: no queue, no invented delivery', () => {
 });
 
 describe('the channel table', () => {
-    test('there are ten channels and the three unconsumed ones are absent', () => {
+    test('there are ten channels and the five unconsumed ones are absent', () => {
         const paths = Object.values(WS_CHANNELS).map((c) => c.path);
         assert.equal(paths.length, 10);
-        for (const excluded of ['/ws/v1/machine/raw', '/ws/v1/logs', '/ws/v1/webview/logs']) {
+        for (const excluded of ['/ws/v1/machine/raw', '/ws/v1/logs', '/ws/v1/webview/logs',
+            '/ws/v1/grinder/snapshot', '/ws/v1/scales/<id>/snapshot']) {
             assert.equal(paths.includes(excluded), false, `${excluded} is deliberately not consumed`);
         }
     });
@@ -356,7 +357,8 @@ describe('the channel table', () => {
     test('it agrees with the GENERATED spec table — two tables that could drift, guarded', () => {
         const documented = SOCKET_CHANNELS.map((c) => c.route).sort();
         const consumed = Object.values(WS_CHANNELS).map((c) => c.path).sort();
-        const excluded = ['/ws/v1/logs', '/ws/v1/machine/raw', '/ws/v1/webview/logs'];
+        const excluded = ['/ws/v1/logs', '/ws/v1/machine/raw', '/ws/v1/webview/logs',
+            '/ws/v1/grinder/snapshot', '/ws/v1/scales/<id>/snapshot'];
         assert.deepEqual(documented, [...consumed, ...excluded].sort());
         for (const path of consumed) {
             assert.ok(documented.includes(path), `${path} is not in the generated spec table`);

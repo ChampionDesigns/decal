@@ -2,8 +2,8 @@
 //
 //   generator: scripts/generate-machine-state.js
 //   source:    lib/src/models/device/machine.dart (ReaPrime)
-//   commit:    42f67f69334197a08cc0f4138ca05302616e977a
-//   sha256:    de74297fbfa0ecbf2a0e86b889a147437ff647d24e4ad8ef136957305d6b9c44
+//   commit:    8fee86ddc761cd4b0a874178bf1e54b5b4ee7745
+//   sha256:    2932f00c231a34e0ca67ce18949dd7d02d47df350030c6ebe96c3dd603521057
 //
 // Regenerate with `node scripts/generate-machine-state.js`; `--check` fails on a stale
 // artifact and test/machine-state-freshness.test.mjs runs that check.
@@ -75,6 +75,8 @@ export const MACHINE_SUBSTATES = Object.freeze([
     'cleaningSteam',
     'pausedSteam',
     'puffing',
+    'refillStopped',
+    'pumpZeroing',
     'errorNaN',
     'errorInf',
     'errorGeneric',
@@ -93,6 +95,11 @@ export const MACHINE_SUBSTATES = Object.freeze([
     'errorLoCurrent',
     'errorBootFill',
     'errorNoAC',
+    'errorPumpZero',
+    'errorPumpNeedsCalibration',
+    'errorFrontSwitchOff',
+    'errorPumpFault',
+    'errorPumpSilent',
 ]);
 
 /** The same members by symbolic name. Generated, so it cannot drift from the enum. */
@@ -108,6 +115,8 @@ export const MACHINE_SUBSTATE = Object.freeze({
     CLEANING_STEAM: 'cleaningSteam',
     PAUSED_STEAM: 'pausedSteam',
     PUFFING: 'puffing',
+    REFILL_STOPPED: 'refillStopped',
+    PUMP_ZEROING: 'pumpZeroing',
     ERROR_NA_N: 'errorNaN',
     ERROR_INF: 'errorInf',
     ERROR_GENERIC: 'errorGeneric',
@@ -126,11 +135,16 @@ export const MACHINE_SUBSTATE = Object.freeze({
     ERROR_LO_CURRENT: 'errorLoCurrent',
     ERROR_BOOT_FILL: 'errorBootFill',
     ERROR_NO_AC: 'errorNoAC',
+    ERROR_PUMP_ZERO: 'errorPumpZero',
+    ERROR_PUMP_NEEDS_CALIBRATION: 'errorPumpNeedsCalibration',
+    ERROR_FRONT_SWITCH_OFF: 'errorFrontSwitchOff',
+    ERROR_PUMP_FAULT: 'errorPumpFault',
+    ERROR_PUMP_SILENT: 'errorPumpSilent',
 });
 
 /** Provenance, asserted by the freshness test rather than trusted. */
 export const MACHINE_STATE_SOURCE = Object.freeze({
     file: 'lib/src/models/device/machine.dart',
-    commit: '42f67f69334197a08cc0f4138ca05302616e977a',
-    sha256: 'de74297fbfa0ecbf2a0e86b889a147437ff647d24e4ad8ef136957305d6b9c44',
+    commit: '8fee86ddc761cd4b0a874178bf1e54b5b4ee7745',
+    sha256: '2932f00c231a34e0ca67ce18949dd7d02d47df350030c6ebe96c3dd603521057',
 });

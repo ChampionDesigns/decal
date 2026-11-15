@@ -117,13 +117,25 @@ describe('the payoff is structural, and the handlers still say so', () => {
 
     test('the device-read counts in the register are the handler\'s', () => {
         const source = readFileSync(de1, 'utf8');
-        const count = (route) => {
+        const snapshots = readFileSync(join(REA_ROOT, 'lib/src/models/device/de1_interface.dart'), 'utf8');
+        const routeBody = (route) => {
             const at = source.indexOf(route);
-            const body = source.slice(at, source.indexOf('});', source.indexOf('return jsonOk(json);', at)));
-            return (body.match(/await de1\.get/g) || []).length;
+            assert.ok(at > 0, `route missing: ${route}`);
+            return source.slice(at, source.indexOf('});', source.indexOf('return jsonOk(json);', at)));
         };
-        assert.equal(count("app.get('/api/v1/machine/settings'"), 9);
-        assert.equal(count("app.get('/api/v1/machine/settings/advanced'"), 6);
+        const snapshotReads = (name) => {
+            const at = snapshots.indexOf(`${name}() async`);
+            assert.ok(at > 0, `${name} missing from de1_interface.dart`);
+            return (snapshots.slice(at, snapshots.indexOf(');\n', at)).match(/await get/g) || []).length;
+        };
+        const basic = routeBody("app.get('/api/v1/machine/settings'");
+        const advanced = routeBody("app.get('/api/v1/machine/settings/advanced'");
+        assert.match(basic, /await _machineSettingsSnapshot\(de1\)/);
+        assert.match(advanced, /await _advancedMachineSettingsSnapshot\(de1\)/);
+        assert.match(source, /return de1\.getMachineSettingsSnapshot\(\);/);
+        assert.match(source, /return de1\.getAdvancedMachineSettingsSnapshot\(\);/);
+        assert.equal((basic.match(/await de1\.get/g) || []).length + snapshotReads('getMachineSettingsSnapshot'), 9);
+        assert.equal((advanced.match(/await de1\.get/g) || []).length + snapshotReads('getAdvancedMachineSettingsSnapshot'), 6);
         assert.deepEqual(DE1_CACHE_SPECS.map((s) => s.deviceReads), [9, 6]);
         assert.equal(DE1_CACHE_SPECS.reduce((a, s) => a + s.deviceReads, 0), 15, 'the "15 serialized MMR reads" of the scope');
     });

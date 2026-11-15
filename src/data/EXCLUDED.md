@@ -10,7 +10,7 @@ reviewer sees what was written, not what was left out — so the omissions are w
 here with a reason and a citation each.
 
 Everything below was checked against ReaPrime **as written** at
-`42f67f69334197a08cc0f4138ca05302616e977a`
+`8fee86ddc761cd4b0a874178bf1e54b5b4ee7745`
 (the pinned ReaPrime checkout, read-only). Old-skin line numbers are from that module and
 go soft the moment anything moves — **re-anchor by symbol**.
 
@@ -32,11 +32,25 @@ excluded, because the work is somewhere else.
 **The `previewLedStrip` / `clearLedStripPreview` row was REMOVED at the re-pin**, by the rule
 above and not by anyone needing the thing: its citation no longer holds. It read "these
 endpoints have never existed in ReaPrime", and `POST /machine/ledStrip/preview` and
-`.../preview/clear` are both registered at `42f67f69` (`de1handler.dart`), so the generated
+`.../preview/clear` are both registered at `8fee86dd` (`de1handler.dart`), so the generated
 route table now carries them and the path could not stay on the guard list. What the row
 recorded is still true and now lives on the contract table's `putMachineLedStrip` row: the
 PUT is the SAVE — every one of its four registers is a flash write — and the preview pair is
 what drives the strip without storing anything.
+
+## Routes the app serves and this skin does not call
+
+Documented in `rest_v1.yml` at `8fee86dd`, served, and not called, because no Decal screen
+asks for them. They are not dead surface: a screen that wants one adds a caller through
+`callRoute` and its own contract row.
+
+| Not called | Why | Citation |
+|---|---|---|
+| `GET /api/v1/manifest` | The API docs manifest for the docs viewer. A skin reads the routes, not their index. | `webserver_service.dart:549` |
+| `GET /api/v1/grinder/info`, `GET /api/v1/grinder/state`, `PUT /api/v1/grinder/state/grinding`, `PUT /api/v1/grinder/state/idle`, `PUT /api/v1/grinder/setting`, `PUT /api/v1/grinder/rpm` | Control of a connected grinder. No Decal screen shows or drives a grinder. | `grinder_handler.dart:9-17` |
+| `PUT /api/v1/scales/{id}/tare` | Tare of one scale by device id. Decal tares the preferred scale through `PUT /api/v1/scale/tare`. | `scale_handler.dart:89` `_handleAddressedTare` |
+| `GET /api/v1/scale/info` | Scale firmware version and battery level. No Decal screen shows them. | `scale_handler.dart:19-36` |
+| `GET /api/v1/machine/waterLevels` | Decal reads the water levels off the `/ws/v1/machine/waterLevels` socket, which it opens anyway. | `de1handler.dart:422` |
 
 ## Duplicates — one of each, by construction
 

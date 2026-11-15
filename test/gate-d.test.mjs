@@ -311,7 +311,7 @@ describe('handler-body gates, re-read at the pin', () => {
 
 describe('the ReaPrime-side contract bugs', () => {
     test('are listed, and each names a file that exists at the pin', () => {
-        assert.equal(TABLE.reaPrimeSide.length, 4);
+        assert.equal(TABLE.reaPrimeSide.length, 3);
         for (const entry of TABLE.reaPrimeSide) {
             assert.match(entry.bug, /^CB-\d\d$/);
             assert.match(entry.policy, /upstream/i);
@@ -325,8 +325,12 @@ describe('the ReaPrime-side contract bugs', () => {
         assert.ok(cast > 0 && tryAt > cast, 'the unguarded cast precedes the try — a malformed body is a 500 with a Dart stack');
     });
 
-    test('CB-06 really does bind to whichever sensor registered first', () => {
+    test('the steam sequencer reads milk temperature from a temperature sensor, the Bengle probe first', () => {
         const src = readFileSync(join(REA_ROOT, 'lib/src/controllers/steam_sequencer.dart'), 'utf8');
-        assert.match(src, /entries\.first/);
+        assert.doesNotMatch(src, /entries\.first/);
+        assert.match(src, /channel\.key == 'temperature' && channel\.type == 'number'/);
+        assert.match(src, /sensor\.info\.name == 'Bengle Milk Probe' &&\s*sensor\.info\.vendor == 'DecentEspresso'/);
+        assert.match(src, /return temperatureSensors\.firstOrNull;/);
+        assert.equal(TABLE.reaPrimeSide.some((e) => /steam_sequencer/.test(e.where)), false);
     });
 });

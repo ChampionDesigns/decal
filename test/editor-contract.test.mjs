@@ -185,13 +185,13 @@ describe('R2’s route does not exist and the table records the absence', () => 
         /* THE SWEEP'S RESULT, RE-ATTESTED AT THE RE-PIN. The basis used to read "ZERO
          * whose path matches"; the re-count says the same thing in the app's own terms
          * and the terms are what is pinned here, not the sentence. Reproduced against
-         * the worktree while re-pinning: 149 registrations (140 at the old pin) —
-         * 62 GET / 46 POST / 24 PUT / 16 DELETE / 1 OPTIONS over 106 distinct paths —
+         * the worktree while re-pinning: 156 registrations (149 at the pin before) —
+         * 65 GET / 46 POST / 28 PUT / 16 DELETE / 1 OPTIONS over 111 distinct paths —
          * and still not one that serves a bound. Both halves of the claim are asserted,
          * so a basis that quietly drops the /ws/v1 sweep fails here. */
         assert.match(r2.basis, /NONE matches limit\|range\|bound\|envelope\|constraint/);
         assert.match(r2.basis, /no \/api\/v1 or \/ws\/v1 string literal anywhere in lib\/ does either/);
-        assert.match(r2.basis, /149 app\.get\|put\|post\|delete\|options/);
+        assert.match(r2.basis, /156 app\.get\|put\|post\|delete\|options/);
         assert.match(r2.policy, /NO STUB, NO ROW/);
     });
 
