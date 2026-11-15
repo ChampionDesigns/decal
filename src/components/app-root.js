@@ -209,7 +209,7 @@ export class AppRoot extends UiElement {
             const from = this.boot?.pendingRoute?.() ?? shown;
             if (from === id) return;
             if (id === shown) {
-                this.#mountScreen(this._boot?.route?.tag ?? null);
+                this.#callOffLeave(this._boot?.route?.tag ?? null);
                 this.boot.goto(id);
                 return;
             }
@@ -334,6 +334,20 @@ export class AppRoot extends UiElement {
         if (tag === current) return;
 
         this.#mountScreen(tag);
+    }
+
+    #callOffLeave(tag) {
+        const screen = this.#screen;
+        if (!screen || screen.tagName.toLowerCase() !== tag) {
+            this.#mountScreen(tag);
+            return;
+        }
+        try {
+            screen.leaveCancelled?.();
+        } catch (error) {
+            appLogger.warn('a screen threw when its leave was called off; it is put in again', error);
+            this.#mountScreen(tag);
+        }
     }
 
     #mountScreen(tag) {

@@ -942,7 +942,7 @@ describe('a hash change while a route change is pending @ bench', () => {
                 'the shown screen is not asked to leave for itself');
         }));
 
-    test('a return to the shown route puts in a new screen, so a guard that agreed to leave is not asked again',
+    test('a return to the shown route keeps the shown screen and calls off its leave, so a guard that agreed is asked again',
         () => pending(async (page) => {
             await page.evalFn(() => {
                 window.__latch = (screen) => {
@@ -955,6 +955,7 @@ describe('a hash change while a route change is pending @ bench', () => {
                         agreed = true;
                         return true;
                     };
+                    screen.leaveCancelled = () => { agreed = false; };
                 };
                 window.__first = window.__h.q('app-root >>> live-screen');
                 window.__latch(window.__first);
@@ -975,7 +976,41 @@ describe('a hash change while a route change is pending @ bench', () => {
             const end = await settle(page);
             assert.equal(end.hash, '#/live', 'the refusal puts the address back');
             assert.equal(end.route, 'live', 'the screen on show was asked, and it refused');
-            assert.equal(kept, false, 'the screen that agreed to leave is not the one on show');
+            assert.equal(kept, true, 'the screen that agreed to leave is still the one on show');
+        }));
+
+    test('a return to the shown route keeps the edits made on the shown screen while the other screen loaded',
+        () => pending(async (page) => {
+            await page.evalFn(() => { window.__first = window.__h.q('app-root >>> live-screen'); });
+            const held = await hashTo(page, 'probe');
+            assert.equal(held.length, 1, 'the probe screen is pending');
+            await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                screen.__draft = 'typed while the probe screen loads';
+                const mark = document.createElement('p');
+                mark.id = 'draft-mark';
+                mark.textContent = screen.__draft;
+                screen.shadowRoot.appendChild(mark);
+            });
+            await hashTo(page, 'live');
+            await release(page, 'probe-screen');
+            const end = await settle(page);
+            assert.equal(end.route, 'live');
+            assert.equal(end.hash, '#/live');
+            const shown = await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                return {
+                    same: screen === window.__first,
+                    draft: screen?.__draft ?? null,
+                    mark: screen?.shadowRoot?.getElementById('draft-mark')?.textContent ?? null,
+                    count: window.__h.q('app-root').shadowRoot.querySelectorAll('live-screen, probe-screen').length,
+                };
+            });
+            assert.equal(shown.same, true, 'the shown screen keeps its element');
+            assert.equal(shown.draft, 'typed while the probe screen loads', 'and its own state');
+            assert.equal(shown.mark, 'typed while the probe screen loads', 'and what it shows');
+            assert.equal(shown.count, 1, 'and no second screen is mounted');
+            assert.deepEqual(page.pageErrors, []);
         }));
 
     test('a hash event for the shown route with nothing pending does nothing',
