@@ -223,6 +223,24 @@
       ],
       "why": "The History power page (fix run 6) is the first surface that renders the derived channels, and with the recordings as they stand every instrument would photograph its honest empty state instead of the chart. Editing the fixtures was refused: a fixture edited to pass a check has stopped being a recording, and FIXTURES.sha256 would have moved for three files with no truer recording behind the change.",
       "bench": "Re-record GET /api/v1/shots/{id} from a machine on current ReaPrime and this entry retires: the recording will carry the keys and the transform becomes a no-op. Until then it is the instrument answering as the pinned server answers."
+    },
+    {
+      "fixtures": [
+        "api__v1__settings.json"
+      ],
+      "path": "/api/v1/settings",
+      "row": "getSettings",
+      "handlerSymbol": "SettingsHandler GET /api/v1/settings",
+      "handlerFile": "lib/src/services/webserver/settings_handler.dart",
+      "checkedCommit": "8fee86ddc761cd4b0a874178bf1e54b5b4ee7745",
+      "evidence": "settings_handler.dart:47 writes preferredGrinderDeviceId in every getSettings answer; settings_controller.dart:46 and :97 type it String?, so it is null when no grinder is set.",
+      "observed": "The recording was taken off an older ReaPrime and has no preferredGrinderDeviceId key; the other 23 keys are present.",
+      "transform": "Add preferredGrinderDeviceId: null only when the key is absent. Nothing else is changed, and the bytes on disk stay as recorded.",
+      "implementedIn": [
+        "tools/mock_rea.py — upgrade_recorded_settings(), applied through served_body() in do_GET for /api/v1/settings only",
+        "tools/check_mock_contract.py — check_fixtures checks the body served_body() returns, so the check is of the served body and still requires every key"
+      ],
+      "why": "The handler at the pin always writes the key, so a served body without it is a frame the server never sends. No Decal reader names the key, so the rendering fixtures that read the recording directly are not changed."
     }
   ]
 }
