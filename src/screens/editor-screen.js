@@ -1538,6 +1538,11 @@ export class EditorScreen extends UiElement {
     }
 
     #leaving = false;
+
+    leaveCancelled() {
+        this.#leaving = false;
+    }
+
     #onCancel(event) {
         event.stopPropagation();
         if (this.canLeaveRoute() === true) this.#leave();

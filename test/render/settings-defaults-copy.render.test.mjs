@@ -54,10 +54,11 @@ describe('the default-reset page says what the reset does', () => {
         assert.equal(shown.flowRow, null, `the flow multiplier is not one of the seven: ${JSON.stringify(shown.flowRow)}`);
     });
 
-    test('the preflight copy names the flow calibration as kept', async () => {
+    test('the preflight copy says which versions set the flow calibration to 1', async () => {
         const shown = await said();
         assert.match(String(shown.preflight), /^Puts seven machine settings back/);
-        assert.match(String(shown.preflight), /flow calibration, the load-cell calibration, your profiles and your shot history do not change/i);
+        assert.match(String(shown.preflight), /ReaPrime 0\.9\.1 and older also set the flow calibration to 1\. Newer versions do not change it\./);
+        assert.match(String(shown.preflight), /The load-cell calibration, your profiles and your shot history do not change\.$/);
         assert.doesNotMatch(String(shown.preflight), /among them/i);
         assert.doesNotMatch(String(shown.preflight), /no calibration/i);
     });
@@ -65,7 +66,16 @@ describe('the default-reset page says what the reset does', () => {
     test('the confirmation says the same thing as the table', async () => {
         const shown = await said();
         assert.equal(shown.question, 'Restore these seven settings?');
-        assert.match(String(shown.detail), /flow calibration and the load-cell calibration do not change/i);
+        assert.match(String(shown.detail), /ReaPrime 0\.9\.1 and older also set the flow calibration to 1\. Newer versions do not change it\./);
+        assert.match(String(shown.detail), /The load-cell calibration does not change\.$/);
         assert.doesNotMatch(String(shown.detail), /goes back to 1\b/);
+    });
+
+    test('neither text says the flow calibration stays on every version', async () => {
+        const shown = await said();
+        for (const text of [shown.preflight, shown.detail]) {
+            assert.doesNotMatch(String(text), /The flow calibration(,| and) the load-cell calibration/i, text);
+            assert.doesNotMatch(String(text), /flow calibration[^.]*do(es)? not change/i, text);
+        }
     });
 });

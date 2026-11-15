@@ -231,6 +231,24 @@ describe('the editor answers the router with its own unsaved work @ bench', () =
         assert.deepEqual(page.pageErrors, []);
     }));
 
+    test('a leave the shell calls off is asked again, on the draft that is still there', () => staged(async (page) => {
+        await editSomething(page);
+        await page.click(EDITOR.cancel);
+        await page.settle(6);
+        await page.click('editor-screen >>> #discard-confirm');
+        await page.settle(6);
+        assert.deepEqual(await askEditor(page), { allow: true, reason: null }, 'the discard was agreed');
+
+        await page.evalFn((sel) => { window.__h.need(sel).leaveCancelled(); return true; }, EDITOR.screen);
+        const again = await askEditor(page);
+        await page.settle(4);
+
+        assert.equal(again.allow, false, 'the agreement ended with the leave that did not happen');
+        assert.ok(again.reason && again.reason.length > 0);
+        assert.equal(await dialogOpen(page), true, 'so the person is asked again');
+        assert.deepEqual(page.pageErrors, []);
+    }));
+
     test('Keep editing leaves the refusal standing', () => staged(async (page) => {
         await editSomething(page);
         await page.click(EDITOR.cancel);

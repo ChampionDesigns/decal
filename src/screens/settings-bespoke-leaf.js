@@ -236,7 +236,7 @@ function defaultsDetail(t, pages) {
             return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
         })();
 
-    return `${opening} ${t('The flow calibration and the load-cell calibration do not change.')}`;
+    return `${opening} ${t('ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.')}`;
 }
 
 const PLUGIN_FIELD_COPY = Object.freeze({
@@ -4031,7 +4031,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>
 
                 <p class="ui-caption prose"
-                    >${t('Puts seven machine settings back to the values the machine ships with. The flow calibration, the load-cell calibration, your profiles and your shot history do not change.')}</p>
+                    >${t('Puts seven machine settings back to the values the machine ships with. ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.')}</p>
 
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>
