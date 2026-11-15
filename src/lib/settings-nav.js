@@ -74,7 +74,7 @@ export const SETTINGS_TREE = Object.freeze([
         leaves: Object.freeze([
             Object.freeze({ id: 'extensions-visualizer', name: 'Visualizer' }),
             Object.freeze({ id: 'extensions-plugins', name: 'Plugins' }),
-            Object.freeze({ id: 'extensions-decent-app-settings', name: 'Decaid' }),
+            Object.freeze({ id: 'extensions-decent-app-settings', name: 'Decide' }),
         ]),
     }),
     Object.freeze({

@@ -1,15 +1,15 @@
 # Decal
 
-An open-source ReaPrime skin for Decent Espresso and Bengle machines: Lit and Shadow
-DOM, design tokens, container queries, landscape only, talking to ReaPrime over REST
+An open-source Decide skin for Decent Espresso and Bengle machines: Lit and Shadow
+DOM, design tokens, container queries, landscape only, talking to Decide over REST
 and WebSocket.
 
 ## Running it
 
-There is no build step. **The repo root is the served root** — ReaPrime serves the
+There is no build step. **The repo root is the served root** — Decide serves the
 skin directory as static files, so what is in the tree is what runs.
 
-Install it on a machine by pointing ReaPrime at a zip of this tree:
+Install it on a machine by pointing Decide at a zip of this tree:
 
 ```
 POST /api/v1/webui/skins/install/url {"url": "<url of the zip>"}

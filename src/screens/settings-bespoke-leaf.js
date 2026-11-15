@@ -236,7 +236,7 @@ function defaultsDetail(t, pages) {
             return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
         })();
 
-    return `${opening} ${t('ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.')}`;
+    return `${opening} ${t('Older versions of Decide also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.')}`;
 }
 
 const PLUGIN_FIELD_COPY = Object.freeze({
@@ -307,9 +307,9 @@ const EMPTY_SUPPORT_DRAFT = Object.freeze({ subject: '', body: '', attachDetails
 const MS_PER_SECOND = 1000;
 
 const SUPPORT_REFUSAL_COPY = Object.freeze({
-    [SUPPORT_REFUSAL.NO_TOKEN]: 'Messages can only be sent from a page the machine serves. Open this skin from ReaPrime rather than from another address.',
-    [SUPPORT_REFUSAL.NOT_LINKED]: 'The machine is no longer signed in to a Decent account. Sign in again in ReaPrime.',
-    [SUPPORT_REFUSAL.FORBIDDEN]: 'ReaPrime did not allow this skin to use the Decent account. Check the account permissions in ReaPrime.',
+    [SUPPORT_REFUSAL.NO_TOKEN]: 'Messages can only be sent from a page the machine serves. Open this skin from Decide rather than from another address.',
+    [SUPPORT_REFUSAL.NOT_LINKED]: 'The machine is no longer signed in to a Decent account. Sign in again in Decide.',
+    [SUPPORT_REFUSAL.FORBIDDEN]: 'Decide did not allow this skin to use the Decent account. Check the account permissions in Decide.',
     [SUPPORT_REFUSAL.UPSTREAM_REFUSED]: 'Decent’s support service refused the request. Try again in a moment.',
     [SUPPORT_REFUSAL.UNREADABLE]: 'The reply from Decent could not be read, so the conversation is not shown.',
     [SUPPORT_REFUSAL.FAILED]: 'The conversation could not be reached. Check the machine’s internet connection and try again.',
@@ -1639,7 +1639,7 @@ export class SettingsBespokeLeaf extends UiElement {
             ${canManage
                 ? html`<p class="ui-caption prose">${t('Tap a skin to switch to it, then press Reload. The screen does not reload itself.')}</p>`
                 : html`<p id="skins-manage-elsewhere" class="ui-caption prose"
-                    >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
+                    >${t('Manage skins and plugins in Decide. This skin cannot change them.')}</p>`}
             ${failed
                 ? html`<p id="skin-failed" class="ui-caption prose"
                     >${t('The machine refused to switch skins. It is still serving the one you are looking at.')}</p>`
@@ -1766,7 +1766,7 @@ export class SettingsBespokeLeaf extends UiElement {
             ${canManage
                 ? html`<p class="ui-caption prose">${t('Downloads and installs the newest version of every skin that came from a source. Switch skins in Display › Skin.')}</p>`
                 : html`<p id="updates-manage-elsewhere" class="ui-caption prose"
-                    >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
+                    >${t('Manage skins and plugins in Decide. This skin cannot change them.')}</p>`}
 
             ${ran
                 ? html`<p id="updates-outcome" class="ui-caption prose"
@@ -1858,7 +1858,7 @@ export class SettingsBespokeLeaf extends UiElement {
 
         return html`<section class="group" id="app-info">
             <div class="fact-head">
-                <h3 class="ui-heading">${t('Decaid')}</h3>
+                <h3 class="ui-heading">${t('Decide')}</h3>
 
                 <ui-button
                     id="app-check"
@@ -2803,7 +2803,7 @@ export class SettingsBespokeLeaf extends UiElement {
             return html`<ui-empty-state
                 id="plugins-unavailable"
                 heading=${t('The plugin list is not available')}
-                body=${t('ReaPrime has not answered for its installed plugins.')}
+                body=${t('Decide has not answered for its installed plugins.')}
             ></ui-empty-state>`;
         }
         if (state.plugins.length === 0 && state.status === PLUGINS_STATUS.READY) {
@@ -2819,7 +2819,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 <h3 class="ui-heading">${t('Installed plugins')}</h3>
                 ${store?.canManage === false
                     ? html`<p id="plugins-manage-elsewhere" class="ui-caption prose"
-                        >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`
+                        >${t('Manage skins and plugins in Decide. This skin cannot change them.')}</p>`
                     : nothing}
 
                 <div class="plugins">
@@ -2996,7 +2996,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 ${canManage
                     ? nothing
                     : html`<p id="plugin-manage-elsewhere" class="ui-caption prose"
-                        >${t('Manage skins and plugins in ReaPrime. This skin cannot change them.')}</p>`}
+                        >${t('Manage skins and plugins in Decide. This skin cannot change them.')}</p>`}
 
                 ${this._pluginRefused && !dirty
                     ? this.#refusal('plugin-enable-refusal', 'That change was not saved.',
@@ -3110,7 +3110,7 @@ export class SettingsBespokeLeaf extends UiElement {
             return html`<ui-empty-state
                 id="account-unavailable"
                 heading=${t('The account status is not available')}
-                body=${t('ReaPrime has not answered. The status arrives once it is reachable.')}
+                body=${t('Decide has not answered. The status arrives once it is reachable.')}
             ></ui-empty-state>`;
         }
 
@@ -3135,10 +3135,10 @@ export class SettingsBespokeLeaf extends UiElement {
                     heading=${t(known ? 'No Decent account linked' : 'Whether an account is linked is not known yet')}
                 >
                     <p class="ui-caption prose"
-                        >${t('Messages to support are sent from your Decent account. Signing in happens in ReaPrime, not in this skin:')}</p>
+                        >${t('Messages to support are sent from your Decent account. Signing in happens in Decide, not in this skin:')}</p>
                     <ol class="steps">
                         ${[
-                            'Leave this skin and open Account in ReaPrime.',
+                            'Leave this skin and open Account in Decide.',
                             'Sign in with your Decent email and password.',
 
                             'Come back here — this page will show the message box.',
@@ -3363,8 +3363,8 @@ export class SettingsBespokeLeaf extends UiElement {
                 id="feedback-sent"
                 heading=${t('Feedback sent')}
                 body=${number === null
-                    ? t('Thank you. It was filed against the ReaPrime project.')
-                    : t('Thank you. Filed as issue #{number} on the ReaPrime issue tracker.', { number })}
+                    ? t('Thank you. It was filed against the Decaid project.')
+                    : t('Thank you. Filed as issue #{number} on the Decaid issue tracker.', { number })}
             >
                 ${url === null
                     ? nothing
@@ -3386,11 +3386,11 @@ export class SettingsBespokeLeaf extends UiElement {
                 <h3 class="ui-heading">${t('Send feedback')}</h3>
             ${refusal === FEEDBACK_REFUSAL.NOT_CONFIGURED
                 ? html`<p id="feedback-unconfigured" class="ui-caption prose"
-                    >${t('This ReaPrime build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.')}</p>`
+                    >${t('This Decide build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.')}</p>`
                 : nothing}
             ${refusal === FEEDBACK_REFUSAL.ACCOUNT_REQUIRED
                 ? html`<p id="feedback-account" class="ui-caption prose"
-                    >${t('Sending feedback needs a Decent account. Sign in to your Decent account in ReaPrime, then submit again.')}${state.message
+                    >${t('Sending feedback needs a Decent account. Sign in to your Decent account in Decide, then submit again.')}${state.message
                         ? html` <span id="feedback-account-reason">${state.message}</span>`
                         : nothing}</p>`
                 : nothing}
@@ -3448,10 +3448,10 @@ export class SettingsBespokeLeaf extends UiElement {
             </div>
 
             <p class="ui-caption prose"
-                >${t('Screenshots are not sent — ReaPrime does not read them from this route.')}</p>
+                >${t('Screenshots are not sent — Decide does not read them from this route.')}</p>
 
             <p id="feedback-destination" class="ui-caption prose"
-                >${t('Feedback is filed as an issue on ReaPrime’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
+                >${t('Feedback is filed as an issue on Decaid’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.')}</p>
             ${refusal === FEEDBACK_REFUSAL.FAILED
                 ? html`<span id="feedback-failed" class="ui-caption"
                     >${state.message ?? t('Sending failed.')}</span>`
@@ -4031,7 +4031,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>
 
                 <p class="ui-caption prose"
-                    >${t('Puts seven machine settings back to the values the machine ships with. ReaPrime 0.9.1 and older also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.')}</p>
+                    >${t('Puts seven machine settings back to the values the machine ships with. Older versions of Decide also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.')}</p>
 
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>

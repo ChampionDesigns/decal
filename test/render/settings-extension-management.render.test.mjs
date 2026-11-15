@@ -5,8 +5,8 @@ import { launch, BENCH } from '../harness/index.js';
 
 const MODULES = ['/test/fixtures/settings-shell-fixture.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></div>';
-const ELSEWHERE = 'Manage skins and plugins in ReaPrime. This skin cannot change them.';
-const UPDATE_NOTE = 'Turn this on in ReaPrime. This skin can only turn it off.';
+const ELSEWHERE = 'Manage skins and plugins in Decide. This skin cannot change them.';
+const UPDATE_NOTE = 'Turn this on in Decide. This skin can only turn it off.';
 
 const WRITE_ROUTES = [
     /^PUT \/webui\/skins\/default$/,

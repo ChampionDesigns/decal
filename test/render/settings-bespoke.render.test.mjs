@@ -3809,7 +3809,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
                 assert.doesNotMatch(got.text, /on your phone/i);
                 assert.doesNotMatch(got.text, /add this machine/i);
-                assert.match(got.steps.join(' '), /ReaPrime/);
+                assert.match(got.steps.join(' '), /Decide/);
                 assert.match(got.steps.join(' '), /email and password/i);
 
                 assert.match(got.steps[2], /message box/i,
@@ -4206,7 +4206,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         empty: root.getElementById('feedback-empty'),
                     };
                 });
-                assert.match(got.account ?? '', /^Sending feedback needs a Decent account\. Sign in to your Decent account in ReaPrime/);
+                assert.match(got.account ?? '', /^Sending feedback needs a Decent account\. Sign in to your Decent account in Decide/);
                 assert.equal(got.reason, 'You must be logged in to your Decent account to submit feedback.');
                 assert.equal(got.empty, null);
                 await page.evalFn(() => window.__settings.feedbackResult(null));

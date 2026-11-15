@@ -41,7 +41,7 @@ export const BESPOKE_SEARCH_FIELDS = Object.freeze([
     ['extensions-plugins', 'plugin-list', 'Installed plugins', 'extensions plugins'],
     ['extensions-visualizer', 'plugin-settings', 'Settings', 'visualizer username password upload account'],
     ['updates-skin-app', 'skins-update', 'Update all skins', 'skin update version'],
-    ['updates-skin-app', 'app-check', 'Check for updates', 'app decaid update version'],
+    ['updates-skin-app', 'app-check', 'Check for updates', 'app decide decaid update version'],
     ['updates-firmware-update', 'firmware-check', 'Check for updates', 'firmware version update'],
     ['help-talk-to-decent', 'support-subject', 'Subject', 'support message help'],
     ['help-talk-to-decent', 'support-message', 'Message', 'support text help'],
