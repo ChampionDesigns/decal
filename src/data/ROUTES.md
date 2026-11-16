@@ -52,22 +52,23 @@ Retired for want of a caller, each reachable by id through `callRoute`: `sensors
 ## Three rows do not match the document, deliberately
 
 The handler body is the authority — not `rest_v1.yml`, not any
-JSDoc. Where they disagree at `42f67f69`, the generator applies a **named exception** and
+JSDoc. Where they disagree at `8fee86dd`, the generator applies a **named exception** and
 the table states the handler's truth. Each exception carries its handler evidence, and each
 **hard-fails the generator the moment the document is fixed**, so it deletes itself instead of
 rotting. All three are upstream asks; none is worked around at a call site.
 
 | exception | the document says | the handler does | evidence |
 |---|---|---|---|
-| `shots-orderBy-not-read` | `GET /shots` takes `orderBy` | reads `order` only; `orderBy` occurs in no handler | `shots_handler.dart` `_getShots` ~:73, ~:89 |
-| `plugins-passthrough-any-method` | `/plugins/{id}/{endpoint}` is GET-only | `app.all`, dispatching on `req.method`, body forwarded verbatim | `plugins_handler.dart:90`, `:184` |
-| `sensors-list-key-is-id` | list items are `{name, info}` | emits `{'id': s.deviceId, 'info': …}` | `sensors_handler.dart`, inline `GET /api/v1/sensors` |
+| `shots-orderBy-not-read` | `GET /shots` takes `orderBy` | reads `order` only; `orderBy` occurs in no handler | `shots_handler.dart` `_getShots` :92, :108 |
+| `plugins-passthrough-any-method` | `/plugins/{id}/{endpoint}` is GET-only | `app.all`, dispatching on `req.method`, body forwarded verbatim | `plugins_handler.dart:141`, `:392` |
+| `account-proxy-query-passthrough` | the support proxy GET takes no query | relays the raw query string to the upstream URI | `account_proxy_handler.dart:25`, `DecentProxyService._buildUri` |
 
-The first two are upstream asks. **The third was found by this repo's own contract
-check** — which is the argument for contract checking being a build activity rather than an
-audit activity. Sensor discovery derives the estimator's id from that list; a client
-generated faithfully would have read `undefined` and reported "no estimator" on a machine
-that has one.
+A fourth exception, `sensors-list-key-is-id`, **was found by this repo's own contract
+check**: the document listed sensors as `{name, info}` and the handler emits `{id, info}`.
+Sensor discovery derives the estimator's id from that list; a client generated faithfully
+would have read `undefined` and reported "no estimator" on a machine that has one. At
+`8fee86dd` the document says `{id, info}`, both required, so the generator refused the
+exception and it was deleted. That is the self-deleting rule working as designed.
 
 POST is added to the plugin passthrough because POST is what is demonstrably used. PUT and
 DELETE are not added: `app.all` would accept them, but nothing asks for them, and inventing
@@ -94,15 +95,17 @@ Two absences are real answers and are passed through as such — never port a fa
 * The six routes with a documented `304` are exactly the six `jsonOkConditional` routes
   `rea-conditional.js` derives from the handlers. Two independent derivations, asserted
   equal.
-* Eight documented operations have no exact `app.<verb>` registration because they are
-  served by a parameterised one — `PUT /api/v1/scale/<command>` switches on `tare`,
+* Ten documented operations have no exact `app.<verb>` registration. Nine are served by a
+  parameterised one — `PUT /api/v1/scale/<command>` switches on `tare`, `GET` on `info`,
   `/scale/timer/<command>` on `start|stop|reset`, and skin-assets and the support proxy use
-  catch-all path patterns. Pinned in the test, so a change upstream says so.
-* **Neither document is the authority on machine state.** `rest_v1.yml` lists 20 states,
-  `websocket_v1.yml` lists 16, they disagree with each other (`steamRinse` vs
-  `transportMode`), and neither has `schedIdle` — which `machine.dart` does. That is why the
-  enum is generated from the Dart and why the generator **refuses** a `$ref` query parameter
-  rather than resolving a component into the table.
+  catch-all path patterns. `GET /manifest` is registered on a computed path,
+  `apiDocsConfiguration.manifestPath`. Pinned in the test, so a change upstream says so.
+* **Neither document is the authority on machine state; `machine.dart` is.** At `8fee86dd`
+  `rest_v1.yml` and `websocket_v1.yml` both list the 21 states of `machine.dart`, in its
+  order, `schedIdle` and `steamRinse` included. Before that they disagreed with it and with
+  each other. The enum is still generated from the Dart, the test pins the agreement, and the
+  generator still **refuses** a `$ref` query parameter rather than resolving a component into
+  the table.
 
 ## Handoffs
 

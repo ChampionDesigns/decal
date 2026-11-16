@@ -34,13 +34,13 @@ export const entry = {
         },
         {
             id: 'rated',
-            title: 'Rated 73 (no handoff)',
+            title: 'Rated 7.5 (no handoff)',
             notes:
                 'The three-child column the reference skin\'s 165px was derived for. The score is the '
                 + 'served enjoyment annotation, printed at the control\'s own step so the '
                 + 'number and the thumb cannot disagree.',
             hostStyle: { 'inline-size': ROOMY },
-            html: '<ui-rating-control shot-id="shot-1" score="73"></ui-rating-control>',
+            html: '<ui-rating-control shot-id="shot-1" score="7.5"></ui-rating-control>',
         },
         {
             id: 'handoff',
@@ -50,7 +50,7 @@ export const entry = {
                 + 'the button\'s bottom measures 1156 against 1145; here the column simply '
                 + 'grows by the button and the gap.',
             hostStyle: { 'inline-size': ROOMY },
-            html: '<ui-rating-control shot-id="shot-1" score="73" handoff></ui-rating-control>',
+            html: '<ui-rating-control shot-id="shot-1" score="7.5" handoff></ui-rating-control>',
         },
         {
             id: 'stated-height',
@@ -61,7 +61,7 @@ export const entry = {
                 + 'min-block-size: max-content outranks it. Nothing is clipped and nothing '
                 + 'scrolls.',
             hostStyle: { 'inline-size': ROOMY },
-            html: '<ui-rating-control style="block-size: 165px" shot-id="shot-1" score="73" handoff></ui-rating-control>',
+            html: '<ui-rating-control style="block-size: 165px" shot-id="shot-1" score="7.5" handoff></ui-rating-control>',
         },
         {
             id: 'nothing-to-rate',
@@ -81,7 +81,7 @@ export const entry = {
                 + 'narrow container is absorbed by the score\'s fluid display step, which '
                 + 'floors at the clamp\'s 22px rather than clipping.',
             hostStyle: { 'inline-size': SLATE_ZONE },
-            html: '<ui-rating-control shot-id="shot-1" score="100" handoff></ui-rating-control>',
+            html: '<ui-rating-control shot-id="shot-1" score="10" handoff></ui-rating-control>',
         },
     ],
 };

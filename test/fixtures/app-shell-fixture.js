@@ -177,6 +177,17 @@ const TABLE = Object.freeze({
 let boot = null;
 let root = null;
 let gate = null;
+let holding = false;
+const held = new Map();
+const asked = [];
+
+const holdOrImport = (specifier) => {
+    asked.push(specifier);
+    if (!holding) return import(specifier);
+    return new Promise((resolve, reject) => {
+        held.set(specifier, { resolve: () => resolve(import(specifier)), reject });
+    });
+};
 
 globalThis.__shell = {
     DEVICES_FRAME,
@@ -191,7 +202,7 @@ globalThis.__shell = {
      */
     async mount({ screens = 'real', backends = null } = {}) {
         const importModule = screens === 'real'
-            ? (specifier) => import(specifier)
+            ? holdOrImport
             : screens === 'failing'
                 ? async () => { throw new Error('the screen module could not be fetched'); }
                 : (specifier) => new Promise((resolve, reject) => {
@@ -214,6 +225,30 @@ globalThis.__shell = {
         document.getElementById('mount').appendChild(root);
         await root.updateComplete;
         return globalThis.__shell.state();
+    },
+
+    holdScreens() {
+        holding = true;
+    },
+
+    heldScreens() {
+        return [...held.keys()];
+    },
+
+    askedScreens() {
+        return asked.slice();
+    },
+
+    releaseHeld(specifier) {
+        const entry = held.get(specifier);
+        if (!entry) return false;
+        held.delete(specifier);
+        entry.resolve();
+        return true;
+    },
+
+    pendingRoute() {
+        return boot?.pendingRoute?.() ?? null;
     },
 
     /** Let a blocked screen module through, and wait for the shell to settle on it. */
@@ -372,6 +407,9 @@ globalThis.__shell = {
         boot?.destroy();
         boot = null;
         root = null;
+        holding = false;
+        held.clear();
+        asked.length = 0;
         return { hashListeners: listenerLedger.get('hashchange') ?? 0, ...after };
     },
 };

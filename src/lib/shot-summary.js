@@ -1,10 +1,12 @@
 
 
 import { hasReading } from '../data/reading.js';
-import { readStoredShot, shotDose } from '../data/rea-shot-record.js';
+import { ENJOYMENT_MAX, readStoredShot, shotDose } from '../data/rea-shot-record.js';
 
 /** The one mark, when the caller states none. Same character as `units.js` NO_READING_MARK. */
 export const DEFAULT_DASH = '—';
+
+const SCALE_MARK = '/';
 
 /** Where a cell's number comes from. Three sources, and none of them is the DOM. */
 export const CELL_SOURCE = Object.freeze({
@@ -49,8 +51,9 @@ const round = (value, decimals) => {
     return (Math.round(value * factor) / factor).toFixed(decimals);
 };
 
-export function scalarText(value, { decimals = 1, unit = null, dash = DEFAULT_DASH } = {}) {
+export function scalarText(value, { decimals = 1, unit = null, scale = null, dash = DEFAULT_DASH } = {}) {
     if (!hasReading(value)) return dash;
+    if (scale !== null) return `${round(value, decimals)}${SCALE_MARK}${scale}`;
     return unit ? `${round(value, decimals)} ${unit}` : round(value, decimals);
 }
 
@@ -212,7 +215,7 @@ export const HISTORY_COLUMNS = Object.freeze([
     }),
     Object.freeze({
         key: 'enjoyment', source: CELL_SOURCE.ANNOTATION, from: 'scalars.enjoyment',
-        align: 'end', grow: 1, unit: null, decimals: 0, ink: 'var(--ui-text-2)',
+        align: 'end', grow: 1, unit: null, decimals: 1, scale: ENJOYMENT_MAX, ink: 'var(--ui-text-2)',
     }),
 ]);
 
@@ -234,7 +237,9 @@ export function shotRow({
             const value = scalars[scalarKey] ?? null;
             cells[column.key] = Object.freeze({
                 value: hasReading(value) ? value : null,
-                text: scalarText(value, { decimals: column.decimals ?? 1, unit: column.unit, dash }),
+                text: scalarText(value, {
+                    decimals: column.decimals ?? 1, unit: column.unit, scale: column.scale ?? null, dash,
+                }),
                 present: hasReading(value),
                 source: column.source,
             });

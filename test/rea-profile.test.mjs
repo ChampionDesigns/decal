@@ -258,7 +258,7 @@ describe('the two routes a profile load takes, read at the pin', () => {
         const source = dart('lib/src/services/webserver/de1handler.dart');
         const handler = source.slice(source.indexOf('Future<Response> _profileHandler'));
         const body = handler.slice(0, handler.indexOf('Future<Response> _shotSettingsHandler'));
-        assert.match(body, /await de1\.setProfile\(profile\)/);
+        assert.match(body, /await _controller\.runDeviceWrite\(\s*\(device\) => device\.setProfile\(profile\),?\s*\);/);
         assert.equal(/_workflowController\.|setWorkflow/.test(body), false,
             'if this handler starts writing the workflow, the second call in arm() is redundant');
     });

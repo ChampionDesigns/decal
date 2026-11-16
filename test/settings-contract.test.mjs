@@ -157,7 +157,7 @@ describe('2. /machine/ledStrip x6 — de1handler.dart:208,:224,:261,:302,:311,:3
         // The live colour is kept apart from the stored palette, which is the whole point:
         // a picker can show an ASLEEP colour on an awake machine, which a stored write cannot.
         assert.match(de1, /await \(de1 as BengleInterface\)\.previewLedStrip\(/);
-        assert.match(de1, /await \(de1 as BengleInterface\)\.clearLedStripPreview\(\);\s*return jsonAccepted\(\);/);
+        assert.match(de1, /try \{\s*await \(de1 as BengleInterface\)\.clearLedStripPreview\(\);\s*\} on LedStripStateUnavailableException catch \(e\) \{\s*return jsonServiceUnavailable\(\{'error': e\.message\}\);\s*\}\s*return jsonAccepted\(\);/);
         // A body naming neither strip is a 400, not a silent no-op.
         assert.match(de1, /'error': 'name at least one of frontStrip or backStrip',/);
         for (const id of ['postMachineLedStripPreview', 'postMachineLedStripPreviewClear']) {

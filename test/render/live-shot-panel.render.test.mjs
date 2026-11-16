@@ -30,7 +30,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('F-023 — rating a shot PUTs the enjoyment to that shot', () => mounted(async (page) => {
             await page.evalFn(() => window.__carry.clearRequests());
-            await page.evalFn(() => window.__carry.rate(60));
+            await page.evalFn(() => window.__carry.rate(6));
 
             const puts = await page.evalFn(() => window.__carry.requests('/api/v1/shots/')
                 .filter((r) => r.method === 'PUT'));
@@ -38,30 +38,46 @@ for (const geometry of GATE_A_GEOMETRIES) {
              * /api/v1/shots/<id> route" becomes exactly one, to this shot. */
             assert.equal(puts.length, 1, `one PUT, not ${puts.length}: ${JSON.stringify(puts)}`);
             assert.equal(puts[0].path, '/api/v1/shots/shot-carry-newest');
-            assert.deepEqual(puts[0].body, { annotations: { enjoyment: 60 } },
+            assert.deepEqual(puts[0].body, { annotations: { enjoyment: 6 } },
                 'the SMALLEST honest patch — the handler deep-merges it');
         }));
 
         test('F-023 — the panel prints the rating from the answer, and it survives a reload',
             () => mounted(async (page) => {
-                await page.evalFn(() => window.__carry.rate(60));
-                assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 60,
+                await page.evalFn(() => window.__carry.rate(6));
+                assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 6,
                     'the band holds the score');
-                assert.match(await page.evalFn(() => window.__carry.ratingFace()), /60/,
+                assert.match(await page.evalFn(() => window.__carry.ratingFace()), /6\.0/,
                     'and the button prints it in place of the dash');
 
                 await page.evalFn(() => window.__carry.mount());
-                assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 60,
+                assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 6,
                     'the rating came back from the server');
+            }));
+
+        test('a stored rating of 7.5 shows as 7.5 out of 10, not rescaled',
+            () => mounted(async (page) => {
+                assert.equal(await page.evalFn(
+                    () => window.__carry.serveRating('shot-carry-newest', 7.5)), true);
+                await page.evalFn(() => window.__carry.mount());
+                assert.equal(await page.evalFn(() => window.__carry.shotPanel().rating), 7.5);
+                assert.match(await page.evalFn(() => window.__carry.ratingFace()), /\b7\.5\b/);
+
+                const sheet = await page.evalFn(() => window.__carry.sheetFace());
+                assert.equal(sheet.label, 'Score out of 10');
+                assert.equal(sheet.value, '7.5');
+                assert.deepEqual([sheet.min, sheet.max, sheet.step], ['0', '10', '0.5']);
+                assert.equal(sheet.name, 'Shot rating, 0 to 10');
+                assert.equal(sheet.valueText, '7.5 of 10');
             }));
 
         test('F-023 — the write is a PATCH: the shot\'s other annotations survive it',
             () => mounted(async (page) => {
-                await page.evalFn(() => window.__carry.rate(75));
+                await page.evalFn(() => window.__carry.rate(7.5));
 
                 const record = await page.evalFn(() => window.__carry
                     .serverShot('shot-carry-newest').annotations);
-                assert.equal(record.enjoyment, 75, 'the rating landed');
+                assert.equal(record.enjoyment, 7.5, 'the rating landed');
                 assert.equal(record.actualDoseWeight, 18, 'and the dose annotation was not trampled');
                 assert.ok(record.espressoNotes, 'nor the note');
             }));
@@ -71,7 +87,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             assert.equal(older, 'shot-carry-older', 'the arrow steps the band');
 
             await page.evalFn(() => window.__carry.clearRequests());
-            await page.evalFn(() => window.__carry.rate(20));
+            await page.evalFn(() => window.__carry.rate(2));
             const puts = await page.evalFn(() => window.__carry.requests('/api/v1/shots/')
                 .filter((r) => r.method === 'PUT'));
             assert.equal(puts.length, 1);
@@ -168,7 +184,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('D14 — the note write is a PATCH: the rating and the samples survive it',
             () => mounted(async (page) => {
-                await page.evalFn(() => window.__carry.rate(42));
+                await page.evalFn(() => window.__carry.rate(4.5));
                 await page.evalFn(() => window.__carry.openNotes());
                 await page.evalFn(() => window.__carry.typeNote('Second pull of the morning.'));
                 await page.evalFn(() => window.__carry.saveNote());
@@ -177,7 +193,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     .serverShot('shot-carry-newest').annotations);
                 assert.equal(record.espressoNotes, 'Second pull of the morning.',
                     'the note landed');
-                assert.equal(record.enjoyment, 42, 'and the rating written a moment earlier survived');
+                assert.equal(record.enjoyment, 4.5, 'and the rating written a moment earlier survived');
                 assert.equal(record.actualDoseWeight, 18, 'as did the dose annotation');
             }));
 

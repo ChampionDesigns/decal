@@ -56,7 +56,7 @@ export const DE1_CACHE_SPECS = Object.freeze([
         ttlMs: 60000,
         route: '/machine/settings',
         deviceReads: 9,
-        payoff: 'GET /machine/settings is nine serialized MMR reads over BLE, has no push stream and no ETag; the settings screen reads it on every entry.',
+        payoff: 'GET /machine/settings is up to nine serialized MMR reads over BLE (five block reads on a DE1), has no push stream and no ETag; the settings screen reads it on every entry.',
     }),
     Object.freeze({
         key: 'machineSettingsAdvanced',
@@ -64,6 +64,6 @@ export const DE1_CACHE_SPECS = Object.freeze([
         ttlMs: 40000,
         route: '/machine/settings/advanced',
         deviceReads: 6,
-        payoff: 'GET /machine/settings/advanced is six serialized MMR reads over BLE, has no push stream and no ETag; the advanced pane reads it on every entry.',
+        payoff: 'GET /machine/settings/advanced is up to six serialized MMR reads over BLE (four on a DE1), has no push stream and no ETag; the advanced pane reads it on every entry.',
     }),
 ]);

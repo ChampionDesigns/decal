@@ -59,13 +59,12 @@ const registrations = (() => {
     return { exact, wildcards };
 })();
 
-describe('the four exceptions, justified at the handler', () => {
-    test('there are exactly four, each with handler evidence and an upstream ask', () => {
-        assert.equal(REA_ROUTE_EXCEPTIONS.length, 4);
+describe('the three exceptions, justified at the handler', () => {
+    test('there are exactly three, each with handler evidence and an upstream ask', () => {
+        assert.equal(REA_ROUTE_EXCEPTIONS.length, 3);
         assert.deepEqual(REA_ROUTE_EXCEPTIONS.map((e) => e.id), [
             'shots-orderBy-not-read',
             'plugins-passthrough-any-method',
-            'sensors-list-key-is-id',
             'account-proxy-query-passthrough',
         ]);
         for (const e of REA_ROUTE_EXCEPTIONS) {
@@ -142,29 +141,32 @@ describe('the four exceptions, justified at the handler', () => {
         });
     });
 
-    describe('3 — the sensors list is keyed by id, not name', () => {
+    describe('the sensors list is keyed by id, as rest_v1.yml now documents', () => {
         test('the handler emits id', () => {
             const sensors = handler('sensors_handler.dart');
             assert.match(sensors, /'id': s\.deviceId/);
             assert.match(sensors, /'info': info\.toJson\(\)/);
         });
 
-        test('the spec still documents name — which is why the exception exists', () => {
+        test('rest_v1.yml documents id and info, both required, and no name', () => {
             const spec = parseYaml(read(REST_REL), { file: REST_REL });
-            const props = spec.paths['/api/v1/sensors'].get.responses['200']
-                .content['application/json'].schema.items.properties;
-            assert.ok(props.name, 'the upstream defect is still present');
-            assert.equal(props.id, undefined);
+            const items = spec.paths['/api/v1/sensors'].get.responses['200']
+                .content['application/json'].schema.items;
+            assert.ok(items.properties.id);
+            assert.ok(items.properties.info);
+            assert.equal(items.properties.name, undefined);
+            assert.deepEqual(items.required, ['id', 'info']);
         });
 
-        test('the table describes the served shape', () => {
+        test('the table describes the served shape with no exception', () => {
             const sensors = routeById('getSensors');
             assert.deepEqual(sensors.successSchema.items.keys, ['id', 'info']);
-            assert.equal(sensors.exception, 'sensors-list-key-is-id');
+            assert.deepEqual(sensors.successSchema.items.requiredKeys, ['id', 'info']);
+            assert.equal(sensors.exception, null);
         });
     });
 
-    describe('4 — the account proxy forwards a query string the spec does not declare', () => {
+    describe('3 — the account proxy forwards a query string rest_v1.yml does not declare', () => {
         test('the handler forwards the raw query and the service puts it on the upstream URI', () => {
             const proxyHandler = handler('account_proxy_handler.dart');
             assert.match(proxyHandler, /rawQuery: request\.requestedUri\.query/,
@@ -177,11 +179,11 @@ describe('the four exceptions, justified at the handler', () => {
         test('subject and body are the names ReaPrime itself sends to that upstream endpoint', () => {
             const account = read('lib/src/services/account/decent_account_service.dart');
             /* The evidence moved at the 42f67f69 re-pin, the names did not: emailSerialMismatch no
-             * longer builds the URL itself, it calls the new sendSupportMessage, which builds the
-             * query from the same two names and GETs the same /support/api/email. */
+             * longer builds the URL itself, it calls sendSupportMessage, which builds the query
+             * with Uri from the same two names and GETs the same /support/api/email. */
             assert.match(account, /Future<void> emailSerialMismatch\(String serial\) async \{\s*\n\s*await sendSupportMessage\(/,
                 'emailSerialMismatch is still the in-tree caller');
-            assert.match(account, /queryParameters: \{'subject': subject, 'body': body\},/,
+            assert.match(account, /Uri\(queryParameters: \{'subject': subject, 'body': body\}\)/,
                 'and sendSupportMessage is the in-tree evidence for both names');
             assert.match(account, /'\/support\/api\/email\?\$query'/,
                 'on the same /support/api/email endpoint the proxy relays');
@@ -242,18 +244,16 @@ describe('the four exceptions, justified at the handler', () => {
 });
 
 describe('the spec is not the authority — pinned divergences that do NOT reach the table', () => {
-    test('neither spec knows schedIdle, and they disagree with each other', () => {
+    test('both specs list the states of machine.dart, the authority, in its order', () => {
         const rest = parseYaml(read(REST_REL), { file: REST_REL });
         const ws = parseYaml(read(WS_REL), { file: WS_REL });
         const restStates = rest.components.schemas.MachineState.enum;
         const wsStates = ws.components.schemas.MachineState.enum;
 
-        assert.ok(!restStates.includes('schedIdle'));
-        assert.ok(!wsStates.includes('schedIdle'));
         assert.ok(MACHINE_STATES.includes('schedIdle'), 'machine.dart, the authority, has it');
-        assert.notDeepEqual(restStates, wsStates, 'the two specs list different states');
-        assert.ok(restStates.includes('steamRinse') && !wsStates.includes('steamRinse'));
-        assert.ok(wsStates.includes('transportMode') && !restStates.includes('transportMode'));
+        assert.deepEqual(restStates, MACHINE_STATES);
+        assert.deepEqual(wsStates, MACHINE_STATES);
+        assert.ok(!wsStates.includes('transportMode'));
     });
 
     test('no route in the table carries a machine-state list', () => {
@@ -309,6 +309,8 @@ describe('the table agrees with ReaPrime elsewhere in the tree', () => {
             .sort();
         assert.deepEqual(unregistered, [
             'GET /api/v1/account/proxy/support/api/<endpoint>',
+            'GET /api/v1/manifest',
+            'GET /api/v1/scale/info',
             'GET /api/v1/webui/skin-assets/<id>/<filepath>',
             'POST /api/v1/account/proxy/support/api/<endpoint>',
             'PUT /api/v1/account/proxy/support/api/<endpoint>',
@@ -318,6 +320,10 @@ describe('the table agrees with ReaPrime elsewhere in the tree', () => {
             'PUT /api/v1/scale/timer/stop',
         ]);
         assert.ok(registrations.wildcards.has('PUT /api/v1/scale/<command>'));
+        assert.ok(registrations.wildcards.has('GET /api/v1/scale/<command>'));
+        const service = read('lib/src/services/webserver_service.dart');
+        assert.match(service, /String get manifestPath => '\/api\/v1\/manifest';/);
+        assert.match(service, /app\.get\(apiDocsConfiguration\.manifestPath,/);
         assert.ok(registrations.wildcards.has('PUT /api/v1/scale/timer/<command>'));
     });
 });

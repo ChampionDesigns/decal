@@ -147,7 +147,16 @@ describe('a machine command that did not work @ bench', () => {
                 await window.__command.pressKey('espresso');
                 await window.__command.pushMachine('espresso', { pressure: 6 });
                 const confirmed = window.__command.notices();
-                await new Promise((done) => { setTimeout(done, 4200); });
+                const from = Date.now();
+                const deadline = performance.now() + 24200;
+                await new Promise((done, fail) => {
+                    const poll = () => {
+                        if (Date.now() - from >= 4200) done();
+                        else if (performance.now() > deadline) fail(new Error('the page clock never moved 4200 ms'));
+                        else setTimeout(poll, 15);
+                    };
+                    poll();
+                });
                 const later = await window.__command.pushMachine('espresso', { pressure: 6.2 });
                 return { confirmed, later: later.notices };
             });
@@ -164,6 +173,12 @@ describe('a machine command that did not work @ bench', () => {
                 window.__command.failCommands(503);
                 await window.__command.pressKey('steam');
                 await window.__command.pushMachine('idle', { pressure: 7.2, flow: 1.8 });
+                const pressureOf = () => window.__command.readings()
+                    .find((tile) => tile.label === 'Pressure')?.value;
+                const deadline = performance.now() + 5000;
+                while (pressureOf() !== '7.2' && performance.now() < deadline) {
+                    await new Promise((done) => { setTimeout(done, 20); });
+                }
                 return { notices: window.__command.notices(), readings: window.__command.readings() };
             });
 

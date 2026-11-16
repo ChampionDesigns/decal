@@ -49,34 +49,42 @@ describe('the default-reset page says what the reset does', () => {
         };
     });
 
-    test('the table lists flow calibration and what it will become', async () => {
+    test('the table has no flow calibration row, because the reset does not write it', async () => {
         const shown = await said();
-        assert.notEqual(shown.flowRow, null, 'the flow multiplier is one of the eight');
-        assert.ok(shown.flowRow.some((cell) => /flow calibration/i.test(cell)),
-            `the row names the setting: ${JSON.stringify(shown.flowRow)}`);
-        assert.equal(shown.flowRow[shown.flowRow.length - 1], '1',
-            'and says it goes back to 1');
-        assert.equal(shown.flowRow[shown.flowRow.length - 2], '1.4',
-            'from the value this machine is actually holding');
+        assert.equal(shown.flowRow, null, `the flow multiplier is not one of the seven: ${JSON.stringify(shown.flowRow)}`);
     });
 
-    test('the preflight copy names the calibration that is kept, not one that is not', async () => {
+    test('the preflight copy says which versions set the flow calibration to 1', async () => {
         const shown = await said();
-        assert.match(String(shown.preflight), /flow calibration/i,
-            'the sentence above the table lists the calibration the button resets');
-        assert.match(String(shown.preflight), /load[- ]cell/i,
-            'and names the calibration that really is left alone');
-        assert.doesNotMatch(String(shown.preflight), /no calibration/i,
-            'a blanket "no calibration" is contradicted by the row underneath it');
+        assert.match(String(shown.preflight), /^Puts seven machine settings back/);
+        assert.match(String(shown.preflight), /Older versions of Decide also set the flow calibration to 1\. Newer versions do not change it\./);
+        assert.match(String(shown.preflight), /The load-cell calibration, your profiles and your shot history do not change\.$/);
+        assert.doesNotMatch(String(shown.preflight), /among them/i);
+        assert.doesNotMatch(String(shown.preflight), /no calibration/i);
     });
 
     test('the confirmation says the same thing as the table', async () => {
         const shown = await said();
-        assert.match(String(shown.detail), /flow calibration/i,
-            'the last sentence before an irreversible button names the flow multiplier, '
-            + 'which the page-name list cannot be relied on to reach');
-        assert.match(String(shown.detail), /\b1\b/, 'and the value it goes back to');
-        assert.match(String(shown.detail), /load[- ]cell/i,
-            'and keeps the true reassurance rather than the false one');
+        assert.equal(shown.question, 'Restore these seven settings?');
+        assert.match(String(shown.detail), /Older versions of Decide also set the flow calibration to 1\. Newer versions do not change it\./);
+        assert.match(String(shown.detail), /The load-cell calibration does not change\.$/);
+        assert.doesNotMatch(String(shown.detail), /goes back to 1\b/);
+    });
+
+    test('neither text names a version number or the old name of the app', async () => {
+        const shown = await said();
+        for (const text of [shown.preflight, shown.detail]) {
+            assert.doesNotMatch(String(text), /\d+\.\d+/, text);
+            assert.doesNotMatch(String(text), /reaprime/i, text);
+            assert.match(String(text), /Decide/, text);
+        }
+    });
+
+    test('neither text says the flow calibration stays on every version', async () => {
+        const shown = await said();
+        for (const text of [shown.preflight, shown.detail]) {
+            assert.doesNotMatch(String(text), /The flow calibration(,| and) the load-cell calibration/i, text);
+            assert.doesNotMatch(String(text), /flow calibration[^.]*do(es)? not change/i, text);
+        }
     });
 });

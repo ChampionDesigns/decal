@@ -156,19 +156,23 @@ describe('the two real specs', () => {
 
     test('rest_v1.yml parses to the expected shape', () => {
         assert.equal(rest.openapi, '3.0.3');
-        // 101 -> 112 and 82 -> 97 at the 42f67f69 re-pin: purely additive, nothing removed.
-        // New paths: machine/ledStrip/preview(+/clear), machine/stopAtWeight,
-        // machine/calibration/{target}, bean-batches, plugins/{id}/source,
-        // plugins/install/github-release, .../github-branch, plugins/update,
-        // plugins/{id}/update/approve, diagnostics/ble.
-        assert.equal(Object.keys(rest.paths).length, 112);
-        assert.equal(Object.keys(rest.components.schemas).length, 97);
+        // 112 -> 120 paths and 97 -> 107 schemas at the 8fee86dd re-pin: nine paths added
+        // (manifest, scale/info, scales/{id}/tare, six under grinder) and one removed
+        // (machine/stopAtWeight, with its three schemas).
+        assert.equal(Object.keys(rest.paths).length, 120);
+        assert.equal(Object.keys(rest.components.schemas).length, 107);
+        for (const p of ['/api/v1/manifest', '/api/v1/scale/info', '/api/v1/scales/{id}/tare', '/api/v1/grinder/info']) {
+            assert.ok(rest.paths[p], p);
+        }
+        assert.equal(rest.paths['/api/v1/machine/stopAtWeight'], undefined);
     });
 
     test('websocket_v1.yml parses to the expected shape', () => {
-        assert.equal(ws.asyncapi, '3.0.0');
-        assert.equal(Object.keys(ws.channels).length, 13);
-        assert.equal(Object.keys(ws.operations).length, 17);
+        assert.equal(ws.asyncapi, '3.1.0');
+        assert.equal(Object.keys(ws.channels).length, 15);
+        assert.equal(Object.keys(ws.operations).length, 19);
+        assert.ok(ws.channels.GrinderSnapshot);
+        assert.ok(ws.channels.ScaleSnapshotById);
     });
 
     test('a deep value survives the walk intact', () => {
@@ -179,8 +183,9 @@ describe('the two real specs', () => {
     test('the long multi-line flow enum is read whole', () => {
         const states = rest.components.schemas.MachineState.enum;
         assert.ok(Array.isArray(states));
-        assert.equal(states.length, 20);
+        assert.equal(states.length, 21);
         assert.equal(states[0], 'booting');
+        assert.equal(states[3], 'schedIdle');
         assert.equal(states[states.length - 1], 'fwUpgrade');
         assert.ok(states.every((s) => typeof s === 'string'));
     });

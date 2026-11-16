@@ -15,8 +15,10 @@ export const FEEDBACK_STATUS = Object.freeze({
 export const FEEDBACK_REFUSAL = Object.freeze({
     /** 503 — the ReaPrime build carries no GitHub token. Not retryable. */
     NOT_CONFIGURED: 'notConfigured',
-    /** 400 — a blank description. The only field the handler validates. */
+    /** 400 — a blank description. */
     EMPTY_DESCRIPTION: 'emptyDescription',
+    /** 400 — the app is not signed in to a Decent account, or could not check it. */
+    ACCOUNT_REQUIRED: 'accountRequired',
     /** Anything else, including a 500 from the submit itself. */
     FAILED: 'failed',
 });
@@ -37,6 +39,16 @@ const EMPTY_STATE = Object.freeze({
     issueUrl: null,
     issueNumber: null,
 });
+
+const ACCOUNT_REQUIRED_ERROR = 'Decent account required';
+
+function refusalOf(result) {
+    if (result.status === 503) return FEEDBACK_REFUSAL.NOT_CONFIGURED;
+    if (result.status !== 400) return FEEDBACK_REFUSAL.FAILED;
+    return result.problem?.error === ACCOUNT_REQUIRED_ERROR
+        ? FEEDBACK_REFUSAL.ACCOUNT_REQUIRED
+        : FEEDBACK_REFUSAL.EMPTY_DESCRIPTION;
+}
 
 function failureMessage(result) {
     const problem = result?.problem;
@@ -92,11 +104,7 @@ export function createFeedbackStore({ transport, logger = null } = {}) {
                 });
             }
 
-            const reason = result.status === 503
-                ? FEEDBACK_REFUSAL.NOT_CONFIGURED
-                : result.status === 400
-                    ? FEEDBACK_REFUSAL.EMPTY_DESCRIPTION
-                    : FEEDBACK_REFUSAL.FAILED;
+            const reason = refusalOf(result);
             if (log && log.warn) log.warn(`feedback refused (${reason})`);
             return store.set({
                 ...EMPTY_STATE,

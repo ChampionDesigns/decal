@@ -876,3 +876,178 @@ describe('index.html — the pre-paint theme stamp, honoured end to end', () => 
             assert.equal(result.after.source, 'stored');
         }));
 });
+
+describe('a hash change while a route change is pending @ bench', () => {
+    const pending = (fn) => browser.withPage({ geometry: BENCH }, async (page) => {
+        await page.mount('', MODULES);
+        await page.evalFn(async () => {
+            history.replaceState(null, '', '#/live');
+            await window.__shell.mount({});
+            await window.__shell.settled();
+        });
+        assert.deepEqual(page.pageErrors, [], 'the shell boots without throwing');
+        assert.equal((await shellState(page)).route, 'live');
+        await page.evalFn(() => {
+            const screen = window.__h.q('app-root >>> live-screen');
+            window.__asked = [];
+            window.__refuse = false;
+            screen.canLeaveRoute = (details) => {
+                window.__asked.push({ from: details.from, to: details.to, kind: details.kind });
+                return window.__refuse ? { allow: false, reason: 'the test refuses' } : true;
+            };
+            window.__shell.holdScreens();
+        });
+        await fn(page);
+    });
+
+    const hashTo = (page, id) => page.evalFn(async (route) => {
+        location.hash = `#/${route}`;
+        await new Promise((resolve) => { setTimeout(resolve, 50); });
+        return window.__shell.heldScreens();
+    }, id);
+
+    const release = (page, match) => page.evalFn(async (part) => {
+        const done = [];
+        for (const specifier of window.__shell.heldScreens()) {
+            if (specifier.includes(part) && window.__shell.releaseHeld(specifier)) done.push(specifier);
+        }
+        await new Promise((resolve) => { setTimeout(resolve, 250); });
+        return done;
+    }, match);
+
+    const settle = (page) => page.evalFn(async () => {
+        for (const specifier of window.__shell.heldScreens()) window.__shell.releaseHeld(specifier);
+        const state = await window.__shell.settled();
+        await new Promise((resolve) => { setTimeout(resolve, 250); });
+        return {
+            route: state.route,
+            phase: state.phase,
+            hash: location.hash,
+            asked: window.__asked.slice(),
+            screens: window.__shell.askedScreens(),
+        };
+    });
+
+    test('a return to the shown route ends on the shown route, and the address agrees',
+        () => pending(async (page) => {
+            const toProbe = await hashTo(page, 'probe');
+            assert.equal(toProbe.length, 1, 'the probe screen is pending');
+            await hashTo(page, 'live');
+            await release(page, 'probe-screen');
+            const end = await settle(page);
+            assert.equal(end.hash, '#/live');
+            assert.equal(end.route, 'live', 'the slow probe screen does not take the route from the address');
+            assert.equal(end.phase, 'ready');
+            assert.deepEqual(end.asked.map((a) => a.to), ['probe'],
+                'the shown screen is not asked to leave for itself');
+        }));
+
+    test('a return to the shown route keeps the shown screen and calls off its leave, so a guard that agreed is asked again',
+        () => pending(async (page) => {
+            await page.evalFn(() => {
+                window.__latch = (screen) => {
+                    let agreed = false;
+                    screen.__latched = true;
+                    screen.canLeaveRoute = (details) => {
+                        window.__asked.push({ from: details.from, to: details.to, kind: details.kind });
+                        if (agreed) return true;
+                        if (window.__refuse) return { allow: false, reason: 'the test refuses' };
+                        agreed = true;
+                        return true;
+                    };
+                    screen.leaveCancelled = () => { agreed = false; };
+                };
+                window.__first = window.__h.q('app-root >>> live-screen');
+                window.__latch(window.__first);
+            });
+            await hashTo(page, 'probe');
+            await hashTo(page, 'live');
+            await release(page, 'probe-screen');
+            const back = await settle(page);
+            assert.equal(back.route, 'live');
+            const kept = await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                const same = screen === window.__first;
+                if (!screen.__latched) window.__latch(screen);
+                window.__refuse = true;
+                return same;
+            });
+            await hashTo(page, 'settings');
+            const end = await settle(page);
+            assert.equal(end.hash, '#/live', 'the refusal puts the address back');
+            assert.equal(end.route, 'live', 'the screen on show was asked, and it refused');
+            assert.equal(kept, true, 'the screen that agreed to leave is still the one on show');
+        }));
+
+    test('a return to the shown route keeps the edits made on the shown screen while the other screen loaded',
+        () => pending(async (page) => {
+            await page.evalFn(() => { window.__first = window.__h.q('app-root >>> live-screen'); });
+            const held = await hashTo(page, 'probe');
+            assert.equal(held.length, 1, 'the probe screen is pending');
+            await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                screen.__draft = 'typed while the probe screen loads';
+                const mark = document.createElement('p');
+                mark.id = 'draft-mark';
+                mark.textContent = screen.__draft;
+                screen.shadowRoot.appendChild(mark);
+            });
+            await hashTo(page, 'live');
+            await release(page, 'probe-screen');
+            const end = await settle(page);
+            assert.equal(end.route, 'live');
+            assert.equal(end.hash, '#/live');
+            const shown = await page.evalFn(() => {
+                const screen = window.__h.q('app-root >>> live-screen');
+                return {
+                    same: screen === window.__first,
+                    draft: screen?.__draft ?? null,
+                    mark: screen?.shadowRoot?.getElementById('draft-mark')?.textContent ?? null,
+                    count: window.__h.q('app-root').shadowRoot.querySelectorAll('live-screen, probe-screen').length,
+                };
+            });
+            assert.equal(shown.same, true, 'the shown screen keeps its element');
+            assert.equal(shown.draft, 'typed while the probe screen loads', 'and its own state');
+            assert.equal(shown.mark, 'typed while the probe screen loads', 'and what it shows');
+            assert.equal(shown.count, 1, 'and no second screen is mounted');
+            assert.deepEqual(page.pageErrors, []);
+        }));
+
+    test('a hash event for the shown route with nothing pending does nothing',
+        () => pending(async (page) => {
+            await page.evalFn(async () => {
+                window.dispatchEvent(new HashChangeEvent('hashchange'));
+                await new Promise((resolve) => { setTimeout(resolve, 50); });
+            });
+            const end = await settle(page);
+            assert.equal(end.route, 'live');
+            assert.equal(end.hash, '#/live');
+            assert.deepEqual(end.asked, [], 'no leave question');
+            assert.equal(end.screens.length, 1, 'no second screen load');
+        }));
+
+    test('a hash change to a third route while one is pending asks the guard and ends on the third',
+        () => pending(async (page) => {
+            await hashTo(page, 'probe');
+            await hashTo(page, 'settings');
+            await release(page, 'probe-screen');
+            const end = await settle(page);
+            assert.equal(end.hash, '#/settings');
+            assert.equal(end.route, 'settings');
+            assert.deepEqual(end.asked.map((a) => [a.from, a.to, a.kind]), [
+                ['live', 'probe', 'history'],
+                ['probe', 'settings', 'history'],
+            ], 'the guard is asked from the pending route');
+        }));
+
+    test('a refused hash change while one is pending puts back the pending address, and the route agrees',
+        () => pending(async (page) => {
+            await hashTo(page, 'probe');
+            await page.evalFn(() => { window.__refuse = true; });
+            await hashTo(page, 'settings');
+            const end = await settle(page);
+            assert.equal(end.hash, '#/probe');
+            assert.equal(end.route, 'probe');
+            assert.equal(end.asked.length, 2, 'the guard was asked about the third route');
+        }));
+});

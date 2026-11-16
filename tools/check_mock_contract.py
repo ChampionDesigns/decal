@@ -627,6 +627,8 @@ def check_fixtures(table: dict, ledger: dict, fixtures_dir: pathlib.Path) -> tup
         bare, params = split_query(request)
         try:
             body = json.loads(path_obj.read_text())
+            if name not in non_json:
+                body, _ = mock_rea.served_body(bare, body)
         except Exception as exc:                                    # noqa: BLE001
             if name in non_json:
                 stats["nonJson"] += 1

@@ -24,8 +24,8 @@ const MARKUP = `
       #stage { display: grid; gap: 24px; inline-size: ${STAGE}px; justify-items: stretch; }
     </style>
     <div id="stage">
-      <ui-rating-control id="rating" shot-id="shot-1" score="73" handoff></ui-rating-control>
-      <ui-rating-control id="plain" shot-id="shot-1" score="73"></ui-rating-control>
+      <ui-rating-control id="rating" shot-id="shot-1" score="7.5" handoff></ui-rating-control>
+      <ui-rating-control id="plain" shot-id="shot-1" score="7.5"></ui-rating-control>
       <ui-rating-control id="unrated" shot-id="shot-1"></ui-rating-control>
       <ui-rating-control id="nothing" handoff></ui-rating-control>
     </div>`;
@@ -454,14 +454,38 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     };
                 }, ratedText);
                 assert.match(named.ratedName, /0/, 'the name must state the scale it is on');
-                assert.match(named.ratedName, /100/);
+                assert.match(named.ratedName, /\b10\b/);
                 assert.ok(named.ratedName && named.ratedName.length > 0,
                     'a control with no visible label of its own MUST carry an accessible name');
-                assert.match(named.ratedText, /73/, 'the announced value must be the score');
+                assert.match(named.ratedText, /\b7\.5 of 10\b/, 'the announced value must be the score');
                 assert.doesNotMatch(named.unratedText, /^0$|\b0 of\b/,
                     'an unrated control announced a zero');
                 assert.ok(named.unratedText.length > 0, 'an unrated control announced nothing at all');
             }));
+
+        test('the score and its sheet are out of 10, in steps of 0.5', () => mounted(async (page) => {
+            assert.equal(await textOf(page, RATE_NUM), '7.5/10');
+            assert.equal(await textOf(page, `${RATE_NUM} .of`), '/10');
+            assert.equal(await page.prop(`${RATE_NUM} .of`, 'color'), await page.resolveToken('--ui-muted'));
+            assert.equal(await page.exists('#unrated >>> #rate .num .of'), false,
+                'an unrated score shows the dash alone');
+            await openSheet(page);
+            const sheet = await page.evalFn(() => {
+                const root = document.getElementById('rating').shadowRoot;
+                const track = root.querySelector('#slider').shadowRoot.querySelector('#track');
+                return {
+                    label: root.querySelector('#sheet-score').label,
+                    value: root.querySelector('#sheet-score').value,
+                    min: track.min,
+                    max: track.max,
+                    step: track.step,
+                    thumb: track.value,
+                };
+            });
+            assert.deepEqual(sheet, {
+                label: 'Score out of 10', value: '7.5', min: '0', max: '10', step: '0.5', thumb: '7.5',
+            });
+        }));
 
         test('an absent score announces a SENTENCE and hides the dash', () => mounted(async (page) => {
             /* ui-stat-tile owns this; the assertion is here because #46 is the row that
@@ -511,11 +535,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 const slider = await page.evalFn(() => document.getElementById('named').shadowRoot
                     .querySelector('#slider').shadowRoot.querySelector('#track').getAttribute('aria-label'));
                 assert.notEqual(slider, 'Rate the last shot');
-                assert.match(slider, /100/, 'the slider names its own range');
+                assert.match(slider, /\b10\b/, 'the slider names its own range');
             },
             `<div id="stage" style="inline-size: ${STAGE}px">
                <ui-rating-control id="named" aria-label="Rate the last shot"
-                   shot-id="shot-1" score="73" handoff></ui-rating-control>
+                   shot-id="shot-1" score="7.5" handoff></ui-rating-control>
              </div>`));
 
         test('the handoff is a real button with its own words', () => mounted(async (page) => {
@@ -545,7 +569,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
             () => mounted(async (page) => {
                 await openSheet(page);
                 await page.recordEvents(RATING, ['rating-input', 'rating-change']);
-                await drag(page, 40);
+                await drag(page, 4);
                 await page.settle(2);
 
                 const events = await page.recordedEvents();
@@ -562,30 +586,30 @@ for (const geometry of GATE_A_GEOMETRIES) {
                         button: el.querySelector('#rate .num').textContent.trim(),
                     };
                 });
-                assert.equal(shown.tile, '40', 'the number above the thumb must follow it');
-                assert.equal(shown.button, '40', 'and so must the score on the button that opened the sheet');
+                assert.equal(shown.tile, '4.0', 'the number above the thumb must follow it');
+                assert.equal(shown.button, '4.0/10', 'and so must the score on the button that opened the sheet');
             }));
 
         test('a commit publishes rating-change ONCE, with the shot it was rated against',
             () => mounted(async (page) => {
                 await openSheet(page);
                 await page.recordEvents(RATING, ['rating-change']);
-                await commit(page, 88);
+                await commit(page, 8.5);
                 await page.settle(2);
 
                 const events = await page.recordedEvents();
                 assert.equal(events.length, 1,
                     'one gesture, one commit — no timer, one write in flight, latest-wins');
-                assert.deepEqual(events[0].detail, { score: 88, shotId: 'shot-1' });
+                assert.deepEqual(events[0].detail, { score: 8.5, shotId: 'shot-1' });
             }));
 
         test('changing the shot drops the draft — the stale-id guard, as structure',
             () => mounted(async (page) => {
                 await openSheet(page);
-                await drag(page, 12);
+                await drag(page, 1.5);
                 await page.settle(2);
                 assert.equal(await page.evalFn(() => document.getElementById('rating').shadowRoot
-                    .querySelector('#sheet-score').value), '12');
+                    .querySelector('#sheet-score').value), '1.5');
 
                 await page.evalFn(() => {
                     const el = document.getElementById('rating');
@@ -608,12 +632,12 @@ for (const geometry of GATE_A_GEOMETRIES) {
 
         test('a served correction wins over the thumb', () => mounted(async (page) => {
             await openSheet(page);
-            await drag(page, 5);
+            await drag(page, 2);
             await page.settle(2);
-            await page.evalFn(() => { document.getElementById('rating').score = 61; return true; });
+            await page.evalFn(() => { document.getElementById('rating').score = 6.5; return true; });
             await page.settle(3);
             assert.equal(await page.evalFn(() => document.getElementById('rating').shadowRoot
-                .querySelector('#sheet-score').value), '61',
+                .querySelector('#sheet-score').value), '6.5',
                 'a screen that corrects a rejected write must be able to');
         }));
 

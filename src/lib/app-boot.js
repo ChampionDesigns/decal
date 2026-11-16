@@ -325,6 +325,8 @@ export function createAppBoot({
     /** Whether the connection feed's own source was open on the last frame. */
     let sourceLinked = false;
     let destroyed = false;
+    let latestGoto = 0;
+    let pendingRoute = null;
 
     const patch = (fields) => store.set({ ...store.get(), ...fields });
 
@@ -588,6 +590,7 @@ export function createAppBoot({
         subscribe(listener) { return store.subscribe(listener); },
         watchers() { return store.size(); },
         attachments() { return unwatchConnection ? 1 : 0; },
+        pendingRoute() { return pendingRoute; },
 
         async start({ route = initialRouteId } = {}) {
             if (destroyed) throw new Error('appBoot: start() after destroy()');
@@ -628,11 +631,15 @@ export function createAppBoot({
         async goto(routeIdOrHash = initialRouteId) {
             const resolved = resolveRoute(hashFor(routeIdOrHash), routeTable);
             const { route } = resolved;
+            const request = ++latestGoto;
+            pendingRoute = route.id;
             patch({ phase: BOOT_PHASE.CONNECTING, step: BOOT_STEP.SCREEN, error: null });
             try {
                 await importModule(route.module);
             } catch (error) {
                 note('error', `screen module '${route.module}' failed to load: ${error && error.message}`);
+                if (request !== latestGoto) return store.get();
+                pendingRoute = null;
                 return patch({
                     phase: BOOT_PHASE.ERROR,
                     step: BOOT_STEP.SCREEN,
@@ -643,6 +650,8 @@ export function createAppBoot({
                     },
                 });
             }
+            if (request !== latestGoto) return store.get();
+            pendingRoute = null;
             if (destroyed) return store.get();
             return patch({
                 phase: BOOT_PHASE.READY,

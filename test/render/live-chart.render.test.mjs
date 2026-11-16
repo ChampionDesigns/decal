@@ -645,18 +645,29 @@ for (const geometry of GATE_A_GEOMETRIES) {
             await page.setGeometry({ ...geometry, deviceScaleFactor: next });
             const after = await page.eval(`(async () => {
                 const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
-                await frame(); await frame();
                 const uPlot = (await import('/vendor/uPlot.esm.js')).default;
                 const { card } = window.__live;
-                const canvas = card.shadowRoot.querySelector('canvas');
-                const host = card.shadowRoot.querySelector('.plot').getBoundingClientRect();
-                return {
-                    ratio: card.pixelRatio,
-                    vendor: uPlot.pxRatio,
-                    platform: window.devicePixelRatio,
-                    attr: canvas.width,
-                    host: host.width,
+                const read = () => {
+                    const canvas = card.shadowRoot.querySelector('canvas');
+                    const host = card.shadowRoot.querySelector('.plot').getBoundingClientRect();
+                    return {
+                        ratio: card.pixelRatio,
+                        vendor: uPlot.pxRatio,
+                        platform: window.devicePixelRatio,
+                        attr: canvas.width,
+                        host: host.width,
+                    };
                 };
+                const drawn = (got) => got.platform === ${next} && got.ratio === ${next}
+                    && got.vendor === ${next} && Math.abs(got.attr - got.host * ${next}) <= 3;
+                const deadline = performance.now() + 5000;
+                await frame(); await frame();
+                let got = read();
+                while (!drawn(got) && performance.now() < deadline) {
+                    await frame();
+                    got = read();
+                }
+                return got;
             })()`);
             await page.setGeometry(geometry);
 
@@ -901,11 +912,12 @@ describe('the live road: the WS mock drives the screen, and an absent channel is
                     /* The scale's staleness budget, shortened for a test that cannot wait
                      * four seconds: the POLICY is unchanged, only the number, and it is
                      * injected exactly where live-stores.js says it may be. */
-                    const live = createLiveStores({ sockets, staleAfterMs: { scale: 250 } });
+                    const clock = () => performance.timeOrigin + performance.now();
+                    const live = createLiveStores({ sockets, clock, staleAfterMs: { scale: 250 } });
                     live.attachAll();
                     /* Staleness is re-classified by whatever already ticks; on the screen
                      * that is the render loop, here it is this interval. */
-                    const tick = setInterval(() => live.refreshStaleness(Date.now()), 40);
+                    const tick = setInterval(() => live.refreshStaleness(clock()), 40);
                     screen.shot = live.shot;
 
                     const until = async (predicate, ms, what) => {

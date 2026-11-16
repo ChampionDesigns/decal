@@ -13,10 +13,11 @@ import 'src/components/ui-dialog.js';
 import { I18nController } from 'src/lib/i18n.js';
 import { hasReading } from 'src/data/reading.js';
 import { formatToStep, NO_READING_MARK } from 'src/stores/units.js';
+import { ENJOYMENT_MAX, ENJOYMENT_MIN } from 'src/data/rea-shot-record.js';
 
-export const RATING_MIN = 0;
-export const RATING_MAX = 100;
-export const RATING_STEP = 1;
+export const RATING_MIN = ENJOYMENT_MIN;
+export const RATING_MAX = ENJOYMENT_MAX;
+export const RATING_STEP = 0.5;
 
 const LABEL_KEY = 'Rate this shot';
 const HANDOFF_KEY = 'Full notes';
@@ -30,7 +31,7 @@ const SHEET_DONE_KEY = 'Done';
 const SLIDER_NAME_KEY = 'Shot rating, {min} to {max}';
 /** What a screen reader hears on an unrated shot, where a sighted user sees the dash. */
 const UNRATED_KEY = 'Not rated';
-/** The announced value: "73 of 100" rather than a bare percentage. */
+/** The announced value, rather than a bare percentage. */
 const RATED_KEY = '{score} of {max}';
 
 export class UiRatingControl extends UiElement {
@@ -90,6 +91,11 @@ export class UiRatingControl extends UiElement {
                 font-weight: var(--ui-weight-light);
                 line-height: 1.1;
                 color: var(--ui-text);
+            }
+
+            #rate .num .of {
+                font-size: var(--ui-text-sm);
+                color: var(--ui-muted);
             }
 
             /* A SHOT NOBODY HAS RATED SHOWS THE DASH IN MUTED INK, which is the tile's own
@@ -219,7 +225,9 @@ export class UiRatingControl extends UiElement {
             >
                 <span class="score ${scoreText === null ? 'unrated' : ''}">
                     <span class="cap">${capLabel}</span>
-                    <span class="num">${scoreText ?? NO_READING_MARK}</span>
+                    <span class="num">${scoreText ?? NO_READING_MARK}${scoreText === null
+                        ? nothing
+                        : html`<span class="of">/${RATING_MAX}</span>`}</span>
                 </span>
             </ui-button>
 

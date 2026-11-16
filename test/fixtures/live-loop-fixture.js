@@ -151,9 +151,9 @@ const TABLE = Object.freeze({
 let boot = null;
 let root = null;
 
-/** One-decimal rounding, exactly as `phaseRows` does it — see `live-targets.js`. */
-const round1 = (value) => (typeof value === 'number' && Number.isFinite(value)
-    ? Number(value.toFixed(1))
+/** One decimal place, written the way `phaseRows` writes it — see `live-targets.js`. */
+const oneDecimal = (value) => (typeof value === 'number' && Number.isFinite(value)
+    ? value.toFixed(1)
     : null);
 
 const screenEl = () => root?.shadowRoot?.querySelector('live-screen') ?? null;
@@ -274,8 +274,9 @@ globalThis.__loop = {
      * says while it is that (`chip`), and the status after a hand call (`afterTick`),
      * which is the old mechanism check and must agree.
      */
-    async stalenessProbe(waitMs = 2400) {
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+    async stalenessProbe(silentMs = 3000) {
+        const waited = await until(() => (boot.live.status().machineSnapshot.ageMs ?? -1) >= silentMs,
+            silentMs + 20000, `${silentMs} ms of machine silence on the store's own clock`);
         const before = boot.live.status();
         const screen = screenEl();
         await screen.updateComplete;
@@ -293,7 +294,7 @@ globalThis.__loop = {
         boot.live.refreshStaleness(Date.now());
         const after = boot.live.status();
         return {
-            waitedMs: waitMs,
+            waitedMs: waited.waitedMs,
             beforeTick: { machine: before.machineSnapshot.status, scale: before.scale.status },
             afterTick: { machine: after.machineSnapshot.status, scale: after.scale.status },
             machineAgeMs: Math.round(before.machineSnapshot.ageMs ?? -1),
@@ -466,7 +467,7 @@ globalThis.__loop = {
                 ? { totalSeconds: phases.total.seconds, totalWeight: phases.total.weight, totalVolume: phases.total.volume }
                 : null,
             rounded: phases && phases.total
-                ? { totalSeconds: round1(phases.total.seconds), totalWeight: round1(phases.total.weight) }
+                ? { totalSeconds: oneDecimal(phases.total.seconds), totalWeight: oneDecimal(phases.total.weight) }
                 : null,
         };
     },

@@ -360,7 +360,6 @@
         "A7:438bf54a5bf9",
         "B9:b82b0eb863cc",
         "CB-05:2b392a4f6ab8",
-        "CB-06:a905fe01e5c1",
         "CB-10:61ae501f872e",
         "CB-15:d590bade4255",
         "CB-17:2bd5557e8a24",
@@ -742,12 +741,9 @@
         "B8:2780b45cb17c"
       ],
       "a spec section": [
-        "spec:01bb0de0aae6",
         "spec:0387bf241023",
         "spec:07b2f747338e",
-        "spec:11fd5a13b528",
         "spec:19c3f33614e2",
-        "spec:2df78de802e6",
         "spec:688c70fcf9d6",
         "spec:b1c889b1253f",
         "spec:baf57e3c2feb"

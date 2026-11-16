@@ -14,9 +14,9 @@
       "event": "dppxchange",
       "kind": "orphan-listener",
       "sites": [
-        "src/components/ui-chart-card.js:785"
+        "src/components/ui-chart-card.js:307"
       ],
-      "reason": "emitted by the vendored uPlot at vendor/uPlot.esm.js:81 (`win.dispatchEvent(new CustomEvent(dppxchange))`), outside the gate's src/-only scan. Live: test/render/ui-chart-card.render.test.mjs:1146 drives the same event.",
+      "reason": "emitted by the vendored uPlot at vendor/uPlot.esm.js:81 (`win.dispatchEvent(new CustomEvent(dppxchange))`), outside the gate's src/-only scan. Live: test/render/ui-chart-card.render.test.mjs:1037 drives the same event.",
       "added": "2026-08-29"
     }
   ]

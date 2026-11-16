@@ -92,7 +92,7 @@ const RECORD = {
         context: { targetDoseWeight: 18, targetYield: 36 },
         profile: { title: 'Bench', steps: [{ name: 'Preinfuse' }, { name: 'Extract' }] },
     },
-    annotations: { actualDoseWeight: 18.2, actualYield: 36.4, enjoyment: 80 },
+    annotations: { actualDoseWeight: 18.2, actualYield: 36.4, enjoyment: 8 },
     measurements: MEASUREMENTS,
 };
 
@@ -403,7 +403,7 @@ describe('the scalars are bounded to the part of the shot that was pouring', () 
     });
 
     test('enjoyment is ReaPrime\'s own rating, read through, not a skin-local orphan', () => {
-        assert.equal(scalars.enjoyment, 80);
+        assert.equal(scalars.enjoyment, 8);
         assert.equal(deriveFromRecord({ ...RECORD, annotations: {} }).scalars.enjoyment, null);
     });
 });

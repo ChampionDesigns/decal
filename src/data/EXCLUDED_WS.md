@@ -5,7 +5,7 @@ Companion to `EXCLUDED.md` (the REST dead surface), for this layer's socket half
 every omission is written down with a reason and a citation.
 
 Everything below was checked against ReaPrime **as written** at
-`42f67f69334197a08cc0f4138ca05302616e977a`
+`8fee86ddc761cd4b0a874178bf1e54b5b4ee7745`
 (the pinned ReaPrime checkout, read-only). Old-skin line numbers are from the previous
 skin's modules and go soft the moment anything moves — **re-anchor by symbol**.
 
@@ -14,10 +14,10 @@ wrong or no longer holds, recorded next to the row.
 
 ---
 
-## The three sockets ReaPrime serves and this skin does not open
+## The five sockets ReaPrime serves and this skin does not open
 
-Not consumed, deliberately: `/ws/v1/machine/raw`, `/ws/v1/logs` and
-`/ws/v1/webview/logs`. They are absent from `rea-ws-channels.js` on purpose — a table of
+Not consumed, deliberately: `/ws/v1/machine/raw`, `/ws/v1/logs`,
+`/ws/v1/webview/logs`, `/ws/v1/grinder/snapshot` and `/ws/v1/scales/<id>/snapshot`. They are absent from `rea-ws-channels.js` on purpose — a table of
 channels is a table of things we open — so this is the only place they are named.
 
 | Not opened | Why | Citation |
@@ -25,12 +25,14 @@ channels is a table of things we open — so this is the only place they are nam
 | `/ws/v1/machine/raw` | The raw BLE/USB characteristic traffic, `RawStreamEvent`s straight off the machine. It is a debugging tap for ReaPrime's own developers: everything the skin needs off it is already decoded onto `/ws/v1/machine/snapshot`, `shotSettings`, `shotState` and `waterLevels`, and decoding it a second time in the skin would be a second implementation of a protocol the server owns — the exact drift this rewrite exists to remove. It is also the highest-rate socket on the box. | `de1handler.dart` `_handleRawSocket`, registered at `app.get('/ws/v1/machine/raw', ...)`; `de1.rawOutStream` |
 | `/ws/v1/logs` | ReaPrime's own log stream. A skin that renders the server's logs is a diagnostic tool, and the diagnostic tool exists already (ReaPrime's settings screens). Nothing in the Decal inventory shows them. | `settings_handler.dart` `_handleLogsRequest` |
 | `/ws/v1/webview/logs` | **Worth knowing about even unconsumed.** This is the socket ReaPrime uses to capture the *webview's own* console — the skin does not read it, the skin FEEDS it, which is why the logger binds to `console.*`. Skin logs are recoverable server-side for free over `GET /api/v1/webview/logs`; there is nothing to subscribe to. | `webview_logs_handler.dart` `_handleWebSocketLogs` |
+| `/ws/v1/grinder/snapshot` | The connected grinder's state. No Decal screen shows a grinder, so nothing reads it. A grinder screen opens it as a new channel row. | `grinder_handler.dart:18-21` |
+| `/ws/v1/scales/<id>/snapshot` | One scale's snapshot, addressed by device id, for a second scale beside the preferred one. Decal shows one scale and reads it off `/ws/v1/scale/snapshot`. | `scale_handler.dart:90` `_handleAddressedSnapshot` |
 
-Consequence worth stating once: **`assets/api/websocket_v1.yml` documents thirteen
-channels, and thirteen is ten plus three.** `rea-ws-channels.js` carries the ten (with
+Consequence worth stating once: **`assets/api/websocket_v1.yml` documents fifteen
+channels, and fifteen is ten plus five.** `rea-ws-channels.js` carries the ten (with
 `SensorSnapshot` and `Plugins` in their templated forms) and this section carries the
 remainder, so every socket ReaPrime publishes is either consumed or excluded on the record.
-Nothing is unaccounted for, and a fourteenth appearing upstream shows up as a channel in
+Nothing is unaccounted for, and a sixteenth appearing upstream shows up as a channel in
 neither list.
 
 ## Connectors that do not port

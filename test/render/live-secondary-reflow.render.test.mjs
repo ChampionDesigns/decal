@@ -40,6 +40,29 @@ const REGIONS = () => {
     };
 };
 
+/** Wait until Live has drawn the three regions this file measures, and say which is missing. */
+const DRAWN = async (ms) => {
+    const missing = () => {
+        const all = [];
+        const walk = (root) => {
+            for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+        };
+        walk(document);
+        const find = (tag) => all.find((el) => el.tagName === tag) ?? null;
+        const foot = find('LIVE-FOOT');
+        return [
+            find('LIVE-RAIL') ? null : 'rail',
+            find('UI-CHART-CARD') ? null : 'chart card',
+            foot?.shadowRoot?.querySelector('.band') ? null : 'foot band',
+        ].filter(Boolean);
+    };
+    const deadline = performance.now() + ms;
+    while (missing().length && performance.now() < deadline) {
+        await new Promise((done) => { setTimeout(done, 25); });
+    }
+    return missing();
+};
+
 /** Push the rail's rows past the rail, the way a floor on their own boxes would. */
 const GROW = (value) => {
     document.documentElement.style.setProperty('--ui-control-h', value);
@@ -62,6 +85,32 @@ const SCROLL_RANGE = () => {
     return { max, min, scrollHeight: rail.scrollHeight, clientHeight: rail.clientHeight };
 };
 
+const BAND_TOP = () => {
+    const all = [];
+    const walk = (root) => {
+        for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+    };
+    walk(document);
+    const band = all.find((el) => el.tagName === 'LIVE-FOOT').shadowRoot.querySelector('.band');
+    band.scrollTop = 0;
+    const r = band.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, scrollTop: band.scrollTop };
+};
+
+const BAND_SCROLLED = async (ms) => {
+    const all = [];
+    const walk = (root) => {
+        for (const el of root.querySelectorAll('*')) { all.push(el); if (el.shadowRoot) walk(el.shadowRoot); }
+    };
+    walk(document);
+    const band = all.find((el) => el.tagName === 'LIVE-FOOT').shadowRoot.querySelector('.band');
+    const deadline = performance.now() + ms;
+    while (band.scrollTop === 0 && performance.now() < deadline) {
+        await new Promise(requestAnimationFrame);
+    }
+    return { scrollTop: band.scrollTop, overflowY: getComputedStyle(band).overflowY };
+};
+
 let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
@@ -70,6 +119,8 @@ for (const geometry of [FLOOR, BENCH]) {
     describe(`the Live skeleton under pressure @ ${geometry.name}`, () => {
         const live = (fn) => browser.withPage({ geometry }, async (page) => {
             await page.goto('/index.html#/live');
+            const missing = await page.evalFn(DRAWN, 20000);
+            assert.deepEqual(missing, [], `the Live screen drew no ${missing.join(', ')}`);
             await page.settle(12);
             return fn(page);
         });
@@ -142,6 +193,15 @@ for (const geometry of [FLOOR, BENCH]) {
                 const after_ = await page.evalFn(REGIONS);
                 assert.ok(after_.band.scrollHeight > after_.band.clientHeight,
                     'the squeezed band did not become scrollable — its content was cut instead');
+                const target = await page.evalFn(BAND_TOP);
+                assert.equal(target.scrollTop, 0);
+                await page.send('Input.dispatchMouseEvent', {
+                    type: 'mouseWheel', x: target.x, y: target.y, deltaX: 0, deltaY: 120,
+                });
+                const wheeled = await page.evalFn(BAND_SCROLLED, 5000);
+                assert.ok(wheeled.scrollTop > 0,
+                    `a wheel over the squeezed band did not scroll it (overflow-y: ${wheeled.overflowY}) `
+                    + '— its content is cut, not scrollable');
                 /* Not a height comparison: the band's content reflows as it narrows, so the count is
                  * what separates a reflow from a dropped row. */
                 assert.equal(after_.band.nodes, before_.band.nodes,

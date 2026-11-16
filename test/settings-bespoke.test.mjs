@@ -948,7 +948,7 @@ describe('the installed skins, read once for two leaves', () => {
             if (key === 'POST /webui/skins/update') { updated = true; return ok({ message: 'done' }); }
             return bad(503);
         });
-        const store = createSkinsStore({ transport });
+        const store = createSkinsStore({ transport, canManage: true });
         await store.load();
         assert.equal(await store.updateAll(), true);
         assert.equal(store.get().updateRan, true);
@@ -963,7 +963,7 @@ describe('the installed skins, read once for two leaves', () => {
             if (key === 'POST /webui/skins/update') return ok({ message: 'done' });
             return bad(503);
         });
-        const store = createSkinsStore({ transport });
+        const store = createSkinsStore({ transport, canManage: true });
         await store.load();
         await store.updateAll();
         assert.equal(store.get().updateRan, true);
@@ -977,7 +977,7 @@ describe('the installed skins, read once for two leaves', () => {
             if (key === 'POST /webui/skins/update') return bad(500);
             return bad(503);
         });
-        const store = createSkinsStore({ transport });
+        const store = createSkinsStore({ transport, canManage: true });
         await store.load();
         assert.equal(await store.updateAll(), false);
         assert.equal(store.get().updateRan, false, 'nothing ran, so nothing is reported');
@@ -993,7 +993,7 @@ describe('the installed skins, read once for two leaves', () => {
             if (key === 'POST /webui/skins/update') { updated = true; return ok({}); }
             return bad(503);
         });
-        const store = createSkinsStore({ transport });
+        const store = createSkinsStore({ transport, canManage: true });
         await store.load();
         await store.updateAll();
         assert.equal(store.get().updateRan, true);

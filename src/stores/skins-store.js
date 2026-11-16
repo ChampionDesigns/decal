@@ -62,8 +62,9 @@ export function readSkins(body) {
  * @param {object} deps
  * @param {object} deps.transport  `createReaTransport(...)`
  * @param {object} [deps.logger]
+ * @param {boolean} [deps.canManage]
  */
-export function createSkinsStore({ transport, logger = NOOP_LOGGER } = {}) {
+export function createSkinsStore({ transport, logger = NOOP_LOGGER, canManage = false } = {}) {
     if (!transport || typeof transport.request !== 'function') {
         throw new Error('createSkinsStore: a transport must be injected (see createReaTransport)');
     }
@@ -74,6 +75,7 @@ export function createSkinsStore({ transport, logger = NOOP_LOGGER } = {}) {
     const publish = (patch) => store.set({ ...store.get(), ...patch, version: store.get().version + 1 });
 
     return {
+        canManage,
         subscribe: (listener) => store.subscribe(listener),
         get: () => store.get(),
 
@@ -118,6 +120,7 @@ export function createSkinsStore({ transport, logger = NOOP_LOGGER } = {}) {
         },
 
         async switchTo(skinId) {
+            if (!canManage) return false;
             if (typeof skinId !== 'string' || skinId === '') return false;
             publish({ switching: skinId, switchError: null });
             const set = await callRoute(transport, 'putWebuiSkinsDefault', { body: { skinId } });
@@ -140,6 +143,7 @@ export function createSkinsStore({ transport, logger = NOOP_LOGGER } = {}) {
         },
 
         async updateAll() {
+            if (!canManage) return false;
             const before = new Map(store.get().skins.map((skin) => [skin.id, skin.version]));
             publish({ updating: true, updateError: null, updateRan: false, updated: EMPTY.updated });
             const result = await callRoute(transport, 'postWebuiSkinsUpdate');
@@ -159,6 +163,7 @@ export function createSkinsStore({ transport, logger = NOOP_LOGGER } = {}) {
         },
 
         async remove(skinId) {
+            if (!canManage) return false;
             if (typeof skinId !== 'string' || skinId === '') return false;
             if (skinId === store.get().defaultId) return false;
             const result = await callRoute(transport, 'deleteWebuiSkinsById', { params: { id: skinId } });

@@ -9,6 +9,8 @@ import {
     NON_CONDITIONAL_SHOT_READS,
     isConditionalRoute,
     shotsListIsConditional,
+    shotsQueryCombinesIdsAndFilter,
+    SHOT_FILTER_PARAMS,
     createEtagStore,
 } from '../src/data/rea-conditional.js';
 import { REA_ROOT, PINNED_COMMIT, resolveCommit } from '../scripts/generate-machine-state.js';
@@ -152,7 +154,28 @@ describe('isConditionalRoute', () => {
         assert.equal(shotsListIsConditional({ ids: 'a,b' }), false);
         assert.equal(shotsListIsConditional({ ids: ['a', 'b'] }), false);
         assert.equal(shotsListIsConditional({ ids: '' }), true, 'an empty ids list falls through to the paginated branch');
-        assert.equal(shotsListIsConditional({ ids: 'a', search: 'x' }), true, 'a filter takes the paginated branch');
+        assert.equal(shotsListIsConditional({ ids: 'a', search: 'x' }), false, 'ids with a filter is a 400, never the paginated branch');
+        assert.equal(shotsListIsConditional({ ids: 'a', minEnjoyment: 5 }), false);
+    });
+});
+
+describe('ids with a filter, as the shots handler reads it', () => {
+    test('SHOT_FILTER_PARAMS is the hasFilters list of the handler', () => {
+        const source = read('lib/src/services/webserver/shots_handler.dart');
+        const block = source.match(/final hasFilters =([\s\S]*?);/);
+        assert.ok(block, 'hasFilters not found in shots_handler.dart');
+        const names = [...block[1].matchAll(/(\w+) != null/g)].map((m) => m[1]);
+        assert.deepEqual([...SHOT_FILTER_PARAMS].sort(), names.sort());
+        assert.ok(SHOT_FILTER_PARAMS.includes('minEnjoyment'));
+    });
+
+    test('shotsQueryCombinesIdsAndFilter is true only for non-empty ids and a sent filter', () => {
+        assert.equal(shotsQueryCombinesIdsAndFilter({ ids: 'a', search: 'x' }), true);
+        assert.equal(shotsQueryCombinesIdsAndFilter({ ids: ['a'], minEnjoyment: 0 }), true);
+        assert.equal(shotsQueryCombinesIdsAndFilter({ ids: 'a,b' }), false);
+        assert.equal(shotsQueryCombinesIdsAndFilter({ ids: '', search: 'x' }), false);
+        assert.equal(shotsQueryCombinesIdsAndFilter({ ids: ['a'], search: null, beanId: undefined }), false);
+        assert.equal(shotsQueryCombinesIdsAndFilter({ search: 'x' }), false);
     });
 });
 

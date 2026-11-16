@@ -518,7 +518,7 @@ export const SETTINGS_ROWS = Object.freeze([
         archetype: ARCHETYPE.TEXT,
         source: SOURCE.ROUTE,
         key: 'reaHostname',
-        heading: 'ReaPrime address',
+        heading: 'Decide address',
         caption: 'Where this tablet looks for the machine. Blank means this page’s own host. Takes effect the next time this page loads.',
     }),
 
@@ -778,6 +778,8 @@ export const SETTINGS_ROWS = Object.freeze([
         archetype: ARCHETYPE.SWITCH,
         source: SOURCE.MACHINE,
         field: 'automaticUpdateCheck',
+        offOnly: true,
+        offOnlyNote: 'Turn this on in Decide. This skin can only turn it off.',
         heading: 'Automatic update checks',
         caption: 'Look for a newer app every twelve hours.',
     }),

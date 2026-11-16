@@ -313,14 +313,21 @@ const api = {
      * reference chain is too long" on a frozen frame graph or a DOM node, which reads
      * like a test failure and is a serialisation failure. Learned once, the hard way. */
 
+    lastPushAt: null,
+
     /** Push a raw `/ws/v1/devices` frame through the REAL reader, as a feed would. */
     pushDevices(rawFrame, status = FEED_STATUS.LIVE) {
+        this.lastPushAt = Date.now();
         feeds[FEED.CONNECTION].set({ status, value: readDevicesFrame(rawFrame), receivedAt: PUSHED_AT });
         return true;
     },
 
     /** Push a feed state directly — for the three "no readable frame" pictures. */
-    pushDevicesState(state) { feeds[FEED.CONNECTION].set(state); return true; },
+    pushDevicesState(state) {
+        this.lastPushAt = Date.now();
+        feeds[FEED.CONNECTION].set(state);
+        return true;
+    },
 
     /**
      * Push a RAW `/ws/v1/machine/snapshot` frame down the real road — through gate 2's

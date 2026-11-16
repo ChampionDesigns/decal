@@ -197,6 +197,47 @@ describe('the weather corner', () => {
             assert.equal(await page.eval('window.__opened'), 1);
         }));
 
+    test('every mark the model can name has a drawing of its own, the night ones too',
+        () => mount(READING, async (page) => {
+            const drawn = await page.evalFn(async () => {
+                const { render } = await import('lit');
+                const { weatherIcon } = await import('/src/lib/icons.js');
+                const { markFor } = await import('/src/lib/weather-model.js');
+                const marks = new Set();
+                for (let code = 0; code <= 99; code += 1) {
+                    marks.add(markFor(code, true));
+                    marks.add(markFor(code, false));
+                }
+                const markup = (mark) => {
+                    const box = document.createElement('div');
+                    render(weatherIcon(mark), box);
+                    return box.innerHTML.replace(/<!--[^>]*-->/g, '');
+                };
+                return Object.fromEntries([...marks].map((m) => [m, markup(m)]));
+            });
+            const names = Object.keys(drawn).sort();
+            assert.ok(names.includes('clearNight') && names.includes('partlyNight'),
+                `the night marks are named: ${names.join(', ')}`);
+            const seen = new Map();
+            for (const name of names) {
+                assert.ok(!seen.has(drawn[name]),
+                    `${name} draws the same as ${seen.get(drawn[name])}`);
+                seen.set(drawn[name], name);
+            }
+        }));
+
+    test('a clear night draws the night sky, not the day one', () => mount(READING, async (page) => {
+        const read = () => page.evalFn(() => window.__h.need('#wx').shadowRoot
+            .querySelector('.glyph svg').innerHTML.replace(/<!--[^>]*-->/g, ''));
+        await page.evalFn((r) => { window.__h.need('#wx').reading = { ...r, code: 0, isDay: true }; }, READING);
+        await page.settle(2);
+        const day = await read();
+        await page.evalFn((r) => { window.__h.need('#wx').reading = { ...r, code: 0, isDay: false }; }, READING);
+        await page.settle(2);
+        const night = await read();
+        assert.notEqual(night, day);
+    }));
+
     test('NO CARD CHROME AT REST — it is part of the rail, not a tile on it',
         () => mount(READING, async (page) => {
             const chrome = await page.evalFn(() => {

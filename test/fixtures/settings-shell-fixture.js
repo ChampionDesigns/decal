@@ -268,7 +268,7 @@ const heldWrite = () => (SERVER.rememberHold
     ? new Promise((resolve) => { heldWrites.push(resolve); })
     : Promise.resolve());
 
-function buildModel() {
+function buildModel({ canManage = false } = {}) {
     const imageStorage = createMemoryBackend();
     const storage = createStorageRouter({
         backends: {
@@ -325,13 +325,13 @@ function buildModel() {
     const limits = limitsNow();
     const led = createLedStripStore({ transport });
     const calibration = createCalibrationStore({ transport, pollMs: 20 });
-    const skins = createSkinsStore({ transport });
+    const skins = createSkinsStore({ transport, canManage });
     const machineInfo = createMachineInfoStore({ transport });
     /* THE EIGHT THAT CAME WITH THE 24 AUG 2026 SETTINGS PASS. Real stores over the same
      * fixture transport, exactly as the four above — a fixture that faked them would
      * prove the fixture renders rather than that the leaves read. */
     const presence = createPresenceStore({ transport });
-    const plugins = createPluginsStore({ transport });
+    const plugins = createPluginsStore({ transport, canManage });
     const account = createDecentAccountStore({ transport });
     /* THE MESSAGE BOX'S STORE, WITH A BEARER, because a fixture without one could only
      * ever exercise the "this page was not served by ReaPrime" branch. The app reads the
@@ -1300,7 +1300,6 @@ function createFixtureTransport() {
                     MACHINE_ADVANCED.heaterPh2Flow = 4;
                     MACHINE_ADVANCED.heaterPh2Timeout = 4;
                     MACHINE_ADVANCED.refillKitSetting = 2;
-                    SERVER.flowMultiplier = 1;
                     return reaSuccess({ status: 202, data: null, method, url: 'fixture' });
 
                 case 'GET /machine/cupWarmer':
@@ -1424,10 +1423,10 @@ const settle = async () => {
 
 const api = {
     /** Create the screen inside `#stage`. Idempotent: a second call reuses the first. */
-    async mount() {
+    async mount({ canManage = false } = {}) {
         const host = stage();
         if (!screen) {
-            model = buildModel();
+            model = buildModel({ canManage });
             screen = document.createElement('settings-screen');
             screen.boot = Object.freeze({ settings: settingsStore });
             screen.model = model;

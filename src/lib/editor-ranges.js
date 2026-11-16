@@ -13,12 +13,12 @@ import { hasLimit, MACHINE_CLASSES } from './machine-limits.js';
 export const R2_INTERIM = Object.freeze({
     upstream: 'R2',
     landed: false,
-    checkedCommit: '42f67f69334197a08cc0f4138ca05302616e977a',
+    checkedCommit: '8fee86ddc761cd4b0a874178bf1e54b5b4ee7745',
     basis: 'no route registered at the pin matches limit/range/bound/envelope/constraint '
-        + 'across the 149 registrations in lib/src/services/webserver/*.dart, and the three '
+        + 'across the 156 registrations in lib/src/services/webserver/*.dart, and the three '
         + 'nearest candidates all refuse: capabilities answers feature names with no numbers, '
-        + 'stopAtWeight answers the current target rather than a bound, and calibration '
-        + 'answers measured values rather than a permitted range',
+        + 'calibration answers measured values rather than a permitted range, and grinder/info '
+        + 'describes the connected grinder rather than a bound on any machine or profile field',
     note: 'limits from the interim single table pending R2',
 });
 

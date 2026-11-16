@@ -6,9 +6,10 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { launch, BENCH, FLOOR } from './harness/index.js';
+import { launch, BENCH, FLOOR, cpuThrottleRate, networkLatency } from './harness/index.js';
+import { clockStep, clockStepSource } from './harness/clock-step.js';
 import { frame, readFrame } from './harness/ws.js';
-import { readDocumentShell, mountDocument, REPO_ROOT } from './harness/server.js';
+import { readDocumentShell, mountDocument, REPO_ROOT, HARNESS_PAGE } from './harness/server.js';
 import { assertFocusUnclipped, shadowSegments } from './harness/assertions.js';
 
 test('shadowSegments splits on TOP-LEVEL commas only', () => {
@@ -167,6 +168,27 @@ test('the harness dispatches real input through the browser\'s hit test', async 
     });
 });
 
+test('a new page has no hovered element until a test moves the pointer', async () => {
+    const cover = '<div id="cover" style="position:fixed;inset:0"></div>';
+    const hovered = (page) => page.evalFn(() => document.querySelector('#cover').matches(':hover'));
+    await browser.withPage({ geometry: BENCH }, async (page) => {
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'an element at the top left corner is hovered at rest');
+
+        await page.reload();
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'the pointer came back onto the page after a reload');
+
+        await page.goto(HARNESS_PAGE);
+        await page.mount(cover);
+        assert.equal(await hovered(page), false, 'the pointer came back onto the page after a navigation');
+
+        await page.mouse('mouseMoved', 5, 5);
+        await page.settle(1);
+        assert.equal(await hovered(page), true, 'a real pointer move should hover the element under it');
+    });
+});
+
 test('the harness reaches :focus-visible after a pointer interaction', async () => {
     await browser.withPage({ geometry: BENCH }, async (page) => {
         await page.mount('<base-fixture></base-fixture>', ['/test/fixtures/base-fixture.js']);
@@ -239,4 +261,70 @@ test('the clipping walk measures the scrollport, not the border box', async () =
             'a ring hidden inside the clipper\'s border must be reported as bug L24\'s class',
         );
     });
+});
+
+test('the three stresses are off unless asked for, and refuse a value they cannot use', () => {
+    assert.equal(cpuThrottleRate({}), 1);
+    assert.equal(cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: '4' }), 4);
+    assert.throws(() => cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: '0.5' }), /at least 1/);
+    assert.throws(() => cpuThrottleRate({ DECAL_RENDER_CPU_THROTTLE: 'fast' }), /at least 1/);
+    assert.equal(networkLatency({}), 0);
+    assert.equal(networkLatency({ DECAL_RENDER_LATENCY: '50' }), 50);
+    assert.throws(() => networkLatency({ DECAL_RENDER_LATENCY: '-1' }), /at least 0/);
+    assert.equal(clockStep({}), null);
+    assert.deepEqual(clockStep({ DECAL_RENDER_CLOCK_STEP: '-1500@2000' }), { stepMs: -1500, everyMs: 2000 });
+    assert.throws(() => clockStep({ DECAL_RENDER_CLOCK_STEP: '-1500' }), /step ms/);
+    assert.throws(() => clockStep({ DECAL_RENDER_CLOCK_STEP: '0@2000' }), /step ms/);
+});
+
+test('the stepped clock moves Date and only Date', async () => {
+    const browser = await launch();
+    try {
+        await browser.withPage({ geometry: BENCH }, async (page) => {
+            await page.eval(clockStepSource({ stepMs: -1500, everyMs: 300 }));
+            const seen = await page.evalFn(async () => {
+                const d0 = Date.now();
+                const n0 = new Date().getTime();
+                const p0 = performance.now();
+                await new Promise((done) => { setTimeout(done, 700); });
+                return {
+                    date: Date.now() - d0,
+                    constructed: new Date().getTime() - n0,
+                    perf: performance.now() - p0,
+                    isDate: new Date() instanceof Date,
+                    fixed: new Date(0).getTime(),
+                    text: typeof Date(),
+                };
+            });
+            assert.ok(seen.perf >= 690, `the timer waited ${seen.perf} ms`);
+            assert.ok(seen.date < 0, `Date.now() moved ${seen.date} ms across two steps back`);
+            assert.ok(Math.abs(seen.constructed - seen.date) < 50,
+                `new Date() and Date.now() read one clock: ${seen.constructed} vs ${seen.date}`);
+            assert.equal(seen.isDate, true);
+            assert.equal(seen.fixed, 0, 'a date built from a value is that value');
+            assert.equal(seen.text, 'string');
+        });
+    } finally {
+        await browser.close();
+    }
+});
+
+test('the latency stress delays every request the page makes', async () => {
+    const saved = process.env.DECAL_RENDER_LATENCY;
+    process.env.DECAL_RENDER_LATENCY = '300';
+    const browser = await launch();
+    try {
+        await browser.withPage({ geometry: BENCH }, async (page) => {
+            const ms = await page.evalFn(async () => {
+                const t0 = performance.now();
+                await (await fetch(`/index.html?fresh=${Math.random()}`)).text();
+                return performance.now() - t0;
+            });
+            assert.ok(ms >= 290, `a request took ${ms} ms under a 300 ms latency`);
+        });
+    } finally {
+        if (saved === undefined) delete process.env.DECAL_RENDER_LATENCY;
+        else process.env.DECAL_RENDER_LATENCY = saved;
+        await browser.close();
+    }
 });
