@@ -46,6 +46,7 @@ import {
     DE1_EMULATION_KEY, de1EmulationBlockOf, de1EmulationOf, de1EmulationSupported,
     withDe1Emulation,
 } from 'src/lib/de1-emulation.js';
+import { shownProfileName } from 'src/lib/profile-name.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
 import { historyIcon, penIcon } from 'src/lib/icons.js';
 
@@ -530,7 +531,7 @@ export class EditorScreen extends UiElement {
                                 class="ui-title"
                                 type="button"
                                 @click=${this.#onRenameOpen}
-                            >${this._draft.title || t('Untitled')}</button>
+                            >${shownProfileName(this._draft, this.boot?.capabilities, t('Untitled'))}</button>
                             <ui-icon-button
                                 id="title-pencil"
                                 label=${t('Edit profile name')}
@@ -1257,7 +1258,7 @@ export class EditorScreen extends UiElement {
         }
         return others.map((record) => {
             const when = shotClock(record.updatedAt ?? record.createdAt);
-            const title = record.profile?.title || t('Untitled');
+            const title = shownProfileName(record.profile, this.boot?.capabilities, t('Untitled'));
             const stamp = when.ok ? `${title} · ${when.dateSummary} ${when.time}` : title;
             const changed = this.#versionChangeLine(record, state?.records ?? []);
 

@@ -66,6 +66,7 @@ import 'src/components/ui-dialog.js';
 import 'src/components/ui-confirm-dialog.js';
 import 'src/components/ui-file-button.js';
 import 'src/components/ui-text-field.js';
+import { shownProfileName } from 'src/lib/profile-name.js';
 
 /** Re-exported so a reviewer grepping the screen finds R1's marking here too. */
 export { R1_PROVISIONAL_ATTR, R1_PROVISIONAL_HIGHLIGHT };
@@ -842,7 +843,7 @@ export class SelectorScreen extends UiElement {
             );
             return false;
         }
-        const title = store.recordFor?.(id)?.profile?.title;
+        const title = this.#nameOf(store.recordFor?.(id)?.profile);
         if (title) this.#notice(t('Favourite {n}: {title}', { n: index + 1, title }), 'ok');
         if (!load) return true;
         const armed = await Promise.resolve(store.arm?.(id)).catch(() => null);
@@ -883,9 +884,13 @@ export class SelectorScreen extends UiElement {
             error: this.#i18n.t('The favourite could not be saved. Try again, or cancel to keep it unchanged.') };
     };
 
+    #nameOf(profile, fallback = '') {
+        return shownProfileName(profile, this.boot?.capabilities, fallback);
+    }
+
     #refusedDuplicate(id, held) {
         const t = this.#i18n.t;
-        const title = this.#store?.recordFor?.(id)?.profile?.title;
+        const title = this.#nameOf(this.#store?.recordFor?.(id)?.profile);
         this.#notice(
             title
                 ? t('“{title}” is already on favourite {n}', { title, n: held + 1 })
@@ -1031,7 +1036,7 @@ export class SelectorScreen extends UiElement {
         return html`<ui-menu
             slot="actions"
             class="row-menu"
-            label=${t('Actions for {name}', { name: record.profile?.title || t('Untitled') })}
+            label=${t('Actions for {name}', { name: this.#nameOf(record.profile, t('Untitled')) })}
             .items=${this.#rowMenuItems(record)}
             @select=${(event) => this.#onRowMenuSelect(event, id)}
             @click=${(event) => event.stopPropagation()}
@@ -1041,7 +1046,7 @@ export class SelectorScreen extends UiElement {
                 class="row-dots"
                 role=${isActiveRow ? 'button' : nothing}
                 tabindex=${isActiveRow ? '0' : nothing}
-                aria-label=${t('More actions for {name}', { name: record.profile?.title || t('Untitled') })}
+                aria-label=${t('More actions for {name}', { name: this.#nameOf(record.profile, t('Untitled')) })}
                 @keydown=${this.#onRowMenuKey}
             ><span class="row-dots-glyph" aria-hidden="true">⋯</span></span>
         </ui-menu>`;
@@ -1062,7 +1067,7 @@ export class SelectorScreen extends UiElement {
         const items = SLOT_NUMBERS.map((number) => {
             const held = assignments[number - 1] ?? null;
             const holder = held ? this.#store?.recordFor?.(held) : null;
-            const name = holder?.profile?.title ?? '';
+            const name = this.#nameOf(holder?.profile);
             return {
                 id: `${ACTION.ASSIGN}:${number}`,
                 label: name
@@ -1203,7 +1208,7 @@ export class SelectorScreen extends UiElement {
     #option(record, index, activeRecordId) {
         const t = this.#i18n.t;
         const id = record.id;
-        const title = record.profile?.title || t('Untitled');
+        const title = this.#nameOf(record.profile, t('Untitled'));
         const loaded = this._state?.loaded;
         const isLoaded = Boolean(loaded?.id) && loaded.id === id;
         return html`
@@ -1479,7 +1484,7 @@ export class SelectorScreen extends UiElement {
             return this.#dialogList(versions.records.map((record) => html`
                 <ui-list-row
                     provenance=${record.id === versions.id ? t('This one') : nothing}
-                    >${record.profile?.title || t('Untitled')}</ui-list-row
+                    >${this.#nameOf(record.profile, t('Untitled'))}</ui-list-row
                 >`), '');
         }
         if (status === VERSIONS_STATUS.LOADING) return this.#dialogList([], t('Reading versions…'));
@@ -1496,7 +1501,7 @@ export class SelectorScreen extends UiElement {
                 data-id=${record.id}
                 data-filename=${restoreFilenameOf(record) ?? ''}
                 @click=${this.#onRestore}
-                >${record.profile?.title || t('Untitled')}</ui-button
+                >${this.#nameOf(record.profile, t('Untitled'))}</ui-button
             >`);
         return this.#dialogList(rows, t('Every bundled profile is already here.'));
     }
@@ -1543,12 +1548,14 @@ export class SelectorScreen extends UiElement {
         const totals = profileTotals(profile);
         const refusal = state?.refusal ?? null;
         const restorable = state?.restorable ?? [];
-        const title = profile?.title ?? (this.#demo ? this._placeholder : null);
+        const title = typeof profile?.title === 'string'
+            ? this.#nameOf(profile, profile.title) : (this.#demo ? this._placeholder : null);
         const loaded = state?.loaded;
         const replacement = this._replacement;
-        const replacedName = this.#store?.recordFor?.(replacement?.previousId)?.profile?.title
+        const replaced = this.#store?.recordFor?.(replacement?.previousId)?.profile;
+        const replacedName = (typeof replaced?.title === 'string' ? this.#nameOf(replaced, replaced.title) : null)
             ?? (replacement?.previousId ? t('Unavailable profile') : t('Empty'));
-        const replacementName = this.#store?.recordFor?.(replacement?.id)?.profile?.title ?? t('Untitled');
+        const replacementName = this.#nameOf(this.#store?.recordFor?.(replacement?.id)?.profile, t('Untitled'));
         const handoff = generatorHandoff(this.ownerDocument?.defaultView, this._generatorUrl);
 
         return html`

@@ -123,3 +123,53 @@ describe('the DE1 emulation switch on the Settings tab', () => {
         ));
     }
 });
+
+describe('the editor header shows the DE1 emulation prefix', () => {
+    const staged = (opts, fn) => browser.withPage({ geometry }, async (page) => {
+        await mountEditor(page, { matrix: null, fields: 0 });
+        await seatProfile(page, opts);
+        return fn(page);
+    });
+
+    const header = (page) => page.evalFn((sel) => {
+        const screen = window.__h.need(sel);
+        return {
+            name: (screen.renderRoot.querySelector('#editor-title')?.textContent ?? '').trim(),
+            field: screen.renderRoot.querySelector('#rename-field')?.value ?? null,
+            draft: screen._draft?.title ?? null,
+        };
+    }, EDITOR.screen);
+
+    test('a stored true on a supported machine shows the prefix; the title field keeps the plain title',
+        () => staged({ de1Emulation: true, profile: { ...editingProfile(), de1_emulation: true } }, async (page) => {
+            const seen = await header(page);
+            assert.equal(seen.name, 'B-DE1 · Morning ristretto');
+            assert.equal(seen.field, 'Morning ristretto');
+            assert.equal(seen.draft, 'Morning ristretto');
+        }));
+
+    test('the switch adds the prefix and takes it away again', () => staged({ de1Emulation: true }, async (page) => {
+        assert.equal((await header(page)).name, 'Morning ristretto');
+        await selectPanel(page, 'settings');
+        await page.click(SWITCH);
+        await page.settle(4);
+        assert.equal((await header(page)).name, 'B-DE1 · Morning ristretto');
+        await page.click(SWITCH);
+        await page.settle(4);
+        assert.equal((await header(page)).name, 'Morning ristretto');
+    }));
+
+    test('a power step gives the plain title', () => staged({
+        de1Emulation: true,
+        profile: { ...editingProfile([matrixStep(), matrixStep({ pump: 'power' })]), de1_emulation: true },
+    }, async (page) => {
+        assert.equal((await header(page)).name, 'Morning ristretto');
+    }));
+
+    test('no machine support gives the plain title', () => staged({
+        de1Emulation: null,
+        profile: { ...editingProfile(), de1_emulation: true },
+    }, async (page) => {
+        assert.equal((await header(page)).name, 'Morning ristretto');
+    }));
+});

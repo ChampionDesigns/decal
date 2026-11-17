@@ -30,3 +30,23 @@ export function de1EmulationSupported(capabilities) {
     const answer = capabilities?.de1Emulation?.() ?? null;
     return answer === true;
 }
+
+export const DE1_EMULATION_PREFIX = 'B-DE1 · ';
+
+export const DE1_EMULATION_SHOT_KEY = 'de1Emulation';
+
+export function profileRunsAsDe1(profile, capabilities) {
+    return de1EmulationOf(profile)
+        && de1EmulationSupported(capabilities)
+        && de1EmulationBlockOf(profile.steps) === DE1_EMULATION_BLOCK.NONE;
+}
+
+export function shotRanAsDe1(shot) {
+    return Boolean(shot) && typeof shot === 'object' && shot[DE1_EMULATION_SHOT_KEY] === true;
+}
+
+export function de1EmulationName(title, emulated) {
+    if (typeof title !== 'string' || title === '') return title;
+    if (emulated !== true || title.startsWith(DE1_EMULATION_PREFIX)) return title;
+    return `${DE1_EMULATION_PREFIX}${title}`;
+}

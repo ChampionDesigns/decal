@@ -13,6 +13,7 @@ import { createLiveStores, FEED } from '../stores/live-stores.js';
 import { SHOT_STATE } from '../stores/feed-readers.js';
 import { createWeatherStore } from '../stores/weather-store.js';
 import { createCapabilitiesStore } from '../stores/capabilities-store.js';
+import { shownProfileName } from './profile-name.js';
 import { createMachineInfoStore } from '../stores/machine-info-store.js';
 import { createWorkflowStore } from '../stores/workflow-store.js';
 import { createMachineStateStore } from '../stores/machine-state-store.js';
@@ -432,6 +433,7 @@ export function createAppBoot({
             const id = typeof frame.shotId === 'string' && frame.shotId !== '' ? frame.shotId : null;
             if (id !== null && shotProfile.get().shotId !== id) {
                 const profileName = armedProfileName();
+                const shownName = shownProfileName(workflow.get().workflow?.profile ?? null, capabilities);
                 const steps = workflow.get().workflow?.profile?.steps;
                 const record = Object.freeze({ workflow: Object.freeze({ profile: Object.freeze({
                     title: profileName,
@@ -439,7 +441,7 @@ export function createAppBoot({
                         name: typeof step?.name === 'string' ? step.name : '',
                     }))) : null,
                 }) }) });
-                shotProfile.set({ shotId: id, profileName, record });
+                shotProfile.set({ shotId: id, profileName: shownName, record });
             }
             if (frame.state !== SHOT_STATE.FINISHED) return;
             if (id === null || id === finishedShotId) return;

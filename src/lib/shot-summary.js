@@ -2,6 +2,7 @@
 
 import { hasReading } from '../data/reading.js';
 import { ENJOYMENT_MAX, readStoredShot, shotDose } from '../data/rea-shot-record.js';
+import { de1EmulationName, shotRanAsDe1 } from './de1-emulation.js';
 
 /** The one mark, when the caller states none. Same character as `units.js` NO_READING_MARK. */
 export const DEFAULT_DASH = '—';
@@ -91,7 +92,7 @@ export function shotShortLabel(shot, { dash = DEFAULT_DASH } = {}) {
 export function shotOptionLabel(shot, { dash = DEFAULT_DASH, separator = '  ·  ' } = {}) {
     const clock = shotClock(shot && shot.timestamp);
     const stamp = clock.ok ? `${clock.date} ${clock.time}` : dash;
-    const title = shotTitle(shot);
+    const title = shotName(shot);
     const grams = readAnnotation(shot, 'actualYield');
     const bits = [stamp];
     if (title) bits.push(title);
@@ -100,10 +101,14 @@ export function shotOptionLabel(shot, { dash = DEFAULT_DASH, separator = '  ·  
 }
 
 /** The profile's title, or `null`. Never a string this module chose. */
-export function shotTitle(shot) {
+function shotTitle(shot) {
     const title = shot && shot.workflow && shot.workflow.profile
         ? shot.workflow.profile.title : null;
     return typeof title === 'string' && title !== '' ? title : null;
+}
+
+export function shotName(shot) {
+    return de1EmulationName(shotTitle(shot), shotRanAsDe1(shot));
 }
 
 export function shotGrind(shot) {
@@ -229,7 +234,7 @@ export function shotRow({
 } = {}) {
     const scalars = shotScalars({ summary, derivation, keys });
     const clock = shotClock(summary && summary.timestamp);
-    const title = shotTitle(summary);
+    const title = shotName(summary);
     const cells = {};
     for (const column of HISTORY_COLUMNS) {
         const scalarKey = columnScalarKey(column);
@@ -249,7 +254,7 @@ export function shotRow({
             : column.key === 'date' ? (clock.ok ? clock.dateFull : dash)
                 : (title ?? dash);
         cells[column.key] = Object.freeze({
-            value: column.key === 'profile' ? title : (clock.ok ? clock.at : null),
+            value: column.key === 'profile' ? shotTitle(summary) : (clock.ok ? clock.at : null),
             text,
             present: column.key === 'profile' ? title !== null : clock.ok,
             source: column.source,
