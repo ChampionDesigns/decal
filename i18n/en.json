@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "a8e35eeaad4bf0efb02a1956cb73c38346f4f1c13bce60a51b5279f179db1240",
+  "sourceSha256": "b604fbcef69ad77a6f7eb9f2338b8fbfbb8484f0f2306b88b51a654ad2728c14",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -124,6 +124,7 @@
     "Current application version": "Current application version",
     "Current temperature": "Current temperature",
     "Custom": "Custom",
+    "DE1 emulation": "DE1 emulation",
     "DE1 Firmware File": "DE1 Firmware File",
     "Decide": "Decide",
     "Decide address": "Decide address",
@@ -342,6 +343,7 @@
     "Machine not connected": "Machine not connected",
     "Mains voltage": "Mains voltage",
     "Maintenance": "Maintenance",
+    "Makes this profile behave like a 240 V Decent DE1: the pump flow falls as the pressure rises, and pressure steps rise slowly. Off uses the Bengle's own control.": "Makes this profile behave like a 240 V Decent DE1: the pump flow falls as the pressure rises, and pressure steps rise slowly. Off uses the Bengle's own control.",
     "Manage skins and plugins in Decide. This skin cannot change them.": "Manage skins and plugins in Decide. This skin cannot change them.",
     "Max Duration": "Max Duration",
     "Measured at the machine": "Measured at the machine",
@@ -407,6 +409,7 @@
     "None": "None",
     "Normal": "Normal",
     "Normal purges the wand as soon as steam stops. Two Tap Stop waits for a second tap, so the wand can stay in the jug.": "Normal purges the wand as soon as steam stops. Two Tap Stop waits for a second tap, so the wand can stay in the jug.",
+    "Not available: this profile has a power, lever or hold step.": "Not available: this profile has a power, lever or hold step.",
     "Not known": "Not known",
     "Not linked": "Not linked",
     "Not set": "Not set",

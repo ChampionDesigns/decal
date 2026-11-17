@@ -124,6 +124,7 @@ export async function seatProfile(page, {
     record = null,
     capabilities = [{ id: 'machine' }],
     answers = null,
+    de1Emulation = null,
 } = {}) {
     const seated = record ?? {
         id: 'profile:seated',
@@ -171,12 +172,15 @@ export async function seatProfile(page, {
         window.__editorStore = editor;
         screen.boot = {
             profileEditor: editor,
-            capabilities: { machineLimits: () => adapters.r2MachineLimits(payload.capabilities) },
+            capabilities: {
+                machineLimits: () => adapters.r2MachineLimits(payload.capabilities),
+                ...(payload.de1Emulation === null ? {} : { de1Emulation: () => payload.de1Emulation }),
+            },
             logger: null,
         };
         editor.open(payload.seated);
         await screen.updateComplete;
-    }, { seated, capabilities, answers });
+    }, { seated, capabilities, answers, de1Emulation });
     await page.settle(6);
     return seated.id;
 }
