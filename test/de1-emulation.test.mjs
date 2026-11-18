@@ -6,7 +6,7 @@ import {
     de1EmulationName, de1EmulationOf, de1EmulationSupported, profileRunsAsDe1, shotRanAsDe1,
     withDe1Emulation,
 } from '../src/lib/de1-emulation.js';
-import { shownProfileName } from '../src/lib/profile-name.js';
+import { markedFavourites, shownProfileName } from '../src/lib/profile-name.js';
 import { shotName, shotOptionLabel, shotRow } from '../src/lib/shot-summary.js';
 import { changeCountOf } from '../src/lib/editor-commit.js';
 
@@ -184,5 +184,57 @@ describe('the shown name of a past shot', () => {
         assert.match(shotOptionLabel(record), /B-DE1 \u00b7 Blooming/);
         assert.equal(record.workflow.profile.title, 'Blooming');
         assert.equal(shotRow({ summary: shot() }).cells.profile.text, 'Blooming');
+    });
+});
+
+describe('the DE1 mark on the favourites bar', () => {
+    const offered = { de1Emulation: () => true };
+    const body = (over = {}) => ({ title: 'Morning bloom', de1_emulation: true, steps: [step()], ...over });
+    const marked = (profile, capabilities = offered) => {
+        const records = { 'profile:a': { id: 'profile:a', profile } };
+        return markedFavourites([{ value: 'profile:a', name: 'Bloom' }, null],
+            (id) => records[id] ?? null, capabilities);
+    };
+
+    test('a favourite that runs as a DE1 gets the mark and a spoken name', () => {
+        assert.deepEqual(marked(body()), [
+            { value: 'profile:a', name: 'Bloom', badge: 'DE1', a11y: 'Bloom, DE1 emulation' },
+            null,
+        ]);
+    });
+
+    test('the shown name stays the short name', () => {
+        assert.equal(marked(body())[0].name, 'Bloom');
+    });
+
+    test('the switch off gives no mark', () => {
+        assert.deepEqual(marked(body({ de1_emulation: false }))[0], { value: 'profile:a', name: 'Bloom' });
+        const { de1_emulation: _unused, ...withoutKey } = body();
+        assert.deepEqual(marked(withoutKey)[0], { value: 'profile:a', name: 'Bloom' });
+    });
+
+    test('no machine support gives no mark', () => {
+        assert.deepEqual(marked(body(), null)[0], { value: 'profile:a', name: 'Bloom' });
+        assert.deepEqual(marked(body(), { de1Emulation: () => false })[0], { value: 'profile:a', name: 'Bloom' });
+    });
+
+    for (const [kind, over] of [
+        ['power', { pump: 'power' }], ['lever', { pump: 'lever' }], ['hold', { transition: 'hold' }],
+    ]) {
+        test(`a ${kind} step gives no mark`, () => {
+            assert.deepEqual(marked(body({ steps: [step(), step(over)] }))[0],
+                { value: 'profile:a', name: 'Bloom' });
+        });
+    }
+
+    test('a favourite whose record is gone gives no mark', () => {
+        assert.deepEqual(markedFavourites([{ value: 'profile:x', name: 'Gone' }], () => null, offered),
+            [{ value: 'profile:x', name: 'Gone' }]);
+        assert.deepEqual(markedFavourites([{ value: 'profile:x', name: 'Gone' }], null, offered),
+            [{ value: 'profile:x', name: 'Gone' }]);
+    });
+
+    test('an absent list is returned as it is', () => {
+        assert.equal(markedFavourites(null, () => null, offered), null);
     });
 });

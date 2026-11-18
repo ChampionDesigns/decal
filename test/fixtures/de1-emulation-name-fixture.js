@@ -40,6 +40,10 @@ const RECORDS = [
     record(2, profile('Gamma classic')),
 ];
 
+const LONG_RECORD = record(3, profile('Extract Blooming Espresso', { de1_emulation: true }));
+
+let served = RECORDS;
+
 const WORKFLOW = {
     id: 'wf-name',
     name: 'Name fixture',
@@ -81,7 +85,7 @@ const scriptedFetch = async (input, init = {}) => {
     if (/^\/api\/v1\/store\/decal\//.test(url.pathname)) {
         return method === 'GET' ? json({ error: 'absent' }, 404) : json({ ok: true });
     }
-    if (method === 'GET' && url.pathname === '/api/v1/profiles') return json(RECORDS);
+    if (method === 'GET' && url.pathname === '/api/v1/profiles') return json(served);
     if (method === 'GET' && url.pathname === '/api/v1/workflow') return json(WORKFLOW);
     if (method === 'GET' && url.pathname === '/api/v1/settings') return json({ stopHotWaterAtWeight: false });
     if (method === 'GET' && url.pathname === '/api/v1/plugins') return json([]);
@@ -123,7 +127,8 @@ function deepText(node) {
 const squash = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
 const api = {
-    async mount({ supported = true } = {}) {
+    async mount({ supported = true, long = false } = {}) {
+        served = long ? [...RECORDS, LONG_RECORD] : RECORDS;
         boot = createAppBoot({
             fetch: scriptedFetch,
             createSocket,
@@ -133,7 +138,7 @@ const api = {
         await boot.library.load();
         await boot.shotHistory.readPage({ limit: 20, offset: 0 });
         await boot.workflow.load();
-        return { records: RECORDS.length, shots: boot.shotHistory.get().items.length };
+        return { records: served.length, shots: boot.shotHistory.get().items.length };
     },
 
     async show(which, { page = null } = {}) {
@@ -180,6 +185,40 @@ const api = {
     pickerOptions() {
         return [...screen.shadowRoot.querySelectorAll('ui-select')]
             .map((select) => (select.options ?? []).map((option) => option.label));
+    },
+
+    favourites() {
+        const bank = screen.shadowRoot.querySelector('ui-favourites-bank');
+        const inner = bank?.shadowRoot?.getElementById('bank');
+        if (!inner) return [];
+        const box = (node) => {
+            if (!node) return null;
+            const r = node.getBoundingClientRect();
+            return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        };
+        const buttons = [...inner.shadowRoot.querySelectorAll('button.item')];
+        return [...bank.shadowRoot.querySelectorAll('.cell')].map((cell, i) => {
+            const badge = cell.querySelector('.badge');
+            const pill = badge?.querySelector('ui-badge')?.shadowRoot?.querySelector('.badge') ?? null;
+            const name = cell.querySelector('.name');
+            const button = buttons[i] ?? null;
+            return {
+                value: cell.slot.replace(/^item-/, ''),
+                name: name ? name.textContent : '',
+                nameWidth: name ? name.scrollWidth : 0,
+                nameClipped: name ? name.scrollHeight > name.clientHeight || name.scrollWidth > name.clientWidth : false,
+                a11y: cell.querySelector('.a11y')?.textContent ?? '',
+                badge: badge ? squash(badge.textContent) : '',
+                badgeHidden: badge ? badge.getAttribute('aria-hidden') : null,
+                pressed: button ? button.getAttribute('aria-pressed') : null,
+                buttonBox: box(button),
+                badgeBox: box(pill),
+                nameBox: box(name),
+                face: button ? getComputedStyle(button).backgroundColor : '',
+                pillFace: pill ? getComputedStyle(pill).backgroundColor : '',
+                pillInk: pill ? getComputedStyle(pill).color : '',
+            };
+        });
     },
 
     pageText() {

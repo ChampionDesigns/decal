@@ -27,7 +27,7 @@ import {
 } from 'src/lib/steam-chart.js';
 import { createSteamBuffer } from 'src/stores/steam-buffer.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
-import { shownProfileName } from 'src/lib/profile-name.js';
+import { markedFavourites, shownProfileName } from 'src/lib/profile-name.js';
 import { DYE2_PLUGIN_ID } from 'src/lib/plugin-pages.js';
 import { MACHINE_STATE } from 'src/data/machine-state.js';
 import { ARM_STATUS } from 'src/stores/profile-arm-store.js';
@@ -378,7 +378,9 @@ export class LiveWiring {
     get #favourites() {
         const store = this.boot ? this.boot.library : null;
         if (!store || typeof store.favouriteEntries !== 'function' || !this.library) return null;
-        return store.favouriteEntries();
+        return markedFavourites(store.favouriteEntries(),
+            typeof store.recordFor === 'function' ? (id) => store.recordFor(id) : null,
+            this.boot ? this.boot.capabilities : null);
     }
 
     get #loadedProfileId() {
