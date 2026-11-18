@@ -53,6 +53,26 @@ describe('the library list shows the DE1 emulation prefix', () => {
         }));
 });
 
+describe('the library list follows a capability answer that arrives after it is drawn', () => {
+    const rowsNow = async (page) => Object.fromEntries(
+        (await page.evalFn(() => window.__names.selectorRows())).map((row) => [row.id, row.text]),
+    );
+
+    test('a late Bengle answer adds the prefix, and a forget takes it away',
+        () => staged({ machineClass: 'bengle', late: true }, async (page) => {
+            const before = await rowsOf(page);
+            assert.ok(before['profile:name0000'].startsWith('Alpha bloom'), JSON.stringify(before));
+            assert.equal(await page.evalFn(() => window.__names.answerCapabilities()), 'bengle');
+            await page.settle(6);
+            const after = await rowsNow(page);
+            assert.ok(after['profile:name0000'].startsWith(PREFIXED), JSON.stringify(after));
+            assert.equal(await page.evalFn(() => window.__names.forgetMachine()), null);
+            await page.settle(6);
+            const gone = await rowsNow(page);
+            assert.ok(gone['profile:name0000'].startsWith('Alpha bloom'), JSON.stringify(gone));
+        }));
+});
+
 describe('the home screen shows the DE1 emulation prefix', () => {
     test('the loaded profile name is prefixed when it runs as a DE1',
         () => staged({ machineClass: 'bengle' }, async (page) => {

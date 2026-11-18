@@ -124,6 +124,29 @@ describe('the DE1 emulation switch on the Settings tab', () => {
     }
 });
 
+describe('the editor follows a capability answer that arrives after it is drawn', () => {
+    test('a late Bengle answer draws the switch and the prefix, and a forget takes them away',
+        () => browser.withPage({ geometry }, async (page) => {
+            await mountEditor(page, { matrix: null, fields: 0 });
+            await seatProfile(page, {
+                machineClass: 'bengle', late: true, profile: { ...editingProfile(), de1_emulation: true },
+            });
+            await selectPanel(page, 'settings');
+            const title = () => page.evalFn((sel) => (window.__h.need(sel).renderRoot
+                .querySelector('#editor-title')?.textContent ?? '').trim(), EDITOR.screen);
+            assert.equal(await face(page), null);
+            assert.equal(await title(), 'Morning ristretto');
+            await page.evalFn(() => window.__machine.load());
+            await page.settle(6);
+            assert.ok(await face(page), 'the row is drawn after the answer');
+            assert.equal(await title(), 'B-DE1 · Morning ristretto');
+            await page.evalFn(() => window.__machine.forget());
+            await page.settle(6);
+            assert.equal(await face(page), null);
+            assert.equal(await title(), 'Morning ristretto');
+        }));
+});
+
 describe('the editor header shows the DE1 emulation prefix', () => {
     const staged = (opts, fn) => browser.withPage({ geometry }, async (page) => {
         await mountEditor(page, { matrix: null, fields: 0 });

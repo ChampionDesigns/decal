@@ -125,6 +125,7 @@ export async function seatProfile(page, {
     capabilities = [{ id: 'machine' }],
     answers = null,
     machineClass = null,
+    late = false,
 } = {}) {
     const seated = record ?? {
         id: 'profile:seated',
@@ -148,7 +149,8 @@ export async function seatProfile(page, {
         const machine = capabilityStore.createCapabilitiesStore({
             routes: { capabilities: async () => ({ ok: true, status: 200, data: { capabilities: served } }) },
         });
-        if (served !== null) await machine.load();
+        if (served !== null && !payload.late) await machine.load();
+        window.__machine = machine;
         const calls = [];
         const transport = {
             async request(path, options = {}) {
@@ -181,12 +183,13 @@ export async function seatProfile(page, {
             capabilities: {
                 machineLimits: () => adapters.r2MachineLimits(payload.capabilities),
                 de1Emulation: () => machine.de1Emulation(),
+                subscribe: (listener) => machine.subscribe(listener),
             },
             logger: null,
         };
         editor.open(payload.seated);
         await screen.updateComplete;
-    }, { seated, capabilities, answers, machineClass });
+    }, { seated, capabilities, answers, machineClass, late });
     await page.settle(6);
     return seated.id;
 }

@@ -131,7 +131,7 @@ function deepText(node) {
 const squash = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
 const api = {
-    async mount({ machineClass = 'bengle', long = false } = {}) {
+    async mount({ machineClass = 'bengle', long = false, late = false } = {}) {
         served = long ? [...RECORDS, LONG_RECORD] : RECORDS;
         capabilities = { bengle: ['cupWarmer'], de1: [] }[machineClass] ?? null;
         boot = createAppBoot({
@@ -139,7 +139,7 @@ const api = {
             createSocket,
             location: { hostname: '127.0.0.1', protocol: 'http:', port: '8080' },
         });
-        await boot.capabilities.load();
+        if (!late) await boot.capabilities.load();
         await boot.library.load();
         await boot.shotHistory.readPage({ limit: 20, offset: 0 });
         await boot.workflow.load();
@@ -165,6 +165,20 @@ const api = {
         await sleep(60);
         await screen.updateComplete;
         return Boolean(row);
+    },
+
+    async answerCapabilities() {
+        await boot.capabilities.load();
+        await sleep(60);
+        await screen.updateComplete;
+        return boot.capabilities.machineClass();
+    },
+
+    async forgetMachine() {
+        boot.capabilities.forget();
+        await sleep(60);
+        await screen.updateComplete;
+        return boot.capabilities.machineClass();
     },
 
     selectorRows() {
