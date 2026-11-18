@@ -2,6 +2,8 @@
  * What the profile editor sends when a draft is saved, and what it refuses to send.
  */
 
+import { DE1_EMULATION_KEY, de1EmulationOf } from './de1-emulation.js';
+
 export const OUTCOME_SOURCE = Object.freeze({
     /** The server said it. Only reachable once R8 lands and a reader is injected. */
     SERVER: 'server',
@@ -30,7 +32,14 @@ export const PROFILE_RECORD_KEYS = Object.freeze([
 const PROFILE_SCALAR_KEYS = Object.freeze([
     'title', 'notes', 'author', 'beverage_type', 'version',
     'target_volume', 'target_weight', 'target_volume_count_start', 'tank_temperature',
+    DE1_EMULATION_KEY,
 ]);
+
+const SCALAR_READERS = Object.freeze({
+    [DE1_EMULATION_KEY]: de1EmulationOf,
+});
+
+const scalarOf = (profile, key) => (SCALAR_READERS[key] ? SCALAR_READERS[key](profile) : profile[key]);
 
 const isObject = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
@@ -88,7 +97,7 @@ export function changeGroupsOf(draft, baseline) {
 
     const scalars = [];
     for (const key of PROFILE_SCALAR_KEYS) {
-        if (!sameValue(draft[key], baseline[key])) scalars.push(key);
+        if (!sameValue(scalarOf(draft, key), scalarOf(baseline, key))) scalars.push(key);
     }
 
     const changed = [];

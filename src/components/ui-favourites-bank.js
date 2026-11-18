@@ -7,6 +7,7 @@ import { css, html, nothing } from 'lit';
 import { UiElement, visuallyHidden } from 'src/components/base.js';
 import 'src/components/ui-bank.js';
 import 'src/components/ui-favourite-slot.js';
+import 'src/components/ui-badge.js';
 
 const DEFAULT_CAPACITY = 5;
 
@@ -19,6 +20,7 @@ function normaliseFavourite(raw, index) {
         value: `${EMPTY_VALUE_PREFIX}${slot}`,
         name: '',
         a11y: String(slot),
+        badge: '',
         filled: false,
         slot,
     };
@@ -36,14 +38,15 @@ function normaliseFavourite(raw, index) {
             /* An empty slot holds no profile, so it has no visible name. */
             name: filled ? name : '',
             /* Named for a screen reader either way: the profile, or the position. */
-            a11y: name || String(slot),
+            a11y: filled && name && raw.a11y ? String(raw.a11y) : name || String(slot),
+            badge: filled && name && raw.badge ? String(raw.badge) : '',
             filled,
             slot,
         };
     }
 
     const value = String(raw);
-    return { value, name: value, a11y: value, filled: true, slot };
+    return { value, name: value, a11y: value, badge: '', filled: true, slot };
 }
 
 export class UiFavouritesBank extends UiElement {
@@ -84,6 +87,17 @@ export class UiFavouritesBank extends UiElement {
             /* The bank fills the row. Nothing else here is a box. */
             .bank {
                 inline-size: 100%;
+            }
+
+            .cell.marked {
+                padding-block-start: calc(var(--ui-text-2xs) * 1.5 + var(--ui-space-1));
+            }
+
+            .badge {
+                position: absolute;
+                inset-block-start: var(--ui-space-1);
+                inset-inline-start: var(--ui-space-1);
+                pointer-events: none;
             }
 
             .cell {
@@ -174,6 +188,7 @@ export class UiFavouritesBank extends UiElement {
 
     render() {
         const cells = this.#cells;
+        const marked = !this.manage && cells.some((cell) => cell.badge);
 
         const items = cells.map((cell) => ({
             value: cell.value,
@@ -196,7 +211,7 @@ export class UiFavouritesBank extends UiElement {
                 @item-hold=${this.#onBankHold}
             >
                 ${cells.map((cell) => html`
-                    <span class="cell" slot="item-${cell.value}">
+                    <span class="cell ${marked ? 'marked' : ''}" slot="item-${cell.value}">
                         ${this.plain ? nothing : html`<ui-favourite-slot
                             class="mark"
                             inert
@@ -204,6 +219,9 @@ export class UiFavouritesBank extends UiElement {
                             ?filled=${cell.filled}
                             ?selected=${cell.filled && cell.value === this.value}
                         ></ui-favourite-slot>`}
+                        ${cell.badge && !this.manage
+                            ? html`<span class="badge" aria-hidden="true"><ui-badge><span aria-hidden="true">${cell.badge}</span></ui-badge></span>`
+                            : nothing}
                         ${cell.name && !this.manage
                             ? html`<span class="name" aria-hidden="true">${cell.name}</span>`
                             : nothing}

@@ -27,6 +27,7 @@ import {
 } from 'src/lib/steam-chart.js';
 import { createSteamBuffer } from 'src/stores/steam-buffer.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
+import { markedFavourites, shownProfileName } from 'src/lib/profile-name.js';
 import { DYE2_PLUGIN_ID } from 'src/lib/plugin-pages.js';
 import { MACHINE_STATE } from 'src/data/machine-state.js';
 import { ARM_STATUS } from 'src/stores/profile-arm-store.js';
@@ -370,14 +371,16 @@ export class LiveWiring {
     /** The loaded profile's title, or '' — off the workflow document, one owner. */
     get #profileTitle() {
         const document_ = this.workflow ? this.workflow.workflow : null;
-        const title = document_ && document_.profile ? document_.profile.title : null;
-        return typeof title === 'string' ? title : '';
+        const profile = document_ && document_.profile ? document_.profile : null;
+        return shownProfileName(profile, this.boot ? this.boot.capabilities : null);
     }
 
     get #favourites() {
         const store = this.boot ? this.boot.library : null;
         if (!store || typeof store.favouriteEntries !== 'function' || !this.library) return null;
-        return store.favouriteEntries();
+        return markedFavourites(store.favouriteEntries(),
+            typeof store.recordFor === 'function' ? (id) => store.recordFor(id) : null,
+            this.boot ? this.boot.capabilities : null);
     }
 
     get #loadedProfileId() {
