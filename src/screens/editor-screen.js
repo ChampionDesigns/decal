@@ -300,6 +300,7 @@ export class EditorScreen extends UiElement {
 
     /** The subscription to it. One in, one out. */
     #unwatch = null;
+    #capabilitiesWatch = null;
 
     /** THE ONE RANGES DOOR, built from the shell's capability answer. */
     #ranges = null;
@@ -353,6 +354,8 @@ export class EditorScreen extends UiElement {
         this.removeEventListener(NUMPAD_REFUSED, this.#onNumpadRefused);
         this.#unwatch?.();
         this.#unwatch = null;
+        this.#capabilitiesWatch?.();
+        this.#capabilitiesWatch = null;
         this.#store = null;
         super.disconnectedCallback();
     }
@@ -373,6 +376,8 @@ export class EditorScreen extends UiElement {
         this.#ranges = limits ? createEditorRanges({ machineLimits: limits, machineClass }) : null;
         this.#modes = this.#readModes();
         this.#unwatch = this.#store.subscribe((state) => this.#onStoreState(state));
+        this.#capabilitiesWatch?.();
+        this.#capabilitiesWatch = this.boot.capabilities?.subscribe?.(() => this.requestUpdate()) ?? null;
         this.#onStoreState(this.#store.get());
     }
 

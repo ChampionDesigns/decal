@@ -448,6 +448,7 @@ export class SelectorScreen extends UiElement {
 
     /** The store's unsubscribe, dropped in disconnectedCallback. */
     #unwatch = null;
+    #capabilitiesWatch = null;
     #entryRevealed = false;
     #returnView = null;
     #entryTask = null;
@@ -510,6 +511,8 @@ export class SelectorScreen extends UiElement {
         super.disconnectedCallback();
         this.#unwatch?.();
         this.#unwatch = null;
+        this.#capabilitiesWatch?.();
+        this.#capabilitiesWatch = null;
         this.#dropPendingAssignment();
         this.#store = null;
         this.#entryRevealed = false;
@@ -633,6 +636,7 @@ export class SelectorScreen extends UiElement {
             this._openFolders = new Set(returning.openFolders);
         }
         this.#unwatch = this.#store.subscribe((state) => { this._state = state; });
+        this.#capabilitiesWatch = this.boot.capabilities?.subscribe?.(() => this.requestUpdate()) ?? null;
         this._state = this.#store.get();
         this.#store.load();
     }

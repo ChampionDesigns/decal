@@ -46,7 +46,7 @@ describe('the DE1 emulation switch on the Settings tab', () => {
     });
 
     test('a profile without the value opens with the switch off, and it can be pressed',
-        () => staged({ de1Emulation: true }, async (page) => {
+        () => staged({ machineClass: 'bengle' }, async (page) => {
             const seen = await face(page);
             assert.ok(seen, 'the row is on the glass');
             assert.equal(seen.drawn, true);
@@ -59,7 +59,7 @@ describe('the DE1 emulation switch on the Settings tab', () => {
         }));
 
     test('a press writes true on the draft, a second press writes false, and the count follows',
-        () => staged({ de1Emulation: true }, async (page) => {
+        () => staged({ machineClass: 'bengle' }, async (page) => {
             await page.click(SWITCH);
             await page.settle(4);
             const on = await face(page);
@@ -76,7 +76,7 @@ describe('the DE1 emulation switch on the Settings tab', () => {
         }));
 
     test('a stored true opens with the switch on', () => staged({
-        de1Emulation: true,
+        machineClass: 'bengle',
         profile: { ...editingProfile(), de1_emulation: true },
     }, async (page) => {
         const seen = await face(page);
@@ -90,7 +90,7 @@ describe('the DE1 emulation switch on the Settings tab', () => {
         ['hold', { transition: 'hold' }],
     ]) {
         test(`a profile with a ${kind} step shows the value, greyed out, and says why`, () => staged({
-            de1Emulation: true,
+            machineClass: 'bengle',
             profile: { ...editingProfile([matrixStep(), matrixStep(over)]), de1_emulation: true },
         }, async (page) => {
             const seen = await face(page);
@@ -107,9 +107,9 @@ describe('the DE1 emulation switch on the Settings tab', () => {
         }));
     }
 
-    for (const [why, de1Emulation] of [['says no', false], ['does not answer', null]]) {
+    for (const [why, machineClass] of [['is a DE1', 'de1'], ['is not known yet', null]]) {
         test(`the row is not drawn when the machine ${why}`, () => staged(
-            { de1Emulation },
+            { machineClass },
             async (page) => {
                 assert.equal(await face(page), null);
                 const rows = await page.evalFn((sel) => {
@@ -122,6 +122,29 @@ describe('the DE1 emulation switch on the Settings tab', () => {
             },
         ));
     }
+});
+
+describe('the editor follows a capability answer that arrives after it is drawn', () => {
+    test('a late Bengle answer draws the switch and the prefix, and a forget takes them away',
+        () => browser.withPage({ geometry }, async (page) => {
+            await mountEditor(page, { matrix: null, fields: 0 });
+            await seatProfile(page, {
+                machineClass: 'bengle', late: true, profile: { ...editingProfile(), de1_emulation: true },
+            });
+            await selectPanel(page, 'settings');
+            const title = () => page.evalFn((sel) => (window.__h.need(sel).renderRoot
+                .querySelector('#editor-title')?.textContent ?? '').trim(), EDITOR.screen);
+            assert.equal(await face(page), null);
+            assert.equal(await title(), 'Morning ristretto');
+            await page.evalFn(() => window.__machine.load());
+            await page.settle(6);
+            assert.ok(await face(page), 'the row is drawn after the answer');
+            assert.equal(await title(), 'B-DE1 · Morning ristretto');
+            await page.evalFn(() => window.__machine.forget());
+            await page.settle(6);
+            assert.equal(await face(page), null);
+            assert.equal(await title(), 'Morning ristretto');
+        }));
 });
 
 describe('the editor header shows the DE1 emulation prefix', () => {
@@ -141,14 +164,14 @@ describe('the editor header shows the DE1 emulation prefix', () => {
     }, EDITOR.screen);
 
     test('a stored true on a supported machine shows the prefix; the title field keeps the plain title',
-        () => staged({ de1Emulation: true, profile: { ...editingProfile(), de1_emulation: true } }, async (page) => {
+        () => staged({ machineClass: 'bengle', profile: { ...editingProfile(), de1_emulation: true } }, async (page) => {
             const seen = await header(page);
             assert.equal(seen.name, 'B-DE1 · Morning ristretto');
             assert.equal(seen.field, 'Morning ristretto');
             assert.equal(seen.draft, 'Morning ristretto');
         }));
 
-    test('the switch adds the prefix and takes it away again', () => staged({ de1Emulation: true }, async (page) => {
+    test('the switch adds the prefix and takes it away again', () => staged({ machineClass: 'bengle' }, async (page) => {
         assert.equal((await header(page)).name, 'Morning ristretto');
         await selectPanel(page, 'settings');
         await page.click(SWITCH);
@@ -160,16 +183,18 @@ describe('the editor header shows the DE1 emulation prefix', () => {
     }));
 
     test('a power step gives the plain title', () => staged({
-        de1Emulation: true,
+        machineClass: 'bengle',
         profile: { ...editingProfile([matrixStep(), matrixStep({ pump: 'power' })]), de1_emulation: true },
     }, async (page) => {
         assert.equal((await header(page)).name, 'Morning ristretto');
     }));
 
-    test('no machine support gives the plain title', () => staged({
-        de1Emulation: null,
-        profile: { ...editingProfile(), de1_emulation: true },
-    }, async (page) => {
-        assert.equal((await header(page)).name, 'Morning ristretto');
-    }));
+    for (const [why, machineClass] of [['a DE1', 'de1'], ['an unknown machine', null]]) {
+        test(`${why} gives the plain title`, () => staged({
+            machineClass,
+            profile: { ...editingProfile(), de1_emulation: true },
+        }, async (page) => {
+            assert.equal((await header(page)).name, 'Morning ristretto');
+        }));
+    }
 });

@@ -273,6 +273,10 @@ export function createCapabilitiesStore({ routes, logger = null, now = () => Dat
             return machineClassFromServedSet(state().entries);
         },
 
+        de1Emulation() {
+            return machineClassFromServedSet(state().entries) === 'bengle';
+        },
+
         gaps: CAPABILITY_GAPS,
 
         /** Drop every subscriber. This store holds no timer and no socket. */
