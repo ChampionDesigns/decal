@@ -115,6 +115,7 @@ for (const shape of GATE_A_GEOMETRIES) {
                 assert.equal(marked[id].nameBox.height, plain[id].nameBox.height, id);
                 assert.equal(marked[id].nameWidth, plain[id].nameWidth, id);
                 assert.equal(marked[id].nameClipped, plain[id].nameClipped, id);
+                assert.equal(marked[id].buttonBox.height, plain[id].buttonBox.height, id);
                 assert.ok(inside(marked[id].nameBox, marked[id].buttonBox), `${id}: ${JSON.stringify(marked[id])}`);
             }
         });

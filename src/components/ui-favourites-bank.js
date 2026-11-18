@@ -89,10 +89,6 @@ export class UiFavouritesBank extends UiElement {
                 inline-size: 100%;
             }
 
-            .bank::part(item) {
-                position: relative;
-            }
-
             .cell.marked {
                 padding-block-start: calc(var(--ui-text-2xs) * 1.5 + var(--ui-space-1));
             }
