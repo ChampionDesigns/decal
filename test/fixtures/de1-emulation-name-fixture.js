@@ -43,6 +43,7 @@ const RECORDS = [
 const LONG_RECORD = record(3, profile('Extract Blooming Espresso', { de1_emulation: true }));
 
 let served = RECORDS;
+let capabilities = null;
 
 const WORKFLOW = {
     id: 'wf-name',
@@ -84,6 +85,9 @@ const scriptedFetch = async (input, init = {}) => {
     const method = (init.method || 'GET').toUpperCase();
     if (/^\/api\/v1\/store\/decal\//.test(url.pathname)) {
         return method === 'GET' ? json({ error: 'absent' }, 404) : json({ ok: true });
+    }
+    if (method === 'GET' && url.pathname === '/api/v1/machine/capabilities') {
+        return capabilities === null ? json({ error: 'no answer' }, 503) : json({ capabilities });
     }
     if (method === 'GET' && url.pathname === '/api/v1/profiles') return json(served);
     if (method === 'GET' && url.pathname === '/api/v1/workflow') return json(WORKFLOW);
@@ -127,14 +131,15 @@ function deepText(node) {
 const squash = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
 const api = {
-    async mount({ supported = true, long = false } = {}) {
+    async mount({ machineClass = 'bengle', long = false } = {}) {
         served = long ? [...RECORDS, LONG_RECORD] : RECORDS;
+        capabilities = { bengle: ['cupWarmer'], de1: [] }[machineClass] ?? null;
         boot = createAppBoot({
             fetch: scriptedFetch,
             createSocket,
             location: { hostname: '127.0.0.1', protocol: 'http:', port: '8080' },
         });
-        if (supported !== null) boot.capabilities.de1Emulation = () => supported;
+        await boot.capabilities.load();
         await boot.library.load();
         await boot.shotHistory.readPage({ limit: 20, offset: 0 });
         await boot.workflow.load();

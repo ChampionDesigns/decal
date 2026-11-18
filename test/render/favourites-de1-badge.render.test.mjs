@@ -54,21 +54,21 @@ const inside = (inner, outer) => inner.left >= outer.left - 0.5 && inner.right <
 
 describe('the favourites bar marks a favourite that runs as a DE1', () => {
     test('the DE1 favourite has the pill; the power and the plain favourites do not',
-        () => home({ supported: true }, async (cells) => {
+        () => home({ machineClass: 'bengle' }, async (cells) => {
             assert.equal(cells[ALPHA].badge, 'DE1');
             assert.equal(cells[BETA].badge, '');
             assert.equal(cells[GAMMA].badge, '');
         }));
 
     test('the name text is the plain short name',
-        () => home({ supported: true }, async (cells) => {
+        () => home({ machineClass: 'bengle' }, async (cells) => {
             assert.equal(cells[ALPHA].name, 'Alpha bloom');
             assert.equal(cells[BETA].name, 'Beta power');
             assert.equal(cells[GAMMA].name, 'Gamma classic');
         }));
 
     test('the pill is hidden from a screen reader and the button says DE1 emulation',
-        () => home({ supported: true }, async (cells, page) => {
+        () => home({ machineClass: 'bengle' }, async (cells, page) => {
             assert.equal(cells[ALPHA].badgeHidden, 'true');
             assert.equal(cells[ALPHA].a11y, 'Alpha bloom, DE1 emulation');
             assert.equal(cells[GAMMA].a11y, 'Gamma classic');
@@ -80,13 +80,13 @@ describe('the favourites bar marks a favourite that runs as a DE1', () => {
         }));
 
     test('without machine support no favourite has the pill',
-        () => home({ supported: false }, async (cells, _page, all) => {
+        () => home({ machineClass: 'de1' }, async (cells, _page, all) => {
             assert.equal(all.some((cell) => cell.badge !== ''), false, JSON.stringify(all));
             assert.equal(cells[ALPHA].a11y, 'Alpha bloom');
         }));
 
     test('with no support answer no favourite has the pill',
-        () => home({ supported: null }, async (_cells, _page, all) => {
+        () => home({ machineClass: null }, async (_cells, _page, all) => {
             assert.equal(all.some((cell) => cell.badge !== ''), false, JSON.stringify(all));
         }));
 });
@@ -94,7 +94,7 @@ describe('the favourites bar marks a favourite that runs as a DE1', () => {
 for (const shape of GATE_A_GEOMETRIES) {
     describe(`the pill sits in the top-left corner and leaves the name alone (${shape.name})`, () => {
         test('the pill is inside the button, at its top-left corner, clear of the name',
-            () => home({ supported: true, long: true, shape }, async (cells) => {
+            () => home({ machineClass: 'bengle', long: true, shape }, async (cells) => {
                 for (const id of [ALPHA, LONG]) {
                     const cell = cells[id];
                     assert.ok(cell.badgeBox && cell.badgeBox.width > 0, `${id} has no pill`);
@@ -106,8 +106,8 @@ for (const shape of GATE_A_GEOMETRIES) {
             }));
 
         test('every name keeps its size and stays inside its button', async () => {
-            const marked = await home({ supported: true, long: true, shape }, async (cells) => cells);
-            const plain = await home({ supported: false, long: true, shape }, async (cells) => cells);
+            const marked = await home({ machineClass: 'bengle', long: true, shape }, async (cells) => cells);
+            const plain = await home({ machineClass: 'de1', long: true, shape }, async (cells) => cells);
             assert.equal(marked[LONG].name, 'Extract Blooming Espresso');
             for (const id of [ALPHA, BETA, GAMMA, LONG]) {
                 assert.equal(marked[id].name, plain[id].name, id);
@@ -121,7 +121,7 @@ for (const shape of GATE_A_GEOMETRIES) {
         });
 
         test('all names in the bar share one line, with or without a pill',
-            () => home({ supported: true, long: true, shape }, async (cells) => {
+            () => home({ machineClass: 'bengle', long: true, shape }, async (cells) => {
                 const tops = new Set([ALPHA, BETA, GAMMA, LONG].map((id) => cells[id].nameBox.top));
                 assert.equal(tops.size, 1, JSON.stringify([...tops]));
             }));
@@ -131,7 +131,7 @@ for (const shape of GATE_A_GEOMETRIES) {
 for (const theme of ['dark', 'light']) {
     describe(`the pill keeps contrast (${theme})`, () => {
         test('the pill text keeps contrast on the selected and the unselected button',
-            () => home({ supported: true, long: true, theme }, async (cells) => {
+            () => home({ machineClass: 'bengle', long: true, theme }, async (cells) => {
                 assert.equal(cells[ALPHA].pressed, 'true');
                 assert.equal(cells[LONG].pressed, 'false');
                 assert.notEqual(cells[ALPHA].face, cells[LONG].face);

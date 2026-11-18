@@ -9,6 +9,7 @@ import {
 import { markedFavourites, shownProfileName } from '../src/lib/profile-name.js';
 import { shotName, shotOptionLabel, shotRow } from '../src/lib/shot-summary.js';
 import { changeCountOf } from '../src/lib/editor-commit.js';
+import { createCapabilitiesStore } from '../src/stores/capabilities-store.js';
 
 const step = (over = {}) => ({ name: 'Pour', pump: 'pressure', transition: 'fast', pressure: 9, ...over });
 
@@ -72,6 +73,26 @@ describe('whether the machine offers DE1 emulation', () => {
         assert.equal(de1EmulationSupported({ de1Emulation: () => true }), true);
         assert.equal(de1EmulationSupported({ de1Emulation: () => false }), false);
         assert.equal(de1EmulationSupported({ de1Emulation: () => 1 }), false);
+    });
+
+    test('the capabilities store answers from the machine class', async () => {
+        const storeFor = async (capabilities) => {
+            const store = createCapabilitiesStore({
+                routes: { capabilities: async () => ({ ok: true, status: 200, data: { capabilities } }) },
+            });
+            if (capabilities !== null) await store.load();
+            return store;
+        };
+        const on = { title: 'A', steps: [step()], de1_emulation: true };
+        const bengle = await storeFor(['cupWarmer']);
+        const de1 = await storeFor([]);
+        const unknown = await storeFor(null);
+        assert.equal(de1EmulationSupported(bengle), true);
+        assert.equal(de1EmulationSupported(de1), false);
+        assert.equal(de1EmulationSupported(unknown), false);
+        assert.equal(profileRunsAsDe1(on, bengle), true);
+        assert.equal(profileRunsAsDe1(on, de1), false);
+        assert.equal(profileRunsAsDe1(on, unknown), false);
     });
 });
 
