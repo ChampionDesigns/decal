@@ -245,6 +245,34 @@ describe('workflowApplyBody — what a profile load puts on the workflow', () =>
         const body = workflowApplyBody({ id: 'x', profile: legacy });
         for (const key of LEGACY_PROFILE_KEYS) assert.equal(key in body.profile, false, key);
     });
+
+    test('a profile without the DE1 emulation key sends an explicit false', () => {
+        const body = workflowApplyBody(record(null));
+        assert.equal(body.profile.de1_emulation, false);
+    });
+
+    test('a profile with DE1 emulation false sends false', () => {
+        const body = workflowApplyBody({ id: 'x', profile: { ...profile, de1_emulation: false } });
+        assert.equal(body.profile.de1_emulation, false);
+    });
+
+    test('a profile with DE1 emulation true sends true', () => {
+        const body = workflowApplyBody({ id: 'x', profile: { ...profile, de1_emulation: true } });
+        assert.equal(body.profile.de1_emulation, true);
+    });
+
+    test('a DE1 emulation value that is not exactly true sends false', () => {
+        for (const value of ['true', 1, null, {}]) {
+            const body = workflowApplyBody({ id: 'x', profile: { ...profile, de1_emulation: value } });
+            assert.equal(body.profile.de1_emulation, false, String(value));
+        }
+    });
+
+    test('the caller record keeps its own profile without the key', () => {
+        const own = { ...profile };
+        workflowApplyBody({ id: 'x', profile: own });
+        assert.equal('de1_emulation' in own, false);
+    });
 });
 
 describe('the two routes a profile load takes, read at the pin', () => {

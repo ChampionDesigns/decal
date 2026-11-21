@@ -8,6 +8,7 @@ import {
     profileCreateBody, profileUpdateBody, readProfileFile, workflowApplyBody,
 } from '../data/rea-profile.js';
 import { r1LoadedProfileId, R1_SOURCE } from '../data/adapters-r.js';
+import { DE1_EMULATION_KEY, de1EmulationOf } from '../lib/de1-emulation.js';
 import {
     readProfileListing,
     restorableProfiles,
@@ -190,7 +191,15 @@ function holdsActiveRecipe(record, active) {
     if (!active || !isBody(record)) return false;
     if (sameBody(active, record.profile ?? null)) return true;
     const armed = workflowApplyBody(record);
-    return Boolean(armed) && sameBody(active, armed.profile);
+    return Boolean(armed) && sameBody(withoutEmulationOff(active), withoutEmulationOff(armed.profile));
+}
+
+function withoutEmulationOff(profile) {
+    if (!isBody(profile) || de1EmulationOf(profile)) return profile;
+    if (!Object.hasOwn(profile, DE1_EMULATION_KEY)) return profile;
+    const rest = { ...profile };
+    delete rest[DE1_EMULATION_KEY];
+    return rest;
 }
 
 function recordWithId(records, id) {

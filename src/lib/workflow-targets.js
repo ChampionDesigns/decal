@@ -2,6 +2,8 @@
  * The Live rail's values, read off the workflow, and the partial payload that writes one back.
  */
 
+import { de1EmulationOf, withDe1Emulation } from './de1-emulation.js';
+
 /** A number, or undefined. Anything else the document holds is not a target. */
 function numberOrUndefined(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
@@ -66,10 +68,10 @@ export function patchFor(workflow, key, value) {
             ? workflow.profile.steps : null;
         if (!steps || steps.length === 0) return null;
         return {
-            profile: {
+            profile: withDe1Emulation({
                 ...workflow.profile,
                 steps: steps.map((step) => ({ ...step, temperature: value })),
-            },
+            }, de1EmulationOf(workflow.profile)),
         };
     }
 
