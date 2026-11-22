@@ -13,12 +13,13 @@ import { createLiveStores, FEED } from '../stores/live-stores.js';
 import { SHOT_STATE } from '../stores/feed-readers.js';
 import { createWeatherStore } from '../stores/weather-store.js';
 import { createCapabilitiesStore } from '../stores/capabilities-store.js';
+import { shownProfileName } from './profile-name.js';
 import { createMachineInfoStore } from '../stores/machine-info-store.js';
 import { createWorkflowStore } from '../stores/workflow-store.js';
 import { createMachineStateStore } from '../stores/machine-state-store.js';
 import { createProfileArmStore } from '../stores/profile-arm-store.js';
 import { createProfileEditorStore, SAVE_STATUS } from '../stores/profile-editor-store.js';
-import { createProfileLibraryStore } from '../stores/profile-library-store.js';
+import { ASSIGN_RESULT, createProfileLibraryStore } from '../stores/profile-library-store.js';
 import { createScaleTareStore } from '../stores/scale-tare-store.js';
 import { createShotsStore } from '../stores/shots-store.js';
 import { createPluginsStore } from '../stores/plugins-store.js';
@@ -218,20 +219,26 @@ export function createAppBoot({
         transport, storage, arm, workflow, logger, now: clock,
     });
 
+    const editorRecordId = (state) => (state && state.record && typeof state.record === 'object'
+        ? state.record.id ?? null : null);
     let seenSave = profileEditor.get().save;
+    let seenRecordId = editorRecordId(profileEditor.get());
     const unwatchEditorSave = profileEditor.subscribe((state) => {
         const status = state ? state.save : null;
         const wasSave = seenSave;
+        const openedId = seenRecordId;
         seenSave = status;
+        seenRecordId = editorRecordId(state);
         if (status !== SAVE_STATUS.SAVED || wasSave === SAVE_STATUS.SAVED) return;
-        const savedId = state.record && typeof state.record === 'object'
-            ? state.record.id ?? null : null;
-        if (savedId) adoptSavedProfile(savedId);
+        const savedId = editorRecordId(state);
+        const savedParentId = typeof state.record.parentId === 'string' ? state.record.parentId : null;
+        if (savedId) adoptSavedProfile(savedId, [openedId, savedParentId]);
     });
 
     /** The half above, performed. Separate so the subscription stays a decision. */
-    async function adoptSavedProfile(savedId) {
+    async function adoptSavedProfile(savedId, supersededIds) {
         try {
+            await followSave(savedId, supersededIds);
             await library.refresh();
 
             const saved = library.recordFor(savedId);
@@ -242,13 +249,6 @@ export function createAppBoot({
             }
 
             if (saved) {
-                const slot = library.favouriteSlotHolding(saved.parentId ?? null);
-                if (slot !== null) {
-                    await library.setFavourite(slot, savedId);
-                    note('info', `profile editor: favourite slot ${slot} follows the save `
-                        + `(${saved.parentId} -> ${savedId})`);
-                }
-
                 const healed = await library.healFavourites();
                 for (const change of healed) {
                     note('info', `profile editor: favourite slot ${change.slot} pointed at `
@@ -265,6 +265,24 @@ export function createAppBoot({
         } catch (error) {
             note('warn', 'profile editor: the listing could not be re-read after a save — '
                 + `${error && error.message}`);
+        }
+    }
+
+    async function followSave(savedId, supersededIds) {
+        if (library.favouriteSlotHolding(savedId) !== null) return;
+        for (const supersededId of supersededIds) {
+            if (!supersededId || supersededId === savedId) continue;
+            const slot = library.favouriteSlotHolding(supersededId);
+            if (slot === null) continue;
+            const moved = await library.setFavourite(slot, savedId);
+            if (moved.result === ASSIGN_RESULT.ASSIGNED) {
+                note('info', `profile editor: favourite slot ${slot} follows the save `
+                    + `(${supersededId} -> ${savedId})`);
+            } else {
+                note('warn', `profile editor: favourite slot ${slot} did not follow the save `
+                    + `(${supersededId} -> ${savedId}): ${moved.result}`);
+            }
+            return;
         }
     }
 
@@ -432,6 +450,7 @@ export function createAppBoot({
             const id = typeof frame.shotId === 'string' && frame.shotId !== '' ? frame.shotId : null;
             if (id !== null && shotProfile.get().shotId !== id) {
                 const profileName = armedProfileName();
+                const shownName = shownProfileName(workflow.get().workflow?.profile ?? null, capabilities);
                 const steps = workflow.get().workflow?.profile?.steps;
                 const record = Object.freeze({ workflow: Object.freeze({ profile: Object.freeze({
                     title: profileName,
@@ -439,7 +458,7 @@ export function createAppBoot({
                         name: typeof step?.name === 'string' ? step.name : '',
                     }))) : null,
                 }) }) });
-                shotProfile.set({ shotId: id, profileName, record });
+                shotProfile.set({ shotId: id, profileName: shownName, record });
             }
             if (frame.state !== SHOT_STATE.FINISHED) return;
             if (id === null || id === finishedShotId) return;

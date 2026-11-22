@@ -98,6 +98,8 @@ export class UiBank extends UiElement {
             }
 
             .item {
+                position: relative;
+
                 min-inline-size: var(--_ui-bank-item-min, 0);
 
                 min-block-size: var(--_ui-bank-item);

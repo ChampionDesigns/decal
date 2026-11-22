@@ -1,9 +1,9 @@
 // GENERATED FILE — DO NOT EDIT.
 //
 //   generator: scripts/generate-rea-routes.js
-//   sources:   assets/api/rest_v1.yml (sha256 1ea2154b1f3c20b5)
+//   sources:   assets/api/rest_v1.yml (sha256 3e7cf904ec4205cc)
 //              assets/api/websocket_v1.yml (sha256 d7fe00dd02842684)
-//   commit:    8fee86ddc761cd4b0a874178bf1e54b5b4ee7745
+//   commit:    1efd1a30c8744b55bbdb3552df19070a3a550636
 //
 // Regenerate with `node scripts/generate-rea-routes.js`; `--check` fails on a stale
 // artifact and test/rea-routes-freshness.test.mjs runs that check in CI.
@@ -14,7 +14,7 @@
 // the injected transport, and only for the calls the stores and connectors make.
 //
 // 3 ROWS DO NOT MATCH THE SPEC, DELIBERATELY. Where `rest_v1.yml` and the Dart handler
-// disagree at 8fee86dd, the handler wins: see REA_ROUTE_EXCEPTIONS below, and the
+// disagree at 1efd1a30, the handler wins: see REA_ROUTE_EXCEPTIONS below, and the
 // commented exception config in the generator. Each is an upstream ask; each deletes itself
 // (the generator hard-fails) the moment the source document is fixed.
 //
@@ -433,6 +433,7 @@ export const REST_ROUTES = deepFreeze([
                     "target_weight",
                     "target_volume_count_start",
                     "tank_temperature",
+                    "de1_emulation",
                 ],
                 requiredKeys: ["title", "steps", "target_volume_count_start", "tank_temperature"],
             },
@@ -481,7 +482,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 495,
+        specLine: 506,
         exception: null,
     },
     {
@@ -506,7 +507,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 515,
+        specLine: 526,
         exception: null,
     },
     {
@@ -531,7 +532,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 532,
+        specLine: 543,
         exception: null,
     },
     {
@@ -559,7 +560,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 532,
+        specLine: 543,
         exception: null,
     },
     {
@@ -584,7 +585,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 584,
+        specLine: 595,
         exception: null,
     },
     {
@@ -612,7 +613,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 584,
+        specLine: 595,
         exception: null,
     },
     {
@@ -636,7 +637,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 632,
+        specLine: 643,
         exception: null,
     },
     {
@@ -664,7 +665,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 632,
+        specLine: 643,
         exception: null,
     },
     {
@@ -691,7 +692,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 707,
+        specLine: 718,
         exception: null,
     },
     {
@@ -711,7 +712,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 765,
+        specLine: 776,
         exception: null,
     },
     {
@@ -735,7 +736,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 788,
+        specLine: 799,
         exception: null,
     },
     {
@@ -763,7 +764,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 814,
+        specLine: 825,
         exception: null,
     },
     {
@@ -788,7 +789,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 844,
+        specLine: 855,
         exception: null,
     },
     {
@@ -822,7 +823,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 844,
+        specLine: 855,
         exception: null,
     },
     {
@@ -856,7 +857,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 907,
+        specLine: 918,
         exception: null,
     },
     {
@@ -894,7 +895,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 907,
+        specLine: 918,
         exception: null,
     },
     {
@@ -925,7 +926,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 949,
+        specLine: 960,
         exception: null,
     },
     {
@@ -960,7 +961,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 949,
+        specLine: 960,
         exception: null,
     },
     {
@@ -980,7 +981,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 992,
+        specLine: 1003,
         exception: null,
     },
     {
@@ -1004,7 +1005,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1014,
+        specLine: 1025,
         exception: null,
     },
     {
@@ -1032,7 +1033,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1014,
+        specLine: 1025,
         exception: null,
     },
     {
@@ -1064,7 +1065,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1054,
+        specLine: 1065,
         exception: null,
     },
     {
@@ -1093,7 +1094,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1054,
+        specLine: 1065,
         exception: null,
     },
     {
@@ -1117,7 +1118,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1133,
+        specLine: 1144,
         exception: null,
     },
     {
@@ -1145,7 +1146,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1133,
+        specLine: 1144,
         exception: null,
     },
     {
@@ -1169,7 +1170,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1179,
+        specLine: 1190,
         exception: null,
     },
     {
@@ -1197,7 +1198,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1179,
+        specLine: 1190,
         exception: null,
     },
     {
@@ -1222,7 +1223,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1179,
+        specLine: 1190,
         exception: null,
     },
     {
@@ -1254,7 +1255,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1259,
+        specLine: 1270,
         exception: null,
     },
     {
@@ -1278,7 +1279,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1310,
+        specLine: 1321,
         exception: null,
     },
     {
@@ -1298,7 +1299,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1325,
+        specLine: 1336,
         exception: null,
     },
     {
@@ -1318,7 +1319,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1369,
+        specLine: 1380,
         exception: null,
     },
     {
@@ -1338,7 +1339,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1412,
+        specLine: 1423,
         exception: null,
     },
     {
@@ -1358,7 +1359,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1429,
+        specLine: 1440,
         exception: null,
     },
     {
@@ -1378,7 +1379,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1446,
+        specLine: 1457,
         exception: null,
     },
     {
@@ -1403,7 +1404,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1464,
+        specLine: 1475,
         exception: null,
     },
     {
@@ -1428,7 +1429,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1479,
+        specLine: 1490,
         exception: null,
     },
     {
@@ -1448,7 +1449,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1493,
+        specLine: 1504,
         exception: null,
     },
     {
@@ -1468,7 +1469,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1509,
+        specLine: 1520,
         exception: null,
     },
     {
@@ -1497,7 +1498,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1525,
+        specLine: 1536,
         exception: null,
     },
     {
@@ -1526,7 +1527,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1553,
+        specLine: 1564,
         exception: null,
     },
     {
@@ -1553,7 +1554,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1582,
+        specLine: 1593,
         exception: null,
     },
     {
@@ -1578,7 +1579,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1608,
+        specLine: 1619,
         exception: null,
     },
     {
@@ -1608,7 +1609,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1631,
+        specLine: 1642,
         exception: null,
     },
     {
@@ -1657,7 +1658,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1673,
+        specLine: 1684,
         exception: null,
     },
     {
@@ -1709,7 +1710,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 1673,
+        specLine: 1684,
         exception: null,
     },
     {
@@ -1742,7 +1743,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1725,
+        specLine: 1736,
         exception: null,
     },
     {
@@ -1792,7 +1793,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 1725,
+        specLine: 1736,
         exception: null,
     },
     {
@@ -1844,7 +1845,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 1919,
+        specLine: 1943,
         exception: "shots-orderBy-not-read",
     },
     {
@@ -1867,7 +1868,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2062,
+        specLine: 2086,
         exception: null,
     },
     {
@@ -1894,6 +1895,7 @@ export const REST_ROUTES = deepFreeze([
                 "workflow",
                 "annotations",
                 "stopReason",
+                "de1Emulation",
                 "shotNotes",
                 "metadata",
             ],
@@ -1901,7 +1903,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2078,
+        specLine: 2102,
         exception: null,
     },
     {
@@ -1929,6 +1931,7 @@ export const REST_ROUTES = deepFreeze([
                 "workflow",
                 "annotations",
                 "stopReason",
+                "de1Emulation",
                 "shotNotes",
                 "metadata",
             ],
@@ -1936,7 +1939,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2093,
+        specLine: 2117,
         exception: null,
     },
     {
@@ -1972,6 +1975,7 @@ export const REST_ROUTES = deepFreeze([
                 "workflow",
                 "annotations",
                 "stopReason",
+                "de1Emulation",
                 "shotNotes",
                 "metadata",
             ],
@@ -1979,7 +1983,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2093,
+        specLine: 2117,
         exception: null,
     },
     {
@@ -2002,7 +2006,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2093,
+        specLine: 2117,
         exception: null,
     },
     {
@@ -2029,7 +2033,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2258,
+        specLine: 2282,
         exception: null,
     },
     {
@@ -2052,7 +2056,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2272,
+        specLine: 2296,
         exception: null,
     },
     {
@@ -2076,7 +2080,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2286,
+        specLine: 2310,
         exception: null,
     },
     {
@@ -2100,7 +2104,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2298,
+        specLine: 2322,
         exception: null,
     },
     {
@@ -2127,7 +2131,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 2298,
+        specLine: 2322,
         exception: null,
     },
     {
@@ -2147,7 +2151,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 2298,
+        specLine: 2322,
         exception: null,
     },
     {
@@ -2195,7 +2199,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 2365,
+        specLine: 2389,
         exception: null,
     },
     {
@@ -2260,7 +2264,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2365,
+        specLine: 2389,
         exception: null,
     },
     {
@@ -2303,7 +2307,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2485,
+        specLine: 2509,
         exception: null,
     },
     {
@@ -2368,7 +2372,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2485,
+        specLine: 2509,
         exception: null,
     },
     {
@@ -2391,7 +2395,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2485,
+        specLine: 2509,
         exception: null,
     },
     {
@@ -2443,7 +2447,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 2612,
+        specLine: 2636,
         exception: null,
     },
     {
@@ -2513,7 +2517,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2612,
+        specLine: 2636,
         exception: null,
     },
     {
@@ -2565,7 +2569,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 2755,
+        specLine: 2779,
         exception: null,
     },
     {
@@ -2612,7 +2616,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2789,
+        specLine: 2813,
         exception: null,
     },
     {
@@ -2684,7 +2688,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2789,
+        specLine: 2813,
         exception: null,
     },
     {
@@ -2707,7 +2711,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2789,
+        specLine: 2813,
         exception: null,
     },
     {
@@ -2754,7 +2758,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 2939,
+        specLine: 2963,
         exception: null,
     },
     {
@@ -2817,7 +2821,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 2939,
+        specLine: 2963,
         exception: null,
     },
     {
@@ -2859,7 +2863,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3066,
+        specLine: 3090,
         exception: null,
     },
     {
@@ -2922,7 +2926,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3066,
+        specLine: 3090,
         exception: null,
     },
     {
@@ -2945,7 +2949,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3066,
+        specLine: 3090,
         exception: null,
     },
     {
@@ -2972,7 +2976,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 3196,
+        specLine: 3220,
         exception: null,
     },
     {
@@ -2992,7 +2996,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3243,
+        specLine: 3267,
         exception: null,
     },
     {
@@ -3016,7 +3020,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 3243,
+        specLine: 3267,
         exception: null,
     },
     {
@@ -3039,7 +3043,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3243,
+        specLine: 3267,
         exception: null,
     },
     {
@@ -3081,7 +3085,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3320,
+        specLine: 3344,
         exception: null,
     },
     {
@@ -3101,7 +3105,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3335,
+        specLine: 3359,
         exception: null,
     },
     {
@@ -3125,7 +3129,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3335,
+        specLine: 3359,
         exception: null,
     },
     {
@@ -3148,7 +3152,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3402,
+        specLine: 3426,
         exception: null,
     },
     {
@@ -3171,7 +3175,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3444,
+        specLine: 3468,
         exception: null,
     },
     {
@@ -3202,7 +3206,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3486,
+        specLine: 3510,
         exception: null,
     },
     {
@@ -3225,7 +3229,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3595,
+        specLine: 3619,
         exception: null,
     },
     {
@@ -3245,7 +3249,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 3637,
+        specLine: 3661,
         exception: "plugins-passthrough-any-method",
         anyMethod: true,
     },
@@ -3266,7 +3270,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 3637,
+        specLine: 3661,
         exception: "plugins-passthrough-any-method",
         anyMethod: true,
     },
@@ -3294,7 +3298,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 3679,
+        specLine: 3703,
         exception: null,
     },
     {
@@ -3326,7 +3330,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3723,
+        specLine: 3747,
         exception: null,
     },
     {
@@ -3358,7 +3362,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3797,
+        specLine: 3821,
         exception: null,
     },
     {
@@ -3381,7 +3385,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3866,
+        specLine: 3890,
         exception: null,
     },
     {
@@ -3405,7 +3409,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3911,
+        specLine: 3935,
         exception: null,
     },
     {
@@ -3462,7 +3466,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: true,
         etagHeader: true,
-        specLine: 3989,
+        specLine: 4013,
         exception: null,
     },
     {
@@ -3515,7 +3519,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 3989,
+        specLine: 4013,
         exception: null,
     },
     {
@@ -3560,7 +3564,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4083,
+        specLine: 4114,
         exception: null,
     },
     {
@@ -3612,7 +3616,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4083,
+        specLine: 4114,
         exception: null,
     },
     {
@@ -3635,7 +3639,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4083,
+        specLine: 4114,
         exception: null,
     },
     {
@@ -3688,7 +3692,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4184,
+        specLine: 4215,
         exception: null,
     },
     {
@@ -3736,7 +3740,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4223,
+        specLine: 4254,
         exception: null,
     },
     {
@@ -3759,7 +3763,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4249,
+        specLine: 4280,
         exception: null,
     },
     {
@@ -3814,7 +3818,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4282,
+        specLine: 4313,
         exception: null,
     },
     {
@@ -3865,7 +3869,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4320,
+        specLine: 4351,
         exception: null,
     },
     {
@@ -3910,7 +3914,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4357,
+        specLine: 4388,
         exception: null,
     },
     {
@@ -3938,7 +3942,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4381,
+        specLine: 4412,
         exception: null,
     },
     {
@@ -3966,7 +3970,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4405,
+        specLine: 4436,
         exception: null,
     },
     {
@@ -3991,7 +3995,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4422,
+        specLine: 4453,
         exception: null,
     },
     {
@@ -4014,7 +4018,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4422,
+        specLine: 4453,
         exception: null,
     },
     {
@@ -4039,7 +4043,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4492,
+        specLine: 4523,
         exception: null,
     },
     {
@@ -4070,7 +4074,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4492,
+        specLine: 4523,
         exception: null,
     },
     {
@@ -4101,7 +4105,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4563,
+        specLine: 4594,
         exception: null,
     },
     {
@@ -4132,7 +4136,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4625,
+        specLine: 4656,
         exception: null,
     },
     {
@@ -4163,7 +4167,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4686,
+        specLine: 4717,
         exception: null,
     },
     {
@@ -4186,7 +4190,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4741,
+        specLine: 4772,
         exception: null,
     },
     {
@@ -4209,7 +4213,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4781,
+        specLine: 4812,
         exception: null,
     },
     {
@@ -4232,7 +4236,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4807,
+        specLine: 4838,
         exception: null,
     },
     {
@@ -4255,7 +4259,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4851,
+        specLine: 4882,
         exception: null,
     },
     {
@@ -4275,7 +4279,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 4884,
+        specLine: 4915,
         exception: null,
     },
     {
@@ -4298,7 +4302,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4939,
+        specLine: 4970,
         exception: null,
     },
     {
@@ -4321,7 +4325,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4966,
+        specLine: 4997,
         exception: null,
     },
     {
@@ -4351,7 +4355,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 4966,
+        specLine: 4997,
         exception: null,
     },
     {
@@ -4379,7 +4383,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5073,
+        specLine: 5104,
         exception: null,
     },
     {
@@ -4411,7 +4415,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5073,
+        specLine: 5104,
         exception: null,
     },
     {
@@ -4443,7 +4447,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5165,
+        specLine: 5196,
         exception: null,
     },
     {
@@ -4466,7 +4470,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5165,
+        specLine: 5196,
         exception: null,
     },
     {
@@ -4497,7 +4501,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5297,
+        specLine: 5328,
         exception: null,
     },
     {
@@ -4536,7 +4540,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5310,
+        specLine: 5341,
         exception: null,
     },
     {
@@ -4567,7 +4571,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5343,
+        specLine: 5374,
         exception: null,
     },
     {
@@ -4598,7 +4602,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5343,
+        specLine: 5374,
         exception: null,
     },
     {
@@ -4618,7 +4622,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 5368,
+        specLine: 5399,
         exception: null,
     },
     {
@@ -4662,7 +4666,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5415,
+        specLine: 5446,
         exception: null,
     },
     {
@@ -4695,7 +4699,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5534,
+        specLine: 5565,
         exception: null,
     },
     {
@@ -4739,7 +4743,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5666,
+        specLine: 5697,
         exception: null,
     },
     {
@@ -4764,7 +4768,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5708,
+        specLine: 5739,
         exception: null,
     },
     {
@@ -4798,7 +4802,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5724,
+        specLine: 5755,
         exception: null,
     },
     {
@@ -4827,7 +4831,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 5742,
+        specLine: 5773,
         exception: null,
     },
     {
@@ -4861,7 +4865,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5777,
+        specLine: 5808,
         exception: null,
     },
     {
@@ -4886,7 +4890,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5807,
+        specLine: 5838,
         exception: null,
     },
     {
@@ -4920,7 +4924,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5807,
+        specLine: 5838,
         exception: null,
     },
     {
@@ -4943,7 +4947,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5847,
+        specLine: 5878,
         exception: null,
     },
     {
@@ -4966,7 +4970,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5889,
+        specLine: 5920,
         exception: null,
     },
     {
@@ -4989,7 +4993,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5930,
+        specLine: 5961,
         exception: null,
     },
     {
@@ -5012,7 +5016,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 5972,
+        specLine: 6003,
         exception: null,
     },
     {
@@ -5035,7 +5039,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 6010,
+        specLine: 6041,
         exception: null,
     },
     {
@@ -5069,7 +5073,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 6040,
+        specLine: 6071,
         exception: null,
     },
     {
@@ -5093,7 +5097,7 @@ export const REST_ROUTES = deepFreeze([
         json: true,
         conditional: false,
         etagHeader: false,
-        specLine: 6107,
+        specLine: 6138,
         exception: null,
     },
     {
@@ -5116,7 +5120,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 6135,
+        specLine: 6166,
         exception: "account-proxy-query-passthrough",
     },
     {
@@ -5140,7 +5144,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 6135,
+        specLine: 6166,
         exception: null,
     },
     {
@@ -5164,7 +5168,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 6135,
+        specLine: 6166,
         exception: null,
     },
     {
@@ -5192,7 +5196,7 @@ export const REST_ROUTES = deepFreeze([
         json: false,
         conditional: false,
         etagHeader: false,
-        specLine: 6286,
+        specLine: 6317,
         exception: null,
     },
 ]);
@@ -5395,8 +5399,8 @@ export const REA_ROUTE_EXCEPTIONS = deepFreeze([
 
 /** Provenance, asserted by the freshness test rather than trusted. */
 export const REA_ROUTES_SOURCE = deepFreeze({
-    commit: '8fee86ddc761cd4b0a874178bf1e54b5b4ee7745',
-    rest: { file: 'assets/api/rest_v1.yml', sha256: '1ea2154b1f3c20b55cd8ab541b0e3ff173e652fb0d62306c04ab21b6989fcf99' },
+    commit: '1efd1a30c8744b55bbdb3552df19070a3a550636',
+    rest: { file: 'assets/api/rest_v1.yml', sha256: '3e7cf904ec4205ccefb149742ecece5afa5f67ec26dfeabfacdab67f94473f16' },
     websocket: { file: 'assets/api/websocket_v1.yml', sha256: 'd7fe00dd028426841e1e3b8cddbe3b14630a24b454f15a3ea3731628db2a4c80' },
     counts: { routes: 164, paths: 120, conditional: 7, channels: 15, exceptions: 3 },
 });

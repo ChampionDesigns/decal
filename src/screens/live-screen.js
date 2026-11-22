@@ -9,7 +9,7 @@ import { seams } from 'src/components/seams.js';
 import { typeRoles } from 'src/components/type-roles.js';
 import { ChartFeed } from 'src/lib/chart-feed.js';
 import { CLOCK_TICK_MS, DEFAULT_CLOCK_FORMAT, wallClock } from 'src/lib/wall-clock.js';
-import { scalarText, shotClock, shotGrind, shotTitle } from 'src/lib/shot-summary.js';
+import { scalarText, shotClock, shotGrind, shotName } from 'src/lib/shot-summary.js';
 import { hasReading } from 'src/data/reading.js';
 import { readShotAnnotations } from 'src/data/rea-shot-record.js';
 import { I18nController } from 'src/lib/i18n.js';
@@ -967,7 +967,7 @@ export class LiveScreen extends UiElement {
     get #shotProfileName() {
         const shown = this.#bandDerivation;
         if (!shown) return '';
-        if (shown === this.storedDerivation) return shotTitle(this.storedShot) ?? '';
+        if (shown === this.storedDerivation) return shotName(this.storedShot) ?? '';
         const identity = this.liveShotProfile;
         return identity && identity.shotId === shown.shotId && typeof identity.profileName === 'string'
             ? identity.profileName
@@ -1321,7 +1321,7 @@ export class LiveScreen extends UiElement {
         const t = this.#i18n.t;
         const shot = this.storedShot;
         const clock = shotClock(shot ? shot.timestamp : null);
-        const title = shot ? shotTitle(shot) : '';
+        const title = shot ? shotName(shot) : '';
         const dose = this.#bandDerivation && this.#bandDerivation.ok
             ? this.#bandDerivation.scalars.dose : null;
         return html`
@@ -1851,7 +1851,7 @@ export class LiveScreen extends UiElement {
         const t = this.#i18n.t;
         const shot = this.storedShot;
         const clock = shotClock(shot ? shot.timestamp : null);
-        const title = shot ? shotTitle(shot) : '';
+        const title = shot ? shotName(shot) : '';
         const dose = this.#bandDerivation && this.#bandDerivation.ok
             ? this.#bandDerivation.scalars.dose : null;
         const annotations = readShotAnnotations(shot);

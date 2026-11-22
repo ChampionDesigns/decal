@@ -24,7 +24,7 @@ import {
     shotRows,
     shotScalars,
     summaryScalars,
-    shotTitle,
+    shotName,
     shotGrind,
 } from '../src/lib/shot-summary.js';
 import { deriveFromRecord, emptyShotDerivation } from '../src/lib/shot-derivation.js';
@@ -374,8 +374,8 @@ describe('a shot names itself by its time of day first', () => {
     });
 
     test('an untitled profile is null here and named by whoever renders it (D2)', () => {
-        assert.equal(shotTitle({ workflow: { profile: {} } }), null);
-        assert.equal(shotTitle({ workflow: { profile: { title: '' } } }), null);
+        assert.equal(shotName({ workflow: { profile: {} } }), null);
+        assert.equal(shotName({ workflow: { profile: { title: '' } } }), null);
         const row = shotRow({ summary: { id: 'x', timestamp: PAGE.items[0].timestamp } });
         assert.equal(row.cells.profile.value, null,
             'this module chooses no display string, so there is nothing here to translate');

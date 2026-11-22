@@ -124,6 +124,8 @@ export async function seatProfile(page, {
     record = null,
     capabilities = [{ id: 'machine' }],
     answers = null,
+    machineClass = null,
+    late = false,
 } = {}) {
     const seated = record ?? {
         id: 'profile:seated',
@@ -138,10 +140,17 @@ export async function seatProfile(page, {
         metadata: null,
     };
     await page.evalFn(async (payload) => {
-        const [store, adapters] = await Promise.all([
+        const [store, adapters, capabilityStore] = await Promise.all([
             import('/src/stores/profile-editor-store.js'),
             import('/src/data/adapters-r.js'),
+            import('/src/stores/capabilities-store.js'),
         ]);
+        const served = { bengle: ['cupWarmer'], de1: [] }[payload.machineClass] ?? null;
+        const machine = capabilityStore.createCapabilitiesStore({
+            routes: { capabilities: async () => ({ ok: true, status: 200, data: { capabilities: served } }) },
+        });
+        if (served !== null && !payload.late) await machine.load();
+        window.__machine = machine;
         const calls = [];
         const transport = {
             async request(path, options = {}) {
@@ -171,12 +180,16 @@ export async function seatProfile(page, {
         window.__editorStore = editor;
         screen.boot = {
             profileEditor: editor,
-            capabilities: { machineLimits: () => adapters.r2MachineLimits(payload.capabilities) },
+            capabilities: {
+                machineLimits: () => adapters.r2MachineLimits(payload.capabilities),
+                de1Emulation: () => machine.de1Emulation(),
+                subscribe: (listener) => machine.subscribe(listener),
+            },
             logger: null,
         };
         editor.open(payload.seated);
         await screen.updateComplete;
-    }, { seated, capabilities, answers });
+    }, { seated, capabilities, answers, machineClass, late });
     await page.settle(6);
     return seated.id;
 }

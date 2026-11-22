@@ -271,6 +271,52 @@ describe('the R3 gaps the served seven do not cover', () => {
         assert.match(bengle.machineLimits().swapWhen, /limits endpoint/);
     });
 
+    test('DE1 emulation is offered on a Bengle only', async () => {
+        const bengle = storeWith(ok({ capabilities: SEVEN })).store;
+        await bengle.load();
+        const one = storeWith(ok({ capabilities: ['cupWarmer'] })).store;
+        await one.load();
+        const de1 = storeWith(ok({ capabilities: [] })).store;
+        await de1.load();
+        assert.equal(bengle.de1Emulation(), true);
+        assert.equal(one.de1Emulation(), true);
+        assert.equal(de1.de1Emulation(), false);
+    });
+
+    test('DE1 emulation is not offered while the machine class is unknown', async () => {
+        const fresh = storeWith(ok({ capabilities: SEVEN })).store;
+        assert.equal(fresh.de1Emulation(), false, 'not loaded');
+        const failed = storeWith(fail(500, 'boom')).store;
+        await failed.load();
+        assert.equal(failed.de1Emulation(), false, 'failed read');
+        const odd = storeWith(ok({ capabilities: 'all' })).store;
+        await odd.load();
+        assert.equal(odd.de1Emulation(), false, 'unreadable answer');
+    });
+
+    test('DE1 emulation does not read the machine info', async () => {
+        const de1 = storeWith(ok({ capabilities: [] })).store;
+        await de1.load();
+        de1.applyMachineInfo(machineInfo({ extra: { de1EmulationSupported: true } }));
+        assert.equal(de1.de1Emulation(), false);
+        const bengle = storeWith(ok({ capabilities: SEVEN })).store;
+        await bengle.load();
+        bengle.applyMachineInfo(null);
+        assert.equal(bengle.de1Emulation(), true);
+    });
+
+    test('DE1 emulation follows the machine across a forget and a new read', async () => {
+        const { store } = storeWith(ok({ capabilities: SEVEN }), ok({ capabilities: [] }), ok({ capabilities: SEVEN }));
+        await store.load();
+        assert.equal(store.de1Emulation(), true);
+        store.forget();
+        assert.equal(store.de1Emulation(), false, 'the machine went away');
+        await store.load();
+        assert.equal(store.de1Emulation(), false, 'a DE1 took its place');
+        await store.refresh();
+        assert.equal(store.de1Emulation(), true, 'a Bengle again');
+    });
+
     test('caps 0 is a present answer of NO modes, not an unknown', () => {
         const { store } = storeWith(ok({ capabilities: SEVEN }));
         store.applyMachineInfo(machineInfo({ extra: { profileModeCaps: 0 } }));

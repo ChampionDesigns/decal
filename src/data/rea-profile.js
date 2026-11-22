@@ -1,6 +1,7 @@
 
 
 import { newStep } from '../lib/profile-modes.js';
+import { de1EmulationOf, withDe1Emulation } from '../lib/de1-emulation.js';
 
 /** `enum Visibility { visible, hidden, deleted }` (`profile_record.dart:6`). */
 export const PROFILE_VISIBILITY = Object.freeze({
@@ -154,7 +155,7 @@ export function workflowApplyBody(record) {
 
     const sent = yielded > 0 ? { ...profile, target_weight: yielded } : profile;
     return {
-        profile: sanitizeProfileForRea(sent),
+        profile: withDe1Emulation(sanitizeProfileForRea(sent), de1EmulationOf(profile)),
         context: { targetDoseWeight: dose, targetYield: yielded, grinderSetting },
     };
 }

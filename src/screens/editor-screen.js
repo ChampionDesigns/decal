@@ -39,8 +39,14 @@ const VERSION_FIELD_WORDS = Object.freeze({
     target_weight: 'target weight',
     target_volume_count_start: 'volume count start',
     tank_temperature: 'tank temperature',
+    [DE1_EMULATION_KEY]: 'DE1 emulation',
 });
 import { SAVE_STATUS, VISIBILITY_WRITE } from 'src/stores/profile-editor-store.js';
+import {
+    DE1_EMULATION_KEY, de1EmulationBlockOf, de1EmulationOf, de1EmulationSupported,
+    withDe1Emulation,
+} from 'src/lib/de1-emulation.js';
+import { shownProfileName } from 'src/lib/profile-name.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
 import { historyIcon, penIcon } from 'src/lib/icons.js';
 
@@ -294,6 +300,7 @@ export class EditorScreen extends UiElement {
 
     /** The subscription to it. One in, one out. */
     #unwatch = null;
+    #capabilitiesWatch = null;
 
     /** THE ONE RANGES DOOR, built from the shell's capability answer. */
     #ranges = null;
@@ -347,6 +354,8 @@ export class EditorScreen extends UiElement {
         this.removeEventListener(NUMPAD_REFUSED, this.#onNumpadRefused);
         this.#unwatch?.();
         this.#unwatch = null;
+        this.#capabilitiesWatch?.();
+        this.#capabilitiesWatch = null;
         this.#store = null;
         super.disconnectedCallback();
     }
@@ -367,6 +376,8 @@ export class EditorScreen extends UiElement {
         this.#ranges = limits ? createEditorRanges({ machineLimits: limits, machineClass }) : null;
         this.#modes = this.#readModes();
         this.#unwatch = this.#store.subscribe((state) => this.#onStoreState(state));
+        this.#capabilitiesWatch?.();
+        this.#capabilitiesWatch = this.boot.capabilities?.subscribe?.(() => this.requestUpdate()) ?? null;
         this.#onStoreState(this.#store.get());
     }
 
@@ -525,7 +536,7 @@ export class EditorScreen extends UiElement {
                                 class="ui-title"
                                 type="button"
                                 @click=${this.#onRenameOpen}
-                            >${this._draft.title || t('Untitled')}</button>
+                            >${shownProfileName(this._draft, this.boot?.capabilities, t('Untitled'))}</button>
                             <ui-icon-button
                                 id="title-pencil"
                                 label=${t('Edit profile name')}
@@ -1003,6 +1014,7 @@ export class EditorScreen extends UiElement {
                     'The machine takes this from the profile each time it loads.',
                     this.#onTankTemperature,
                 )}
+                ${this.#de1EmulationRow()}
 
                 <p class="group ui-microcap">${t('The limiters')}</p>
                 ${tolerance(
@@ -1069,6 +1081,36 @@ export class EditorScreen extends UiElement {
                 ></ui-switch>
             </ui-settings-row>`;
     }
+
+    #de1EmulationRow() {
+        if (!de1EmulationSupported(this.boot?.capabilities)) return nothing;
+        const t = this.#i18n.t;
+        const draft = this._draft;
+        const blocked = de1EmulationBlockOf(draft?.steps) !== null;
+        return html`
+            <ui-settings-row
+                data-row="de1-emulation"
+                heading=${t('DE1 emulation')}
+                caption=${blocked
+                    ? t('Not available: this profile has a power, lever or hold step.')
+                    : t('Makes this profile behave like a 240 V Decent DE1: the pump flow falls as the pressure rises, and pressure steps rise slowly. Off uses the Bengle\'s own control.')}
+            >
+                <ui-switch
+                    id="field-de1-emulation"
+                    data-profile-key=${DE1_EMULATION_KEY}
+                    data-blocked=${blocked ? 'true' : 'false'}
+                    .checked=${de1EmulationOf(draft)}
+                    ?disabled=${blocked}
+                    @change=${this.#onDe1EmulationSwitch}
+                ></ui-switch>
+            </ui-settings-row>`;
+    }
+
+    #onDe1EmulationSwitch = (event) => {
+        event.stopPropagation();
+        if (!this._draft || de1EmulationBlockOf(this._draft.steps) !== null) return;
+        this._draft = withDe1Emulation(this._draft, event.detail?.checked === true);
+    };
 
     get #libraryFace() {
         const t = this.#i18n.t;
@@ -1221,7 +1263,7 @@ export class EditorScreen extends UiElement {
         }
         return others.map((record) => {
             const when = shotClock(record.updatedAt ?? record.createdAt);
-            const title = record.profile?.title || t('Untitled');
+            const title = shownProfileName(record.profile, this.boot?.capabilities, t('Untitled'));
             const stamp = when.ok ? `${title} · ${when.dateSummary} ${when.time}` : title;
             const changed = this.#versionChangeLine(record, state?.records ?? []);
 

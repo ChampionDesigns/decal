@@ -91,6 +91,18 @@ test('brew temperature writes EVERY step, which is the old app\'s rule', () => {
     assert.notEqual(WORKFLOW.profile.steps[0].temperature, 91, 'the source document was mutated');
 });
 
+test('a brew temperature write sends DE1 emulation false when the profile has no key', () => {
+    const profile = { ...WORKFLOW.profile };
+    delete profile.de1_emulation;
+    const patch = patchFor({ ...WORKFLOW, profile }, 'brewTemp', 91);
+    assert.equal(patch.profile.de1_emulation, false);
+});
+
+test('a brew temperature write keeps DE1 emulation true when the profile has it', () => {
+    const patch = patchFor({ ...WORKFLOW, profile: { ...WORKFLOW.profile, de1_emulation: true } }, 'brewTemp', 91);
+    assert.equal(patch.profile.de1_emulation, true);
+});
+
 test('a key this module does not own, or a value that is not a number, writes nothing', () => {
     assert.equal(patchFor(WORKFLOW, 'fanThreshold', 40), null);
     assert.equal(patchFor(WORKFLOW, 'dose', null), null);
