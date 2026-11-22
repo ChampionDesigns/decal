@@ -113,7 +113,7 @@ describe('the machine says which machine it is', () => {
     });
 
     test('ReaPrime’s two spellings of "I do not know" are both unknown', () => {
-        /* `unified_de1.dart:144` seeds the info with the literal string "Unknown" before
+        /* `unified_de1.dart:168` seeds the info with the literal string "Unknown" before
          * the MMR read lands, and an absent machine gives no model at all. */
         assert.equal(machineClassFromModel('Unknown'), null);
         assert.equal(machineClassFromModel(''), null);

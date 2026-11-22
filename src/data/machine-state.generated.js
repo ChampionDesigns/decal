@@ -2,7 +2,7 @@
 //
 //   generator: scripts/generate-machine-state.js
 //   source:    lib/src/models/device/machine.dart (ReaPrime)
-//   commit:    8fee86ddc761cd4b0a874178bf1e54b5b4ee7745
+//   commit:    1efd1a30c8744b55bbdb3552df19070a3a550636
 //   sha256:    2932f00c231a34e0ca67ce18949dd7d02d47df350030c6ebe96c3dd603521057
 //
 // Regenerate with `node scripts/generate-machine-state.js`; `--check` fails on a stale
@@ -145,6 +145,6 @@ export const MACHINE_SUBSTATE = Object.freeze({
 /** Provenance, asserted by the freshness test rather than trusted. */
 export const MACHINE_STATE_SOURCE = Object.freeze({
     file: 'lib/src/models/device/machine.dart',
-    commit: '8fee86ddc761cd4b0a874178bf1e54b5b4ee7745',
+    commit: '1efd1a30c8744b55bbdb3552df19070a3a550636',
     sha256: '2932f00c231a34e0ca67ce18949dd7d02d47df350030c6ebe96c3dd603521057',
 });
