@@ -1012,7 +1012,7 @@
       "retires": [],
       "notes": [
         "heaterVoltage is served as `.voltage` and refillKitSetting as `.hex` — both already scalars on the wire.",
-        "refillKitSetting reports the APP's last write, not the machine. unified_de1.dart resets it to auto (2) on every connect (:474); the controller's startup defaults then write the refill-kit value the app saved for this machine, if it saved one (de1_controller.defaults.dart:8-16, saved by POST /machine/settings/advanced, de1_controller.dart:719-725), so a fresh connection answers 2 or that saved value, whatever refillKitPresent holds. A settings reset drops the saved value (machine_settings_store.dart:117-134). Do not render it as machine state."
+        "refillKitSetting reports the APP's last write, not the machine. unified_de1.dart resets it to auto (2) on every connect (:481); the controller's startup defaults then write the refill-kit value the app saved for this machine, if it saved one (de1_controller.defaults.dart:8-16, saved by POST /machine/settings/advanced, de1_controller.dart:719-725), so a fresh connection answers 2 or that saved value, whatever refillKitPresent holds. A settings reset drops the saved value (machine_settings_store.dart:117-134). Do not render it as machine state."
       ]
     },
     {
