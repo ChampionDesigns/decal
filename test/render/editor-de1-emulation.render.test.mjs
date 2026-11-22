@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { launch, GATE_A_GEOMETRIES } from '../harness/index.js';
 import {
-    EDITOR, mountEditor, seatProfile, editingProfile, matrixStep, selectPanel,
+    EDITOR, mountEditor, seatProfile, editingProfile, matrixStep, selectPanel, editorCalls,
 } from '../harness/editor.js';
 
 const geometry = GATE_A_GEOMETRIES[0];
@@ -197,4 +197,87 @@ describe('the editor header shows the DE1 emulation prefix', () => {
             assert.equal((await header(page)).name, 'Morning ristretto');
         }));
     }
+});
+
+describe('the editor says what a save did not store', () => {
+    const savedRecord = (over = {}) => ({
+        id: 'profile:saved',
+        profile: editingProfile(),
+        metadataHash: 'meta-1',
+        compoundHash: 'compound-1',
+        parentId: 'profile:seated',
+        visibility: 'visible',
+        isDefault: false,
+        createdAt: '2026-08-22T00:00:00.000Z',
+        updatedAt: '2026-08-22T00:00:00.000Z',
+        metadata: null,
+        ...over,
+    });
+
+    const notices = (page) => page.evalFn((sel) => [...window.__h.need(sel).children]
+        .map((n) => ({ tone: n.getAttribute('tone'), text: n.textContent.trim() })), EDITOR.notice);
+
+    const switchOnAndSave = async (page, answers) => {
+        await mountEditor(page, { matrix: null, fields: 0 });
+        await seatProfile(page, { machineClass: 'bengle', answers });
+        await selectPanel(page, 'settings');
+        await page.click(SWITCH);
+        await page.settle(4);
+        await page.click(EDITOR.save);
+        await page.settle(8);
+    };
+
+    const NOT_STORED = 'This Decide did not store DE1 emulation.';
+    const STILL_HIDDEN = 'The saved version is still hidden, so favourites stay on the version you opened.';
+
+    test('a Decide that drops the value: the request carries true, the switch shows off, and one line says why',
+        () => browser.withPage({ geometry }, async (page) => {
+            await switchOnAndSave(page, {
+                'POST /profiles': { ok: true, status: 201, data: savedRecord() },
+            });
+            const calls = await editorCalls(page);
+            assert.equal(calls[0].method, 'POST');
+            assert.equal(calls[0].body.profile.de1_emulation, true, 'the value that was set is sent');
+            const seen = await face(page);
+            assert.ok(seen, 'the switch is still drawn');
+            assert.equal(seen.checked, false, 'the switch shows the served value');
+            const said = await notices(page);
+            assert.deepEqual(said.filter((n) => n.text === NOT_STORED),
+                [{ tone: 'warn', text: NOT_STORED }], JSON.stringify(said));
+            assert.equal(said.some((n) => n.text === STILL_HIDDEN), false);
+        }));
+
+    test('a Decide that stores the value says nothing more than the save',
+        () => browser.withPage({ geometry }, async (page) => {
+            await switchOnAndSave(page, null);
+            const seen = await face(page);
+            assert.equal(seen.checked, true);
+            const said = await notices(page);
+            assert.equal(said.some((n) => n.text === NOT_STORED), false, JSON.stringify(said));
+            assert.equal(said.some((n) => n.tone === 'warn'), false, JSON.stringify(said));
+        }));
+
+    test('a save that returns a hidden record whose un-hide fails says the favourites stay',
+        () => browser.withPage({ geometry }, async (page) => {
+            await switchOnAndSave(page, {
+                'POST /profiles': {
+                    ok: true,
+                    status: 201,
+                    data: savedRecord({
+                        visibility: 'hidden', profile: { ...editingProfile(), de1_emulation: true },
+                    }),
+                },
+                'PUT /profiles/profile%3Asaved/visibility': {
+                    ok: false, status: 500, message: 'unavailable', data: null,
+                },
+            });
+            const calls = await editorCalls(page);
+            assert.deepEqual(calls.map((c) => `${c.method} ${c.path}`),
+                ['POST /profiles', 'PUT /profiles/profile%3Asaved/visibility'],
+                'the edited record is not hidden');
+            const said = await notices(page);
+            assert.deepEqual(said.filter((n) => n.text === STILL_HIDDEN),
+                [{ tone: 'warn', text: STILL_HIDDEN }], JSON.stringify(said));
+            assert.equal(said.some((n) => n.text === NOT_STORED), false);
+        }));
 });
