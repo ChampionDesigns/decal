@@ -468,27 +468,28 @@ describe('the enjoyment round-trip against the mock', () => {
 });
 
 describe('the R5 absence is a finding, not a stub', () => {
-    test('SHOT_RECORD_KEYS is the six the SKIN models; the wire carries ten; none is a metric', () => {
+    test('SHOT_RECORD_KEYS is the six the SKIN models; the wire carries eleven; none is a metric', () => {
         /* THE SERIALIZER GREW AT THIS PIN AND THIS CONSTANT DID NOT, so the assertion had to
          * stop claiming they are the same thing. `ShotRecord.toJson` gained `createdAt` and
-         * `updatedAt` (shot_record.dart:54-55, and :69-70 on the without-measurements twin),
-         * both emitted unconditionally; the regenerated route table lists ten keys, while
+         * `updatedAt` (shot_record.dart:70-71, and :86-87 on the without-measurements twin),
+         * both emitted unconditionally, and `de1Emulation` (:76, :91), emitted only as true;
+         * the regenerated route table lists eleven keys, while
          * src/data/rea-shot-record.js still lists six under a doc comment calling itself
          * "`ShotRecord.toJson`'s keys". This test used to call those six "the keys the
          * serializer emits" — true at 2b047d02, false at 42f67f69. The gap is REAL and lives
          * in src/, so it is COUNTED here rather than blessed: the wire list is pinned whole
          * and the modelled/served difference is pinned exactly, so widening it goes red.
-         * R5 is untouched by any of it — not one of the four extra keys is a shot metric. */
+         * R5 is untouched by any of it — not one of the five extra keys is a shot metric. */
         assert.deepEqual([...SHOT_RECORD_KEYS],
             ['id', 'timestamp', 'measurements', 'workflow', 'annotations', 'stopReason']);
         const wire = REST_ROUTE_BY_ID.getShotsById.successSchema;
         assert.equal(wire.ref, 'ShotRecord');
         assert.deepEqual([...wire.keys],
             ['id', 'timestamp', 'createdAt', 'updatedAt', 'measurements', 'workflow',
-                'annotations', 'stopReason', 'shotNotes', 'metadata'],
+                'annotations', 'stopReason', 'de1Emulation', 'shotNotes', 'metadata'],
             'the served shape of ShotRecord moved — re-read shot_record.dart before editing this');
         assert.deepEqual(wire.keys.filter((k) => !SHOT_RECORD_KEYS.includes(k)),
-            ['createdAt', 'updatedAt', 'shotNotes', 'metadata'],
+            ['createdAt', 'updatedAt', 'de1Emulation', 'shotNotes', 'metadata'],
             'the modelled/served gap changed; SHOT_RECORD_KEYS still calls itself toJson\'s keys');
         for (const forbidden of ['duration', 'durationSeconds', 'peakPressure', 'averageFlow']) {
             assert.ok(!SHOT_RECORD_KEYS.includes(forbidden));
@@ -514,11 +515,11 @@ describe('the R5 absence is a finding, not a stub', () => {
         assert.equal(r5.servedAt, null);
         assert.equal(r5.checkedCommit, PIN);
         /* The serializer MOVED, it did not go away: ShotRecord gained createdAt and
-         * updatedAt, so toJsonWithoutMeasurements slid from :49-59 to :65-77 and toJson
-         * from :36-47 to :50-63. The citation is what makes the basis checkable, so both
+         * updatedAt, then de1Emulation, so toJsonWithoutMeasurements slid from :49-59 to
+         * :82-95 and toJson from :36-47 to :66-80. The citation is what makes the basis checkable, so both
          * halves are pinned here — a rewritten basis that drops them is the regression. */
-        assert.match(r5.basis, /shot_record\.dart:65-77/);
-        assert.match(r5.basis, /shot_record\.dart:50-63/);
+        assert.match(r5.basis, /shot_record\.dart:82-95/);
+        assert.match(r5.basis, /shot_record\.dart:66-80/);
         assert.match(r5.policy, /NO STUB, NO SENTINEL, NO FETCH/);
         assert.match(r5.interim, /dash/i);
     });

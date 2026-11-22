@@ -13,7 +13,7 @@ import { hasLimit, MACHINE_CLASSES } from './machine-limits.js';
 export const R2_INTERIM = Object.freeze({
     upstream: 'R2',
     landed: false,
-    checkedCommit: '8fee86ddc761cd4b0a874178bf1e54b5b4ee7745',
+    checkedCommit: '1efd1a30c8744b55bbdb3552df19070a3a550636',
     basis: 'no route registered at the pin matches limit/range/bound/envelope/constraint '
         + 'across the 156 registrations in lib/src/services/webserver/*.dart, and the three '
         + 'nearest candidates all refuse: capabilities answers feature names with no numbers, '

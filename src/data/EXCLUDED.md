@@ -10,7 +10,7 @@ reviewer sees what was written, not what was left out — so the omissions are w
 here with a reason and a citation each.
 
 Everything below was checked against ReaPrime **as written** at
-`8fee86ddc761cd4b0a874178bf1e54b5b4ee7745`
+`1efd1a30c8744b55bbdb3552df19070a3a550636`
 (the pinned ReaPrime checkout, read-only). Old-skin line numbers are from that module and
 go soft the moment anything moves — **re-anchor by symbol**.
 
@@ -40,7 +40,7 @@ what drives the strip without storing anything.
 
 ## Routes the app serves and this skin does not call
 
-Documented in `rest_v1.yml` at `8fee86dd`, served, and not called, because no Decal screen
+Documented in `rest_v1.yml` at `1efd1a30`, served, and not called, because no Decal screen
 asks for them. They are not dead surface: a screen that wants one adds a caller through
 `callRoute` and its own contract row.
 
@@ -51,6 +51,16 @@ asks for them. They are not dead surface: a screen that wants one adds a caller 
 | `PUT /api/v1/scales/{id}/tare` | Tare of one scale by device id. Decal tares the preferred scale through `PUT /api/v1/scale/tare`. | `scale_handler.dart:89` `_handleAddressedTare` |
 | `GET /api/v1/scale/info` | Scale firmware version and battery level. No Decal screen shows them. | `scale_handler.dart:19-36` |
 | `GET /api/v1/machine/waterLevels` | Decal reads the water levels off the `/ws/v1/machine/waterLevels` socket, which it opens anyway. | `de1handler.dart:422` |
+
+## Fields the app serves and this skin does not read
+
+Served or accepted at `1efd1a30` and not used. A screen that wants one reads it through the
+route's own contract row.
+
+| Not read | Why | Citation |
+|---|---|---|
+| `workflow.machine.de1Emulation` on a shot record and on `GET /api/v1/workflow` (`rest_v1.yml:8124`) | Decal reads the top-level `de1Emulation` of a shot record. The record derives that key from this one, so the two always agree. | `shot_record.dart:52`, `:76`, `:91`; `workflow.dart:188` |
+| `lever_spring` and `lever_give` in a Lever step | A second spelling that the parser accepts when `leverSpring` or `leverGive` is absent. `rest_v1.yml` does not document it. Decal writes the camelCase keys only. | `profile.dart:618-627` |
 
 ## Duplicates — one of each, by construction
 
