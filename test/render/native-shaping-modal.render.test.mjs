@@ -514,6 +514,43 @@ test('with no block in the profile the Edited run uses the settings the shot ran
     }, reportedShotData(SPEC_EXAMPLE));
 });
 
+test('with no block in the profile the modal opens on the settings the loaded shot ran', async () => {
+    const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(() => __ux.setBlock(null));
+        await loadUsableShot(page);
+        await openFromChart(page);
+        const draft = await page.evalFn(() => structuredClone(__ux.dialog().draft));
+        assert.equal(draft.on, true);
+        assert.deepEqual(draft.points, THREE);
+        assert.equal(draft.flowTau, 1.25);
+        assert.equal(draft.flowMode, 'rise');
+        assert.equal(draft.pressureTau, 0.75);
+        assert.equal(draft.ramp, 1.5);
+        await closeWith(page, 'shape-apply');
+        assert.equal(await draftBlock(page), null, 'an untouched Apply sends no block');
+        await page.evalFn(async () => { __ux.screen().tab = 'settings'; await __ux.settle(); });
+        await page.click(SETTINGS_EDIT);
+        assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true);
+        assert.equal(await page.evalFn(() => __ux.dialog().draft.flowTau), 1.25);
+        await closeWith(page, 'shape-cancel');
+    }, reportedShotData(ran));
+});
+
+test('with no block and no shot loaded the modal opens on the defaults', async () => {
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(() => __ux.setBlock(null));
+        await openFromChart(page);
+        const draft = await page.evalFn(() => structuredClone(__ux.dialog().draft));
+        assert.equal(draft.on, false);
+        assert.deepEqual(draft.points, []);
+        assert.equal(draft.flowTau, 0);
+        assert.equal(draft.ramp, 1);
+        await closeWith(page, 'shape-apply');
+        assert.equal(await draftBlock(page), null);
+    });
+});
+
 test('no shaping dialog opens while the profile saves', async () => {
     await withApp(TABLET, async (page) => {
         await page.evalFn(async () => {

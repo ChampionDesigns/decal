@@ -95,6 +95,10 @@ function onStep(value, perUnit) {
     return wireUnits(value, perUnit) / perUnit;
 }
 
+function isBlock(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function draftFrom(block) {
     const d = NATIVE_SHAPING_DEFAULTS;
     const b = block && typeof block === 'object' && !Array.isArray(block) ? block : {};
@@ -506,11 +510,11 @@ export class EditorShapingDialog extends UiElement {
         return checkNativeShaping(blockFromDraft(this._draft));
     }
 
-    show({ block = null, invoker = null } = {}) {
-        const given = block && typeof block === 'object' && !Array.isArray(block) ? block : null;
+    show({ block = null, start = null, invoker = null } = {}) {
+        const given = isBlock(block) ? block : null;
         this.#fromNone = given === null;
         this.#touched = false;
-        this._draft = draftFrom(given);
+        this._draft = draftFrom(given ?? (isBlock(start) ? start : null));
         this._selected = 0;
         this.updateComplete.then(() => {
             const dialog = this.renderRoot.getElementById('shape-dialog');

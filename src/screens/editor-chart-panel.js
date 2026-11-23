@@ -9,7 +9,7 @@ import 'src/components/ui-stepper.js';
 import { runShotModel, settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
 import { de1EmulationOf } from 'src/lib/de1-emulation.js';
 import {
-    CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts,
+    CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts, shotShapingBlock,
 } from 'src/lib/chart-shot-load.js';
 import { createMultiStartFit, fitSpread, FIT_STARTS } from 'src/lib/puck-multistart.js';
 import { authoringRange, modeRanges } from 'src/lib/profile-modes.js';
@@ -819,7 +819,6 @@ class EditorChartPanel extends UiElement {
         const loaded = this._loaded;
         if (!loaded) return { kind: 'empty' };
         if (!loaded.plan.usable) return { kind: 'shot', reason: loaded.plan.reason };
-        if (de1EmulationOf(this.profile)) return { kind: 'profile', reason: CHART_NOT_USABLE.DE1_EMULATION };
         const steps = stepsFromProfile(this.profile ?? loaded.plan.profile);
         if (!steps) return { kind: 'profile', reason: CHART_NOT_USABLE.STEP_NOT_MODELLED };
         return { kind: 'ok', steps };
@@ -862,6 +861,11 @@ class EditorChartPanel extends UiElement {
         const saved = runShotModel(state.steps, this._loaded.plan.settings, fit.best.puck, options);
         const edited = runShotModel(state.steps, this.#settingsOf(block), fit.best.puck, options);
         return { saved: pack(saved), edited: pack(edited) };
+    }
+
+    get shotShaping() {
+        const record = this._loaded?.record;
+        return record ? shotShapingBlock(record) : null;
     }
 
     get shotPoints() {

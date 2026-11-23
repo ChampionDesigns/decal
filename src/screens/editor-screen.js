@@ -1279,6 +1279,7 @@ export class EditorScreen extends UiElement {
         dialog.previewer = chart ? (block) => chart.shapingPreview(block) : null;
         dialog.show({
             block: this._draft[NATIVE_SHAPING_KEY] ?? null,
+            start: chart?.shotShaping ?? null,
             invoker: event?.detail?.invoker ?? event?.currentTarget ?? null,
         });
     };

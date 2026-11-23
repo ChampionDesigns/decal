@@ -384,7 +384,7 @@ test('the Chart tab at 1280x800', async (t) => {
             }
         });
 
-        await t.test('DE1 emulation on the edited profile shows the notice and the reason', async () => {
+        await t.test('DE1 emulation on the edited profile shows the notice over the model run of a native shot', async () => {
             await loadRow(page, USABLE_ID);
             await page.evalFn(() => __ux.waitFit());
             const has = await page.evalFn(async () => {
@@ -400,10 +400,17 @@ test('the Chart tab at 1280x800', async (t) => {
                 await __ux.settle();
             });
             const s = await state(page);
-            assert.equal(s.reason, 'de1Emulation');
-            assert.match(s.noModel, /The model cannot run the edited profile/);
+            assert.equal(s.noModel, null, 'no refusal over the chart');
+            assert.equal(s.reason, null);
             assert.equal(await page.evalFn(() => Boolean(__ux.chart().shadowRoot.getElementById('de1-notice'))), true);
-            assert.deepEqual(s.legendDisabled, [true, true, true, true, true, true]);
+            assert.deepEqual(s.legendDisabled, [false, false, false, false, false, false]);
+            const runs = await paths(page);
+            for (const series of ['P', 'Q', 'G', 'tP', 'tQ']) {
+                const line = runs.find((p) => p.run === 'edited' && p.series === series);
+                assert.ok(line && line.d.length > 20, `the edited run draws ${series}`);
+            }
+            const peak = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('kn-peak').textContent.trim());
+            assert.match(peak, /^\d+\.\d\d bar$/);
         });
 
         await t.test('on the Steps tab the title and the pencil keep the rename dialog and no shot line shows', async () => {
