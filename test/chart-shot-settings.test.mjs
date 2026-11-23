@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { SHOT_SETTINGS_SOURCE, shotPlan, shotShapingSettings } from '../src/lib/chart-shot-load.js';
+import { CHART_NOT_USABLE, SHOT_SETTINGS_SOURCE, shotPlan, shotShapingSettings } from '../src/lib/chart-shot-load.js';
 import { FIRMWARE_DEFAULT_SETTINGS, settingsFromNativeShaping } from '../src/lib/shot-model.js';
 import { parseYaml } from '../scripts/lib/yaml-subset.js';
 import { REA_ROOT } from '../scripts/lib/rea-source.js';
@@ -112,4 +112,19 @@ test('the report settings change the shot fit input', () => {
     const shaped = shotPlan(withReport(BASE, report(SPEC_BLOCK)));
     assert.notDeepEqual(shaped.settings, plain.settings);
     assert.deepEqual(shaped.steps, plain.steps);
+});
+
+test('a shot whose report says the shaping was inactive is a DE1 emulation shot', () => {
+    assert.equal(shotPlan(BASE).usable, true);
+    assert.notEqual(BASE.workflow?.machine?.de1Emulation, true);
+    const inactive = { ...report(undefined, 'inactive'), sourceCode: 3 };
+    const byName = { ...report(undefined, 'inactive'), sourceCode: 0 };
+    const byCode = { ...report(undefined, 'unknown'), sourceCode: 3 };
+    for (const r of [inactive, byName, byCode]) {
+        const plan = shotPlan(withReport(BASE, r));
+        assert.equal(plan.usable, false);
+        assert.equal(plan.reason, CHART_NOT_USABLE.DE1_EMULATION);
+        assert.equal(plan.de1, true);
+    }
+    assert.equal(shotPlan(withReport(BASE, report(SPEC_BLOCK))).usable, true);
 });

@@ -33,6 +33,7 @@ export const FIT_STOP = Object.freeze({
 
 const SAMPLE_TOLERANCE_S = 0.06;
 const MISSED_STOP_COST = 1e3;
+const INACTIVE_SOURCE_CODE = 3;
 
 function nearestValue(out, key, t) {
     const a = out.t;
@@ -366,9 +367,14 @@ export function shotTargetWeight(record) {
     return null;
 }
 
+function shapingReportInactive(record) {
+    const report = record?.workflow?.machine?.nativeShaping;
+    return report?.source === 'inactive' || report?.sourceCode === INACTIVE_SOURCE_CODE;
+}
+
 export function shotRanDe1Emulation(record) {
     return shotRanAsDe1(record) || record?.workflow?.machine?.de1Emulation === true
-        || de1EmulationOf(record?.workflow?.profile);
+        || de1EmulationOf(record?.workflow?.profile) || shapingReportInactive(record);
 }
 
 export function shotFromRecord(record) {
