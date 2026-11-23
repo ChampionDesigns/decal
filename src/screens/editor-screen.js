@@ -1271,6 +1271,10 @@ export class EditorScreen extends UiElement {
         const dialog = this.renderRoot.getElementById('shaping-dialog');
         const chart = this.renderRoot.getElementById('chart-panel');
         if (!dialog || !this._draft) return;
+        if (this.#saving) {
+            this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
+            return;
+        }
         dialog.shot = chart?.shotPoints ?? null;
         dialog.previewer = chart ? (block) => chart.shapingPreview(block) : null;
         dialog.show({

@@ -513,3 +513,35 @@ test('with no block in the profile the Edited run uses the settings the shot ran
         assert.equal(await edited(), noBlock);
     }, reportedShotData(SPEC_EXAMPLE));
 });
+
+test('no shaping dialog opens while the profile saves', async () => {
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(async () => {
+            __ux.screen().shadowRoot.getElementById('notice')?.clear?.();
+            __ux.control.holdProfile = true;
+            __ux.saving = __ux.boot.profileEditor.saveAsNewVersion(__ux.screen()._draft);
+            await __ux.until('__ux.boot.profileEditor.get().save === "saving"');
+        });
+        const notice = () => page.evalFn(() => (__ux.screen().shadowRoot.getElementById('notice')?.textContent ?? '').trim());
+        await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
+        await page.click(ENTRY);
+        await page.settle(4);
+        assert.equal(await page.evalFn(() => __ux.isOpen()), false);
+        assert.match(await notice(), /Still saving\. One moment\./);
+        await page.evalFn(async () => {
+            __ux.screen().shadowRoot.getElementById('notice')?.clear?.();
+            __ux.screen().tab = 'settings';
+            await __ux.settle();
+        });
+        await page.click(SETTINGS_EDIT);
+        await page.settle(4);
+        assert.equal(await page.evalFn(() => __ux.isOpen()), false);
+        assert.match(await notice(), /Still saving\. One moment\./);
+        await page.evalFn(async () => {
+            __ux.control.holdProfile = false;
+            __ux.control.release();
+            await __ux.saving;
+            await __ux.settle();
+        });
+    });
+});
