@@ -28,6 +28,7 @@ const STILL_SAVING = 'Still saving. One moment.';
 const NOT_LOADED = 'The shot did not load.';
 const CURSOR_STEP_S = 0.5;
 const CURSOR_JUMP_S = 2;
+const NOTE_MS = 4000;
 const MODEL_T_MAX = 120;
 const PAD = Object.freeze({ left: 70, right: 22, top: 36, bottom: 52 });
 const STEP_LABEL_EM = 0.56;
@@ -301,9 +302,31 @@ class EditorChartPanel extends UiElement {
             touch-action: none;
         }
 
+        #chart-note {
+            position: absolute;
+            inset-block-end: var(--ui-space-4);
+            inset-inline-start: 50%;
+            z-index: 1;
+            inline-size: max-content;
+            max-inline-size: calc(100% - 2 * var(--ui-space-4));
+            margin: 0;
+            padding: var(--ui-space-2) var(--ui-space-4);
+            border-radius: var(--ui-radius);
+            background-color: var(--ui-text);
+            color: var(--ui-surface);
+            font-size: var(--ui-text-note);
+            line-height: 1.4;
+            box-shadow: var(--ui-elev-1);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        #chart-note:empty {
+            display: none;
+        }
+
         #main-chart:focus-visible {
-            outline: var(--ui-border-w-strong) solid var(--ui-steel);
-            outline-offset: -2px;
+            --_ui-focus-offset: var(--ui-focus-offset-inset);
         }
 
         .well { fill: var(--ui-chart-well); stroke: var(--ui-chart-axis); stroke-width: 1; }
@@ -746,6 +769,8 @@ class EditorChartPanel extends UiElement {
     #i18n = new I18nController(this);
     #fitJob = null;
     #fitTimer = 0;
+    #noteTimer = 0;
+    #learned = new Map();
     #loadSeq = 0;
     #shots = null;
     #shotsBoot = null;
@@ -795,6 +820,7 @@ class EditorChartPanel extends UiElement {
         super.disconnectedCallback();
         this.#stopFit();
         this.#resize?.disconnect();
+        clearTimeout(this.#noteTimer);
     }
 
     firstUpdated() {
@@ -963,7 +989,7 @@ class EditorChartPanel extends UiElement {
             mainStep: plan.shot ? mainStepOf(plan.shot) : null,
             openedWeight: Number((opened?.profile ?? plan.profile)?.target_weight),
         };
-        this._rows = this._rows.map((r) => (r.id === id ? { ...r, time: this._loaded.facts.time } : r));
+        this.#learned.set(id, this._loaded.facts);
         if (opened) {
             this.dispatchEvent(new CustomEvent('chart-shot-load', {
                 bubbles: true, composed: true, detail: { record: opened },
@@ -1108,8 +1134,14 @@ class EditorChartPanel extends UiElement {
         if (key === TARGET_SERIES || MEASURED_SERIES.includes(key)) {
             const r = seriesToggle(this._show, key);
             this._show = r.show;
-            this._note = r.refused ? 'One series stays on. Show another series first.' : '';
+            if (r.refused) this.#say('One series stays on. Show another series first.');
         }
+    }
+
+    #say(note) {
+        clearTimeout(this.#noteTimer);
+        this._note = note;
+        this.#noteTimer = setTimeout(() => { this._note = ''; }, NOTE_MS);
     }
 
     #onRun(name) {
@@ -1564,7 +1596,7 @@ class EditorChartPanel extends UiElement {
         const rows = this._rows.map((row) => {
             const when = row.clock.ok ? `${row.clock.dateFull} ${row.clock.time}` : '–';
             const loaded = row.id === loadedId;
-            const time = row.time ?? null;
+            const nums = this.#learned.get(row.id) ?? { dose: row.dose, yield: row.yield, time: null };
             return html`<li><button
                 type="button"
                 class="shot-row"
@@ -1573,7 +1605,7 @@ class EditorChartPanel extends UiElement {
                 @click=${() => this.#onRowPick(row)}
             >
                 <span class="when ui-numeric">${when}</span>
-                <span class="nums ui-numeric">${fixed(row.dose, 1)} g → ${fixed(row.yield, 1)} g · ${fixed(time, 1)} s</span>
+                <span class="nums ui-numeric">${fixed(nums.dose, 1)} g → ${fixed(nums.yield, 1)} g · ${fixed(nums.time, 1)} s</span>
                 <span class="title">${row.title || t('Untitled')}</span>
                 <span class="tags">${loaded ? html`<span
                     class="tag loaded">${t('Loaded')}</span>` : nothing}${row.de1
@@ -1644,7 +1676,6 @@ class EditorChartPanel extends UiElement {
                 ><svg class="mark" aria-hidden="true"><line x1="0" y1="50%" x2="100%" y2="50%"></line></svg
                 ><span class="kl">${t(SERIES_NAMES[key])}</span>${SERIES_UNITS[key]
                     ? html` <span class="unit">${SERIES_UNITS[key]}</span>` : nothing}</button>`)}
-                <p id="chart-note" class="ui-caption sr-status" role="status">${this._note ? t(this._note) : ''}</p>
             </div>
 
             <div id="chart-wrap">
@@ -1664,6 +1695,7 @@ class EditorChartPanel extends UiElement {
                 ${this.#cursorLabel(f)}
                 ${this.#noModel(f.state)}
                 <p id="readout" class="sr-only" aria-live="polite">${this.#readout(f)}</p>
+                <p id="chart-note" role="status">${this._note ? t(this._note) : nothing}</p>
             </div>
 
             <div id="strip">

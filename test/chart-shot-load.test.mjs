@@ -102,6 +102,17 @@ test('the shot line facts use the last measured cup weight and the shot time', (
     assert.equal(shotFacts(withoutTarget(SHOT), shotPlan(withoutTarget(SHOT))).noTarget, true);
 });
 
+test('the shot line and the shot row read a stored yield first, as one rule', () => {
+    const stored = { ...SHOT, annotations: { ...SHOT.annotations, actualYield: 36.4 } };
+    const facts = shotFacts(stored, shotPlan(stored));
+    const row = shotRowFacts(stored);
+    assert.equal(facts.yield, 36.4);
+    assert.deepEqual([row.dose, row.yield], [facts.dose, facts.yield]);
+    const none = shotFacts(SHOT, shotPlan(SHOT));
+    assert.equal(shotRowFacts(SHOT).yield, null);
+    assert.notEqual(none.yield, null);
+});
+
 test('the shot line facts keep the last cup weight of a shot the model cannot run', () => {
     const usable = shotFacts(SHOT, shotPlan(SHOT));
     for (const record of [withoutTarget(SHOT), withShotFlag(SHOT, true)]) {

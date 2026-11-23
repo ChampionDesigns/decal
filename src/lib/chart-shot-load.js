@@ -73,14 +73,18 @@ export function shotShapingSettings(record) {
     return { source: SHOT_SETTINGS_SOURCE.DEFAULT, settings: settingsFromNativeShaping(null) };
 }
 
+function storedYield(record) {
+    const value = record?.annotations?.actualYield;
+    return finite(value) ? value : null;
+}
+
 export function shotRowFacts(summary) {
-    const yieldWeight = summary?.annotations?.actualYield;
     return {
         id: typeof summary?.id === 'string' ? summary.id : null,
         clock: shotClock(summary?.timestamp),
         title: typeof summary?.workflow?.profile?.title === 'string' ? summary.workflow.profile.title : '',
         dose: shotDoseGrams(summary),
-        yield: finite(yieldWeight) ? yieldWeight : null,
+        yield: storedYield(summary),
         de1: shotRanDe1Emulation(summary),
         noTarget: shotTargetWeight(summary) === null,
     };
@@ -132,7 +136,7 @@ export function shotFacts(record, plan) {
     return {
         clock: shotClock(record?.timestamp),
         dose: shotDoseGrams(record),
-        yield: lastValue((shot ?? samplesFromRecord(record))?.W),
+        yield: storedYield(record) ?? lastValue((shot ?? samplesFromRecord(record))?.W),
         time: t.length ? t[t.length - 1] : null,
         de1: Boolean(plan?.de1),
         noTarget: Boolean(plan?.noTarget),

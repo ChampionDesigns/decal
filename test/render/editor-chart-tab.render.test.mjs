@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { launch } from '../harness/index.js';
 import { FLOOR, TABLET } from '../harness/geometry.js';
@@ -107,6 +109,22 @@ const loadRow = async (page, id) => {
     await page.click(row(id));
     await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
 };
+
+const chartNote = (page) => page.evalFn(() => __ux.chart().shadowRoot.getElementById('chart-note').textContent.trim());
+
+const evidence = process.env.DECAL_REVIEW_OUT;
+async function capture(page, name) {
+    if (!evidence) return;
+    await fs.mkdir(evidence, { recursive: true });
+    await fs.writeFile(path.join(evidence, name + '.png'), await page.screenshot());
+}
+
+const TOOLBAR_BUTTONS = ['lg-edited', 'lg-shot', 'lk-P', 'lk-Q', 'lk-G', 'lk-T'];
+
+const buttonBoxes = (page) => page.evalFn((ids) => Object.fromEntries(ids.map((id) => {
+    const r = __ux.chart().shadowRoot.getElementById(id).getBoundingClientRect();
+    return [id, [r.left, r.top, r.width, r.height].map((v) => +v.toFixed(2))];
+})), TOOLBAR_BUTTONS);
 
 const paths = (page) => page.evalFn(() => [...__ux.chart().shadowRoot.querySelectorAll('#main-chart path[data-run]')]
     .map((p) => ({ run: p.dataset.run, series: p.dataset.series, d: p.getAttribute('d') })));
@@ -280,6 +298,18 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.equal(await page.evalFn(() => __ux.chart().spread.count >= 1), true);
         });
 
+        await t.test('the row of the loaded shot has the numbers of the shot line', async () => {
+            const line = (await state(page)).shotLine;
+            await openPicker(page);
+            await showRow(page, USABLE_ID);
+            const nums = await page.evalFn((id) => __ux.chart().shadowRoot.querySelector(`.shot-row[data-id="${id}"] .nums`)
+                .textContent.replace(/\s+/g, ' ').trim(), USABLE_ID);
+            await page.press('Escape');
+            assert.equal(await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen')), true);
+            assert.equal(nums, '17.0 g → 1.7 g · 8.5 s');
+            assert.equal(line, `Shot 13/08/26 10:15 · ${nums}`);
+        });
+
         await t.test('the legend hides a series for both runs, keeps the scale, refuses the last one and Target hides only the dashed lines', async () => {
             const axes = await axisLabels(page);
             await page.click(`${CHART} >>> #lk-P`);
@@ -289,10 +319,10 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.deepEqual(await axisLabels(page), axes);
             await page.click(`${CHART} >>> #lk-Q`);
             await page.click(`${CHART} >>> #lk-G`);
-            const refused = await page.evalFn(() => ({
-                pressed: __ux.chart().shadowRoot.getElementById('lk-G').getAttribute('aria-pressed'),
-                note: __ux.chart().shadowRoot.getElementById('chart-note').textContent.trim(),
-            }));
+            const refused = {
+                pressed: await page.evalFn(() => __ux.chart().shadowRoot.getElementById('lk-G').getAttribute('aria-pressed')),
+                note: await chartNote(page),
+            };
             assert.deepEqual(refused, { pressed: 'true', note: 'One series stays on. Show another series first.' });
             await page.click(`${CHART} >>> #lk-P`);
             await page.click(`${CHART} >>> #lk-Q`);
@@ -306,6 +336,35 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.equal(series.filter((p) => p.series === 'P' || p.series === 'Q' || p.series === 'G').length, solid);
             await page.click(`${CHART} >>> #lk-T`);
             assert.deepEqual(await axisLabels(page), axes);
+        });
+
+        await t.test('the note for the last series shows over the chart, lets taps through and moves no toolbar button', async () => {
+            await page.click(`${CHART} >>> #lk-P`);
+            await page.click(`${CHART} >>> #lk-Q`);
+            assert.equal(await page.evalFn(() => __ux.until('!__ux.chart().shadowRoot.getElementById("chart-note").textContent.trim()')), true);
+            const before = await buttonBoxes(page);
+            await capture(page, 'legend-before-note');
+            await page.click(`${CHART} >>> #lk-G`);
+            await page.evalFn(() => __ux.settle());
+            const after = await buttonBoxes(page);
+            const note = await chartNote(page);
+            const place = await page.evalFn(() => {
+                const c = __ux.chart().shadowRoot;
+                const n = c.getElementById('chart-note');
+                const b = n.getBoundingClientRect();
+                const wrap = c.getElementById('chart-wrap').getBoundingClientRect();
+                return {
+                    shown: b.width > 0 && b.height > 0,
+                    inChart: b.top >= wrap.top && b.bottom <= wrap.bottom && b.left >= wrap.left && b.right <= wrap.right,
+                    tapGoesThrough: c.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2) !== n,
+                };
+            });
+            await capture(page, 'legend-with-note');
+            await page.click(`${CHART} >>> #lk-P`);
+            await page.click(`${CHART} >>> #lk-Q`);
+            assert.deepEqual(after, before);
+            assert.equal(note, 'One series stays on. Show another series first.');
+            assert.deepEqual(place, { shown: true, inChart: true, tapGoesThrough: true });
         });
 
         await t.test('the legend names each series with its unit and a line mark, the axes have titles and each step has its number and name', async () => {
@@ -424,6 +483,18 @@ test('the Chart tab at 1280x800', async (t) => {
             await page.evalFn(() => __ux.until('!__ux.chart().shadowRoot.getElementById("steps-sheet").open'));
         });
 
+        await t.test('the chart has the focus ring of the Grind slider', async () => {
+            const RING = ['outline-width', 'outline-style', 'outline-color'];
+            const grindInput = `${CHART} >>> #grind >>> input`;
+            await page.focusVisible(grindInput);
+            const grind = await page.computed(grindInput, RING);
+            await page.focusVisible(`${CHART} >>> #main-chart`);
+            const chart = await page.computed(`${CHART} >>> #main-chart`, RING);
+            await page.evalFn(() => __ux.chart().shadowRoot.getElementById('main-chart').blur());
+            assert.equal(grind['outline-style'], 'solid');
+            assert.deepEqual(chart, grind);
+        });
+
         await t.test('the cursor moves on a drag and on the arrow keys, Shift moves 2 s and Escape hides it', async () => {
             const idle = (await state(page)).readout;
             const box = await page.box(`${CHART} >>> #main-chart`);
@@ -483,7 +554,7 @@ test('the Chart tab at 1280x800', async (t) => {
             await showRow(page, USABLE_ID);
             const earlier = await page.evalFn((id) => __ux.chart().shadowRoot
                 .querySelector(`.shot-row[data-id="${id}"] .nums`).textContent.replace(/\s+/g, ' ').trim(), USABLE_ID);
-            assert.equal(earlier, '17.0 g → – g · 8.5 s');
+            assert.equal(earlier, '17.0 g → 1.7 g · 8.5 s');
             await page.click(`${CHART} >>> #picker-close`);
             await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
         });
