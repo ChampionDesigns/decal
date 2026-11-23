@@ -40,6 +40,7 @@ const VERSION_FIELD_WORDS = Object.freeze({
     target_volume_count_start: 'volume count start',
     tank_temperature: 'tank temperature',
     [DE1_EMULATION_KEY]: 'DE1 emulation',
+    [NATIVE_SHAPING_KEY]: 'Native shaping',
 });
 import { SAVE_STATUS, VISIBILITY_WRITE } from 'src/stores/profile-editor-store.js';
 import {
@@ -49,11 +50,14 @@ import {
 import { shownProfileName } from 'src/lib/profile-name.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
 import { historyIcon, penIcon } from 'src/lib/icons.js';
+import { NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
+import { checkNativeShaping } from 'src/lib/native-shaping-rules.js';
 
 import 'src/screens/editor-body.js';
 import 'src/screens/editor-settings-panel.js';
 import 'src/screens/editor-review-panel.js';
 import 'src/screens/editor-chart-panel.js';
+import 'src/screens/editor-shaping-dialog.js';
 
 import 'src/screens/step-matrix.js';
 import 'src/screens/editor-preview.js';
@@ -681,6 +685,7 @@ export class EditorScreen extends UiElement {
                     @chart-shot-load=${this.#onChartShotLoad}
                     @chart-status=${this.#onChartStatus}
                     @chart-picker=${this.#onChartPicker}
+                    @shaping-open=${this.#onShapingOpen}
                 ></editor-chart-panel>
 
                 <editor-review-panel
@@ -696,6 +701,11 @@ export class EditorScreen extends UiElement {
                     </slot>
                 </editor-review-panel>
             </editor-body>
+
+            <editor-shaping-dialog
+                id="shaping-dialog"
+                @shaping-apply=${this.#onShapingApply}
+            ></editor-shaping-dialog>
 
             ${unseated ? html`
                 <div id="recovery">
@@ -1131,6 +1141,7 @@ export class EditorScreen extends UiElement {
                     this.#onTankTemperature,
                 )}
                 ${this.#de1EmulationRow()}
+                ${this.#nativeShapingRow()}
 
                 <p class="group ui-microcap">${t('The limiters')}</p>
                 ${tolerance(
@@ -1221,6 +1232,62 @@ export class EditorScreen extends UiElement {
                 ></ui-switch>
             </ui-settings-row>`;
     }
+
+    #nativeShapingRow() {
+        const draft = this._draft;
+        if (!draft || de1EmulationOf(draft)) return nothing;
+        const t = this.#i18n.t;
+        return html`
+            <ui-settings-row
+                data-row="native-shaping"
+                heading=${t('Native shaping')}
+                caption=${this.#nativeShapingSummary(draft[NATIVE_SHAPING_KEY])}
+            >
+                <ui-button
+                    id="shaping-edit-settings"
+                    @click=${this.#onShapingOpen}
+                >${t('Edit')}</ui-button>
+            </ui-settings-row>`;
+    }
+
+    #nativeShapingSummary(block) {
+        const t = this.#i18n.t;
+        const result = block && typeof block === 'object' ? checkNativeShaping(block) : null;
+        if (!result?.ok) return t('Not set: the machine uses its defaults.');
+        const b = result.block;
+        const n = b.pump_curve.length;
+        const curve = n === 0 ? t('Curve off') : t('Curve on, {n} points', { n });
+        const mode = (tau, m) => (tau > 0 && m !== 'both' ? ` (${t(m === 'rise' ? 'Rise' : 'Fall')})` : '');
+        return t('{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}', {
+            curve,
+            f: b.flow_tau.toFixed(2), fm: mode(b.flow_tau, b.flow_mode),
+            p: b.pressure_tau.toFixed(2), pm: mode(b.pressure_tau, b.pressure_mode),
+            r: b.ramp_factor.toFixed(2),
+        });
+    }
+
+    #onShapingOpen = (event) => {
+        event?.stopPropagation?.();
+        const dialog = this.renderRoot.getElementById('shaping-dialog');
+        const chart = this.renderRoot.getElementById('chart-panel');
+        if (!dialog || !this._draft) return;
+        dialog.shot = chart?.shotPoints ?? null;
+        dialog.previewer = chart ? (block) => chart.shapingPreview(block) : null;
+        dialog.show({
+            block: this._draft[NATIVE_SHAPING_KEY] ?? null,
+            invoker: event?.detail?.invoker ?? event?.currentTarget ?? null,
+        });
+    };
+
+    #onShapingApply = (event) => {
+        event.stopPropagation();
+        if (!this._draft) return;
+        const block = event.detail?.block ?? null;
+        const next = { ...this._draft };
+        if (block === null) delete next[NATIVE_SHAPING_KEY];
+        else next[NATIVE_SHAPING_KEY] = block;
+        this._draft = next;
+    };
 
     #onDe1EmulationSwitch = (event) => {
         event.stopPropagation();
