@@ -466,6 +466,30 @@ for (const geometry of [TABLET, FLOOR]) {
                 assert.deepEqual(seen.scroll, [0, 0]);
             });
 
+            await t.test('the strip is one row: Grind on one line, Native shaping, Peak pressure and Step targets', async () => {
+                const seen = await page.evalFn(() => {
+                    const c = __ux.chart().shadowRoot;
+                    const box = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, w: b.width, h: b.height }; };
+                    const strip = box(c.getElementById('strip'));
+                    const ids = ['tip-grind-btn', 'grind', 'grind-value', 'grind-reset', 'shaping-entry', 'keys-btn', 'steps-entry'];
+                    const parts = Object.fromEntries(ids.map((id) => [id, box(c.getElementById(id))]));
+                    return { strip, parts,
+                        sum: c.getElementById('steps-sum').textContent.trim(),
+                        ends: c.querySelector('.grind-ends').textContent.trim() };
+                });
+                assert.ok(seen.strip.h >= 60 && seen.strip.h <= 70, `strip height ${seen.strip.h}`);
+                for (const [id, b] of Object.entries(seen.parts)) {
+                    assert.ok(b.top >= seen.strip.top - 0.5 && b.bottom <= seen.strip.bottom + 0.5, `${id} is inside the row`);
+                }
+                for (const id of ['tip-grind-btn', 'grind-reset', 'shaping-entry', 'keys-btn', 'steps-entry']) {
+                    const b = seen.parts[id];
+                    assert.ok(b.w >= 47.5 && b.h >= 47.5, `${id} ${b.w.toFixed(1)}x${b.h.toFixed(1)} CSS px`);
+                }
+                assert.ok(seen.parts.grind.h >= 47.5, `grind slider height ${seen.parts.grind.h}`);
+                assert.equal(seen.ends, 'Finer (x2)Coarser (x0.5)');
+                assert.match(seen.sum, /^[\d.]+ (mL\/s|bar)( · [\d.]+ (mL\/s|bar))+$/);
+            });
+
             await t.test('the shot line is not cut', async () => {
                 const line = await page.evalFn(() => {
                     const n = __ux.screen().shadowRoot.getElementById('shot-line');

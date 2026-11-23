@@ -12,6 +12,7 @@ import {
 import {
     CURVE_AXES, DE1_240V_CURVE, benglePumpLine, pumpCurveLine, rampResponse, stepResponse,
 } from 'src/lib/native-shaping-curves.js';
+import { DASH_PATTERNS } from 'src/lib/chart-axis.js';
 import { WIRE_STEPS_PER_UNIT, wireUnits } from 'src/lib/shot-model.js';
 
 const GRAB_PX = 36;
@@ -181,17 +182,31 @@ export class EditorShapingDialog extends UiElement {
             gap: var(--ui-space-2);
             min-block-size: var(--_sd-hit);
             min-inline-size: var(--_sd-hit);
-            padding-inline: var(--ui-space-4);
+            padding-inline: var(--ui-space-5);
             border: var(--ui-border-w) solid var(--ui-line);
             border-radius: var(--ui-radius);
-            background-color: transparent;
-            color: var(--ui-text);
+            background-color: var(--ui-key);
+            color: var(--ui-text-2);
             font: inherit;
+            font-size: var(--ui-text-base);
+            font-weight: var(--ui-weight-medium);
+            line-height: 1.2;
+            white-space: nowrap;
             cursor: pointer;
         }
 
-        .chip[aria-pressed="true"] {
-            border-color: var(--ui-steel);
+        #preview-btn {
+            padding-inline: var(--ui-space-4);
+            font-size: var(--ui-text-sm);
+        }
+
+        #preview-btn[aria-pressed="false"] {
+            background-color: transparent;
+            color: var(--ui-muted);
+        }
+
+        #preview-btn[aria-pressed="true"] {
+            border-color: var(--ui-line-strong);
         }
 
         .chip .box {
@@ -207,9 +222,9 @@ export class EditorShapingDialog extends UiElement {
         }
 
         .chip.primary {
-            border-color: var(--ui-steel);
-            background-color: var(--ui-steel);
-            color: var(--ui-on-steel);
+            border-color: color-mix(in srgb, var(--ui-primary) 72%, var(--ui-steel));
+            background-color: var(--ui-primary);
+            color: var(--ui-on-primary);
         }
 
         .chip:disabled {
@@ -270,23 +285,33 @@ export class EditorShapingDialog extends UiElement {
         .head h3,
         .card-head h3 {
             margin: 0;
+            font-weight: var(--ui-weight-semibold);
+            line-height: 1.25;
             white-space: nowrap;
+        }
+
+        .card-head .ui-caption {
+            font-size: var(--ui-text-base);
+            line-height: 1.2;
         }
 
         .bank {
             display: inline-flex;
             border: var(--ui-border-w) solid var(--ui-line);
             border-radius: var(--ui-radius);
+            background-color: var(--ui-key);
         }
 
         .bank button {
             min-block-size: var(--_sd-hit);
-            min-inline-size: var(--_sd-hit);
+            min-inline-size: max(var(--ui-stepper-label-w), var(--_sd-hit));
             padding: 0 var(--ui-space-3);
             border: 0;
             background: transparent;
-            color: var(--ui-text-2);
+            color: var(--ui-muted);
             font: inherit;
+            font-size: var(--ui-text-sm);
+            font-weight: var(--ui-weight-medium);
             white-space: nowrap;
             cursor: pointer;
         }
@@ -298,6 +323,7 @@ export class EditorShapingDialog extends UiElement {
         .bank button[aria-pressed="true"] {
             background-color: var(--ui-steel);
             color: var(--ui-on-steel);
+            font-weight: var(--ui-weight-semibold);
         }
 
         #curve-box {
@@ -318,7 +344,19 @@ export class EditorShapingDialog extends UiElement {
 
         .tick {
             fill: var(--ui-text-2);
-            font-size: 13px;
+            font-size: var(--ui-chart-tick);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .de1-line {
+            stroke: var(--ui-muted);
+            stroke-width: var(--ui-chart-stroke);
+        }
+
+        .pt-num {
+            fill: var(--ui-text-2);
+            font-size: var(--ui-chart-step-label);
+            font-weight: var(--ui-weight-medium);
         }
 
         .pt {
@@ -326,9 +364,21 @@ export class EditorShapingDialog extends UiElement {
             outline: none;
         }
 
+        .pt .hit {
+            r: calc(var(--_sd-hit) / 2);
+        }
+
         .pt .ring {
+            r: var(--ui-space-5);
             fill: none;
             stroke: transparent;
+            stroke-width: var(--ui-focus-w);
+        }
+
+        .pt .dot {
+            r: var(--ui-space-3);
+            stroke: var(--ui-steel);
+            stroke-width: var(--ui-chart-stroke);
         }
 
         .pt:focus-visible .ring {
@@ -375,6 +425,7 @@ export class EditorShapingDialog extends UiElement {
 
         .ctl-side .bank button {
             flex: 1 1 0;
+            min-inline-size: var(--_sd-hit);
             padding: 0 var(--ui-space-2);
         }
 
@@ -699,10 +750,10 @@ export class EditorShapingDialog extends UiElement {
                 aria-label=${t('Point {n}: {p} bar, {q} mL/s', { n: j + 1, p: pt.pressure.toFixed(1), q: pt.flow.toFixed(1) })}
                 @keydown=${(e) => this.#onPointKey(j, e)}
                 @focus=${() => { this._selected = j; }}
-            ><circle cx=${cx} cy=${cy} r="24" fill="transparent"></circle
-            ><circle class="ring" cx=${cx} cy=${cy} r="15" stroke-width="2.5"></circle
-            ><circle cx=${cx} cy=${cy} r="9" fill=${me ? 'var(--ui-steel)' : 'var(--ui-surface)'} stroke="var(--ui-steel)" stroke-width="3"></circle
-            ></g>`;
+            ><circle class="hit" cx=${cx} cy=${cy} r="24" fill="transparent"></circle
+            ><circle class="ring" cx=${cx} cy=${cy} r="15"></circle
+            ><circle class="dot" cx=${cx} cy=${cy} r="9" fill=${me ? 'var(--ui-steel)' : 'var(--ui-surface)'}></circle
+            >${me ? svg`<text class="pt-num" x=${cx} y=${cy} dx="1.4em" dy="-1.2em" aria-hidden="true">${j + 1}</text>` : nothing}</g>`;
         }) : [];
         let message = '';
         if (!on) message = t('Curve off: only the Bengle pump line limits the flow');
@@ -715,7 +766,8 @@ export class EditorShapingDialog extends UiElement {
             <path id="bengle-pump" d=${linePath(pump, x, y)} fill="none" stroke="var(--ui-status-busy)" stroke-width="2" stroke-dasharray="9 6"></path>
             <text id="bengle-pump-label" class="tick" x=${x(11.2) + 8} y=${y(8.5)} style="fill: var(--ui-status-busy)">${t('Bengle pump')}</text>
             <g class="de1-ref" pointer-events="none">
-                <path id="de1-curve" d=${linePath(DE1_240V_CURVE, x, y)} fill="none" stroke="var(--ui-muted)" stroke-width="2" stroke-dasharray="6 4"></path>
+                <path id="de1-curve" class="de1-line" d=${linePath(DE1_240V_CURVE, x, y)} fill="none"
+                    stroke-dasharray=${DASH_PATTERNS.dash.join(' ')}></path>
                 <text id="de1-label" class="tick" x=${x(de1End[0]) - 18} y=${y(de1End[1]) + 24} text-anchor="end" style="fill: var(--ui-muted)">${t('DE1 240 V')}</text>
             </g>
             ${curve.length ? svg`<path id="pump-curve" d=${linePath(curve, x, y)} fill="none" stroke="var(--ui-steel)" stroke-width="3"
@@ -813,7 +865,7 @@ export class EditorShapingDialog extends UiElement {
             : t('Load a shot in the Chart tab to see the preview.');
         return html`<section class="panel" id="preview-sec">
             <div class="head">
-                <h3 class="ui-title-sm">${t('Preview: the whole profile')}</h3>
+                <h3 class="ui-heading">${t('Preview: the whole profile')}</h3>
                 <ui-icon-button class="info" id="tip-preview-btn" label=${t('About the preview')}
                     @click=${(e) => this.#openTip('preview', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 <p id="preview-sum" class="ui-caption">${sum}</p>
@@ -841,12 +893,13 @@ export class EditorShapingDialog extends UiElement {
         return html`<section class="panel ctl-card" id=${`${id}-sec`}>
             <div class="ctl-side">
                 <div class="card-head">
-                    <div class="tt"><h3 class="ui-title-sm" id=${`${id}-h`}>${t(heading)}</h3><span class="ui-caption" id=${`${id}-u`}>${t(unit)}</span></div>
+                    <div class="tt"><h3 class="ui-heading" id=${`${id}-h`}>${t(heading)}</h3><span class="ui-caption" id=${`${id}-u`}>${t(unit)}</span></div>
                     <ui-icon-button class="info" id=${`tip-${id}-btn`} label=${t('About {name}', { name: t(heading) })}
                         @click=${(e) => this.#openTip(tip, e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 </div>
                 <ui-stepper
                     id=${id}
+                    size="lg"
                     label=${t(heading)}
                     .value=${value}
                     .min=${limits.min}
@@ -871,7 +924,7 @@ export class EditorShapingDialog extends UiElement {
             <div id="shape-body" class=${this._preview ? 'prev' : ''}>
                 <section class="panel" id="curve-sec">
                     <div class="head">
-                        <h3 class="ui-title-sm" id="curve-h">${t('Pump curve')}</h3>
+                        <h3 class="ui-heading" id="curve-h">${t('Pump curve')}</h3>
                         <ui-icon-button class="info" id="tip-curve-btn" label=${t('About the pump curve')}
                             @click=${(e) => this.#openTip('curve', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                         <span class="spacer"></span>

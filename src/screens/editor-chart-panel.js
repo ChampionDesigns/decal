@@ -71,6 +71,11 @@ function infoIcon() {
         ><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6"></path><path d="M12 7.5v.5"></path></svg>`;
 }
 
+function chevronIcon() {
+    return html`<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>`;
+}
+
 function pathOf(t, values, x, y) {
     let d = '';
     let pen = false;
@@ -318,63 +323,198 @@ class EditorChartPanel extends UiElement {
         }
 
         #strip {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+            display: flex;
+            align-items: stretch;
             gap: var(--ui-space-3);
             min-inline-size: 0;
+            min-block-size: calc(var(--_cp-hit) + 2 * var(--ui-space-3));
         }
 
-        #strip.has-shaping {
-            grid-template-columns: minmax(0, 2fr) auto minmax(0, 1fr) minmax(0, 1fr);
-        }
-
-        #shaping-entry {
-            justify-content: center;
-            padding-inline: var(--ui-space-5);
-            white-space: nowrap;
-        }
-
-        .card {
+        #grind-card {
+            flex: 1 1 auto;
             display: grid;
-            gap: var(--ui-space-1);
-            align-content: center;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: 0 var(--ui-space-4);
             min-inline-size: 0;
-            min-block-size: var(--_cp-hit);
-            padding: var(--ui-space-2) var(--ui-space-3);
+            padding: 0 var(--ui-space-3) 0 var(--ui-space-4);
             border: var(--ui-border-w) solid var(--ui-line);
-            border-radius: var(--ui-radius);
+            border-radius: var(--ui-radius-lg);
             background-color: var(--ui-surface);
             color: var(--ui-text);
-            font: inherit;
-            text-align: start;
         }
 
-        button.card {
+        .grind-name {
+            display: flex;
+            align-items: center;
+            font-size: var(--ui-text-base);
+            font-weight: var(--ui-weight-medium);
+        }
+
+        .grind-track {
+            display: grid;
+            min-inline-size: 0;
+        }
+
+        .grind-ends {
+            display: flex;
+            justify-content: space-between;
+            margin-block-start: calc(-1 * var(--ui-space-2));
+            color: var(--ui-muted);
+            font-size: var(--ui-text-2xs);
+            line-height: 1.1;
+        }
+
+        #grind-value {
+            display: grid;
+            min-inline-size: calc(var(--ui-stepper-value-min) + var(--ui-space-4));
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #grind-x {
+            color: var(--ui-text);
+            font-size: var(--ui-text-2xl);
+            font-weight: var(--ui-weight-medium);
+        }
+
+        #grind-word {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-2xs);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-block-size: var(--_cp-hit);
+            min-inline-size: var(--_cp-hit);
+            padding: 0 var(--ui-space-5);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background-color: var(--ui-key);
+            color: var(--ui-text-2);
+            font: inherit;
+            font-size: var(--ui-text-base);
+            font-weight: var(--ui-weight-medium);
+            line-height: 1.2;
+            white-space: nowrap;
             cursor: pointer;
         }
 
-        .card-head {
+        .btn:disabled {
+            opacity: var(--ui-opacity-disabled);
+            cursor: default;
+        }
+
+        .btn.sm {
+            padding: 0 var(--ui-space-4);
+            font-size: var(--ui-text-sm);
+        }
+
+        #shaping-entry {
+            flex: none;
+            align-self: stretch;
+            border-radius: var(--ui-radius-lg);
+        }
+
+        #keys {
+            flex: none;
+            display: flex;
+            align-items: stretch;
+            min-inline-size: 0;
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius-lg);
+            background-color: var(--ui-surface);
+        }
+
+        #keys-btn,
+        #steps-entry {
             display: flex;
             align-items: center;
+            min-block-size: var(--_cp-hit);
+            border: 0;
+            background: none;
+            color: var(--ui-text);
+            font: inherit;
+            text-align: start;
+            cursor: pointer;
+        }
+
+        #keys-btn {
+            flex: none;
+            gap: var(--ui-space-5);
+            padding: 0 var(--ui-space-3) 0 var(--ui-space-4);
+            border-radius: var(--ui-radius-lg) 0 0 var(--ui-radius-lg);
+        }
+
+        #steps-entry {
+            flex: 0 1 auto;
             gap: var(--ui-space-2);
+            min-inline-size: 0;
+            max-inline-size: calc(3 * var(--ui-stepper-value-min));
+            padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1) var(--ui-space-4);
+            border-inline-start: var(--ui-border-w) solid var(--ui-line);
+            border-radius: 0 var(--ui-radius-lg) var(--ui-radius-lg) 0;
+        }
+
+        .kn {
+            display: grid;
+            line-height: 1.15;
+        }
+
+        .kn .lab {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-2xs);
+            font-weight: var(--ui-weight-semibold);
+            letter-spacing: var(--ui-tracking-cap);
+            text-transform: uppercase;
+        }
+
+        #kn-peak {
+            font-size: var(--ui-display-sm);
+            font-weight: var(--ui-weight-medium);
+            white-space: nowrap;
+        }
+
+        #kn-peak-s {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-2xs);
+            white-space: nowrap;
+        }
+
+        .tt {
+            flex: 1 1 auto;
+            display: grid;
+            gap: var(--ui-hairline);
             min-inline-size: 0;
         }
 
-        .grind-row {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            align-items: center;
-            gap: var(--ui-space-2);
+        .tt .ui-microcap {
+            line-height: 1.2;
         }
 
-        .grind-out {
-            display: flex;
-            align-items: center;
-            gap: var(--ui-space-2);
+        #steps-sum {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            font-size: var(--ui-text-base);
+            line-height: 1.3;
+            font-variant-numeric: tabular-nums;
         }
 
-        .big {
-            font-size: var(--ui-text-lg, 1.25rem);
+        #steps-sum em {
+            color: var(--ui-steel);
+            font-style: normal;
+            font-weight: var(--ui-weight-semibold);
+        }
+
+        .chev {
+            flex: none;
+            inline-size: var(--ui-icon-lg);
+            block-size: var(--ui-icon-lg);
+            color: var(--ui-muted);
         }
 
         .table {
@@ -514,17 +654,36 @@ class EditorChartPanel extends UiElement {
             padding: var(--ui-space-3);
         }
 
-        @container (max-width: 900px) {
+        @media (max-width: 759px) {
             #strip {
-                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            }
-
-            #strip.has-shaping {
-                grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+                flex-direction: column;
             }
 
             #grind-card {
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                padding: var(--ui-space-2) var(--ui-space-3) 0 var(--ui-space-4);
+            }
+
+            #grind-reset {
                 grid-column: 1 / -1;
+                justify-self: start;
+            }
+
+            #keys {
+                flex-direction: column;
+            }
+
+            #keys-btn {
+                justify-content: space-between;
+                padding-block: var(--ui-space-2);
+                border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
+            }
+
+            #steps-entry {
+                max-inline-size: none;
+                border-inline-start: 0;
+                border-block-start: var(--ui-border-w) solid var(--ui-line);
+                border-radius: 0 0 var(--ui-radius-lg) var(--ui-radius-lg);
             }
         }
     `];
@@ -1137,13 +1296,13 @@ class EditorChartPanel extends UiElement {
         if (state.kind === 'ok') return nothing;
         if (state.kind === 'empty') {
             return html`<div id="no-model" role="status">
-                <p id="no-model-t" class="ui-title-sm">${t('Pick a shot to see the model.')}</p>
+                <p id="no-model-t" class="ui-heading">${t('Pick a shot to see the model.')}</p>
                 <p id="no-model-c" class="ui-caption">${t('Tap the profile name to pick a shot.')}</p>
             </div>`;
         }
         const reason = t(NOT_USABLE_WORDS[state.reason] ?? state.reason);
         return html`<div id="no-model" role="status" data-reason=${state.reason}>
-            <p id="no-model-t" class="ui-title-sm">${state.kind === 'shot'
+            <p id="no-model-t" class="ui-heading">${state.kind === 'shot'
                 ? t('The model cannot run this shot ({reason})', { reason })
                 : t('The model cannot run the edited profile ({reason})', { reason })}</p>
             <p id="no-model-c" class="ui-caption">${state.kind === 'shot'
@@ -1200,6 +1359,17 @@ class EditorChartPanel extends UiElement {
                 </tr>
             </tbody>
         </table>`;
+    }
+
+    #stepsSummary(changed) {
+        const steps = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
+        const list = steps.map((step) => {
+            const v = stepTarget(step);
+            const unit = step?.pump === 'flow' ? SERIES_UNITS.Q : SERIES_UNITS.P;
+            return finite(v) ? `${Number(v.toFixed(1))} ${unit}` : '–';
+        }).join(' · ');
+        if (!changed) return list;
+        return html`<em>${this.#i18n.t('{n} changed', { n: changed })}</em> · ${list}`;
     }
 
     #changedSteps() {
@@ -1267,7 +1437,7 @@ class EditorChartPanel extends UiElement {
             const modelled = s.pump === 'flow' || s.pump === 'pressure';
             const target = modelled ? modeRanges(s.pump, machineClass).target : null;
             return html`<div class="step-block" data-step=${i}>
-                <p class="ui-title-sm">${i + 1}. ${name}</p>
+                <p class="ui-heading">${i + 1}. ${name}</p>
                 <div class="step-grid">
                     ${modelled ? html`<ui-stepper
                         class="step-target"
@@ -1361,7 +1531,6 @@ class EditorChartPanel extends UiElement {
         const rms = fit?.check?.rmsAll ?? null;
         const r = this.#results(f);
         const changed = this.#changedSteps();
-        const stepCount = Array.isArray(this.profile?.steps) ? this.profile.steps.length : 0;
         const grindText = `x${grindFactor(this._grind).toFixed(2)}`;
         const grindWord = this._grind === 0 ? t('as loaded shot') : (this._grind < 0 ? t('finer') : t('coarser'));
         const fitting = this._fitting && this._loaded?.plan.usable;
@@ -1377,7 +1546,7 @@ class EditorChartPanel extends UiElement {
             </div>
 
             <div id="toolbar">
-                <h2 class="ui-title-sm">${t('Model run')}</h2>
+                <h2 class="ui-heading">${t('Model run')}</h2>
                 <ui-icon-button class="info" id="tip-chart-btn" label=${t('About the model run')}
                     @click=${(e) => this.#openTip('chart', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 <button type="button" class="chip" id="lg-edited" ?disabled=${!ok}
@@ -1417,19 +1586,14 @@ class EditorChartPanel extends UiElement {
                 <p id="readout" class="sr-only" aria-live="polite">${this.#readout(f)}</p>
             </div>
 
-            <div id="strip" class=${shaping ? 'has-shaping' : ''}>
-                <div class="card" id="grind-card">
-                    <div class="card-head">
-                        <span class="ui-microcap">${t('Grind')}</span>
+            <div id="strip">
+                <div id="grind-card">
+                    <div class="grind-name">
+                        <span>${t('Grind')}</span>
                         <ui-icon-button class="info" id="tip-grind-btn" label=${t('About the grind')}
                             @click=${(e) => this.#openTip('grind', e.currentTarget)}>${infoIcon()}</ui-icon-button>
-                        <span class="spacer"></span>
-                        <span class="grind-out"><output id="grind-x" class="ui-numeric">${grindText}</output>
-                            <span id="grind-word" class="ui-caption">${grindWord}</span></span>
-                        <button type="button" class="chip action" id="grind-reset" ?disabled=${this._grind === 0} @click=${this.#onGrindReset}>${t('Reset')}</button>
                     </div>
-                    <div class="grind-row">
-                        <span class="ui-caption">${t('Finer (x2)')}</span>
+                    <div class="grind-track">
                         <ui-slider
                             id="grind"
                             label=${t('Grind')}
@@ -1441,27 +1605,36 @@ class EditorChartPanel extends UiElement {
                             ?disabled=${!ok}
                             @change=${this.#onGrind}
                         ></ui-slider>
-                        <span class="ui-caption">${t('Coarser (x0.5)')}</span>
+                        <div class="grind-ends" aria-hidden="true"><span>${t('Finer (x2)')}</span><span>${t('Coarser (x0.5)')}</span></div>
                     </div>
+                    <output id="grind-value"><span id="grind-x">${grindText}</span><span id="grind-word">${grindWord}</span></output>
+                    <button type="button" class="btn sm" id="grind-reset" ?disabled=${this._grind === 0} @click=${this.#onGrindReset}>${t('Reset')}</button>
                 </div>
 
-                ${shaping ? html`<button type="button" class="card" id="shaping-entry" aria-haspopup="dialog"
+                ${shaping ? html`<button type="button" class="btn" id="shaping-entry" aria-haspopup="dialog"
                     @click=${this.#onShapingOpen}>${t('Native shaping')}</button>` : nothing}
 
-                <button type="button" class="card" id="keys-btn" aria-haspopup="dialog"
-                    @click=${(e) => this.#openDialog('results', e)}>
-                    <span class="ui-microcap">${t('Peak pressure')}</span>
-                    <span id="kn-peak" class="big ui-numeric">${r?.edited ? `${r.edited.peakP.toFixed(2)} bar` : '–'}</span>
-                    <span id="kn-peak-s" class="ui-caption ui-numeric">${t('shot {v} bar', { v: r ? r.shot.peakP.toFixed(2) : '–' })}</span>
-                </button>
-
-                <button type="button" class="card" id="steps-entry" aria-haspopup="dialog"
-                    @click=${(e) => this.#openDialog('steps-sheet', e)}>
-                    <span class="ui-microcap">${t('Step targets')}</span>
-                    <span id="steps-sum" class="ui-caption">${changed
-                        ? `${t('{n} changed', { n: changed })} · ${t('{n} steps', { n: stepCount })}`
-                        : t('{n} steps', { n: stepCount })}</span>
-                </button>
+                <div id="keys">
+                    <button type="button" id="keys-btn" aria-haspopup="dialog"
+                        @click=${(e) => this.#openDialog('results', e)}>
+                        <span class="kn">
+                            <span class="lab">${t('Peak pressure')}</span>
+                            <span id="kn-peak" class="ui-numeric">${r?.edited ? `${r.edited.peakP.toFixed(2)} bar` : '–'}</span>
+                            <span id="kn-peak-s" class="ui-numeric">${r
+                                ? t('shot {v} bar', { v: r.shot.peakP.toFixed(2) })
+                                : t('no model run')}</span>
+                        </span>
+                        ${chevronIcon()}
+                    </button>
+                    <button type="button" id="steps-entry" aria-haspopup="dialog"
+                        @click=${(e) => this.#openDialog('steps-sheet', e)}>
+                        <span class="tt">
+                            <span class="ui-microcap">${t('Step targets')}</span>
+                            <span id="steps-sum">${this.#stepsSummary(changed)}</span>
+                        </span>
+                        ${chevronIcon()}
+                    </button>
+                </div>
             </div>
 
             <ui-dialog id="results" heading=${t('Results')}>
@@ -1491,7 +1664,7 @@ class EditorChartPanel extends UiElement {
                 @open-change=${this.#onPickerOpenChange}
             >
                 <div slot="header" class="picker-head">
-                    <h2 id="picker-h" class="ui-title-sm">${t('Pick a shot')}</h2>
+                    <h2 id="picker-h" class="ui-heading">${t('Pick a shot')}</h2>
                     <ui-icon-button class="info" id="tip-shots-btn" label=${t('About picking a shot')}
                         @click=${(e) => this.#openTip('shots', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                     <button type="button" class="chip action" id="picker-close" @click=${() => this.closePicker()}>${t('Close')}</button>

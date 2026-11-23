@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "554cad723827b9089da4f29dada62caa71d41b95dc6548ad8d365f161a577e04",
+  "sourceSha256": "46c1d0d92fb06bc164301b266c9ae3814263ee1e9f25e8b7105c8d97aa9474b2",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -1008,6 +1008,7 @@
     "Coarser (x0.5)": "Coarser (x0.5)",
     "Peak pressure": "Peak pressure",
     "shot {v} bar": "shot {v} bar",
+    "no model run": "no model run",
     "Step targets": "Step targets",
     "{n} changed": "{n} changed",
     "{n} steps": "{n} steps",

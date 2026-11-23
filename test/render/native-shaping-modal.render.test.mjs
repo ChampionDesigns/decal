@@ -111,12 +111,11 @@ const SHIFT = 8;
 async function controlSizes(page) {
     return page.evalFn(() => {
         const root = __ux.droot();
-        const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
         const out = [];
         const add = (el, name) => {
             const r = el.getBoundingClientRect();
             if (r.width === 0 && r.height === 0) return;
-            out.push({ name, w: Math.round(r.width / scale * 10) / 10, h: Math.round(r.height / scale * 10) / 10 });
+            out.push({ name, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 });
         };
         const dialog = root.getElementById('shape-dialog');
         for (const el of dialog.querySelectorAll('button')) add(el, el.id || el.textContent.trim());
@@ -160,11 +159,12 @@ test('the native shaping modal at 1280x800', async (t) => {
         await t.test('the button sits between the Grind card and the key cards and opens the modal at once', async () => {
             await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
             const order = await page.evalFn(() => [...__ux.chart().shadowRoot.getElementById('strip').children].map((n) => n.id));
-            assert.deepEqual(order, ['grind-card', 'shaping-entry', 'keys-btn', 'steps-entry']);
+            assert.deepEqual(order, ['grind-card', 'shaping-entry', 'keys']);
+            const keys = await page.evalFn(() => [...__ux.chart().shadowRoot.getElementById('keys').children].map((n) => n.id));
+            assert.deepEqual(keys, ['keys-btn', 'steps-entry']);
             const size = await page.evalFn(() => {
-                const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
                 const r = __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect();
-                return { w: r.width / scale, h: r.height / scale };
+                return { w: r.width, h: r.height };
             });
             assert.ok(size.h >= 47.5 && size.w >= 47.5, `button ${size.w}x${size.h}`);
             await openFromChart(page);
@@ -256,6 +256,17 @@ test('the native shaping modal at 1280x800', async (t) => {
                     pumpLabel: root.getElementById('bengle-pump-label').textContent,
                     de1Label: root.getElementById('de1-label').textContent,
                     de1Dash: root.getElementById('de1-curve').getAttribute('stroke-dasharray'),
+                    de1Width: getComputedStyle(root.getElementById('de1-curve')).strokeWidth,
+                    de1Stroke: getComputedStyle(root.getElementById('de1-curve')).stroke,
+                    chartStroke: getComputedStyle(root.host).getPropertyValue('--ui-chart-stroke').trim(),
+                    muted: (() => {
+                        const probe = document.createElement('i');
+                        probe.style.color = 'var(--ui-muted)';
+                        root.appendChild(probe);
+                        const c = getComputedStyle(probe).color;
+                        probe.remove();
+                        return c;
+                    })(),
                     pumpIndex: order.indexOf('bengle-pump'),
                     firstPoint: order.findIndex((id) => /^pt-/.test(id)),
                     curveOff: root.getElementById('curve-off').getAttribute('aria-pressed'),
@@ -265,7 +276,9 @@ test('the native shaping modal at 1280x800', async (t) => {
             assert.ok(chart.dots > 10, `dots ${chart.dots}`);
             assert.equal(chart.pumpLabel, 'Bengle pump');
             assert.equal(chart.de1Label, 'DE1 240 V');
-            assert.ok(chart.de1Dash && chart.de1Dash !== 'none');
+            assert.equal(chart.de1Dash, '9 9', 'the dash pattern of the chart legend');
+            assert.equal(chart.de1Width, chart.chartStroke);
+            assert.equal(chart.de1Stroke, chart.muted);
             assert.equal(chart.curveOff, 'true');
             assert.equal(chart.points, 0);
             assert.ok(chart.pumpIndex >= 0);
@@ -311,6 +324,24 @@ test('the native shaping modal at 1280x800', async (t) => {
             const after = await page.evalFn(() => __ux.points()[2]);
             assert.equal(Math.round((before[0] - after[0]) * 10), 1);
             assert.equal(Math.round((before[1] - after[1]) * 10), 1);
+        });
+
+        await t.test('only the selected point shows its number, up and to the right of it', async () => {
+            await focusPoint(page, 3);
+            const num = await page.evalFn(() => {
+                const root = __ux.droot();
+                const nums = [...root.querySelectorAll('.pt-num')];
+                const dot = root.querySelector('#pt-3 .dot').getBoundingClientRect();
+                const r = nums[0]?.getBoundingClientRect();
+                return {
+                    count: nums.length,
+                    text: nums[0]?.textContent,
+                    owner: nums[0]?.closest('.pt')?.id,
+                    right: r && r.left > dot.right,
+                    above: r && r.bottom < dot.top + dot.height / 2,
+                };
+            });
+            assert.deepEqual(num, { count: 1, text: '3', owner: 'pt-3', right: true, above: true });
         });
 
         await t.test('a move stops at each rule limit', async () => {
@@ -473,10 +504,7 @@ test('the native shaping modal at 1000x600', async () => {
         assert.deepEqual(l.curveKids, ['head', 'curve-box']);
         const small = (await controlSizes(page)).filter((c) => c.w < 47.5 || c.h < 47.5);
         assert.deepEqual(small, []);
-        const entry = await page.evalFn(() => {
-            const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
-            return __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect().height / scale;
-        });
+        const entry = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect().height);
         assert.ok(entry >= 47.5);
     });
 });
