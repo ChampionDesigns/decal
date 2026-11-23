@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "55cf5c35ed6008740bb33e451f88f6cc46cb2322d6a6ee8b51c43b78c88067fd",
+  "sourceSha256": "b8677f6ac66aa44d0c3abe6d9f619d0865e3adb0b014baf2b158712bbef92ff1",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -1064,7 +1064,8 @@
     "Curve off": "Curve off",
     "Curve off: only the Bengle pump line limits the flow": "Curve off: only the Bengle pump line limits the flow",
     "Curve on": "Curve on",
-    "Curve on, {n} points": "Curve on, {n} points",
+    "Pump curve on, {n} points": "Pump curve on, {n} points",
+    "Pump curve off": "Pump curve off",
     "DE1 240 V": "DE1 240 V",
     "Dashed grey line: the most flow a DE1 gives at each pressure on 240 V mains, from the 240 V table of the DE1 pump model: about 10.7 mL/s at 0 bar, 5.6 at 6 bar, 1.8 at 12 bar. It shows how a DE1 behaves. It is not a limit of this machine.": "Dashed grey line: the most flow a DE1 gives at each pressure on 240 V mains, from the 240 V table of the DE1 pump model: about 10.7 mL/s at 0 bar, 5.6 at 6 bar, 1.8 at 12 bar. It shows how a DE1 behaves. It is not a limit of this machine.",
     "Drag a point: the nearest point within about 36 px moves. With a keyboard, Tab to a point; the arrow keys move it (left and right: pressure, 0.1 bar; up and down: flow, 0.1 mL/s; Shift: 0.5 bar or 1 mL/s). This screen does not add or remove points.": "Drag a point: the nearest point within about 36 px moves. With a keyboard, Tab to a point; the arrow keys move it (left and right: pressure, 0.1 bar; up and down: flow, 0.1 mL/s; Shift: 0.5 bar or 1 mL/s). This screen does not add or remove points.",
@@ -1096,7 +1097,10 @@
     "Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.": "Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.",
     "draggable point": "draggable point",
     "s · 0 to 5": "s · 0 to 5",
-    "{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}": "{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}",
+    "{curve} · flow τ {f} · pressure τ {p} · ramp {r}": "{curve} · flow τ {f} · pressure τ {p} · ramp {r}",
+    "{tau} s": "{tau} s",
+    "{tau} s, {mode}": "{tau} s, {mode}",
+    "Bengle only; hidden in DE1 emulation.": "Bengle only; hidden in DE1 emulation.",
     "× τ · 0 to 4": "× τ · 0 to 4"
   }
 }

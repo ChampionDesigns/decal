@@ -187,6 +187,29 @@ test('the native shaping modal at 1280x800', async (t) => {
             await closeWith(page, 'shape-cancel');
         });
 
+        await t.test('the Settings row says what the block sets and that it is for the Bengle only', async () => {
+            const FIVE = [[1, 20], [3, 12], [6, 6], [9, 5], [12, 4]].map(([pressure, flow]) => ({ pressure, flow }));
+            const row = async (value) => page.evalFn(async (b) => {
+                await __ux.setBlock(b);
+                __ux.screen().tab = 'settings';
+                await __ux.settle();
+                const r = __ux.screen().shadowRoot.querySelector('[data-row="native-shaping"]');
+                return { caption: r.getAttribute('caption'), note: r.getAttribute('note') };
+            }, value);
+            const both = await row(block(FIVE, {
+                flow_tau: 0.5, flow_mode: 'both', pressure_tau: 0.5, pressure_mode: 'both', ramp_factor: 1,
+            }));
+            assert.deepEqual(both, {
+                caption: 'Pump curve on, 5 points · flow τ 0.50 s, both · pressure τ 0.50 s, both · ramp 1.00',
+                note: 'Bengle only; hidden in DE1 emulation.',
+            });
+            const other = await row(block([], {
+                flow_tau: 2.5, flow_mode: 'rise', pressure_tau: 0, pressure_mode: 'fall', ramp_factor: 1.5,
+            }));
+            assert.equal(other.caption, 'Pump curve off · flow τ 2.50 s, rise · pressure τ 0.00 s · ramp 1.50');
+            await page.evalFn(async () => { await __ux.setBlock(null); __ux.screen().tab = 'chart'; await __ux.settle(); });
+        });
+
         await t.test('Apply with no change on a profile with no block leaves no block', async () => {
             const stored = await page.evalFn(() => __ux.boot.profileEditor.get().record?.profile?.native_shaping ?? null);
             assert.equal(stored, null);

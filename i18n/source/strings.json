@@ -1059,7 +1059,8 @@
     {"key":"Curve off","note":"Native shaping dialog: the other half of the toggle; also the summary in the Settings row when the curve is empty."},
     {"key":"Curve off: only the Bengle pump line limits the flow","note":"Native shaping dialog: text in the chart when the curve is off."},
     {"key":"Curve on","note":"Native shaping dialog: one half of the toggle that turns the pump curve on."},
-    {"key":"Curve on, {n} points","note":"Editor Settings, Native shaping row: part of the caption. {n} is the number of curve points."},
+    {"key":"Pump curve on, {n} points","note":"Editor Settings, Native shaping row: part of the caption. {n} is the number of curve points."},
+    {"key":"Pump curve off","note":"Editor Settings, Native shaping row: part of the caption when the profile has no pump curve."},
     {"key":"DE1 240 V","note":"Native shaping dialog: label of the reference line for a DE1 pump on 240 V mains."},
     {"key":"Dashed grey line: the most flow a DE1 gives at each pressure on 240 V mains, from the 240 V table of the DE1 pump model: about 10.7 mL/s at 0 bar, 5.6 at 6 bar, 1.8 at 12 bar. It shows how a DE1 behaves. It is not a limit of this machine.","note":"Native shaping dialog: pump curve tip, paragraph 4."},
     {"key":"Drag a point: the nearest point within about 36 px moves. With a keyboard, Tab to a point; the arrow keys move it (left and right: pressure, 0.1 bar; up and down: flow, 0.1 mL/s; Shift: 0.5 bar or 1 mL/s). This screen does not add or remove points.","note":"Native shaping dialog: pump curve tip, paragraph 1."},
@@ -1091,7 +1092,10 @@
     {"key":"Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.","note":"Native shaping dialog: pressure time constant tip, paragraph 1."},
     {"key":"draggable point","note":"Native shaping dialog: role description of a curve point that moves with a drag or the arrow keys."},
     {"key":"s · 0 to 5","note":"Native shaping dialog: unit and range under the name of a time constant."},
-    {"key":"{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}","note":"Editor Settings, Native shaping row: the caption. {curve} is the curve part; {f} and {p} are time constants; {fm} and {pm} are an empty string or a direction in brackets; {r} is the ramp factor."},
+    {"key":"{curve} · flow τ {f} · pressure τ {p} · ramp {r}","note":"Editor Settings, Native shaping row: the caption. {curve} is the curve part; {f} and {p} are time constants with their direction; {r} is the ramp factor."},
+    {"key":"{tau} s","note":"Editor Settings, Native shaping row: a time constant of zero, in seconds."},
+    {"key":"{tau} s, {mode}","note":"Editor Settings, Native shaping row: a time constant in seconds and the direction it acts on (both, rise or fall)."},
+    {"key":"Bengle only; hidden in DE1 emulation.","note":"Editor Settings, Native shaping row: the second caption line."},
     {"key":"× τ · 0 to 4","note":"Native shaping dialog: unit and range under the ramp factor."}
   ]
 }
