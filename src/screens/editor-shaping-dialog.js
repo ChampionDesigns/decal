@@ -188,7 +188,7 @@ export class EditorShapingDialog extends UiElement {
             background-color: var(--ui-key);
             color: var(--ui-text-2);
             font: inherit;
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-md);
             font-weight: var(--ui-weight-medium);
             line-height: 1.2;
             white-space: nowrap;
@@ -291,7 +291,7 @@ export class EditorShapingDialog extends UiElement {
         }
 
         .card-head .ui-caption {
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-md);
             line-height: 1.2;
         }
 
@@ -310,7 +310,7 @@ export class EditorShapingDialog extends UiElement {
             background: transparent;
             color: var(--ui-muted);
             font: inherit;
-            font-size: var(--ui-text-sm);
+            font-size: var(--ui-text-base);
             font-weight: var(--ui-weight-medium);
             white-space: nowrap;
             cursor: pointer;
@@ -404,7 +404,6 @@ export class EditorShapingDialog extends UiElement {
         .ctl-side {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             gap: var(--ui-space-1);
             min-inline-size: 0;
         }
@@ -758,7 +757,7 @@ export class EditorShapingDialog extends UiElement {
         let message = '';
         if (!on) message = t('Curve off: only the Bengle pump line limits the flow');
         return svg`
-            <rect x=${pad.left} y=${pad.top} width=${pw} height=${ph} fill="var(--ui-surface)" stroke="var(--ui-line)"></rect>
+            <rect x=${pad.left} y=${pad.top} width=${pw} height=${ph} fill="var(--ui-chart-well)" stroke="var(--ui-chart-axis)"></rect>
             ${grid}
             <text class="tick" x=${pad.left + pw / 2} y=${g.h - 4} text-anchor="middle">${t('Pressure (bar)')}</text>
             <text class="tick" x="4" y=${Math.max(13, pad.top - 2)}>mL/s</text>
@@ -797,7 +796,7 @@ export class EditorShapingDialog extends UiElement {
                 x1=${x(s)} x2=${x(s)} y1=${p.top} y2=${p.top + ph} stroke="var(--ui-line)"></line><text class="tick" x=${x(s)} y=${p.top + ph + 18} text-anchor="middle">${s}</text>`);
         }
         return svg`
-            <rect x=${p.left} y=${p.top} width=${pw} height=${ph} fill="var(--ui-surface)" stroke="var(--ui-line)"></rect>
+            <rect x=${p.left} y=${p.top} width=${pw} height=${ph} fill="var(--ui-chart-well)" stroke="var(--ui-chart-axis)"></rect>
             ${ticks}
             <text class="tick" x=${p.left + pw} y=${p.top - 6} text-anchor="end">${unit}</text>
             <path class="raw" d=${seriesPath(data.t, data.raw, x, y)} fill="none" stroke=${color} stroke-width="1.6" stroke-dasharray="6 6"></path>
@@ -849,7 +848,7 @@ export class EditorShapingDialog extends UiElement {
             <path class=${`${cls} q`} d=${seriesPath(r.t, r.Q, x, y)} fill="none" stroke="var(--ui-channel-flow)" stroke-width=${width}></path>`;
         return html`<svg id="preview-chart" width=${w} height=${h} viewBox=${`0 0 ${w} ${h}`} role="img"
             aria-label=${this.#i18n.t('Preview chart of the whole profile, against the values of the loaded shot')}
-        ><rect x=${p.left} y=${p.top} width=${pw} height=${ph} fill="var(--ui-surface)" stroke="var(--ui-line)"></rect
+        ><rect x=${p.left} y=${p.top} width=${pw} height=${ph} fill="var(--ui-chart-well)" stroke="var(--ui-chart-axis)"></rect
         >${ticks}${run(data.saved, 1.4, 'saved')}${run(data.edited, 3, 'edited')}</svg>`;
     }
 

@@ -58,6 +58,37 @@ const closeWith = async (page, id) => {
     assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the modal closed');
 };
 
+const textSizes = (page, rootExpr, parts) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
+    return Object.fromEntries(list.map(([sel]) => {
+        const e = root.querySelector(sel);
+        return [sel, e ? +(parseFloat(getComputedStyle(e).fontSize) * scale).toFixed(2) : null];
+    }));
+}, rootExpr, parts);
+
+const offBy = (seen, parts) => parts
+    .filter(([sel, want]) => !(Math.abs(seen[sel] - want) <= 0.5))
+    .map(([sel, want]) => `${sel} ${seen[sel]} not ${want}`);
+
+const tokenColours = (page, rootExpr, checks) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const probe = document.createElement('i');
+    root.append(probe);
+    const resolve = (token) => { probe.style.color = `var(${token})`; return getComputedStyle(probe).color; };
+    const out = list.map(([sel, prop, token]) => {
+        const e = root.querySelector(sel);
+        return { sel, prop, seen: e ? getComputedStyle(e)[prop] : null, want: resolve(token) };
+    });
+    probe.remove();
+    return out;
+}, rootExpr, checks);
+
+const MODAL_TEXT = [
+    ['#shape-cancel', 12], ['#shape-apply', 12], ['#curve-on', 11], ['#curve-off', 11],
+    ['#ftau-sec .bank button', 11], ['#ftau-u', 12], ['#ftau-h', 13.33],
+];
+
 const draftBlock = (page) => page.evalFn(() => structuredClone(__ux.screen()._draft.native_shaping ?? null));
 
 async function withApp(geometry, fn, data = chartShotData()) {
@@ -441,6 +472,19 @@ test('the native shaping modal at 1280x800', async (t) => {
             }
         });
 
+        await t.test('the dialog text renders at the designed CSS px size', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            const seen = await textSizes(page, '__ux.droot()', MODAL_TEXT);
+            assert.deepEqual(offBy(seen, MODAL_TEXT), []);
+            for (const c of await tokenColours(page, '__ux.droot()', [
+                ['#curve-chart rect', 'fill', '--ui-chart-well'],
+                ['#curve-chart rect', 'stroke', '--ui-chart-axis'],
+                ['#ftau-chart rect', 'fill', '--ui-chart-well'],
+            ])) assert.equal(c.seen, c.want, `${c.sel} ${c.prop}`);
+            await closeWith(page, 'shape-cancel');
+        });
+
         await t.test('the layout at 1280x800', async () => {
             await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
             await openFromChart(page);
@@ -452,6 +496,9 @@ test('the native shaping modal at 1280x800', async (t) => {
             const bottoms = l.cards.map((c) => c.card.bottom - c.chart.bottom);
             assert.ok(Math.max(...tops) - Math.min(...tops) <= 1, `top edges ${tops}`);
             assert.ok(Math.max(...bottoms) - Math.min(...bottoms) <= 1, `bottom edges ${bottoms}`);
+            for (const c of l.cards) {
+                assert.ok(c.stepper.top - c.card.top < 64, `${c.id} stepper at the top of its card`);
+            }
             for (const c of l.cards.slice(0, 2)) {
                 assert.ok(c.bank.top >= c.stepper.bottom - 0.5, `${c.id} toggle under the stepper`);
                 assert.ok(c.bank.right <= c.chart.left, `${c.id} toggle left of the chart`);

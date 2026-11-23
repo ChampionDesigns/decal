@@ -8,7 +8,7 @@ import {
     CHART, PICKER, TITLE, USABLE_ID, DE1_ID, chartShotData, mountChartApp, showChartTab,
 } from '../harness/chart-ux.js';
 import {
-    convertedShot, recordedShot, RECORDED_SHOT_IDS, withMachineModel,
+    convertedShot, recordedShot, RECORDED_SHOT_IDS, withMachineModel, withShotFlag,
 } from '../fixtures/chart-shots.js';
 
 const E = 'app-root >>> editor-screen';
@@ -23,14 +23,51 @@ function shotData() {
         noWeight: ids[4],
         noSamples: ids[5],
         de1Machine: ids[6],
+        de1Profile: ids[8],
     };
     data.shots[reasons.stepNotModelled] = { ...convertedShot(RECORDED_SHOT_IDS[1]), id: reasons.stepNotModelled };
     data.shots[reasons.noWeight] = { ...recordedShot(USABLE_ID), id: reasons.noWeight };
     data.shots[reasons.noSamples] = { ...convertedShot(USABLE_ID), id: reasons.noSamples, measurements: [] };
     data.shots[reasons.de1Machine] = { ...withMachineModel(convertedShot(USABLE_ID), 'DE1'), id: reasons.de1Machine };
+    const de1Profile = withShotFlag(convertedShot(DE1_ID), true);
+    de1Profile.workflow = structuredClone(de1Profile.workflow);
+    de1Profile.workflow.profile.de1_emulation = true;
+    data.shots[reasons.de1Profile] = { ...de1Profile, id: reasons.de1Profile };
     data.reasons = reasons;
     return data;
 }
+
+const textSizes = (page, rootExpr, parts) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
+    return Object.fromEntries(list.map(([sel]) => {
+        const e = root.querySelector(sel);
+        return [sel, e ? +(parseFloat(getComputedStyle(e).fontSize) * scale).toFixed(2) : null];
+    }));
+}, rootExpr, parts);
+
+const offBy = (seen, parts) => parts
+    .filter(([sel, want]) => !(Math.abs(seen[sel] - want) <= 0.5))
+    .map(([sel, want]) => `${sel} ${seen[sel]} not ${want}`);
+
+const tokenColours = (page, rootExpr, checks) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const probe = document.createElement('i');
+    root.append(probe);
+    const resolve = (token) => { probe.style.color = `var(${token})`; return getComputedStyle(probe).color; };
+    const out = list.map(([sel, prop, token]) => {
+        const e = root.querySelector(sel);
+        return { sel, prop, seen: e ? getComputedStyle(e)[prop] : null, want: resolve(token) };
+    });
+    probe.remove();
+    return out;
+}, rootExpr, checks);
+
+const STRIP_TEXT = [
+    ['.grind-name', 12], ['.grind-ends', 11], ['#grind-word', 11], ['#grind-reset', 11],
+    ['#shaping-entry', 12], ['.kn .lab', 10], ['#kn-peak-s', 11],
+    ['#steps-entry .ui-microcap', 11], ['#steps-sum', 12],
+];
 
 const state = (page) => page.evalFn(() => {
     const s = __ux.screen().shadowRoot;
@@ -324,6 +361,20 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.ok(k.lines.length >= 1 && k.lines.every((d) => d === '15 15'));
         });
 
+        await t.test('the strip and header text render at the designed CSS px size', async () => {
+            const strip = await textSizes(page, '__ux.chart().shadowRoot', STRIP_TEXT);
+            const head = await textSizes(page, '__ux.screen().shadowRoot', [['#idline #totals', 11]]);
+            assert.deepEqual([...offBy(strip, STRIP_TEXT), ...offBy(head, [['#idline #totals', 11]])], []);
+        });
+
+        await t.test('the plot area is the chart well with an axis edge and grid lines', async () => {
+            for (const c of await tokenColours(page, '__ux.chart().shadowRoot', [
+                ['#main-chart rect.well', 'fill', '--ui-chart-well'],
+                ['#main-chart rect.well', 'stroke', '--ui-chart-axis'],
+                ['#main-chart .grid line', 'stroke', '--ui-chart-grid'],
+            ])) assert.equal(c.seen, c.want, `${c.sel} ${c.prop}`);
+        });
+
         await t.test('grind changes the edited run only, and Reset returns it to x1.00', async () => {
             const before = await paths(page);
             const setGrind = (v) => page.evalFn(async (value) => {
@@ -458,6 +509,15 @@ test('the Chart tab at 1280x800', async (t) => {
             }
         });
 
+        await t.test('a shot that ran in DE1 emulation shows the refusal without the DE1 notice', async () => {
+            await loadRow(page, data.reasons.de1Profile);
+            const s = await state(page);
+            assert.equal(s.reason, 'de1Emulation');
+            assert.match(s.noModel, /The model cannot run this shot/);
+            assert.equal(await page.evalFn(() => __ux.screen()._draft?.de1_emulation), true, 'the loaded profile has DE1 emulation on');
+            assert.equal(await page.evalFn(() => Boolean(__ux.chart().shadowRoot.getElementById('de1-notice'))), false);
+        });
+
         await t.test('DE1 emulation on the edited profile shows the notice over the model run of a native shot', async () => {
             await loadRow(page, USABLE_ID);
             await page.evalFn(() => __ux.waitFit());
@@ -477,6 +537,20 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.equal(s.noModel, null, 'no refusal over the chart');
             assert.equal(s.reason, null);
             assert.equal(await page.evalFn(() => Boolean(__ux.chart().shadowRoot.getElementById('de1-notice'))), true);
+            const tint = await page.evalFn(() => {
+                const c = __ux.chart().shadowRoot;
+                const n = c.getElementById('de1-notice');
+                const probe = document.createElement('i');
+                c.append(probe);
+                probe.style.color = 'var(--ui-status-attention)';
+                const attention = getComputedStyle(probe).color;
+                probe.style.color = 'color-mix(in srgb, var(--ui-status-attention) 10%, transparent)';
+                const fill = getComputedStyle(probe).color;
+                probe.remove();
+                return { border: getComputedStyle(n).borderTopColor, attention, background: getComputedStyle(n).backgroundColor, fill };
+            });
+            assert.equal(tint.border, tint.attention);
+            assert.equal(tint.background, tint.fill);
             assert.deepEqual(s.legendDisabled, [false, false, false, false, false, false]);
             const runs = await paths(page);
             for (const series of ['P', 'Q', 'G', 'tP', 'tQ']) {

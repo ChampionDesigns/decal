@@ -357,7 +357,7 @@ export class EditorScreen extends UiElement {
 
         #idline #totals {
             color: var(--ui-muted);
-            font-size: var(--ui-text-sm);
+            font-size: var(--ui-text-note);
         }
 
         #shot-line,

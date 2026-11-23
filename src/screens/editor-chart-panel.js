@@ -154,7 +154,15 @@ class EditorChartPanel extends UiElement {
             margin: 0;
         }
 
-        #de1-notice,
+        #de1-notice {
+            padding: var(--ui-space-2) var(--ui-space-4);
+            border: var(--ui-border-w) solid var(--ui-status-attention);
+            border-radius: var(--ui-radius);
+            background-color: color-mix(in srgb, var(--ui-status-attention) 10%, transparent);
+            color: var(--ui-text);
+            font-size: var(--ui-text-note);
+        }
+
         #fit-warn {
             padding: var(--ui-space-2) var(--ui-space-4);
             border: var(--ui-border-w) solid var(--ui-line);
@@ -297,7 +305,8 @@ class EditorChartPanel extends UiElement {
             outline-offset: -2px;
         }
 
-        .grid line { stroke: var(--ui-line); stroke-width: 1; }
+        .well { fill: var(--ui-chart-well); stroke: var(--ui-chart-axis); stroke-width: 1; }
+        .grid line { stroke: var(--ui-chart-grid); stroke-width: 1; }
         .axis text { fill: var(--ui-text-2); font-size: var(--ui-chart-tick); font-variant-numeric: tabular-nums; }
         .s-P { stroke: var(--ui-channel-pressure); }
         .s-Q { stroke: var(--ui-channel-flow); }
@@ -391,7 +400,7 @@ class EditorChartPanel extends UiElement {
         .grind-name {
             display: flex;
             align-items: center;
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-md);
             font-weight: var(--ui-weight-medium);
         }
 
@@ -405,7 +414,7 @@ class EditorChartPanel extends UiElement {
             justify-content: space-between;
             margin-block-start: calc(-1 * var(--ui-space-2));
             color: var(--ui-muted);
-            font-size: var(--ui-text-2xs);
+            font-size: var(--ui-text-note);
             line-height: 1.1;
         }
 
@@ -424,7 +433,7 @@ class EditorChartPanel extends UiElement {
 
         #grind-word {
             color: var(--ui-muted);
-            font-size: var(--ui-text-2xs);
+            font-size: var(--ui-text-note);
         }
 
         .btn {
@@ -439,7 +448,7 @@ class EditorChartPanel extends UiElement {
             background-color: var(--ui-key);
             color: var(--ui-text-2);
             font: inherit;
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-md);
             font-weight: var(--ui-weight-medium);
             line-height: 1.2;
             white-space: nowrap;
@@ -453,7 +462,7 @@ class EditorChartPanel extends UiElement {
 
         .btn.sm {
             padding: 0 var(--ui-space-4);
-            font-size: var(--ui-text-sm);
+            font-size: var(--ui-text-base);
         }
 
         #shaping-entry {
@@ -509,7 +518,7 @@ class EditorChartPanel extends UiElement {
 
         .kn .lab {
             color: var(--ui-muted);
-            font-size: var(--ui-text-2xs);
+            font-size: var(--ui-text-sm);
             font-weight: var(--ui-weight-semibold);
             letter-spacing: var(--ui-tracking-cap);
             text-transform: uppercase;
@@ -523,7 +532,7 @@ class EditorChartPanel extends UiElement {
 
         #kn-peak-s {
             color: var(--ui-muted);
-            font-size: var(--ui-text-2xs);
+            font-size: var(--ui-text-note);
             white-space: nowrap;
         }
 
@@ -535,6 +544,7 @@ class EditorChartPanel extends UiElement {
         }
 
         .tt .ui-microcap {
+            font-size: var(--ui-text-note);
             line-height: 1.2;
         }
 
@@ -543,7 +553,7 @@ class EditorChartPanel extends UiElement {
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
             overflow: hidden;
-            font-size: var(--ui-text-base);
+            font-size: var(--ui-text-md);
             line-height: 1.3;
             font-variant-numeric: tabular-nums;
         }
@@ -1236,7 +1246,7 @@ class EditorChartPanel extends UiElement {
         for (let v = 0; v <= yMax + 1e-9; v += yStep) ys.push(v);
         const xs = [];
         for (let v = 0; v <= xMax + 1e-9; v += xStep) xs.push(v);
-        return svg`<g class="grid">
+        return svg`<rect class="well" x=${PAD.left} y=${PAD.top} width=${geo.plotW} height=${geo.plotH}></rect><g class="grid">
             ${ys.map((v) => svg`<line x1=${PAD.left} x2=${geo.w - PAD.right} y1=${geo.y(v)} y2=${geo.y(v)}></line>`)}
         </g><g class="axis">
             ${ys.map((v) => svg`<text x=${PAD.left - 9} y=${geo.y(v)} dy=".35em" text-anchor="end">${v}</text>`)}
@@ -1603,7 +1613,7 @@ class EditorChartPanel extends UiElement {
 
         return html`
             <div class="notes">
-                ${de1EmulationOf(this.profile) ? html`<p
+                ${ok && de1EmulationOf(this.profile) ? html`<p
                     id="de1-notice" role="status">${t('DE1 emulation is on. The machine then ignores the native shaping, and this model does not cover DE1 emulation. Turn DE1 emulation off in Settings to use this chart.')}</p>` : nothing}
                 ${ok && fit && isPoorFit(rms) ? html`<p id="fit-warn" role="status">${t('Model fit is poor for this shot: {rms} bar rms', { rms: rms.toFixed(2) })}</p>` : nothing}
                 ${fitting ? html`<p
