@@ -1282,7 +1282,8 @@ export class EditorScreen extends UiElement {
     #onShapingApply = (event) => {
         event.stopPropagation();
         if (!this._draft) return;
-        const block = event.detail?.block ?? null;
+        const stored = this.#record?.profile?.[NATIVE_SHAPING_KEY] ?? null;
+        const block = event.detail?.defaults === true && stored === null ? null : event.detail?.block ?? null;
         const next = { ...this._draft };
         if (block === null) delete next[NATIVE_SHAPING_KEY];
         else next[NATIVE_SHAPING_KEY] = block;

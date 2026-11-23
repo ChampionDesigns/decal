@@ -444,7 +444,6 @@ export class EditorShapingDialog extends UiElement {
     `];
 
     #i18n = new I18nController(this);
-    #original = null;
     #resize = null;
     #drag = null;
 
@@ -506,8 +505,7 @@ export class EditorShapingDialog extends UiElement {
     }
 
     show({ block = null, invoker = null } = {}) {
-        this.#original = block && typeof block === 'object' && !Array.isArray(block) ? block : null;
-        this._draft = draftFrom(this.#original);
+        this._draft = draftFrom(block && typeof block === 'object' && !Array.isArray(block) ? block : null);
         this._selected = 0;
         this.updateComplete.then(() => {
             const dialog = this.renderRoot.getElementById('shape-dialog');
@@ -531,11 +529,9 @@ export class EditorShapingDialog extends UiElement {
     #apply = () => {
         const result = this.result;
         if (!result?.ok) return;
-        const unchangedDefaults = this.#original === null
-            && sameBlock(result.block, checkNativeShaping({}).block);
-        const block = unchangedDefaults ? null : result.block;
+        const defaults = sameBlock(result.block, checkNativeShaping({}).block);
         this.dispatchEvent(new CustomEvent('shaping-apply', {
-            detail: { block },
+            detail: { block: result.block, defaults },
             bubbles: true,
             composed: true,
         }));

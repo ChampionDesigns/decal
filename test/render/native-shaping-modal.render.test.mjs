@@ -187,6 +187,31 @@ test('the native shaping modal at 1280x800', async (t) => {
             await closeWith(page, 'shape-cancel');
         });
 
+        await t.test('values set back to the defaults on a profile with no stored block leave no block', async () => {
+            const stored = await page.evalFn(() => __ux.boot.profileEditor.get().record?.profile?.native_shaping ?? null);
+            assert.equal(stored, null);
+            await page.evalFn(() => __ux.setBlock(null));
+            const setFlowTau = (v) => page.evalFn(async (value) => {
+                __ux.droot().getElementById('ftau-sec').querySelector('ui-stepper')
+                    .dispatchEvent(new CustomEvent('change', { detail: { value }, bubbles: true, composed: true }));
+                await __ux.settle();
+            }, v);
+            const fallback = await page.evalFn(async () => {
+                const { NATIVE_SHAPING_DEFAULTS } = await import('/src/lib/native-shaping-rules.js');
+                return NATIVE_SHAPING_DEFAULTS.flow_tau;
+            });
+            await openFromChart(page);
+            await setFlowTau(2);
+            await closeWith(page, 'shape-apply');
+            assert.equal((await draftBlock(page)).flow_tau, 2);
+            await openFromChart(page);
+            await setFlowTau(fallback);
+            await closeWith(page, 'shape-apply');
+            assert.equal(await draftBlock(page), null);
+            const fields = await page.evalFn(() => __ux.boot.profileEditor.changeCount(__ux.screen()._draft).fields);
+            assert.equal(fields.includes('native_shaping'), false);
+        });
+
         await t.test('in DE1 emulation the button and the row are hidden and the Grind card takes the width', async () => {
             await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
             const before = await page.box(`${CHART} >>> #grind-card`);
@@ -324,10 +349,16 @@ test('the native shaping modal at 1280x800', async (t) => {
             await closeWith(page, 'shape-apply');
             assert.equal((await draftBlock(page)).pump_curve.length, 5);
             await openFromChart(page);
+            await page.evalFn(async () => {
+                __ux.droot().getElementById('ftau-sec').querySelector('ui-stepper')
+                    .dispatchEvent(new CustomEvent('change', { detail: { value: 1 }, bubbles: true, composed: true }));
+                await __ux.settle();
+            });
             await page.click(`${D} >>> #curve-off`);
             await closeWith(page, 'shape-apply');
             const saved = await draftBlock(page);
             assert.deepEqual(saved.pump_curve, []);
+            assert.equal(saved.flow_tau, 1);
         });
 
         await t.test('a 3-point and an 8-point block keep their count after a move and Apply', async () => {
