@@ -52,14 +52,14 @@ Retired for want of a caller, each reachable by id through `callRoute`: `sensors
 ## Three rows do not match the document, deliberately
 
 The handler body is the authority — not `rest_v1.yml`, not any
-JSDoc. Where they disagree at `1efd1a30`, the generator applies a **named exception** and
+JSDoc. Where they disagree at `2f831b54`, the generator applies a **named exception** and
 the table states the handler's truth. Each exception carries its handler evidence, and each
 **hard-fails the generator the moment the document is fixed**, so it deletes itself instead of
 rotting. All three are upstream asks; none is worked around at a call site.
 
 | exception | the document says | the handler does | evidence |
 |---|---|---|---|
-| `shots-orderBy-not-read` | `GET /shots` takes `orderBy` | reads `order` only; `orderBy` occurs in no handler | `shots_handler.dart` `_getShots` :92, :108 |
+| `shots-orderBy-not-read` | `GET /shots` takes `orderBy` | reads `order` only; `orderBy` occurs in no handler | `shots_handler.dart` `_getShots` :93, :109 |
 | `plugins-passthrough-any-method` | `/plugins/{id}/{endpoint}` is GET-only | `app.all`, dispatching on `req.method`, body forwarded verbatim | `plugins_handler.dart:141`, `:392` |
 | `account-proxy-query-passthrough` | the support proxy GET takes no query | relays the raw query string to the upstream URI | `account_proxy_handler.dart:25`, `DecentProxyService._buildUri` |
 

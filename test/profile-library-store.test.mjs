@@ -165,7 +165,7 @@ describe('R1 — the loaded profile, by id, marked while it is a title match', (
         const { store } = build();
         const state = await store.load();
         assert.notEqual(state.loaded.id, WORKFLOW.id,
-            'workflow.dart:87 — the top-level id is the WORKFLOW\'s uuid, not the profile\'s');
+            'workflow.dart:88 — the top-level id is the WORKFLOW\'s uuid, not the profile\'s');
     });
 
     test('a report carrying profile.id is R1 landing: by id, and no longer marked', async () => {

@@ -40,7 +40,7 @@
  * * `GET /api/v1/profiles` answers the RECORDED 147-record listing plus whatever this
  * session created. The recording is untouched; the additions are appended.
  * * `POST /api/v1/profiles` is `ProfileController.create` as this tree already documents
- * it (`profile-editor-store.js`, read off the handler at pin 1efd1a30): the body is
+ * it (`profile-editor-store.js`, read off the handler at pin 2f831b54): the body is
  * wrapped, a NEW record is stored, `parentId` is carried through, the answer is 201
  * with the whole ProfileRecord. That is the lineage path, and the default.
  * * Everything else falls through to the measurement, and a path with no recording answers
@@ -231,7 +231,7 @@ async function mockFetch(url, options = {}) {
      *
      * THE ONE REFUSAL MODELLED is the one the controller actually has:
      * `existing.isDefault && visibility == deleted` throws, and the handler's
-     * `on ArgumentError` clause answers 400 (profile_controller.dart:287-289). `hidden` on
+     * `on ArgumentError` clause answers 400 (profile_controller.dart:296-298). `hidden` on
      * a default is ALLOWED — that is what ProfileController.delete does to one — so a
      * fixture that refused it would be inventing a rule the server does not have. An
      * unknown id is also a 400 here and NOT a 404; this handler has no jsonNotFound at all. */
@@ -254,7 +254,7 @@ async function mockFetch(url, options = {}) {
     }
 
     /* GET /api/v1/profiles/<id>/lineage — `ProfileController.getLineage`
-     * (profile_controller.dart:299-327 at the pin), walked the same way it walks: UP to the
+     * (profile_controller.dart:308-336 at the pin), walked the same way it walks: UP to the
      * root by parentId, then recursively DOWN through children, the profile itself included
      * so the list is never empty.
      *

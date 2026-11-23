@@ -53,7 +53,7 @@ window.removeEventListener = function counted(type, ...rest) {
  * REAPRIME'S OWN RECOMPUTE-ON-READ, TRANSCRIBED — the second rule this file states in two
  * languages, beside `fixtureKey` below, and the one that gives the power page a subject.
  *
- * THE DATA TRUTH, at pin 1efd1a30 (`lib/src/models/device/machine.dart:66-159`, read-only):
+ * THE DATA TRUTH, at pin 2f831b54 (`lib/src/models/device/machine.dart:66-159`, read-only):
  * the three derived channels are getters over the raw pressure and flow fields, so they are
  * computed on read and never stored, and already-recorded history shots gain them with zero
  * migration (fromJson does not read them; toJson writes them). A recorded shot therefore DOES
