@@ -146,6 +146,7 @@ export class EditorShapingDialog extends UiElement {
         _preview: { state: true },
         _tip: { state: true },
         _sizes: { state: true },
+        _clearable: { state: true },
     };
 
     static styles = [typeRoles, css`
@@ -502,6 +503,7 @@ export class EditorShapingDialog extends UiElement {
     #drag = null;
     #fromNone = false;
     #touched = false;
+    #start = null;
 
     constructor() {
         super();
@@ -512,6 +514,7 @@ export class EditorShapingDialog extends UiElement {
         this._preview = false;
         this._tip = null;
         this._sizes = {};
+        this._clearable = false;
     }
 
     connectedCallback() {
@@ -562,9 +565,11 @@ export class EditorShapingDialog extends UiElement {
 
     show({ block = null, start = null, invoker = null } = {}) {
         const given = isBlock(block) ? block : null;
+        this.#start = isBlock(start) ? start : null;
         this.#fromNone = given === null;
         this.#touched = false;
-        this._draft = draftFrom(given ?? (isBlock(start) ? start : null));
+        this._clearable = given !== null;
+        this._draft = draftFrom(given ?? this.#start);
         this._selected = 0;
         this.updateComplete.then(() => {
             const dialog = this.renderRoot.getElementById('shape-dialog');
@@ -586,8 +591,22 @@ export class EditorShapingDialog extends UiElement {
     };
 
     #outBlock(result) {
-        return this.#fromNone && !this.#touched ? null : result.block;
+        return this.#cleared ? null : result.block;
     }
+
+    get #cleared() {
+        return this.#fromNone && !this.#touched;
+    }
+
+    #clear = () => {
+        if (!this._draft || this.#cleared) return;
+        this.#fromNone = true;
+        this.#touched = false;
+        this.#drag = null;
+        this._draft = draftFrom(this.#start);
+        this._selected = 0;
+        this.updateComplete.then(() => this.renderRoot.getElementById('shape-cancel')?.focus({ preventScroll: true }));
+    };
 
     #apply = () => {
         const result = this.result;
@@ -989,6 +1008,8 @@ export class EditorShapingDialog extends UiElement {
                     <span class="spacer"></span>
                     <button type="button" class="chip" id="preview-btn" aria-pressed=${this._preview ? 'true' : 'false'}
                         @click=${() => { this._preview = !this._preview; }}><span class="box" aria-hidden="true"></span>${t('Preview: the whole profile')}</button>
+                    ${this._clearable ? html`<button type="button" class="chip" id="shape-clear"
+                        ?disabled=${this.#cleared} @click=${this.#clear}>${t('Clear')}</button>` : nothing}
                     <button type="button" class="chip" id="shape-cancel" @click=${() => this.hide()}>${t('Cancel')}</button>
                     <button type="button" class="chip primary" id="shape-apply" ?disabled=${!valid} @click=${this.#apply}>${t('Apply')}</button>
                 </div>
