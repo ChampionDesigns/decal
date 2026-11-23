@@ -346,6 +346,20 @@ export class EditorScreen extends UiElement {
             text-overflow: ellipsis;
         }
 
+        #idline {
+            display: flex;
+            align-items: baseline;
+            gap: var(--ui-space-2);
+            min-inline-size: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #idline #totals {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-sm);
+        }
+
         #shot-line,
         #totals {
             max-inline-size: none;
@@ -600,7 +614,10 @@ export class EditorScreen extends UiElement {
             >
                 ${identity ? html`
                     <div id="identity" slot="lead">
-                        <span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>
+                        ${this.tab === CHART_TAB ? html`<p id="idline"
+                            ><span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span
+                            ><span id="totals" class="ui-numeric">${this.#totalsLine()}</span></p>`
+                            : html`<span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>`}
                         <div class="name-row">
                             ${this.tab === CHART_TAB ? html`<button
                                 id="editor-title"

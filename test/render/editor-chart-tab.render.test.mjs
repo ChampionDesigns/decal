@@ -137,6 +137,27 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.notEqual(button.border, '0px');
         });
 
+        await t.test('on the Chart tab the profile totals of the other tabs follow Profile editor on one line', async () => {
+            const read = () => page.evalFn(() => {
+                const r = __ux.screen().shadowRoot;
+                const eyebrow = r.getElementById('eyebrow').getBoundingClientRect();
+                const totals = r.getElementById('totals');
+                const box = totals.getBoundingClientRect();
+                return {
+                    text: totals.textContent.trim(),
+                    sameLine: Math.abs(box.bottom - eyebrow.bottom) < 4 && box.left > eyebrow.right,
+                };
+            });
+            const chart = await read();
+            await page.evalFn(async () => { __ux.screen().tab = 'steps'; await __ux.settle(); });
+            const steps = await read();
+            await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
+            assert.match(chart.text, /^\d+ steps? · /);
+            assert.equal(chart.text, steps.text);
+            assert.equal(chart.sameLine, true);
+            assert.equal(steps.sameLine, false, 'Steps keeps its header');
+        });
+
         await t.test('a tap on the title opens Pick a shot from the left edge, and Escape returns focus to the title', async () => {
             await openPicker(page);
             const geo = await page.evalFn(() => {
