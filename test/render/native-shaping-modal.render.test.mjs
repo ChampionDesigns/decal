@@ -60,11 +60,11 @@ const closeWith = async (page, id) => {
 
 const draftBlock = (page) => page.evalFn(() => structuredClone(__ux.screen()._draft.native_shaping ?? null));
 
-async function withApp(geometry, fn) {
+async function withApp(geometry, fn, data = chartShotData()) {
     const browser = await launch();
     const page = await browser.newPage({ geometry });
     try {
-        const mounted = await mountChartApp(page, chartShotData());
+        const mounted = await mountChartApp(page, data);
         assert.equal(mounted.route, 'editor');
         await setup(page);
         await fn(page);
@@ -479,4 +479,37 @@ test('the native shaping modal at 1000x600', async () => {
         });
         assert.ok(entry >= 47.5);
     });
+});
+
+function reportedShotData(settings) {
+    const data = chartShotData();
+    const record = structuredClone(data.shots[USABLE_ID]);
+    const workflow = record.workflow ?? {};
+    workflow.machine = { ...(workflow.machine ?? {}), nativeShaping: { source: 1, settings } };
+    record.workflow = workflow;
+    data.shots[USABLE_ID] = record;
+    return data;
+}
+
+test('with no block in the profile the Edited run uses the settings the shot ran with', async () => {
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(() => __ux.setBlock(null));
+        await loadUsableShot(page);
+        const edited = () => page.evalFn(() => [...__ux.chart().shadowRoot
+            .querySelectorAll('#main-chart path[data-run="edited"]')].map((p) => p.getAttribute('d')).join('|'));
+        const noBlock = await edited();
+        assert.ok(noBlock.length > 0);
+        const preview = await page.evalFn(() => structuredClone(__ux.chart().shapingPreview(null)));
+        assert.ok(preview);
+        assert.deepEqual(preview.edited, preview.saved);
+        await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+        await page.settle(4);
+        assert.equal(await edited(), noBlock);
+        await page.evalFn((b) => __ux.setBlock(b), { ...SPEC_EXAMPLE, flow_tau: 2 });
+        await page.settle(4);
+        assert.notEqual(await edited(), noBlock);
+        await page.evalFn(() => __ux.setBlock(null));
+        await page.settle(4);
+        assert.equal(await edited(), noBlock);
+    }, reportedShotData(SPEC_EXAMPLE));
 });

@@ -832,16 +832,20 @@ class EditorChartPanel extends UiElement {
         const wanted = Number(profile?.target_weight);
         const changed = finite(wanted) && wanted > 0 && wanted !== this._loaded.openedWeight;
         const stopW = changed ? wanted : this._loaded.plan.targetWeight;
-        const key = [fit, profile, this._grind, stopW];
+        const key = [fit, profile, this._grind, stopW, this._loaded];
         const memo = this.#memo;
         if (memo.key && memo.key.every((v, i) => v === key[i])) return memo.value;
-        const settings = settingsFromNativeShaping(profile?.[NATIVE_SHAPING_KEY]);
-        const run = runShotModel(steps, settings, fit.best.puck, {
+        const run = runShotModel(steps, this.#settingsOf(profile?.[NATIVE_SHAPING_KEY]), fit.best.puck, {
             grind: grindFactor(this._grind), stopW, tMax: MODEL_T_MAX,
         });
         const value = { run, steps, G: centredRate(run.out.t, run.out.W), stopW };
         this.#memo = { key, value };
         return value;
+    }
+
+    #settingsOf(block) {
+        if (block && typeof block === 'object' && !Array.isArray(block)) return settingsFromNativeShaping(block);
+        return this._loaded?.plan?.settings ?? settingsFromNativeShaping(null);
     }
 
     shapingPreview(block) {
@@ -856,7 +860,7 @@ class EditorChartPanel extends UiElement {
             return { t: run.out.t, P: run.out.P, Q: run.out.Q, end: run.end.t, time: r.time, peakP: r.peakP };
         };
         const saved = runShotModel(state.steps, this._loaded.plan.settings, fit.best.puck, options);
-        const edited = runShotModel(state.steps, settingsFromNativeShaping(block), fit.best.puck, options);
+        const edited = runShotModel(state.steps, this.#settingsOf(block), fit.best.puck, options);
         return { saved: pack(saved), edited: pack(edited) };
     }
 

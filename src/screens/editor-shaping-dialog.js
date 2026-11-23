@@ -531,10 +531,14 @@ export class EditorShapingDialog extends UiElement {
         }
     };
 
+    #outBlock(result) {
+        return this.#fromNone && !this.#touched ? null : result.block;
+    }
+
     #apply = () => {
         const result = this.result;
         if (!result?.ok) return;
-        const block = this.#fromNone && !this.#touched ? null : result.block;
+        const block = this.#outBlock(result);
         this.dispatchEvent(new CustomEvent('shaping-apply', {
             detail: { block },
             bubbles: true,
@@ -757,7 +761,7 @@ export class EditorShapingDialog extends UiElement {
         if (!this._preview || typeof this.previewer !== 'function') return null;
         const result = this.result;
         if (!result?.ok) return null;
-        return this.previewer(result.block);
+        return this.previewer(this.#outBlock(result));
     }
 
     #previewChart(data) {
