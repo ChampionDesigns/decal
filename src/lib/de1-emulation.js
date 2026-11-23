@@ -31,6 +31,10 @@ export function de1EmulationSupported(capabilities) {
     return answer === true;
 }
 
+export function nativeShapingShown(profile, capabilities) {
+    return de1EmulationSupported(capabilities) && !de1EmulationOf(profile);
+}
+
 export const DE1_EMULATION_PREFIX = 'B-DE1 · ';
 
 export const DE1_EMULATION_SHOT_KEY = 'de1Emulation';

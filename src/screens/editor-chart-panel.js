@@ -107,6 +107,7 @@ class EditorChartPanel extends UiElement {
         baseline: { attribute: false },
         dirty: { type: Boolean },
         saving: { type: Boolean },
+        shaping: { type: Boolean },
         fitStarts: { attribute: false },
         _rows: { state: true },
         _total: { state: true },
@@ -759,6 +760,7 @@ class EditorChartPanel extends UiElement {
         this.baseline = null;
         this.dirty = false;
         this.saving = false;
+        this.shaping = false;
         this.fitStarts = FIT_STARTS;
         this._rows = [];
         this._total = null;
@@ -1609,7 +1611,7 @@ class EditorChartPanel extends UiElement {
         const grindText = `x${grindFactor(this._grind).toFixed(2)}`;
         const grindWord = this._grind === 0 ? t('as loaded shot') : (this._grind < 0 ? t('finer') : t('coarser'));
         const fitting = this._fitting && this._loaded?.plan.usable;
-        const shaping = !de1EmulationOf(this.profile);
+        const shaping = this.shaping;
 
         return html`
             <div class="notes">
