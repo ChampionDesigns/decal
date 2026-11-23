@@ -9,6 +9,7 @@ import 'src/components/ui-stepper.js';
 import { runShotModel, settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
 import { de1EmulationOf } from 'src/lib/de1-emulation.js';
 import { DASH_PATTERNS, SERIES_LINE_CAP } from 'src/lib/chart-axis.js';
+import { parsePx } from 'src/lib/chart-tokens.js';
 import {
     CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts, shotShapingBlock,
 } from 'src/lib/chart-shot-load.js';
@@ -31,7 +32,6 @@ const MODEL_T_MAX = 120;
 const PAD = Object.freeze({ left: 70, right: 22, top: 36, bottom: 52 });
 const STEP_LABEL_EM = 0.56;
 const STEP_NUMBER_EM = 0.6;
-const STEP_LABEL_PX = 14;
 const SERIES_KEYS = Object.freeze(['P', 'Q', 'G']);
 const SERIES_NAMES = Object.freeze({ P: 'Pressure', Q: 'Flow', G: 'GFlow', targets: 'Target' });
 const SERIES_UNITS = Object.freeze({ P: 'bar', Q: 'mL/s', G: 'g/s' });
@@ -1250,6 +1250,7 @@ class EditorChartPanel extends UiElement {
         const { geo } = f;
         const frames = f.edited.run.frames;
         const names = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
+        const labelPx = parsePx(getComputedStyle(this).getPropertyValue('--ui-chart-step-label'), '--ui-chart-step-label');
         return frames.map((fr, i) => {
             const x = geo.x(fr.t0);
             const next = i + 1 < frames.length ? geo.x(frames[i + 1].t0) : PAD.left + geo.plotW;
@@ -1257,9 +1258,10 @@ class EditorChartPanel extends UiElement {
             const name = names[fr.k]?.name;
             const short = String(fr.k + 1);
             const full = typeof name === 'string' && name ? `${short} ${name}` : short;
-            const text = full.length * STEP_LABEL_PX * STEP_LABEL_EM <= room ? full
-                : short.length * STEP_LABEL_PX * STEP_NUMBER_EM <= room + 6 ? short : '';
-            return text ? svg`<text class="step-label" data-step=${fr.k} x=${x + 6} y=${PAD.top - 15}>${text}</text>` : nothing;
+            const text = full.length * labelPx * STEP_LABEL_EM <= room ? full
+                : short.length * labelPx * STEP_NUMBER_EM <= room + 6 ? short : '';
+            return text ? svg`<text class="step-label" data-step=${fr.k}
+                x=${x + 6} y=${PAD.top - 15}>${text}</text>` : nothing;
         });
     }
 
