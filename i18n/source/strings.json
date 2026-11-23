@@ -1007,7 +1007,6 @@
     {"key":"no model run","note":"Profile editor, Chart tab: the Peak pressure card when the model has no run."},
     {"key":"Step targets","note":"Profile editor, Chart tab: the Step targets card and sheet."},
     {"key":"{n} changed","note":"Profile editor, Chart tab: the Step targets card and sheet."},
-    {"key":"{n} steps","note":"Profile editor, Chart tab: the Step targets card and sheet."},
     {"key":"Results","note":"Profile editor, Chart tab: the Results sheet; Shot is the loaded shot, Edited is the model run."},
     {"key":"About the results","note":"Profile editor, Chart tab: an info sheet, or the name of the button that opens it."},
     {"key":"About the step targets","note":"Profile editor, Chart tab: an info sheet, or the name of the button that opens it."},
