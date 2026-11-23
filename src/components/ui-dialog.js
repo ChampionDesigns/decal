@@ -164,6 +164,29 @@ export class UiDialog extends UiElement {
             border-radius: 0;
         }
 
+        :host([placement="full"]) .dialog {
+            inset: 0;
+            margin: 0;
+            inline-size: 100%;
+            max-inline-size: 100%;
+            block-size: 100%;
+            max-block-size: 100%;
+            grid-template-rows: auto minmax(0, 1fr);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        :host([placement="full"]) .cell {
+            border-radius: 0;
+        }
+
+        :host([placement="full"]) .body {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+
         .cell:first-child {
             border-start-start-radius: var(--ui-radius-xl);
             border-start-end-radius: var(--ui-radius-xl);
