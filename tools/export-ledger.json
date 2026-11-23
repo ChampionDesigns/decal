@@ -2,11 +2,6 @@
   "_rule": "Exported functions in src/ that no other src/ module calls. `vouched` gives a reason a reader can check against the code; `baseline` is a plain list, so the gate fails on the next one rather than on all of them. Rewrite it with --baseline only to drop a name that now has a caller: the list may shrink, never grow.",
   "vouched": {
     "checkPuck": "src/lib/puck-fit.js: the fit quality of a puck against a shot (rms of pressure, of the main step and of weight). No screen in src/ calls it yet. test/puck-fit.test.mjs checks it against the reference puck.",
-    "createPuckFit": "src/lib/puck-fit.js: the puck fit as a step API (run in chunks, progress, stop, result). No screen in src/ calls it yet. test/puck-fit.test.mjs drives it.",
-    "samplesFromRecord": "src/lib/puck-fit.js: the time base, the 30 ms average and the frame changes of a shot record, apart from the weight check. No screen in src/ calls it yet. test/puck-fit.test.mjs runs it on a recorded shot.",
-    "settingsFromNativeShaping": "src/lib/shot-model.js: the model settings from the native_shaping block of a profile. No screen in src/ calls it yet. test/shot-model.test.mjs checks it.",
-    "shotFromRecord": "src/lib/puck-fit.js: the fit input from a shot record, or the reason it is not usable. No screen in src/ calls it yet. test/puck-fit.test.mjs checks it.",
-    "stepsFromProfile": "src/lib/shot-model.js: the model steps from the steps of a profile. No screen in src/ calls it yet. test/shot-model.test.mjs checks it.",
     "valuesNearBound": "src/lib/puck-fit.js: the puck values within 10 % of a bound; createPuckFit puts them in its result. test/puck-fit.test.mjs checks it."
   },
   "baseline": [

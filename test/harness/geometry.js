@@ -11,6 +11,14 @@ export const BENCH = Object.freeze({
     mobile: false,
 });
 
+export const TABLET = Object.freeze({
+    name: 'tablet',
+    width: 1280,
+    height: 800,
+    deviceScaleFactor: 1.5,
+    mobile: false,
+});
+
 export const FLOOR = Object.freeze({
     name: 'floor',
     width: 1000,
