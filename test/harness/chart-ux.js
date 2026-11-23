@@ -36,13 +36,19 @@ export function chartShotData() {
     };
 }
 
-export async function mountChartApp(page, data = chartShotData(), { starts = 1 } = {}) {
+export async function mountChartApp(page, data = chartShotData(), { starts = 1, machineClass = 'bengle' } = {}) {
     const mounted = await mountSelectorApp(page);
-    const opened = await page.evalFn(async (shotData, startCount) => {
+    const opened = await page.evalFn(async (shotData, startCount, machine) => {
         const { items, shots } = shotData;
         window.__shotReads = [];
+        const served = { bengle: ['cupWarmer'], de1: [] }[machine] ?? null;
         window.__uxRoutes = (u, method) => {
             if (method !== 'GET') return null;
+            if (u.pathname === '/api/v1/machine/capabilities') {
+                return served === null
+                    ? { body: { error: 'Not recorded' }, status: 503 }
+                    : { body: { capabilities: served } };
+            }
             if (u.pathname === '/api/v1/shots') {
                 const limit = Number(u.searchParams.get('limit')) || 20;
                 const offset = Number(u.searchParams.get('offset')) || 0;
@@ -57,6 +63,7 @@ export async function mountChartApp(page, data = chartShotData(), { starts = 1 }
             return record ? { body: record, hold } : { body: { error: 'Not recorded' }, status: 404, hold };
         };
         const { FIT_STARTS } = await import('/src/lib/puck-multistart.js');
+        await __ux.boot.capabilities.load();
         __ux.boot.profileEditor.open(__ux.loaded);
         __ux.root.goto('editor');
         for (let i = 0; i < 100 && __ux.root.route !== 'editor'; i++) await new Promise(r => setTimeout(r, 20));
@@ -88,7 +95,7 @@ export async function mountChartApp(page, data = chartShotData(), { starts = 1 }
             return false;
         };
         return { route: __ux.root.route, panel: Boolean(panel) };
-    }, data, starts);
+    }, data, starts, machineClass);
     return { ...mounted, ...opened };
 }
 

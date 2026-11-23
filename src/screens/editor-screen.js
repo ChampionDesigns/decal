@@ -46,7 +46,7 @@ const VERSION_FIELD_WORDS = Object.freeze({
 import { SAVE_STATUS, VISIBILITY_WRITE } from 'src/stores/profile-editor-store.js';
 import {
     DE1_EMULATION_KEY, de1EmulationBlockOf, de1EmulationOf, de1EmulationSupported,
-    withDe1Emulation,
+    nativeShapingShown, withDe1Emulation,
 } from 'src/lib/de1-emulation.js';
 import { shownProfileName } from 'src/lib/profile-name.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
@@ -698,6 +698,7 @@ export class EditorScreen extends UiElement {
                     .boot=${this.boot}
                     .profile=${this._draft}
                     .baseline=${this._state?.baseline ?? null}
+                    ?shaping=${nativeShapingShown(this._draft, this.boot?.capabilities)}
                     ?dirty=${this.#count > 0}
                     ?saving=${this.#saving}
                     @chart-shot-load=${this.#onChartShotLoad}
@@ -1253,7 +1254,7 @@ export class EditorScreen extends UiElement {
 
     #nativeShapingRow() {
         const draft = this._draft;
-        if (!draft || de1EmulationOf(draft)) return nothing;
+        if (!draft || !nativeShapingShown(draft, this.boot?.capabilities)) return nothing;
         const t = this.#i18n.t;
         return html`
             <ui-settings-row
