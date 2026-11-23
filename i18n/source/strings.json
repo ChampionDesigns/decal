@@ -86,7 +86,7 @@
     {"key":"Choose for this slot","note":"Live rail, favourites strip: the press-and-hold menu item on an EMPTY slot. Replaces the old \"Browse Profiles\", which named the widget rather than the outcome."},
     {"key":"Choose {name}","note":"{name} is the already-translated picker name (\"Shot A\"), so a translator sees the whole sentence."},
     {"key":"Classic","note":"Lever feel preset chip. The review sentence says \"classic\" mid-sentence; a chip is its own surface."},
-    {"key":"Clear","note":"Weather dialog: the condition word under the temperature, for a clear sky, by day or by night."},
+    {"key":"Clear","note":"Two uses. Weather dialog: the condition word under the temperature, for a clear sky, by day or by night. Profile editor, Native shaping dialog: the button that removes the shaping block, so the machine uses its own settings."},
     {"key":"Clear this favourite","note":"Live rail, favourites strip: the press-and-hold menu item that empties an OCCUPIED slot."},
     {"key":"Close"},
     {"key":"Coffee"},
