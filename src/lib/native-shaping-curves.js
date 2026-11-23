@@ -85,11 +85,11 @@ export function stepResponse(kind, tau, mode) {
     return { t, raw, shaped };
 }
 
-export function rampResponse(rampFactor, tau) {
+export function rampResponse(rampFactor, tau, mode = 'both') {
     const t = [];
     const raw = [];
     const shaped = [];
-    const lag = rampFactor * tau;
+    const lag = directionOn(mode, 2, 9) ? rampFactor * tau : 0;
     let ema = 2;
     const count = Math.round(6.5 * MODEL_HZ);
     for (let i = 0; i <= count; i++) {

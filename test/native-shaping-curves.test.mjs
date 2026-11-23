@@ -94,4 +94,14 @@ describe('the mini chart responses', () => {
         const lagged = rampResponse(2, 1);
         assert.ok(lagged.shaped[lagged.shaped.length - 1] < 9);
     });
+
+    test('the ramp lags only when the pressure mode acts on a rising ramp', () => {
+        const fall = rampResponse(1, 1, 'fall');
+        assert.deepEqual(fall.shaped, fall.raw);
+        for (const mode of ['both', 'rise']) {
+            const r = rampResponse(1, 1, mode);
+            assert.notDeepEqual(r.shaped, r.raw, mode);
+            assert.ok(r.shaped[r.shaped.length - 1] < 9, mode);
+        }
+    });
 });

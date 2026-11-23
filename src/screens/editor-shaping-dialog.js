@@ -909,7 +909,7 @@ export class EditorShapingDialog extends UiElement {
                         id: 'rfac', heading: 'Ramp factor', unit: '× τ · 0 to 4', tip: 'rfac', field: 'ramp',
                         perUnit: WIRE_STEPS_PER_UNIT.ramp, limits: L.ramp,
                         chart: this.#miniSvg('rfac-chart', t('A smooth pressure step, 2 to 9 bar in 4 s, with pressure τ times the ramp factor. Dashed: the ramp. Solid: the shaped target.'),
-                            this.#mini('rfac-chart', rampResponse(d.ramp, d.pressureTau), -0.5, 6, 10, 'var(--ui-channel-pressure)', 'bar · s')),
+                            this.#mini('rfac-chart', rampResponse(d.ramp, d.pressureTau, d.pressureMode), -0.5, 6, 10, 'var(--ui-channel-pressure)', 'bar · s')),
                     })}
                 </div>
 
