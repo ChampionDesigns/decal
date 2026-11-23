@@ -1158,5 +1158,23 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
             await page.click(`${D} >>> #preview-btn`);
             await closeWith(page, 'shape-cancel');
         });
+
+        await t.test('the page keeps the editor out of reach when the editor is moved while it is open', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await page.evalFn(async () => {
+                const screen = __ux.screen();
+                const parent = screen.parentNode;
+                const next = screen.nextSibling;
+                parent.removeChild(screen);
+                parent.insertBefore(screen, next);
+                await __ux.settle();
+            });
+            assert.equal(await page.evalFn(() => __ux.isOpen()), true);
+            assert.deepEqual(await editorInert(page), { band: true, body: true });
+            assert.equal(await page.evalFn(() => __ux.dialog().getAttribute('role')), 'dialog');
+            await closeWith(page, 'shape-back');
+            assert.deepEqual(await editorInert(page), { band: false, body: false });
+        });
     });
 });

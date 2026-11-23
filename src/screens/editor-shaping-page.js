@@ -587,6 +587,7 @@ export class EditorShapingPage extends UiElement {
             if (changed) this._sizes = next;
         });
         this.addEventListener('keydown', this.#onKeydown);
+        if (this.open && this.hasUpdated) this.#applyInert();
     }
 
     disconnectedCallback() {
