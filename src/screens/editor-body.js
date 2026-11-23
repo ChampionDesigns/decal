@@ -6,7 +6,7 @@ import { css, html } from 'lit';
 
 import { UiElement } from 'src/components/base.js';
 
-export const EDITOR_PANEL_SLOTS = Object.freeze(['steps', 'settings', 'review']);
+export const EDITOR_PANEL_SLOTS = Object.freeze(['steps', 'settings', 'chart', 'review']);
 
 export class EditorBody extends UiElement {
     static styles = [css`
@@ -32,6 +32,7 @@ export class EditorBody extends UiElement {
 
         slot[name="steps"]::slotted(*),
         slot[name="settings"]::slotted(*),
+        slot[name="chart"]::slotted(*),
         slot[name="review"]::slotted(*) {
             grid-column: 1;
             grid-row: 1;
@@ -45,6 +46,7 @@ export class EditorBody extends UiElement {
             <div id="stack">
                 <slot name="steps"></slot>
                 <slot name="settings"></slot>
+                <slot name="chart"></slot>
                 <slot name="review"></slot>
             </div>
         `;

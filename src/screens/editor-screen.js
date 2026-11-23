@@ -53,6 +53,7 @@ import { historyIcon, penIcon } from 'src/lib/icons.js';
 import 'src/screens/editor-body.js';
 import 'src/screens/editor-settings-panel.js';
 import 'src/screens/editor-review-panel.js';
+import 'src/screens/editor-chart-panel.js';
 
 import 'src/screens/step-matrix.js';
 import 'src/screens/editor-preview.js';
@@ -82,10 +83,26 @@ import 'src/components/ui-empty-state.js';
 export const EDITOR_TABS = Object.freeze([
     Object.freeze({ value: 'steps', label: 'Steps' }),
     Object.freeze({ value: 'settings', label: 'Settings' }),
+    Object.freeze({ value: 'chart', label: 'Chart' }),
     Object.freeze({ value: 'review', label: 'Review' }),
 ]);
 
 export const DEFAULT_EDITOR_TAB = 'steps';
+
+const CHART_TAB = 'chart';
+
+function chevronLeftIcon() {
+    return html`<svg
+        class="chevron"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    ><path d="M15 5l-7 7 7 7"></path></svg>`;
+}
 
 export const EDITOR_REGIONS = Object.freeze(['steps', 'settings', 'preview', 'overlays']);
 
@@ -113,6 +130,10 @@ export class EditorScreen extends UiElement {
         _callerRegions: { state: true },
 
         _renameRefusal: { state: true },
+
+        _shotLine: { state: true },
+
+        _pickerOpen: { state: true },
     };
 
     static styles = [typeRoles, seams, css`
@@ -281,6 +302,46 @@ export class EditorScreen extends UiElement {
             cursor: pointer;
         }
 
+        :host(.seam-grid[tab="chart"]) {
+            grid-template-rows: minmax(var(--ui-band-h), auto) minmax(0, 1fr);
+        }
+
+        :host([tab="chart"]) #identity {
+            grid-template-rows: auto auto auto;
+            max-block-size: none;
+            padding-block: var(--ui-space-1);
+        }
+
+        #editor-title.pick {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--ui-space-2);
+            min-block-size: max(var(--ui-hit-min), var(--_ui-hit-floor, 0px));
+            max-inline-size: 100%;
+            padding-inline: var(--ui-space-2) var(--ui-space-4);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background-color: transparent;
+            color: inherit;
+        }
+
+        #editor-title.pick[aria-expanded="true"] {
+            border-color: var(--ui-steel);
+        }
+
+        #editor-title .chevron {
+            flex: 0 0 auto;
+            inline-size: max(20px, calc(20px / var(--ui-app-scale, 1)));
+            block-size: max(20px, calc(20px / var(--ui-app-scale, 1)));
+        }
+
+        #editor-title .label {
+            min-inline-size: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #shot-line,
         #totals {
             max-inline-size: none;
             min-inline-size: 0;
@@ -334,6 +395,8 @@ export class EditorScreen extends UiElement {
         this._draft = null;
         this._callerRegions = EMPTY_REGIONS;
         this._renameRefusal = null;
+        this._shotLine = '';
+        this._pickerOpen = false;
     }
 
     connectedCallback() {
@@ -518,6 +581,7 @@ export class EditorScreen extends UiElement {
         const identity = this._draft !== null;
         const steps = this._draft && Array.isArray(this._draft.steps) ? this._draft.steps : null;
         const unseated = this.#unseated;
+        const shownName = identity ? shownProfileName(this._draft, this.boot?.capabilities, t('Untitled')) : '';
 
         return html`
             <ui-page-header
@@ -533,24 +597,35 @@ export class EditorScreen extends UiElement {
                     <div id="identity" slot="lead">
                         <span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>
                         <div class="name-row">
-                            <button
+                            ${this.tab === CHART_TAB ? html`<button
+                                id="editor-title"
+                                class="ui-title pick"
+                                type="button"
+                                aria-haspopup="dialog"
+                                aria-expanded=${this._pickerOpen ? 'true' : 'false'}
+                                aria-label=${t('Pick a shot: {title}', { title: shownName })}
+                                @click=${this.#onPickShot}
+                            >${chevronLeftIcon()}<span class="label">${shownName}</span></button>` : html`<button
                                 id="editor-title"
                                 class="ui-title"
                                 type="button"
                                 @click=${this.#onRenameOpen}
-                            >${shownProfileName(this._draft, this.boot?.capabilities, t('Untitled'))}</button>
+                            >${shownName}</button>
                             <ui-icon-button
                                 id="title-pencil"
                                 label=${t('Edit profile name')}
                                 @click=${this.#onRenameOpen}
                                 >${penIcon()}</ui-icon-button
-                            >
+                            >`}
                         </div>
                         ${this.#saving
                             ? html`<p id="saving" class="ui-caption" role="status"
                                 >${t('Saving…')}</p>`
-                            : html`<p id="totals" class="ui-caption ui-numeric"
-                                >${this.#totalsLine()}</p>`}
+                            : this.tab === CHART_TAB
+                                ? html`<p id="shot-line" class="ui-caption ui-numeric"
+                                    >${this._shotLine || t('No shot loaded')}</p>`
+                                : html`<p id="totals" class="ui-caption ui-numeric"
+                                    >${this.#totalsLine()}</p>`}
                     </div>` : nothing}
 
                 <ui-tab-bar
@@ -594,6 +669,18 @@ export class EditorScreen extends UiElement {
                         ${this.#owns('settings') ? this.#settingsRows() : nothing}
                     </slot>
                 </editor-settings-panel>
+
+                <editor-chart-panel
+                    id="chart-panel"
+                    slot="chart"
+                    .boot=${this.boot}
+                    .profile=${this._draft}
+                    .baseline=${this._state?.baseline ?? null}
+                    ?dirty=${this.#count > 0}
+                    @chart-shot-load=${this.#onChartShotLoad}
+                    @chart-status=${this.#onChartStatus}
+                    @chart-picker=${this.#onChartPicker}
+                ></editor-chart-panel>
 
                 <editor-review-panel
                     id="review-panel"
@@ -730,13 +817,32 @@ export class EditorScreen extends UiElement {
         if (!bar || this.#panels) return;
         const map = new Map();
         for (const { value } of EDITOR_TABS) {
-            const el = this.renderRoot.querySelector(`[slot="${value}"]`);
+            const el = this.renderRoot.querySelector(`#body > [slot="${value}"]`);
             if (el) map.set(value, el);
         }
         if (map.size !== EDITOR_TABS.length) return;
         this.#panels = map;
         bar.panels = map;
     }
+
+    #onPickShot = (event) => {
+        this.renderRoot.getElementById('chart-panel')?.openPicker(event.currentTarget);
+    };
+
+    #onChartShotLoad = (event) => {
+        const record = event.detail?.record;
+        if (!this.#store || !record || !record.profile) return;
+        this.#store.open(record);
+        this._draft = this.#store.get()?.record?.profile ?? record.profile;
+    };
+
+    #onChartStatus = (event) => {
+        this._shotLine = typeof event.detail?.line === 'string' ? event.detail.line : '';
+    };
+
+    #onChartPicker = (event) => {
+        this._pickerOpen = event.detail?.open === true;
+    };
 
     #onTabChange(event) {
         const value = event?.detail?.value;

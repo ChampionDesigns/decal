@@ -178,6 +178,10 @@ export class UiTabBar extends UiElement {
     }
 
     #write(el, record, name, value) {
+        if (el.getAttribute(name) === value) {
+            record.mine[name] = value;
+            return;
+        }
         if (value === null) el.removeAttribute(name);
         else el.setAttribute(name, value);
         record.mine[name] = value;

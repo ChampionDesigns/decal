@@ -327,7 +327,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 await page.evalFn(() => {
                     const bank = document.createElement('ui-bank');
                     bank.id = 'bare-bank';
-                    bank.items = ['steps', 'settings', 'review'];
+                    bank.items = ['steps', 'settings', 'chart', 'review'];
                     bank.value = 'steps';
                     bank.label = 'a plain segmented bank';
                     document.getElementById('stage').append(bank);
@@ -375,7 +375,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 );
 
                 const before = await stops();
-                assert.equal(before.length, 3, 'three tabs');
+                assert.equal(before.length, 4, 'four tabs');
                 assert.equal(before.filter((t) => t === '0').length, 1,
                     'exactly one tab stop in the tablist (APG roving tabindex)');
                 assert.equal(before[0], '0', 'and it is the selected tab');
@@ -422,7 +422,7 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 /* And the screen's own reflected attribute agrees — one owner. */
                 assert.equal(
                     await page.evalFn((s) => window.__h.need(s).getAttribute('tab'), EDITOR.screen),
-                    tabs[2], 'the screen mirrors the bar, and the bar was the source',
+                    tabs[3], 'the screen mirrors the bar, and the bar was the source',
                 );
             }));
 
@@ -899,6 +899,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 census.add(await scanRules(page, HOSTS), 'review+segments');
                 await seatProfile(page);
                 census.add(await scanRules(page, HOSTS), 'profile-open');
+                await selectPanel(page, 'chart');
+                census.add(await scanRules(page, HOSTS), 'chart');
+                await page.evalFn((s) => window.__h.need(s).shadowRoot.getElementById('chart-panel')
+                    .openPicker(null), EDITOR.screen);
+                await page.settle(4);
+                census.add(await scanRules(page, HOSTS), 'chart+picker');
+                await page.evalFn((s) => window.__h.need(s).shadowRoot.getElementById('chart-panel')
+                    .closePicker(), EDITOR.screen);
 
                 await page.evalFn(() => {
                     for (const el of [...document.querySelectorAll('[slot="settings"]')]) el.remove();

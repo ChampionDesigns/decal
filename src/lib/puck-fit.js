@@ -300,7 +300,7 @@ function finite(v) {
     return typeof v === 'number' && Number.isFinite(v);
 }
 
-export function samplesFromRecord(record) {
+function sampleGroups(record) {
     const list = record && Array.isArray(record.measurements) ? record.measurements : [];
     let first = 0;
     let lastPreparing = -1;
@@ -317,6 +317,7 @@ export function samplesFromRecord(record) {
         const sample = {
             ms: stamp,
             P: machine.pressure,
+            Q: finite(machine.flow) ? machine.flow : null,
             W: finite(weight) ? weight : null,
             frame: finite(machine.profileFrame) ? machine.profileFrame : null,
         };
@@ -324,24 +325,40 @@ export function samplesFromRecord(record) {
         if (group && stamp - group.ms0 < SAMPLE_MERGE_MS) group.items.push(sample);
         else groups.push({ ms0: stamp, items: [sample] });
     }
-    if (!groups.length) return null;
+    return groups.length ? groups : null;
+}
+
+function mean(xs) {
+    return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
+function meanOrNull(items, key) {
+    const xs = items.map((s) => s[key]).filter((v) => v !== null);
+    return xs.length ? mean(xs) : null;
+}
+
+function groupTimes(groups) {
     const origin = groups[0].ms0;
-    const t = [];
-    const P = [];
-    const W = [];
-    const frame = [];
-    const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
-    for (const g of groups) {
-        const ws = g.items.map((s) => s.W).filter((v) => v !== null);
-        t.push((mean(g.items.map((s) => s.ms)) - origin) / 1000);
-        P.push(mean(g.items.map((s) => s.P)));
-        W.push(ws.length ? mean(ws) : null);
-        frame.push(g.items[g.items.length - 1].frame);
-    }
+    return groups.map((g) => (mean(g.items.map((s) => s.ms)) - origin) / 1000);
+}
+
+export function samplesFromRecord(record) {
+    const groups = sampleGroups(record);
+    if (!groups) return null;
+    const t = groupTimes(groups);
+    const P = groups.map((g) => mean(g.items.map((s) => s.P)));
+    const W = groups.map((g) => meanOrNull(g.items, 'W'));
+    const frame = groups.map((g) => g.items[g.items.length - 1].frame);
     return { t, P, W, frame, changes: frameChanges(t, frame) };
 }
 
-function shotTargetWeight(record) {
+export function flowSamplesFromRecord(record) {
+    const groups = sampleGroups(record);
+    if (!groups) return null;
+    return { t: groupTimes(groups), Q: groups.map((g) => meanOrNull(g.items, 'Q')) };
+}
+
+export function shotTargetWeight(record) {
     const context = record?.workflow?.context;
     if (finite(context?.targetYield) && context.targetYield > 0) return context.targetYield;
     const profile = record?.workflow?.profile;
@@ -349,12 +366,16 @@ function shotTargetWeight(record) {
     return null;
 }
 
+export function shotRanDe1Emulation(record) {
+    return shotRanAsDe1(record) || record?.workflow?.machine?.de1Emulation === true
+        || de1EmulationOf(record?.workflow?.profile);
+}
+
 export function shotFromRecord(record) {
     if (!record || typeof record !== 'object' || Array.isArray(record)) {
         return { usable: false, reason: SHOT_NOT_USABLE.NO_RECORD };
     }
-    if (shotRanAsDe1(record) || record.workflow?.machine?.de1Emulation === true
-        || de1EmulationOf(record.workflow?.profile)) {
+    if (shotRanDe1Emulation(record)) {
         return { usable: false, reason: SHOT_NOT_USABLE.DE1_EMULATION };
     }
     const samples = samplesFromRecord(record);

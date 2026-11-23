@@ -22,6 +22,7 @@ const GEOMETRIES = [
     { name: '16:9 UHD',      width: 2560, height: 1440, scale: 1.2,    designW: 2133.3, designH: 1200 },
     { name: '4:3',           width: 1024, height: 768,  scale: 0.64,   designW: 1600,   designH: 1200 },
     { name: '5:4',           width: 1280, height: 1024, scale: 0.8533, designW: 1500,   designH: 1200 },
+    { name: '16:10 tablet',  width: 1280, height: 800,  scale: 0.6667, designW: 1920,   designH: 1200 },
 ];
 
 const AGREEMENT_GEOMETRIES = [

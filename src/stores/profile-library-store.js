@@ -195,7 +195,7 @@ function activeRecipeOf(report) {
     return profile ? structuredClone(profile) : null;
 }
 
-function holdsActiveRecipe(record, active) {
+export function holdsActiveRecipe(record, active) {
     if (!active || !isBody(record)) return false;
     if (sameBody(active, record.profile ?? null)) return true;
     const armed = workflowApplyBody(record);
