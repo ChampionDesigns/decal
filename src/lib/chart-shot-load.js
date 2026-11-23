@@ -2,6 +2,7 @@ import {
     flowSamplesFromRecord, samplesFromRecord, SHOT_NOT_USABLE, shotFromRecord, shotRanDe1Emulation, shotTargetWeight,
 } from './puck-fit.js';
 import { settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from './shot-model.js';
+import { checkNativeShaping } from './native-shaping-rules.js';
 import { shotClock } from './shot-summary.js';
 import { lastValue } from './chart-series.js';
 import { holdsActiveRecipe } from '../stores/profile-library-store.js';
@@ -22,7 +23,14 @@ export const NOT_USABLE_WORDS = Object.freeze({
     [CHART_NOT_USABLE.STEP_NOT_MODELLED]: 'a step the model does not cover',
 });
 
+export const SHOT_SETTINGS_SOURCE = Object.freeze({
+    REPORT: 'report',
+    PROFILE: 'profile',
+    DEFAULT: 'default',
+});
+
 const DE1_MODEL_PREFIX = 'DE1';
+const REPORT_KEY = 'nativeShaping';
 
 const isBody = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
@@ -40,6 +48,22 @@ function shotDoseGrams(record) {
     if (finite(actual) && actual > 0) return actual;
     const target = record?.workflow?.context?.targetDoseWeight;
     return finite(target) && target > 0 ? target : null;
+}
+
+function validBlock(block) {
+    return isBody(block) && checkNativeShaping(block).ok;
+}
+
+export function shotShapingSettings(record) {
+    const report = record?.workflow?.machine?.[REPORT_KEY];
+    if (isBody(report) && validBlock(report.settings)) {
+        return { source: SHOT_SETTINGS_SOURCE.REPORT, settings: settingsFromNativeShaping(report.settings) };
+    }
+    const block = record?.workflow?.profile?.[NATIVE_SHAPING_KEY];
+    if (validBlock(block)) {
+        return { source: SHOT_SETTINGS_SOURCE.PROFILE, settings: settingsFromNativeShaping(block) };
+    }
+    return { source: SHOT_SETTINGS_SOURCE.DEFAULT, settings: settingsFromNativeShaping(null) };
 }
 
 export function shotRowFacts(summary) {
@@ -65,6 +89,7 @@ export function shotPlan(record) {
         flow: null,
         steps: null,
         settings: null,
+        settingsSource: null,
         targetWeight: null,
         dose: shotDoseGrams(record),
         de1: isBody(record) && shotRanDe1Emulation(record),
@@ -83,11 +108,13 @@ export function shotPlan(record) {
     if (!fit.usable) return { ...base, reason: fit.reason };
     const steps = stepsFromProfile(profile);
     if (!steps) return { ...base, reason: CHART_NOT_USABLE.STEP_NOT_MODELLED };
+    const shaping = shotShapingSettings(record);
     return {
         ...base,
         usable: true,
         steps,
-        settings: settingsFromNativeShaping(profile?.[NATIVE_SHAPING_KEY]),
+        settings: shaping.settings,
+        settingsSource: shaping.source,
     };
 }
 
