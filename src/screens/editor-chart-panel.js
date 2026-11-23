@@ -310,6 +310,12 @@ class EditorChartPanel extends UiElement {
             inline-size: max-content;
             max-inline-size: calc(100% - 2 * var(--ui-space-4));
             margin: 0;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        #chart-note > span {
+            display: block;
             padding: var(--ui-space-2) var(--ui-space-4);
             border-radius: var(--ui-radius);
             background-color: var(--ui-text);
@@ -317,12 +323,6 @@ class EditorChartPanel extends UiElement {
             font-size: var(--ui-text-note);
             line-height: 1.4;
             box-shadow: var(--ui-elev-1);
-            transform: translateX(-50%);
-            pointer-events: none;
-        }
-
-        #chart-note:empty {
-            display: none;
         }
 
         #main-chart:focus-visible {
@@ -1695,7 +1695,8 @@ class EditorChartPanel extends UiElement {
                 ${this.#cursorLabel(f)}
                 ${this.#noModel(f.state)}
                 <p id="readout" class="sr-only" aria-live="polite">${this.#readout(f)}</p>
-                <p id="chart-note" role="status">${this._note ? t(this._note) : nothing}</p>
+                <p id="chart-note" role="status">${this._note ? html`<span
+                    >${t(this._note)}</span>` : nothing}</p>
             </div>
 
             <div id="strip">

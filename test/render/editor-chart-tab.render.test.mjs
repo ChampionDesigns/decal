@@ -110,6 +110,19 @@ const loadRow = async (page, id) => {
     await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
 };
 
+async function noteNode(page) {
+    await page.send('Accessibility.enable');
+    const { result } = await page.send('Runtime.evaluate', {
+        expression: "__ux.chart().shadowRoot.getElementById('chart-note')",
+        returnByValue: false,
+    });
+    const { nodes } = await page.send('Accessibility.getPartialAXTree', { objectId: result.objectId, fetchRelatives: false });
+    const node = nodes[0];
+    const prop = (name) => (node.properties ?? []).find((q) => q.name === name)?.value?.value ?? null;
+    const text = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('chart-note').textContent.trim());
+    return { role: node.role?.value ?? null, ignored: node.ignored, live: prop('live'), text };
+}
+
 const chartNote = (page) => page.evalFn(() => __ux.chart().shadowRoot.getElementById('chart-note').textContent.trim());
 
 const evidence = process.env.DECAL_REVIEW_OUT;
@@ -365,6 +378,31 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.deepEqual(after, before);
             assert.equal(note, 'One series stays on. Show another series first.');
             assert.deepEqual(place, { shown: true, inChart: true, tapGoesThrough: true });
+        });
+
+        await t.test('the note is a status region in the accessibility tree when it is empty and when it shows text', async () => {
+            const noteEmpty = '!__ux.chart().shadowRoot.getElementById("chart-note").textContent.trim()';
+            assert.equal(await page.evalFn((e) => __ux.until(e), noteEmpty), true);
+            const empty = await noteNode(page);
+            await page.click(`${CHART} >>> #lk-P`);
+            await page.click(`${CHART} >>> #lk-Q`);
+            await page.click(`${CHART} >>> #lk-G`);
+            await page.evalFn(() => __ux.settle());
+            const shown = await noteNode(page);
+            const hit = await page.evalFn(() => {
+                const n = __ux.chart().shadowRoot.getElementById('chart-note');
+                const b = n.getBoundingClientRect();
+                const at = __ux.chart().shadowRoot.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+                return n.contains(at);
+            });
+            await page.click(`${CHART} >>> #lk-P`);
+            await page.click(`${CHART} >>> #lk-Q`);
+            assert.equal(await page.evalFn((e) => __ux.until(e), noteEmpty), true);
+            const after = await noteNode(page);
+            assert.deepEqual(empty, { role: 'status', ignored: false, live: 'polite', text: '' });
+            assert.deepEqual(shown, { role: 'status', ignored: false, live: 'polite', text: 'One series stays on. Show another series first.' });
+            assert.deepEqual(after, empty);
+            assert.equal(hit, false);
         });
 
         await t.test('the legend names each series with its unit and a line mark, the axes have titles and each step has its number and name', async () => {
