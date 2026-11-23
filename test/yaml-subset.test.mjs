@@ -158,9 +158,12 @@ describe('the two real specs', () => {
         assert.equal(rest.openapi, '3.0.3');
         // 112 -> 120 paths and 97 -> 107 schemas at the 8fee86dd re-pin: nine paths added
         // (manifest, scale/info, scales/{id}/tare, six under grinder) and one removed
-        // (machine/stopAtWeight, with its three schemas).
+        // (machine/stopAtWeight, with its three schemas). 107 -> 109 schemas at the 2f831b54
+        // re-pin: NativeShaping and NativeShapingReport.
         assert.equal(Object.keys(rest.paths).length, 120);
-        assert.equal(Object.keys(rest.components.schemas).length, 107);
+        assert.equal(Object.keys(rest.components.schemas).length, 109);
+        assert.ok(rest.components.schemas.NativeShaping);
+        assert.ok(rest.components.schemas.NativeShapingReport);
         for (const p of ['/api/v1/manifest', '/api/v1/scale/info', '/api/v1/scales/{id}/tare', '/api/v1/grinder/info']) {
             assert.ok(rest.paths[p], p);
         }

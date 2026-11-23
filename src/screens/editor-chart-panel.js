@@ -324,6 +324,16 @@ class EditorChartPanel extends UiElement {
             min-inline-size: 0;
         }
 
+        #strip.has-shaping {
+            grid-template-columns: minmax(0, 2fr) auto minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        #shaping-entry {
+            justify-content: center;
+            padding-inline: var(--ui-space-5);
+            white-space: nowrap;
+        }
+
         .card {
             display: grid;
             gap: var(--ui-space-1);
@@ -507,6 +517,10 @@ class EditorChartPanel extends UiElement {
         @container (max-width: 900px) {
             #strip {
                 grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            }
+
+            #strip.has-shaping {
+                grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
             }
 
             #grind-card {
@@ -818,17 +832,50 @@ class EditorChartPanel extends UiElement {
         const wanted = Number(profile?.target_weight);
         const changed = finite(wanted) && wanted > 0 && wanted !== this._loaded.openedWeight;
         const stopW = changed ? wanted : this._loaded.plan.targetWeight;
-        const key = [fit, profile, this._grind, stopW];
+        const key = [fit, profile, this._grind, stopW, this._loaded];
         const memo = this.#memo;
         if (memo.key && memo.key.every((v, i) => v === key[i])) return memo.value;
-        const settings = settingsFromNativeShaping(profile?.[NATIVE_SHAPING_KEY]);
-        const run = runShotModel(steps, settings, fit.best.puck, {
+        const run = runShotModel(steps, this.#settingsOf(profile?.[NATIVE_SHAPING_KEY]), fit.best.puck, {
             grind: grindFactor(this._grind), stopW, tMax: MODEL_T_MAX,
         });
         const value = { run, steps, G: centredRate(run.out.t, run.out.W), stopW };
         this.#memo = { key, value };
         return value;
     }
+
+    #settingsOf(block) {
+        if (block && typeof block === 'object' && !Array.isArray(block)) return settingsFromNativeShaping(block);
+        return this._loaded?.plan?.settings ?? settingsFromNativeShaping(null);
+    }
+
+    shapingPreview(block) {
+        const state = this.#modelState;
+        const fit = this._fit;
+        if (state.kind !== 'ok' || !fit?.best) return null;
+        const base = this.#editedRun(state.steps);
+        if (!base) return null;
+        const options = { grind: grindFactor(this._grind), stopW: base.stopW, tMax: MODEL_T_MAX };
+        const pack = (run) => {
+            const r = runResults(run, { dose: null, mainStep: null });
+            return { t: run.out.t, P: run.out.P, Q: run.out.Q, end: run.end.t, time: r.time, peakP: r.peakP };
+        };
+        const saved = runShotModel(state.steps, this._loaded.plan.settings, fit.best.puck, options);
+        const edited = runShotModel(state.steps, this.#settingsOf(block), fit.best.puck, options);
+        return { saved: pack(saved), edited: pack(edited) };
+    }
+
+    get shotPoints() {
+        const series = this.#shotSeries();
+        return series ? { P: series.P, Q: series.Q } : null;
+    }
+
+    #onShapingOpen = (event) => {
+        this.dispatchEvent(new CustomEvent('shaping-open', {
+            detail: { invoker: event.currentTarget },
+            bubbles: true,
+            composed: true,
+        }));
+    };
 
     #shotSeries() {
         const plan = this._loaded?.plan;
@@ -1314,6 +1361,7 @@ class EditorChartPanel extends UiElement {
         const grindText = `x${grindFactor(this._grind).toFixed(2)}`;
         const grindWord = this._grind === 0 ? t('as loaded shot') : (this._grind < 0 ? t('finer') : t('coarser'));
         const fitting = this._fitting && this._loaded?.plan.usable;
+        const shaping = !de1EmulationOf(this.profile);
 
         return html`
             <div class="notes">
@@ -1365,7 +1413,7 @@ class EditorChartPanel extends UiElement {
                 <p id="readout" class="sr-only" aria-live="polite">${this.#readout(f)}</p>
             </div>
 
-            <div id="strip">
+            <div id="strip" class=${shaping ? 'has-shaping' : ''}>
                 <div class="card" id="grind-card">
                     <div class="card-head">
                         <span class="ui-microcap">${t('Grind')}</span>
@@ -1392,6 +1440,9 @@ class EditorChartPanel extends UiElement {
                         <span class="ui-caption">${t('Coarser (x0.5)')}</span>
                     </div>
                 </div>
+
+                ${shaping ? html`<button type="button" class="card" id="shaping-entry" aria-haspopup="dialog"
+                    @click=${this.#onShapingOpen}>${t('Native shaping')}</button>` : nothing}
 
                 <button type="button" class="card" id="keys-btn" aria-haspopup="dialog"
                     @click=${(e) => this.#openDialog('results', e)}>
