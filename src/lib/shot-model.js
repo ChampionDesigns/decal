@@ -32,7 +32,11 @@ function pressureCeiling(cmd, P) {
     return P <= on ? cmd : cmd * (1 - Math.min((P - on) / band, 1));
 }
 
-function makePumpCurve(points) {
+export function pumpCeiling(P) {
+    return pressureCeiling(MAX_FLOW, P);
+}
+
+export function makePumpCurve(points) {
     if (!points || !points.length) return null;
     const xs = [0];
     const ys = [20];
@@ -72,16 +76,16 @@ function makePumpCurve(points) {
     };
 }
 
-function directionOn(mode, a, b) {
+export function directionOn(mode, a, b) {
     return mode === 'both' || (mode === 'rise' && b > a) || (mode === 'fall' && b < a);
 }
 
-function hyperbolic(a, b, tau, t) {
+export function hyperbolic(a, b, tau, t) {
     const x = 1 + t / tau;
     return b + (a - b) / (x * x);
 }
 
-function emaSpeed(tau) {
+export function emaSpeed(tau) {
     return 1 - Math.exp(-1 / (MODEL_HZ * tau));
 }
 
