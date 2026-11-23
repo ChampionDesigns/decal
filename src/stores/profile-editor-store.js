@@ -83,6 +83,10 @@ function carriedMetadata(before, profile) {
     return Object.keys(carried).length > 0 ? carried : null;
 }
 
+const SAVE_STARTED = Object.freeze({
+    save: SAVE_STATUS.SAVING, refusal: null, error: null, savedHidden: false, hidRecordId: null,
+});
+
 const NOOP_LOGGER = Object.freeze({
     debug() {}, info() {}, warn() {}, error() {}, scope() { return NOOP_LOGGER; },
 });
@@ -104,6 +108,8 @@ const EMPTY_STATE = Object.freeze({
     error: null,
     /** The last version answer, so a surface reads one object. */
     version: null,
+    savedHidden: false,
+    hidRecordId: null,
     /** The library-visibility write. Reset with the record — see `seat`. */
     visibility: NO_VISIBILITY_WRITE,
     at: null,
@@ -173,7 +179,7 @@ export function createProfileEditorStore({
                  * behaviour; none is a disappearance. */
                 log.warn(`the saved version ${savedId} could not be made visible — `
                     + `leaving ${beforeId} on the list so the profile still has a row`);
-                return { ...result, data: latest };
+                return { ...result, data: latest, savedHidden: true };
             }
         }
 
@@ -188,7 +194,7 @@ export function createProfileEditorStore({
             log.warn(`the superseded version ${beforeId} could not be hidden — `
                 + 'the save stands and the library will show both rows until it is retried');
         }
-        return { ...result, data: latest };
+        return { ...result, data: latest, hidRecordId: hidden ? beforeId : null };
     }
 
     async function setVisibility(id, visibility) {
@@ -222,6 +228,8 @@ export function createProfileEditorStore({
             refusal: null,
             error: null,
             version,
+            savedHidden: result.savedHidden === true,
+            hidRecordId: typeof result.hidRecordId === 'string' ? result.hidRecordId : null,
             at: now(),
         });
     }
@@ -251,7 +259,7 @@ export function createProfileEditorStore({
                 ? (before && typeof before === 'object' ? before.id ?? null : null)
                 : parentId;
             const sent = metadata === undefined ? carriedMetadata(before, profile) : metadata;
-            patch({ save: SAVE_STATUS.SAVING, refusal: null, error: null, at: now() });
+            patch({ ...SAVE_STARTED, at: now() });
             const result = await callRoute(transport, 'postProfiles', {
                 body: profileCreateBody(profile, { parentId: parent, metadata: sent }),
             });
@@ -271,7 +279,7 @@ export function createProfileEditorStore({
                 ? (before && typeof before === 'object' ? before.id ?? null : null)
                 : id;
             if (!wanted) return store.get();
-            patch({ save: SAVE_STATUS.SAVING, refusal: null, error: null, at: now() });
+            patch({ ...SAVE_STARTED, at: now() });
             const result = await callRoute(transport, 'putProfilesById', {
                 params: { id: wanted },
                 body: profileUpdateBody({ metadata }),
@@ -288,7 +296,7 @@ export function createProfileEditorStore({
                 ? (before && typeof before === 'object' ? before.id ?? null : null)
                 : id;
             if (!wanted) return store.get();
-            patch({ save: SAVE_STATUS.SAVING, refusal: null, error: null, at: now() });
+            patch({ ...SAVE_STARTED, at: now() });
             const result = await callRoute(transport, 'putProfilesById', {
                 params: { id: wanted },
                 body: profileUpdateBody({ profile, metadata }),
@@ -371,6 +379,7 @@ export function createProfileEditorStore({
         clearSave() {
             return patch({
                 save: SAVE_STATUS.IDLE, report: null, refusal: null, error: null, version: null,
+                savedHidden: false, hidRecordId: null,
             });
         },
 

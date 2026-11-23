@@ -51,7 +51,7 @@ const record = (id, { profile, parentId = null, visibility = 'visible', createdA
 
 const contentKey = (profile) => JSON.stringify(profile);
 
-function profileServer(records) {
+function profileServer(records, { failVisibility = [] } = {}) {
     const held = new Map(records.map((r) => [r.id, structuredClone(r)]));
     const calls = [];
     let serial = 0;
@@ -66,6 +66,7 @@ function profileServer(records) {
         const visibility = target.pathname.match(/^\/api\/v1\/profiles\/(.+)\/visibility$/);
         if (visibility && method === 'PUT') {
             const id = decodeURIComponent(visibility[1]);
+            if (failVisibility.includes(id)) return json({ error: 'unavailable' }, 500);
             const found = held.get(id);
             if (!found) return json({ error: 'Invalid request' }, 400);
             found.visibility = JSON.parse(options.body).visibility;
@@ -133,9 +134,11 @@ async function until(check, rounds = 200) {
     return check();
 }
 
-async function saveFromEditor({ records, slot0, openId, savedProfile }) {
-    const fetchImpl = profileServer(records);
-    const kv = countingKv({ [FAVOURITES_KEY]: { 0: slot0 }, [FAVOURITES_SEEDED_KEY]: true });
+async function saveFromEditor({
+    records, slot0, slots = null, openId, savedProfile, failVisibility = [], between = null,
+}) {
+    const fetchImpl = profileServer(records, { failVisibility });
+    const kv = countingKv({ [FAVOURITES_KEY]: slots ?? { 0: slot0 }, [FAVOURITES_SEEDED_KEY]: true });
     const boot = createAppBoot({
         fetch: fetchImpl,
         createSocket: fakeSocket(),
@@ -148,6 +151,10 @@ async function saveFromEditor({ records, slot0, openId, savedProfile }) {
     kv.writes.length = 0;
 
     boot.profileEditor.open(boot.library.recordFor(openId));
+    if (between) {
+        between(kv);
+        kv.writes.length = 0;
+    }
     const state = await boot.profileEditor.saveAsNewVersion(savedProfile);
     assert.equal(state.save, SAVE_STATUS.SAVED, 'the save itself succeeded');
     const savedId = state.record.id;
@@ -156,7 +163,9 @@ async function saveFromEditor({ records, slot0, openId, savedProfile }) {
     await settle();
     const favouriteWrites = kv.writes.filter((w) => w.key === FAVOURITES_KEY);
     const result = {
-        boot, savedId, armed, favouriteWrites, fetchImpl,
+        boot, savedId, armed, favouriteWrites, fetchImpl, state,
+        assignments: { ...boot.library.get().favourites.assignments },
+        storedMap: { ...kv.snapshot()[FAVOURITES_KEY] },
         slot0: boot.library.get().favourites.assignments[0] ?? null,
         stored: kv.snapshot()[FAVOURITES_KEY]?.[0] ?? null,
         loadedId: boot.library.get().loaded?.id ?? null,
@@ -223,5 +232,113 @@ describe('a favourite slot follows an editor save', () => {
         assert.equal(run.slot0, 'child-c');
         assert.equal(run.favouriteWrites.length, 0, 'the rail was not written');
         assert.equal(run.loadedId, 'child-c');
+    });
+});
+
+describe('the favourite follow step writes from the stored rail', () => {
+    test('a slot that another client changed during the edit keeps that client\'s value', async () => {
+        const run = await saveFromEditor({
+            records: [PARENT, OLDER_CHILD, NEWER_CHILD],
+            slots: { 0: 'parent-p', 1: null },
+            openId: 'parent-p',
+            savedProfile: recipe('Extractamundo Dos!', 7),
+            between: (kv) => kv.set(FAVOURITES_KEY, { 0: 'parent-p', 1: 'child-s' }),
+        });
+        assert.equal(run.savedId, 'new-1');
+        assert.equal(run.storedMap[1], 'child-s', 'the other client\'s slot is still stored');
+        assert.equal(run.assignments[1], 'child-s', 'and it is on the rail');
+        assert.equal(run.storedMap[0], 'new-1', 'the edited slot holds the saved record');
+        assert.equal(run.assignments[0], 'new-1');
+    });
+
+    test('a slot that another client moved off the edited record is not written', async () => {
+        const run = await saveFromEditor({
+            records: [PARENT, OLDER_CHILD, NEWER_CHILD],
+            slots: { 0: 'parent-p' },
+            openId: 'parent-p',
+            savedProfile: recipe('Extractamundo Dos!', 7),
+            between: (kv) => kv.set(FAVOURITES_KEY, { 0: 'child-s' }),
+        });
+        assert.equal(run.storedMap[0], 'child-s');
+        assert.equal(run.favouriteWrites.length, 0, 'the follow step wrote nothing');
+    });
+});
+
+describe('the favourite follows only to a visible record', () => {
+    test('a save that returns a hidden record whose un-hide fails leaves the slot on the edited record',
+        async () => {
+            const run = await saveFromEditor({
+                records: [PARENT, OLDER_CHILD, NEWER_CHILD],
+                slot0: 'child-s',
+                openId: 'child-s',
+                savedProfile: recipe('Extractamundo Dos!', 5.5),
+                failVisibility: ['child-c'],
+            });
+            assert.equal(run.savedId, 'child-c', 'the server answered with the hidden record');
+            assert.equal(run.state.savedHidden, true, 'the editor state says the record stayed hidden');
+            assert.equal(run.fetchImpl.held.get('child-s').visibility, 'visible',
+                'the edited record was not hidden');
+            assert.equal(run.slot0, 'child-s', 'the slot stays on the edited record');
+            assert.equal(run.stored, 'child-s');
+            assert.equal(run.favouriteWrites.length, 0, 'no favourites write');
+        });
+
+    test('a save whose un-hide succeeds reports no hidden record', async () => {
+        const run = await saveFromEditor({
+            records: [PARENT, OLDER_CHILD, NEWER_CHILD],
+            slot0: 'parent-p',
+            openId: 'parent-p',
+            savedProfile: recipe('Extractamundo Dos!', 5.5),
+        });
+        assert.equal(run.state.savedHidden, false);
+        assert.equal(run.state.hidRecordId, 'parent-p');
+    });
+});
+
+const native = { ...recipe('Native', 4), de1_emulation: false };
+const NATIVE = record('native-n', { profile: native, createdAt: '2026-11-20T10:00:00.000Z' });
+const EMULATED = record('emulated-e', {
+    profile: { ...native, de1_emulation: true },
+    parentId: 'native-n',
+    createdAt: '2026-11-21T10:00:00.000Z',
+});
+
+describe('one record holds at most one favourite slot', () => {
+    test('emulation off on a favourited copy of a favourited profile clears the copy\'s slot', async () => {
+        const run = await saveFromEditor({
+            records: [NATIVE, EMULATED],
+            slots: { 0: 'native-n', 1: 'emulated-e' },
+            openId: 'emulated-e',
+            savedProfile: { ...native, de1_emulation: false },
+        });
+        assert.equal(run.savedId, 'native-n', 'the content matched the native record');
+        assert.equal(run.fetchImpl.held.get('emulated-e').visibility, 'hidden');
+        assert.deepEqual([run.assignments[0], run.assignments[1]], ['native-n', null]);
+        assert.deepEqual([run.storedMap[0], run.storedMap[1]], ['native-n', null]);
+        assert.equal(run.favouriteWrites.length, 1, 'one favourites write');
+        const entries = run.boot.library.favouriteEntries();
+        assert.equal(entries[0]?.value, 'native-n', 'slot 0 resolves to its own record');
+        assert.equal(entries[1], null, 'slot 1 is clear, so a hold on it resolves to nothing');
+        assert.equal(run.boot.library.favouriteSlotHolding('native-n'), 0);
+    });
+
+    test('a bundled profile that the save keeps on the list keeps its slot', async () => {
+        const bundled = {
+            ...record('bundled-b', { profile: recipe('Bundled', 3), createdAt: '2026-01-01T00:00:00.000Z' }),
+            isDefault: true,
+        };
+        const copy = record('copy-c', {
+            profile: recipe('Bundled', 3.5), parentId: 'bundled-b', createdAt: '2026-11-01T00:00:00.000Z',
+        });
+        const run = await saveFromEditor({
+            records: [bundled, copy],
+            slots: { 0: 'copy-c', 1: 'bundled-b' },
+            openId: 'bundled-b',
+            savedProfile: recipe('Bundled', 3.5),
+        });
+        assert.equal(run.savedId, 'copy-c');
+        assert.equal(run.fetchImpl.held.get('bundled-b').visibility, 'visible');
+        assert.deepEqual([run.assignments[0], run.assignments[1]], ['copy-c', 'bundled-b']);
+        assert.equal(run.favouriteWrites.length, 0);
     });
 });

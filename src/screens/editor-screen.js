@@ -319,6 +319,8 @@ export class EditorScreen extends UiElement {
 
     /** The draft as it was sent, so a later edit to it can be seen. */
     #submitted = null;
+    #sentDe1Emulation = null;
+
     /** The last save status announced, so one outcome is announced exactly once. */
     #announced = SAVE_STATUS.IDLE;
 
@@ -763,11 +765,14 @@ export class EditorScreen extends UiElement {
             if (status !== SAVE_STATUS.SAVING && status !== SAVE_STATUS.IDLE) {
                 this.#pending = null;
                 this.#submitted = null;
+                const sentDe1Emulation = this.#sentDe1Emulation;
+                this.#sentDe1Emulation = null;
                 if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
                     this.#sayNewerEditsKept();
                 } else {
                     this.#announce(state);
                 }
+                if (status === SAVE_STATUS.SAVED) this.#sayWhatWasNotStored(state, sentDe1Emulation);
 
                 if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
                     this.#closeOnSaved = false;
@@ -1414,6 +1419,8 @@ export class EditorScreen extends UiElement {
         if (!body) return this.#nothingToSave(plan);
         this.#pending = plan.operation;
         this.#submitted = plan.operation === SAVE_OPERATION.NEW_VERSION ? body : null;
+        this.#sentDe1Emulation = typeof body?.[DE1_EMULATION_KEY] === 'boolean'
+            ? body[DE1_EMULATION_KEY] : null;
         Promise.resolve(this.#store[plan.operation](body))
             .catch((error) => this.#saveThrew(error));
 
@@ -1442,6 +1449,7 @@ export class EditorScreen extends UiElement {
     #saveThrew(error) {
         this.#pending = null;
         this.#submitted = null;
+        this.#sentDe1Emulation = null;
         this.#closeOnSaved = false;
         this.#log('error', `editor: the save threw — ${error?.message ?? error}`);
         this.#store?.clearSave?.();
@@ -1452,6 +1460,18 @@ export class EditorScreen extends UiElement {
         this.#toast(
             this.#i18n.t('Saved. The changes you made since are still unsaved.'), 'ok',
         );
+    }
+
+    #sayWhatWasNotStored(state, sentDe1Emulation) {
+        const t = this.#i18n.t;
+        if (state?.savedHidden === true) {
+            this.#toast(t('The saved version is still hidden, so favourites stay on the version you opened.'),
+                'warn');
+        }
+        const served = state?.record?.profile ?? null;
+        if (sentDe1Emulation !== null && served && de1EmulationOf(served) !== sentDe1Emulation) {
+            this.#toast(t('This Decide did not store DE1 emulation.'), 'warn');
+        }
     }
 
     /** Show one line on the screen's own toast. */
