@@ -180,6 +180,17 @@ test('each value runs as its wire step', () => {
     assert.equal(a.end.t, b.end.t);
 });
 
+test('a value whose product lands just under a half step still rounds up', () => {
+    for (const [value, wire] of [[0.29, 0.3], [0.57, 0.58], [1.13, 1.14], [2.01, 2.02]]) {
+        const set = settingsFromNativeShaping({ flow_tau: value, pressure_tau: value, ramp_factor: value });
+        assert.equal(set.fTau, wire, `flow tau ${value}`);
+        assert.equal(set.pTau, wire, `pressure tau ${value}`);
+        assert.equal(set.rFac, wire, `ramp factor ${value}`);
+    }
+    const curve = settingsFromNativeShaping({ pump_curve: [{ pressure: 1.25, flow: 19.95 }, { pressure: 2.45, flow: 0.05 }] }).curve;
+    assert.deepEqual(curve, [[1.3, 20], [2.5, 0.1]]);
+});
+
 test('an unknown mode runs as both', () => {
     const set = settingsFromNativeShaping({ ...FIRST_TEST_BLOCK, flow_mode: 'up', pressure_mode: 'fall' });
     assert.equal(set.fMode, 'both');

@@ -18,7 +18,7 @@ export const FIRMWARE_DEFAULT_SETTINGS = Object.freeze({
     rFac: 1,
 });
 
-export const WIRE_STEP = Object.freeze({ tau: 0.02, ramp: 0.02, pressure: 0.1, flow: 0.1 });
+export const WIRE_STEPS_PER_UNIT = Object.freeze({ tau: 50, ramp: 50, pressure: 10, flow: 10 });
 
 function compliance(P) {
     const p = Math.max(P, 0);
@@ -355,8 +355,8 @@ export function runShotModel(steps, settings, puck, options) {
     return { out, frames, end, W: cupWeight(pk, V), steps: n };
 }
 
-function onWireStep(value, step) {
-    return Math.round(Math.floor(value / step + 0.5 + 1e-9) * step * 1000) / 1000;
+function onWireStep(value, perUnit) {
+    return Math.floor(value * perUnit + 0.5 + 1e-9) / perUnit;
 }
 
 function finiteOr(value, fallback) {
@@ -373,14 +373,14 @@ export function settingsFromNativeShaping(block) {
     const points = Array.isArray(block.pump_curve) ? block.pump_curve : [];
     const curve = points
         .filter((pt) => pt && Number.isFinite(pt.pressure) && Number.isFinite(pt.flow))
-        .map((pt) => [onWireStep(pt.pressure, WIRE_STEP.pressure), onWireStep(pt.flow, WIRE_STEP.flow)]);
+        .map((pt) => [onWireStep(pt.pressure, WIRE_STEPS_PER_UNIT.pressure), onWireStep(pt.flow, WIRE_STEPS_PER_UNIT.flow)]);
     return {
         curve: curve.length ? curve : null,
-        fTau: onWireStep(finiteOr(block.flow_tau, d.fTau), WIRE_STEP.tau),
+        fTau: onWireStep(finiteOr(block.flow_tau, d.fTau), WIRE_STEPS_PER_UNIT.tau),
         fMode: modeOr(block.flow_mode, d.fMode),
-        pTau: onWireStep(finiteOr(block.pressure_tau, d.pTau), WIRE_STEP.tau),
+        pTau: onWireStep(finiteOr(block.pressure_tau, d.pTau), WIRE_STEPS_PER_UNIT.tau),
         pMode: modeOr(block.pressure_mode, d.pMode),
-        rFac: onWireStep(finiteOr(block.ramp_factor, d.rFac), WIRE_STEP.ramp),
+        rFac: onWireStep(finiteOr(block.ramp_factor, d.rFac), WIRE_STEPS_PER_UNIT.ramp),
     };
 }
 
