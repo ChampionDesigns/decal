@@ -2,8 +2,12 @@ import { css, html, nothing, svg } from 'lit';
 import { UiElement } from 'src/components/base.js';
 import { typeRoles } from 'src/components/type-roles.js';
 import { I18nController } from 'src/lib/i18n.js';
+import { backIcon } from 'src/lib/icons.js';
+import { deepActiveElement, flatTabbables, trapTarget } from 'src/lib/focus-trap.js';
+import { bandHint } from 'src/lib/machine-limits.js';
 import 'src/components/ui-dialog.js';
 import 'src/components/ui-icon-button.js';
+import 'src/components/ui-numeric-keypad.js';
 import 'src/components/ui-stepper.js';
 import {
     DEFAULT_PUMP_CURVE, NATIVE_SHAPING_DEFAULTS, NATIVE_SHAPING_LIMITS, NATIVE_SHAPING_MODES,
@@ -96,6 +100,18 @@ function onStep(value, perUnit) {
     return wireUnits(value, perUnit) / perUnit;
 }
 
+function padBand(limits, unit, perUnit) {
+    return Object.freeze({
+        min: limits.min,
+        max: limits.max,
+        step: limits.step,
+        decimals: String(limits.step).split('.')[1]?.length ?? 0,
+        unit,
+        label: bandHint(limits, { unit }),
+        clamp: (value) => onStep(Math.min(limits.max, Math.max(limits.min, Number(value))), perUnit),
+    });
+}
+
 function isBlock(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -137,8 +153,9 @@ function sameValue(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export class EditorShapingDialog extends UiElement {
+export class EditorShapingPage extends UiElement {
     static properties = {
+        open: { type: Boolean, reflect: true },
         shot: { attribute: false },
         previewer: { attribute: false },
         _draft: { state: true },
@@ -152,7 +169,32 @@ export class EditorShapingDialog extends UiElement {
     static styles = [typeRoles, css`
         :host {
             --_sd-hit: max(var(--ui-hit-min), var(--_ui-hit-floor, 0px));
-            display: contents;
+            display: none;
+        }
+
+        :host([open]) {
+            position: absolute;
+            inset: 0;
+            z-index: var(--ui-z-overlay);
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--ui-seam);
+            container-type: inline-size;
+            min-inline-size: 0;
+            min-block-size: 0;
+            background-color: var(--ui-line);
+            color: var(--ui-text);
+        }
+
+        #shape-head {
+            padding: var(--ui-space-5);
+            background-color: var(--ui-surface);
+        }
+
+        #shape-back {
+            --_ui-icon-btn-box: var(--_sd-hit);
+            flex: 0 0 auto;
         }
 
         .top {
@@ -239,10 +281,11 @@ export class EditorShapingDialog extends UiElement {
         }
 
         #shape-slot {
-            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
             min-block-size: 0;
+            overflow: hidden;
+            background-color: var(--ui-surface);
         }
 
         #shape-body {
@@ -460,6 +503,12 @@ export class EditorShapingDialog extends UiElement {
             margin: 0 0 var(--ui-space-2);
         }
 
+        @container (max-width: 720px) {
+            #shape-head {
+                padding: var(--ui-space-4);
+            }
+        }
+
         @container (max-width: 759px) {
             #shape-body,
             #shape-body.prev {
@@ -504,9 +553,13 @@ export class EditorShapingDialog extends UiElement {
     #fromNone = false;
     #touched = false;
     #start = null;
+    #returnFocusTo = null;
+    #inerted = [];
+    #typing = null;
 
     constructor() {
         super();
+        this.open = false;
         this.shot = null;
         this.previewer = null;
         this._draft = null;
@@ -533,14 +586,22 @@ export class EditorShapingDialog extends UiElement {
             }
             if (changed) this._sizes = next;
         });
+        this.addEventListener('keydown', this.#onKeydown);
     }
 
     disconnectedCallback() {
+        this.removeEventListener('keydown', this.#onKeydown);
+        this.#releaseInert();
+        this.#returnFocusTo = null;
         super.disconnectedCallback();
         this.#resize?.disconnect();
     }
 
-    updated() {
+    updated(changed) {
+        if (changed.has('open') && changed.get('open') !== undefined) {
+            if (this.open) this.#applyInert();
+            else this.#giveFocusBack();
+        }
         for (const id of ['curve-box', 'ftau-chart', 'ptau-chart', 'rfac-chart', 'preview-box']) {
             const el = this.renderRoot.getElementById(id);
             if (el && !el.dataset.watched) {
@@ -548,10 +609,6 @@ export class EditorShapingDialog extends UiElement {
                 this.#resize?.observe(el);
             }
         }
-    }
-
-    get open() {
-        return this._draft !== null;
     }
 
     get draft() {
@@ -571,23 +628,74 @@ export class EditorShapingDialog extends UiElement {
         this._clearable = given !== null;
         this._draft = draftFrom(given ?? this.#start);
         this._selected = 0;
+        if (!this.open) this.#returnFocusTo = invoker ?? deepActiveElement(this.ownerDocument);
+        this.open = true;
         this.updateComplete.then(() => {
-            const dialog = this.renderRoot.getElementById('shape-dialog');
-            dialog?.show({ invoker });
-            this.updateComplete.then(() => this.renderRoot.getElementById('shape-cancel')?.focus({ preventScroll: true }));
+            if (this.open) this.renderRoot.getElementById('shape-cancel')?.focus({ preventScroll: true });
         });
     }
 
     hide() {
-        this.renderRoot.getElementById('shape-dialog')?.hide('close');
+        if (!this.open) return;
+        this.#typing = null;
+        this.#pad?.hide('dismiss');
+        this.renderRoot.getElementById('shape-tip')?.hide('dismiss');
+        this._draft = null;
+        this.#drag = null;
+        this.open = false;
     }
 
-    #onOpenChange = (event) => {
-        if (event.target?.id !== 'shape-dialog') return;
-        if (!event.detail?.open) {
-            this._draft = null;
-            this.#drag = null;
+    get #pad() {
+        return this.renderRoot?.getElementById?.('shape-pad') ?? null;
+    }
+
+    get #layerOpen() {
+        return this.#pad?.open === true || this.renderRoot?.getElementById?.('shape-tip')?.open === true;
+    }
+
+    #applyInert() {
+        this.setAttribute('role', 'dialog');
+        this.setAttribute('aria-modal', 'true');
+        this.setAttribute('aria-label', this.#i18n.t('Native shaping'));
+        const marked = [];
+        for (const sibling of this.parentNode?.children ?? []) {
+            if (sibling === this || sibling.inert === true) continue;
+            sibling.inert = true;
+            marked.push(sibling);
         }
+        this.#inerted = marked;
+    }
+
+    #releaseInert() {
+        for (const element of this.#inerted) element.inert = false;
+        this.#inerted = [];
+    }
+
+    #giveFocusBack() {
+        this.removeAttribute('role');
+        this.removeAttribute('aria-modal');
+        this.removeAttribute('aria-label');
+        this.#releaseInert();
+        const target = this.#returnFocusTo;
+        this.#returnFocusTo = null;
+        if (!target || !target.isConnected || typeof target.focus !== 'function') return;
+        target.focus({ preventScroll: true });
+    }
+
+    #onKeydown = (event) => {
+        if (!this.open || event.defaultPrevented || this.#layerOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.hide();
+            return;
+        }
+        if (event.key !== 'Tab' || event.metaKey || event.ctrlKey || event.altKey) return;
+        const items = flatTabbables(this);
+        const target = trapTarget(items, deepActiveElement(this.ownerDocument), { backwards: event.shiftKey });
+        if (!target) return;
+        event.preventDefault();
+        target.focus?.();
     };
 
     #outBlock(result) {
@@ -638,10 +746,43 @@ export class EditorShapingDialog extends UiElement {
 
     #onStepper(field, perUnit, event) {
         event.stopPropagation();
-        const v = Number(event.detail?.value);
-        if (!finite(v)) return;
-        this.#set({ [field]: onStep(v, perUnit) });
+        this.#setNumber(field, perUnit, event.detail?.value);
     }
+
+    #setNumber(field, perUnit, raw) {
+        const v = Number(raw);
+        if (!finite(v) || !this._draft) return false;
+        this.#set({ [field]: onStep(v, perUnit) });
+        return true;
+    }
+
+    #onEdit(card, event) {
+        event.stopPropagation();
+        const pad = this.#pad;
+        const stepper = event.currentTarget;
+        if (!pad || !this._draft) return;
+        this.#typing = card;
+        pad.heading = this.#i18n.t(card.heading);
+        const band = padBand(card.limits, card.padUnit, card.perUnit);
+        pad.band = band;
+        pad.limitKey = card.recent;
+        pad.unit = card.padUnit;
+        pad.value = this._draft[card.field].toFixed(band.decimals);
+        pad.show({ invoker: stepper?.shadowRoot?.getElementById('value') ?? stepper, reason: 'press' });
+    }
+
+    #onPadConfirm = (event) => {
+        event.stopPropagation();
+        const card = this.#typing;
+        this.#typing = null;
+        if (!card) return;
+        if (this.#setNumber(card.field, card.perUnit, event.detail?.value)) this.#touched = true;
+    };
+
+    #onPadCancel = (event) => {
+        event.stopPropagation();
+        this.#typing = null;
+    };
 
     #movePoint(i, pressure, flow) {
         this.#set({ points: movePoint(this._draft.points, i, pressure, flow) });
@@ -905,7 +1046,8 @@ export class EditorShapingDialog extends UiElement {
             @click=${() => this.#set({ [field]: m })}>${t(MODE_WORDS[m])}</button>`)}</div>`;
     }
 
-    #card({ id, heading, unit, tip, field, perUnit, limits, mode, chart }) {
+    #card(card) {
+        const { id, heading, unit, tip, field, perUnit, limits, mode, chart } = card;
         const t = this.#i18n.t;
         const value = this._draft[field];
         return html`<section class="panel ctl-card" id=${`${id}-sec`}>
@@ -923,7 +1065,9 @@ export class EditorShapingDialog extends UiElement {
                     .min=${limits.min}
                     .max=${limits.max}
                     .step=${limits.step}
+                    editable
                     @change=${(e) => this.#onStepper(field, perUnit, e)}
+                    @edit=${(e) => this.#onEdit(card, e)}
                 ></ui-stepper>
                 ${mode ?? nothing}
             </div>
@@ -968,21 +1112,21 @@ export class EditorShapingDialog extends UiElement {
                 <div id="m-right">
                     ${this.#card({
                         id: 'ftau', heading: 'Flow τ', unit: 's · 0 to 5', tip: 'ftau', field: 'flowTau',
-                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau,
+                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau, padUnit: 's', recent: 'shapingFlowTau',
                         mode: this.#modeBank('fmode', t('Flow τ acts on'), d.flowMode, 'flowMode'),
                         chart: this.#miniSvg('ftau-chart', t('Flow target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.'),
                             this.#mini('ftau-chart', stepResponse('flow', d.flowTau, d.flowMode), -0.5, 5, 9, 'var(--ui-channel-flow)', 'mL/s · s')),
                     })}
                     ${this.#card({
                         id: 'ptau', heading: 'Pressure τ', unit: 's · 0 to 5', tip: 'ptau', field: 'pressureTau',
-                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau,
+                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau, padUnit: 's', recent: 'shapingPressureTau',
                         mode: this.#modeBank('pmode', t('Pressure τ acts on'), d.pressureMode, 'pressureMode'),
                         chart: this.#miniSvg('ptau-chart', t('Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.'),
                             this.#mini('ptau-chart', stepResponse('pressure', d.pressureTau, d.pressureMode), -0.5, 5, 7, 'var(--ui-channel-pressure)', 'bar · s')),
                     })}
                     ${this.#card({
                         id: 'rfac', heading: 'Ramp factor', unit: '× τ · 0 to 4', tip: 'rfac', field: 'ramp',
-                        perUnit: WIRE_STEPS_PER_UNIT.ramp, limits: L.ramp,
+                        perUnit: WIRE_STEPS_PER_UNIT.ramp, limits: L.ramp, padUnit: '× τ', recent: 'shapingRampFactor',
                         chart: this.#miniSvg('rfac-chart', t('A smooth pressure step, 2 to 9 bar in 4 s, with pressure τ times the ramp factor. Dashed: the ramp. Solid: the shaped target.'),
                             this.#mini('rfac-chart', rampResponse(d.ramp, d.pressureTau, d.pressureMode), -0.5, 6, 10, 'var(--ui-channel-pressure)', 'bar · s')),
                     })}
@@ -995,34 +1139,39 @@ export class EditorShapingDialog extends UiElement {
 
     render() {
         const t = this.#i18n.t;
+        if (!this.open) return nothing;
         const valid = this.result?.ok === true;
         return html`
-            <ui-dialog id="shape-dialog" placement="full" label=${t('Native shaping')}
-                @open-change=${this.#onOpenChange}>
-                <div slot="header" class="top">
-                    <div class="title">
-                        <h2 id="dlg-title" class="ui-title">${t('Native shaping')}</h2>
-                        <ui-icon-button class="info" id="tip-modal-btn" label=${t('About native shaping')}
-                            @click=${(e) => this.#openTip('modal', e.currentTarget)}>${infoIcon()}</ui-icon-button>
-                    </div>
-                    <span class="spacer"></span>
-                    <button type="button" class="chip" id="preview-btn" aria-pressed=${this._preview ? 'true' : 'false'}
-                        @click=${() => { this._preview = !this._preview; }}><span class="box" aria-hidden="true"></span>${t('Preview: the whole profile')}</button>
-                    ${this._clearable ? html`<button type="button" class="chip" id="shape-clear"
-                        ?disabled=${this.#cleared} @click=${this.#clear}>${t('Clear')}</button>` : nothing}
-                    <button type="button" class="chip" id="shape-cancel" @click=${() => this.hide()}>${t('Cancel')}</button>
-                    <button type="button" class="chip primary" id="shape-apply" ?disabled=${!valid} @click=${this.#apply}>${t('Apply')}</button>
+            <div id="shape-head" class="top">
+                <ui-icon-button id="shape-back" size="lg" label=${t('Back to the profile editor')}
+                    @click=${() => this.hide()}>${backIcon()}</ui-icon-button>
+                <div class="title">
+                    <h2 id="dlg-title" class="ui-title">${t('Native shaping')}</h2>
+                    <ui-icon-button class="info" id="tip-modal-btn" label=${t('About native shaping')}
+                        @click=${(e) => this.#openTip('modal', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 </div>
-                <div slot="body" id="shape-slot">${this.#body()}</div>
-                <ui-dialog id="shape-tip" heading=${this._tip ? t(TIPS[this._tip].heading) : ''}>
-                    <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => html`<p
-                        >${t(p)}</p>`) : nothing}</div>
-                    <button type="button" class="chip" slot="actions" id="shape-tip-close"
-                        @click=${() => this.renderRoot.getElementById('shape-tip')?.hide('close')}>${t('Close')}</button>
-                </ui-dialog>
+                <span class="spacer"></span>
+                <button type="button" class="chip" id="preview-btn" aria-pressed=${this._preview ? 'true' : 'false'}
+                    @click=${() => { this._preview = !this._preview; }}><span class="box" aria-hidden="true"></span>${t('Preview: the whole profile')}</button>
+                ${this._clearable ? html`<button type="button" class="chip" id="shape-clear"
+                    ?disabled=${this.#cleared} @click=${this.#clear}>${t('Clear')}</button>` : nothing}
+                <button type="button" class="chip" id="shape-cancel" @click=${() => this.hide()}>${t('Cancel')}</button>
+                <button type="button" class="chip primary" id="shape-apply" ?disabled=${!valid} @click=${this.#apply}>${t('Apply')}</button>
+            </div>
+            <div id="shape-slot">${this.#body()}</div>
+            <ui-dialog id="shape-tip" heading=${this._tip ? t(TIPS[this._tip].heading) : ''}>
+                <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => html`<p
+                    >${t(p)}</p>`) : nothing}</div>
+                <button type="button" class="chip" slot="actions" id="shape-tip-close"
+                    @click=${() => this.renderRoot.getElementById('shape-tip')?.hide('close')}>${t('Close')}</button>
             </ui-dialog>
+            <ui-numeric-keypad
+                id="shape-pad"
+                @confirm=${this.#onPadConfirm}
+                @cancel=${this.#onPadCancel}
+            ></ui-numeric-keypad>
         `;
     }
 }
 
-customElements.define('editor-shaping-dialog', EditorShapingDialog);
+customElements.define('editor-shaping-page', EditorShapingPage);

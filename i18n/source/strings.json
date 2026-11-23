@@ -49,6 +49,7 @@
     {"key":"Available"},
     {"key":"Back"},
     {"key":"Back to the live shot","note":"History screen: the accessible name of the way out. History is a ROUTE, so the control navigates rather than closing an overlay."},
+    {"key":"Back to the profile editor","note":"Native shaping page: the accessible name of the way back. The page closes and keeps the profile as it was."},
     {"key":"Battery"},
     {"key":"Beans","note":"Live screen: the button that hands off to the DYE2 bean-picker plugin."},
     {"key":"Below"},

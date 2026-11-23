@@ -58,7 +58,7 @@ import 'src/screens/editor-body.js';
 import 'src/screens/editor-settings-panel.js';
 import 'src/screens/editor-review-panel.js';
 import 'src/screens/editor-chart-panel.js';
-import 'src/screens/editor-shaping-dialog.js';
+import 'src/screens/editor-shaping-page.js';
 
 import 'src/screens/step-matrix.js';
 import 'src/screens/editor-preview.js';
@@ -151,6 +151,7 @@ export class EditorScreen extends UiElement {
         }
 
         :host(.seam-grid) {
+            position: relative;
             grid-template-rows: var(--ui-band-h) minmax(0, 1fr);
             block-size: 100%;
         }
@@ -169,6 +170,7 @@ export class EditorScreen extends UiElement {
             min-inline-size: 0;
             min-block-size: 0;
         }
+
 
         #recovery {
             grid-row: 2;
@@ -721,10 +723,10 @@ export class EditorScreen extends UiElement {
                 </editor-review-panel>
             </editor-body>
 
-            <editor-shaping-dialog
-                id="shaping-dialog"
+            <editor-shaping-page
+                id="shaping-page"
                 @shaping-apply=${this.#onShapingApply}
-            ></editor-shaping-dialog>
+            ></editor-shaping-page>
 
             ${unseated ? html`
                 <div id="recovery">
@@ -1290,16 +1292,16 @@ export class EditorScreen extends UiElement {
 
     #onShapingOpen = (event) => {
         event?.stopPropagation?.();
-        const dialog = this.renderRoot.getElementById('shaping-dialog');
+        const page = this.renderRoot.getElementById('shaping-page');
         const chart = this.renderRoot.getElementById('chart-panel');
-        if (!dialog || !this._draft) return;
+        if (!page || !this._draft) return;
         if (this.#saving) {
             this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
             return;
         }
-        dialog.shot = chart?.shotPoints ?? null;
-        dialog.previewer = chart ? (block) => chart.shapingPreview(block) : null;
-        dialog.show({
+        page.shot = chart?.shotPoints ?? null;
+        page.previewer = chart ? (block) => chart.shapingPreview(block) : null;
+        page.show({
             block: this._draft[NATIVE_SHAPING_KEY] ?? null,
             start: chart?.shotShaping ?? null,
             invoker: event?.detail?.invoker ?? event?.currentTarget ?? null,
