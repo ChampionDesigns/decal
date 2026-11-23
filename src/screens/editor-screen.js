@@ -29,6 +29,7 @@ import {
     VERSION_KEPT, versionChangeFacts, parentRecordOf, lineageFactsOf,
 } from 'src/lib/profile-lineage.js';
 
+const SHAPING_MODE_WORDS = Object.freeze({ both: 'both', rise: 'rise', fall: 'fall' });
 const VERSION_FIELD_WORDS = Object.freeze({
     title: 'the name',
     notes: 'the notes',
@@ -345,6 +346,20 @@ export class EditorScreen extends UiElement {
             text-overflow: ellipsis;
         }
 
+        #idline {
+            display: flex;
+            align-items: baseline;
+            gap: var(--ui-space-2);
+            min-inline-size: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #idline #totals {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-note);
+        }
+
         #shot-line,
         #totals {
             max-inline-size: none;
@@ -599,7 +614,10 @@ export class EditorScreen extends UiElement {
             >
                 ${identity ? html`
                     <div id="identity" slot="lead">
-                        <span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>
+                        ${this.tab === CHART_TAB ? html`<p id="idline"
+                            ><span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span
+                            ><span id="totals" class="ui-numeric">${this.#totalsLine()}</span></p>`
+                            : html`<span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>`}
                         <div class="name-row">
                             ${this.tab === CHART_TAB ? html`<button
                                 id="editor-title"
@@ -1242,6 +1260,7 @@ export class EditorScreen extends UiElement {
                 data-row="native-shaping"
                 heading=${t('Native shaping')}
                 caption=${this.#nativeShapingSummary(draft[NATIVE_SHAPING_KEY])}
+                note=${t('Bengle only; hidden in DE1 emulation.')}
             >
                 <ui-button
                     id="shaping-edit-settings"
@@ -1256,12 +1275,14 @@ export class EditorScreen extends UiElement {
         if (!result?.ok) return t('Not set: the machine uses its own settings.');
         const b = result.block;
         const n = b.pump_curve.length;
-        const curve = n === 0 ? t('Curve off') : t('Curve on, {n} points', { n });
-        const mode = (tau, m) => (tau > 0 && m !== 'both' ? ` (${t(m === 'rise' ? 'Rise' : 'Fall')})` : '');
-        return t('{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}', {
+        const curve = n === 0 ? t('Pump curve off') : t('Pump curve on, {n} points', { n });
+        const tau = (v, m) => (v > 0
+            ? t('{tau} s, {mode}', { tau: v.toFixed(2), mode: t(SHAPING_MODE_WORDS[m] ?? SHAPING_MODE_WORDS.both) })
+            : t('{tau} s', { tau: v.toFixed(2) }));
+        return t('{curve} · flow τ {f} · pressure τ {p} · ramp {r}', {
             curve,
-            f: b.flow_tau.toFixed(2), fm: mode(b.flow_tau, b.flow_mode),
-            p: b.pressure_tau.toFixed(2), pm: mode(b.pressure_tau, b.pressure_mode),
+            f: tau(b.flow_tau, b.flow_mode),
+            p: tau(b.pressure_tau, b.pressure_mode),
             r: b.ramp_factor.toFixed(2),
         });
     }
@@ -1279,6 +1300,7 @@ export class EditorScreen extends UiElement {
         dialog.previewer = chart ? (block) => chart.shapingPreview(block) : null;
         dialog.show({
             block: this._draft[NATIVE_SHAPING_KEY] ?? null,
+            start: chart?.shotShaping ?? null,
             invoker: event?.detail?.invoker ?? event?.currentTarget ?? null,
         });
     };

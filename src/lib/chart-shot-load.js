@@ -54,6 +54,13 @@ function validBlock(block) {
     return isBody(block) && checkNativeShaping(block).ok;
 }
 
+export function shotShapingBlock(record) {
+    const report = record?.workflow?.machine?.[REPORT_KEY];
+    if (isBody(report) && validBlock(report.settings)) return report.settings;
+    const block = record?.workflow?.profile?.[NATIVE_SHAPING_KEY];
+    return validBlock(block) ? block : null;
+}
+
 export function shotShapingSettings(record) {
     const report = record?.workflow?.machine?.[REPORT_KEY];
     if (isBody(report) && validBlock(report.settings)) {

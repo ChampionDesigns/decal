@@ -8,8 +8,10 @@ import 'src/components/ui-slider.js';
 import 'src/components/ui-stepper.js';
 import { runShotModel, settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
 import { de1EmulationOf } from 'src/lib/de1-emulation.js';
+import { DASH_PATTERNS, SERIES_LINE_CAP } from 'src/lib/chart-axis.js';
+import { parsePx } from 'src/lib/chart-tokens.js';
 import {
-    CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts,
+    CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts, shotShapingBlock,
 } from 'src/lib/chart-shot-load.js';
 import { createMultiStartFit, fitSpread, FIT_STARTS } from 'src/lib/puck-multistart.js';
 import { authoringRange, modeRanges } from 'src/lib/profile-modes.js';
@@ -27,7 +29,9 @@ const NOT_LOADED = 'The shot did not load.';
 const CURSOR_STEP_S = 0.5;
 const CURSOR_JUMP_S = 2;
 const MODEL_T_MAX = 120;
-const PAD = Object.freeze({ left: 70, right: 16, top: 18, bottom: 44 });
+const PAD = Object.freeze({ left: 70, right: 22, top: 36, bottom: 52 });
+const STEP_LABEL_EM = 0.56;
+const STEP_NUMBER_EM = 0.6;
 const SERIES_KEYS = Object.freeze(['P', 'Q', 'G']);
 const SERIES_NAMES = Object.freeze({ P: 'Pressure', Q: 'Flow', G: 'GFlow', targets: 'Target' });
 const SERIES_UNITS = Object.freeze({ P: 'bar', Q: 'mL/s', G: 'g/s' });
@@ -69,6 +73,11 @@ function infoIcon() {
     return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
         ><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6"></path><path d="M12 7.5v.5"></path></svg>`;
+}
+
+function chevronIcon() {
+    return html`<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>`;
 }
 
 function pathOf(t, values, x, y) {
@@ -145,7 +154,15 @@ class EditorChartPanel extends UiElement {
             margin: 0;
         }
 
-        #de1-notice,
+        #de1-notice {
+            padding: var(--ui-space-2) var(--ui-space-4);
+            border: var(--ui-border-w) solid var(--ui-status-attention);
+            border-radius: var(--ui-radius);
+            background-color: color-mix(in srgb, var(--ui-status-attention) 10%, transparent);
+            color: var(--ui-text);
+            font-size: var(--ui-text-note);
+        }
+
         #fit-warn {
             padding: var(--ui-space-2) var(--ui-space-4);
             border: var(--ui-border-w) solid var(--ui-line);
@@ -212,12 +229,52 @@ class EditorChartPanel extends UiElement {
             background-color: currentColor;
         }
 
-        .k-P .swatch { background-color: var(--ui-channel-pressure); }
-        .k-Q .swatch { background-color: var(--ui-channel-flow); }
-        .k-G .swatch { background-color: var(--ui-channel-weight-flow); }
-        .k-T .swatch {
-            background: repeating-linear-gradient(90deg, var(--ui-text-2) 0 6px, transparent 6px 10px);
+        .chip.key {
+            background-color: var(--ui-key);
+            color: var(--ui-text-2);
+            font-size: var(--ui-chart-legend);
+            font-weight: var(--ui-weight-medium);
+            line-height: 1.2;
+            white-space: nowrap;
         }
+
+        .chip.key[aria-pressed="true"] {
+            border-color: var(--ui-line);
+            color: var(--ui-text-2);
+        }
+
+        .chip.key[aria-pressed="false"] {
+            background-color: transparent;
+            color: var(--ui-muted);
+        }
+
+        .key .mark {
+            flex: none;
+            inline-size: var(--ui-legend-swatch-w);
+            block-size: var(--ui-chart-stroke);
+            overflow: visible;
+        }
+
+        .key .mark line {
+            stroke: var(--_cp-ink, currentColor);
+            stroke-width: var(--ui-chart-stroke);
+            stroke-linecap: var(--_cp-cap);
+            stroke-dasharray: var(--_cp-dash, none);
+        }
+
+        .key[aria-pressed="false"] .mark {
+            opacity: .35;
+        }
+
+        .key .unit {
+            color: var(--ui-muted);
+            font-weight: var(--ui-weight-regular);
+        }
+
+        .k-P { --_cp-ink: var(--ui-channel-pressure); }
+        .k-Q { --_cp-ink: var(--ui-channel-flow); }
+        .k-G { --_cp-ink: var(--ui-channel-weight-flow); }
+        .k-T { --_cp-ink: var(--ui-text-2); }
 
         ui-icon-button.info {
             --_ui-icon-btn-box: var(--_cp-hit);
@@ -248,8 +305,9 @@ class EditorChartPanel extends UiElement {
             outline-offset: -2px;
         }
 
-        .grid line { stroke: var(--ui-line); stroke-width: 1; }
-        .axis text { fill: var(--ui-text-2); font-size: 15px; }
+        .well { fill: var(--ui-chart-well); stroke: var(--ui-chart-axis); stroke-width: 1; }
+        .grid line { stroke: var(--ui-chart-grid); stroke-width: 1; }
+        .axis text { fill: var(--ui-text-2); font-size: var(--ui-chart-tick); font-variant-numeric: tabular-nums; }
         .s-P { stroke: var(--ui-channel-pressure); }
         .s-Q { stroke: var(--ui-channel-flow); }
         .s-G { stroke: var(--ui-channel-weight-flow); }
@@ -259,8 +317,8 @@ class EditorChartPanel extends UiElement {
         .edited { stroke-width: 3; }
         .shot { stroke-width: 9; opacity: .28; }
         .target { stroke-width: 2; stroke-dasharray: 16 10; }
-        .step-line { stroke: var(--ui-channel-step-boundary); stroke-width: 1.5; stroke-dasharray: 6 6; }
-        .step-label { fill: var(--ui-text-2); font-size: 14px; }
+        .step-line { stroke: var(--ui-channel-step-boundary); stroke-width: var(--ui-chart-stroke-minor); }
+        .step-label { fill: var(--ui-text-2); font-size: var(--ui-chart-step-label); font-weight: var(--ui-weight-medium); }
         .shot-mark { fill: var(--ui-channel-step-boundary); }
         .bloom { fill: var(--ui-channel-step-boundary); opacity: .12; }
         .cursor { stroke: var(--ui-text); stroke-width: 1.5; }
@@ -318,63 +376,199 @@ class EditorChartPanel extends UiElement {
         }
 
         #strip {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+            display: flex;
+            align-items: stretch;
             gap: var(--ui-space-3);
             min-inline-size: 0;
+            min-block-size: calc(var(--_cp-hit) + 2 * var(--ui-space-3));
         }
 
-        #strip.has-shaping {
-            grid-template-columns: minmax(0, 2fr) auto minmax(0, 1fr) minmax(0, 1fr);
-        }
-
-        #shaping-entry {
-            justify-content: center;
-            padding-inline: var(--ui-space-5);
-            white-space: nowrap;
-        }
-
-        .card {
+        #grind-card {
+            flex: 1 1 auto;
             display: grid;
-            gap: var(--ui-space-1);
-            align-content: center;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: 0 var(--ui-space-4);
             min-inline-size: 0;
-            min-block-size: var(--_cp-hit);
-            padding: var(--ui-space-2) var(--ui-space-3);
+            padding: 0 var(--ui-space-3) 0 var(--ui-space-4);
             border: var(--ui-border-w) solid var(--ui-line);
-            border-radius: var(--ui-radius);
+            border-radius: var(--ui-radius-lg);
             background-color: var(--ui-surface);
             color: var(--ui-text);
-            font: inherit;
-            text-align: start;
         }
 
-        button.card {
+        .grind-name {
+            display: flex;
+            align-items: center;
+            font-size: var(--ui-text-md);
+            font-weight: var(--ui-weight-medium);
+        }
+
+        .grind-track {
+            display: grid;
+            min-inline-size: 0;
+        }
+
+        .grind-ends {
+            display: flex;
+            justify-content: space-between;
+            margin-block-start: calc(-1 * var(--ui-space-2));
+            color: var(--ui-muted);
+            font-size: var(--ui-text-note);
+            line-height: 1.1;
+        }
+
+        #grind-value {
+            display: grid;
+            min-inline-size: calc(var(--ui-stepper-value-min) + var(--ui-space-4));
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #grind-x {
+            color: var(--ui-text);
+            font-size: var(--ui-text-2xl);
+            font-weight: var(--ui-weight-medium);
+        }
+
+        #grind-word {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-note);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-block-size: var(--_cp-hit);
+            min-inline-size: var(--_cp-hit);
+            padding: 0 var(--ui-space-5);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background-color: var(--ui-key);
+            color: var(--ui-text-2);
+            font: inherit;
+            font-size: var(--ui-text-md);
+            font-weight: var(--ui-weight-medium);
+            line-height: 1.2;
+            white-space: nowrap;
             cursor: pointer;
         }
 
-        .card-head {
+        .btn:disabled {
+            opacity: var(--ui-opacity-disabled);
+            cursor: default;
+        }
+
+        .btn.sm {
+            padding: 0 var(--ui-space-4);
+            font-size: var(--ui-text-base);
+        }
+
+        #shaping-entry {
+            flex: none;
+            align-self: stretch;
+            border-radius: var(--ui-radius-lg);
+        }
+
+        #keys {
+            flex: none;
+            display: flex;
+            align-items: stretch;
+            min-inline-size: 0;
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius-lg);
+            background-color: var(--ui-surface);
+        }
+
+        #keys-btn,
+        #steps-entry {
             display: flex;
             align-items: center;
+            min-block-size: var(--_cp-hit);
+            border: 0;
+            background: none;
+            color: var(--ui-text);
+            font: inherit;
+            text-align: start;
+            cursor: pointer;
+        }
+
+        #keys-btn {
+            flex: none;
+            gap: var(--ui-space-5);
+            padding: 0 var(--ui-space-3) 0 var(--ui-space-4);
+            border-radius: var(--ui-radius-lg) 0 0 var(--ui-radius-lg);
+        }
+
+        #steps-entry {
+            flex: 0 1 auto;
             gap: var(--ui-space-2);
+            min-inline-size: 0;
+            max-inline-size: calc(3 * var(--ui-stepper-value-min));
+            padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1) var(--ui-space-4);
+            border-inline-start: var(--ui-border-w) solid var(--ui-line);
+            border-radius: 0 var(--ui-radius-lg) var(--ui-radius-lg) 0;
+        }
+
+        .kn {
+            display: grid;
+            line-height: 1.15;
+        }
+
+        .kn .lab {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-sm);
+            font-weight: var(--ui-weight-semibold);
+            letter-spacing: var(--ui-tracking-cap);
+            text-transform: uppercase;
+        }
+
+        #kn-peak {
+            font-size: var(--ui-display-sm);
+            font-weight: var(--ui-weight-medium);
+            white-space: nowrap;
+        }
+
+        #kn-peak-s {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-note);
+            white-space: nowrap;
+        }
+
+        .tt {
+            flex: 1 1 auto;
+            display: grid;
+            gap: var(--ui-hairline);
             min-inline-size: 0;
         }
 
-        .grind-row {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            align-items: center;
-            gap: var(--ui-space-2);
+        .tt .ui-microcap {
+            font-size: var(--ui-text-note);
+            line-height: 1.2;
         }
 
-        .grind-out {
-            display: flex;
-            align-items: center;
-            gap: var(--ui-space-2);
+        #steps-sum {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            font-size: var(--ui-text-md);
+            line-height: 1.3;
+            font-variant-numeric: tabular-nums;
         }
 
-        .big {
-            font-size: var(--ui-text-lg, 1.25rem);
+        #steps-sum em {
+            color: var(--ui-steel);
+            font-style: normal;
+            font-weight: var(--ui-weight-semibold);
+        }
+
+        .chev {
+            flex: none;
+            inline-size: var(--ui-icon-lg);
+            block-size: var(--ui-icon-lg);
+            color: var(--ui-muted);
         }
 
         .table {
@@ -514,17 +708,36 @@ class EditorChartPanel extends UiElement {
             padding: var(--ui-space-3);
         }
 
-        @container (max-width: 900px) {
+        @media (max-width: 759px) {
             #strip {
-                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            }
-
-            #strip.has-shaping {
-                grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+                flex-direction: column;
             }
 
             #grind-card {
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                padding: var(--ui-space-2) var(--ui-space-3) 0 var(--ui-space-4);
+            }
+
+            #grind-reset {
                 grid-column: 1 / -1;
+                justify-self: start;
+            }
+
+            #keys {
+                flex-direction: column;
+            }
+
+            #keys-btn {
+                justify-content: space-between;
+                padding-block: var(--ui-space-2);
+                border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
+            }
+
+            #steps-entry {
+                max-inline-size: none;
+                border-inline-start: 0;
+                border-block-start: var(--ui-border-w) solid var(--ui-line);
+                border-radius: 0 0 var(--ui-radius-lg) var(--ui-radius-lg);
             }
         }
     `];
@@ -819,7 +1032,6 @@ class EditorChartPanel extends UiElement {
         const loaded = this._loaded;
         if (!loaded) return { kind: 'empty' };
         if (!loaded.plan.usable) return { kind: 'shot', reason: loaded.plan.reason };
-        if (de1EmulationOf(this.profile)) return { kind: 'profile', reason: CHART_NOT_USABLE.DE1_EMULATION };
         const steps = stepsFromProfile(this.profile ?? loaded.plan.profile);
         if (!steps) return { kind: 'profile', reason: CHART_NOT_USABLE.STEP_NOT_MODELLED };
         return { kind: 'ok', steps };
@@ -862,6 +1074,11 @@ class EditorChartPanel extends UiElement {
         const saved = runShotModel(state.steps, this._loaded.plan.settings, fit.best.puck, options);
         const edited = runShotModel(state.steps, this.#settingsOf(block), fit.best.puck, options);
         return { saved: pack(saved), edited: pack(edited) };
+    }
+
+    get shotShaping() {
+        const record = this._loaded?.record;
+        return record ? shotShapingBlock(record) : null;
     }
 
     get shotPoints() {
@@ -1029,12 +1246,33 @@ class EditorChartPanel extends UiElement {
         for (let v = 0; v <= yMax + 1e-9; v += yStep) ys.push(v);
         const xs = [];
         for (let v = 0; v <= xMax + 1e-9; v += xStep) xs.push(v);
-        return svg`<g class="grid">
+        return svg`<rect class="well" x=${PAD.left} y=${PAD.top} width=${geo.plotW} height=${geo.plotH}></rect><g class="grid">
             ${ys.map((v) => svg`<line x1=${PAD.left} x2=${geo.w - PAD.right} y1=${geo.y(v)} y2=${geo.y(v)}></line>`)}
         </g><g class="axis">
-            ${ys.map((v) => svg`<text x=${PAD.left - 10} y=${geo.y(v) + 5} text-anchor="end">${v}</text>`)}
-            ${xs.map((v) => svg`<text x=${geo.x(v)} y=${geo.h - PAD.bottom + 24} text-anchor="middle">${v}</text>`)}
+            ${ys.map((v) => svg`<text x=${PAD.left - 9} y=${geo.y(v)} dy=".35em" text-anchor="end">${v}</text>`)}
+            ${xs.map((v) => svg`<text x=${geo.x(v)} y=${geo.h - PAD.bottom + 26} text-anchor="middle">${v}</text>`)}
+            <text id="axis-x-title" x=${PAD.left + geo.plotW / 2} y=${geo.h - 4} text-anchor="middle">${this.#i18n.t('Time (s)')}</text>
+            <text id="axis-y-title" x="3" y=${geo.h - 4}>${MEASURED_SERIES.map((k) => SERIES_UNITS[k]).join(' · ')}</text>
         </g>`;
+    }
+
+    #stepLabels(f) {
+        const { geo } = f;
+        const frames = f.edited.run.frames;
+        const names = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
+        const labelPx = parsePx(getComputedStyle(this).getPropertyValue('--ui-chart-step-label'), '--ui-chart-step-label');
+        return frames.map((fr, i) => {
+            const x = geo.x(fr.t0);
+            const next = i + 1 < frames.length ? geo.x(frames[i + 1].t0) : PAD.left + geo.plotW;
+            const room = next - x - 9;
+            const name = names[fr.k]?.name;
+            const short = String(fr.k + 1);
+            const full = typeof name === 'string' && name ? `${short} ${name}` : short;
+            const text = full.length * labelPx * STEP_LABEL_EM <= room ? full
+                : short.length * labelPx * STEP_NUMBER_EM <= room + 6 ? short : '';
+            return text ? svg`<text class="step-label" data-step=${fr.k}
+                x=${x + 6} y=${PAD.top - 15}>${text}</text>` : nothing;
+        });
     }
 
     #lines(f) {
@@ -1051,10 +1289,10 @@ class EditorChartPanel extends UiElement {
                 }
                 if (fr.k > 0) {
                     parts.push(svg`<line class="step-line" x1=${geo.x(fr.t0)} x2=${geo.x(fr.t0)}
-                        y1=${PAD.top} y2=${PAD.top + geo.plotH}></line>
-                        <text class="step-label" x=${geo.x(fr.t0) + 4} y=${PAD.top + 14}>${fr.k + 1}</text>`);
+                        y1=${PAD.top} y2=${PAD.top + geo.plotH} stroke-dasharray=${DASH_PATTERNS.longdash.join(' ')}></line>`);
                 }
             }
+            parts.push(this.#stepLabels(f));
         }
         if (f.shot && this._runs.shot) {
             for (const key of SERIES_KEYS) {
@@ -1133,13 +1371,13 @@ class EditorChartPanel extends UiElement {
         if (state.kind === 'ok') return nothing;
         if (state.kind === 'empty') {
             return html`<div id="no-model" role="status">
-                <p id="no-model-t" class="ui-title-sm">${t('Pick a shot to see the model.')}</p>
+                <p id="no-model-t" class="ui-heading">${t('Pick a shot to see the model.')}</p>
                 <p id="no-model-c" class="ui-caption">${t('Tap the profile name to pick a shot.')}</p>
             </div>`;
         }
         const reason = t(NOT_USABLE_WORDS[state.reason] ?? state.reason);
         return html`<div id="no-model" role="status" data-reason=${state.reason}>
-            <p id="no-model-t" class="ui-title-sm">${state.kind === 'shot'
+            <p id="no-model-t" class="ui-heading">${state.kind === 'shot'
                 ? t('The model cannot run this shot ({reason})', { reason })
                 : t('The model cannot run the edited profile ({reason})', { reason })}</p>
             <p id="no-model-c" class="ui-caption">${state.kind === 'shot'
@@ -1196,6 +1434,17 @@ class EditorChartPanel extends UiElement {
                 </tr>
             </tbody>
         </table>`;
+    }
+
+    #stepsSummary(changed) {
+        const steps = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
+        const list = steps.map((step) => {
+            const v = stepTarget(step);
+            const unit = step?.pump === 'flow' ? SERIES_UNITS.Q : SERIES_UNITS.P;
+            return finite(v) ? `${Number(v.toFixed(1))} ${unit}` : '–';
+        }).join(' · ');
+        if (!changed) return list;
+        return html`<em>${this.#i18n.t('{n} changed', { n: changed })}</em> · ${list}`;
     }
 
     #changedSteps() {
@@ -1263,7 +1512,7 @@ class EditorChartPanel extends UiElement {
             const modelled = s.pump === 'flow' || s.pump === 'pressure';
             const target = modelled ? modeRanges(s.pump, machineClass).target : null;
             return html`<div class="step-block" data-step=${i}>
-                <p class="ui-title-sm">${i + 1}. ${name}</p>
+                <p class="ui-heading">${i + 1}. ${name}</p>
                 <div class="step-grid">
                     ${modelled ? html`<ui-stepper
                         class="step-target"
@@ -1357,7 +1606,6 @@ class EditorChartPanel extends UiElement {
         const rms = fit?.check?.rmsAll ?? null;
         const r = this.#results(f);
         const changed = this.#changedSteps();
-        const stepCount = Array.isArray(this.profile?.steps) ? this.profile.steps.length : 0;
         const grindText = `x${grindFactor(this._grind).toFixed(2)}`;
         const grindWord = this._grind === 0 ? t('as loaded shot') : (this._grind < 0 ? t('finer') : t('coarser'));
         const fitting = this._fitting && this._loaded?.plan.usable;
@@ -1365,7 +1613,7 @@ class EditorChartPanel extends UiElement {
 
         return html`
             <div class="notes">
-                ${de1EmulationOf(this.profile) ? html`<p
+                ${ok && de1EmulationOf(this.profile) ? html`<p
                     id="de1-notice" role="status">${t('DE1 emulation is on. The machine then ignores the native shaping, and this model does not cover DE1 emulation. Turn DE1 emulation off in Settings to use this chart.')}</p>` : nothing}
                 ${ok && fit && isPoorFit(rms) ? html`<p id="fit-warn" role="status">${t('Model fit is poor for this shot: {rms} bar rms', { rms: rms.toFixed(2) })}</p>` : nothing}
                 ${fitting ? html`<p
@@ -1373,7 +1621,7 @@ class EditorChartPanel extends UiElement {
             </div>
 
             <div id="toolbar">
-                <h2 class="ui-title-sm">${t('Model run')}</h2>
+                <h2 class="ui-heading">${t('Model run')}</h2>
                 <ui-icon-button class="info" id="tip-chart-btn" label=${t('About the model run')}
                     @click=${(e) => this.#openTip('chart', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 <button type="button" class="chip" id="lg-edited" ?disabled=${!ok}
@@ -1389,8 +1637,11 @@ class EditorChartPanel extends UiElement {
                     id=${id}
                     ?disabled=${!ok}
                     aria-pressed=${this._show[key] ? 'true' : 'false'}
+                    style=${`--_cp-cap: ${SERIES_LINE_CAP};${key === TARGET_SERIES ? ` --_cp-dash: ${DASH_PATTERNS['compare-target-a'].join(' ')};` : ''}`}
                     @click=${() => this.#onKey(key)}
-                ><span class="swatch"></span>${t(SERIES_NAMES[key])}</button>`)}
+                ><svg class="mark" aria-hidden="true"><line x1="0" y1="50%" x2="100%" y2="50%"></line></svg
+                ><span class="kl">${t(SERIES_NAMES[key])}</span>${SERIES_UNITS[key]
+                    ? html` <span class="unit">${SERIES_UNITS[key]}</span>` : nothing}</button>`)}
                 <p id="chart-note" class="ui-caption sr-status" role="status">${this._note ? t(this._note) : ''}</p>
             </div>
 
@@ -1413,19 +1664,14 @@ class EditorChartPanel extends UiElement {
                 <p id="readout" class="sr-only" aria-live="polite">${this.#readout(f)}</p>
             </div>
 
-            <div id="strip" class=${shaping ? 'has-shaping' : ''}>
-                <div class="card" id="grind-card">
-                    <div class="card-head">
-                        <span class="ui-microcap">${t('Grind')}</span>
+            <div id="strip">
+                <div id="grind-card">
+                    <div class="grind-name">
+                        <span>${t('Grind')}</span>
                         <ui-icon-button class="info" id="tip-grind-btn" label=${t('About the grind')}
                             @click=${(e) => this.#openTip('grind', e.currentTarget)}>${infoIcon()}</ui-icon-button>
-                        <span class="spacer"></span>
-                        <span class="grind-out"><output id="grind-x" class="ui-numeric">${grindText}</output>
-                            <span id="grind-word" class="ui-caption">${grindWord}</span></span>
-                        <button type="button" class="chip action" id="grind-reset" ?disabled=${this._grind === 0} @click=${this.#onGrindReset}>${t('Reset')}</button>
                     </div>
-                    <div class="grind-row">
-                        <span class="ui-caption">${t('Finer (x2)')}</span>
+                    <div class="grind-track">
                         <ui-slider
                             id="grind"
                             label=${t('Grind')}
@@ -1437,27 +1683,36 @@ class EditorChartPanel extends UiElement {
                             ?disabled=${!ok}
                             @change=${this.#onGrind}
                         ></ui-slider>
-                        <span class="ui-caption">${t('Coarser (x0.5)')}</span>
+                        <div class="grind-ends" aria-hidden="true"><span>${t('Finer (x2)')}</span><span>${t('Coarser (x0.5)')}</span></div>
                     </div>
+                    <output id="grind-value"><span id="grind-x">${grindText}</span><span id="grind-word">${grindWord}</span></output>
+                    <button type="button" class="btn sm" id="grind-reset" ?disabled=${this._grind === 0} @click=${this.#onGrindReset}>${t('Reset')}</button>
                 </div>
 
-                ${shaping ? html`<button type="button" class="card" id="shaping-entry" aria-haspopup="dialog"
+                ${shaping ? html`<button type="button" class="btn" id="shaping-entry" aria-haspopup="dialog"
                     @click=${this.#onShapingOpen}>${t('Native shaping')}</button>` : nothing}
 
-                <button type="button" class="card" id="keys-btn" aria-haspopup="dialog"
-                    @click=${(e) => this.#openDialog('results', e)}>
-                    <span class="ui-microcap">${t('Peak pressure')}</span>
-                    <span id="kn-peak" class="big ui-numeric">${r?.edited ? `${r.edited.peakP.toFixed(2)} bar` : '–'}</span>
-                    <span id="kn-peak-s" class="ui-caption ui-numeric">${t('shot {v} bar', { v: r ? r.shot.peakP.toFixed(2) : '–' })}</span>
-                </button>
-
-                <button type="button" class="card" id="steps-entry" aria-haspopup="dialog"
-                    @click=${(e) => this.#openDialog('steps-sheet', e)}>
-                    <span class="ui-microcap">${t('Step targets')}</span>
-                    <span id="steps-sum" class="ui-caption">${changed
-                        ? `${t('{n} changed', { n: changed })} · ${t('{n} steps', { n: stepCount })}`
-                        : t('{n} steps', { n: stepCount })}</span>
-                </button>
+                <div id="keys">
+                    <button type="button" id="keys-btn" aria-haspopup="dialog"
+                        @click=${(e) => this.#openDialog('results', e)}>
+                        <span class="kn">
+                            <span class="lab">${t('Peak pressure')}</span>
+                            <span id="kn-peak" class="ui-numeric">${r?.edited ? `${r.edited.peakP.toFixed(2)} bar` : '–'}</span>
+                            <span id="kn-peak-s" class="ui-numeric">${r
+                                ? t('shot {v} bar', { v: r.shot.peakP.toFixed(2) })
+                                : t('no model run')}</span>
+                        </span>
+                        ${chevronIcon()}
+                    </button>
+                    <button type="button" id="steps-entry" aria-haspopup="dialog"
+                        @click=${(e) => this.#openDialog('steps-sheet', e)}>
+                        <span class="tt">
+                            <span class="ui-microcap">${t('Step targets')}</span>
+                            <span id="steps-sum">${this.#stepsSummary(changed)}</span>
+                        </span>
+                        ${chevronIcon()}
+                    </button>
+                </div>
             </div>
 
             <ui-dialog id="results" heading=${t('Results')}>
@@ -1487,7 +1742,7 @@ class EditorChartPanel extends UiElement {
                 @open-change=${this.#onPickerOpenChange}
             >
                 <div slot="header" class="picker-head">
-                    <h2 id="picker-h" class="ui-title-sm">${t('Pick a shot')}</h2>
+                    <h2 id="picker-h" class="ui-heading">${t('Pick a shot')}</h2>
                     <ui-icon-button class="info" id="tip-shots-btn" label=${t('About picking a shot')}
                         @click=${(e) => this.#openTip('shots', e.currentTarget)}>${infoIcon()}</ui-icon-button>
                     <button type="button" class="chip action" id="picker-close" @click=${() => this.closePicker()}>${t('Close')}</button>

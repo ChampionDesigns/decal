@@ -8,7 +8,7 @@ import {
     CHART, PICKER, TITLE, USABLE_ID, DE1_ID, chartShotData, mountChartApp, showChartTab,
 } from '../harness/chart-ux.js';
 import {
-    convertedShot, recordedShot, RECORDED_SHOT_IDS, withMachineModel,
+    convertedShot, recordedShot, RECORDED_SHOT_IDS, withMachineModel, withShotFlag,
 } from '../fixtures/chart-shots.js';
 
 const E = 'app-root >>> editor-screen';
@@ -23,14 +23,51 @@ function shotData() {
         noWeight: ids[4],
         noSamples: ids[5],
         de1Machine: ids[6],
+        de1Profile: ids[8],
     };
     data.shots[reasons.stepNotModelled] = { ...convertedShot(RECORDED_SHOT_IDS[1]), id: reasons.stepNotModelled };
     data.shots[reasons.noWeight] = { ...recordedShot(USABLE_ID), id: reasons.noWeight };
     data.shots[reasons.noSamples] = { ...convertedShot(USABLE_ID), id: reasons.noSamples, measurements: [] };
     data.shots[reasons.de1Machine] = { ...withMachineModel(convertedShot(USABLE_ID), 'DE1'), id: reasons.de1Machine };
+    const de1Profile = withShotFlag(convertedShot(DE1_ID), true);
+    de1Profile.workflow = structuredClone(de1Profile.workflow);
+    de1Profile.workflow.profile.de1_emulation = true;
+    data.shots[reasons.de1Profile] = { ...de1Profile, id: reasons.de1Profile };
     data.reasons = reasons;
     return data;
 }
+
+const textSizes = (page, rootExpr, parts) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
+    return Object.fromEntries(list.map(([sel]) => {
+        const e = root.querySelector(sel);
+        return [sel, e ? +(parseFloat(getComputedStyle(e).fontSize) * scale).toFixed(2) : null];
+    }));
+}, rootExpr, parts);
+
+const offBy = (seen, parts) => parts
+    .filter(([sel, want]) => !(Math.abs(seen[sel] - want) <= 0.5))
+    .map(([sel, want]) => `${sel} ${seen[sel]} not ${want}`);
+
+const tokenColours = (page, rootExpr, checks) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const probe = document.createElement('i');
+    root.append(probe);
+    const resolve = (token) => { probe.style.color = `var(${token})`; return getComputedStyle(probe).color; };
+    const out = list.map(([sel, prop, token]) => {
+        const e = root.querySelector(sel);
+        return { sel, prop, seen: e ? getComputedStyle(e)[prop] : null, want: resolve(token) };
+    });
+    probe.remove();
+    return out;
+}, rootExpr, checks);
+
+const STRIP_TEXT = [
+    ['.grind-name', 12], ['.grind-ends', 11], ['#grind-word', 11], ['#grind-reset', 11],
+    ['#shaping-entry', 12], ['.kn .lab', 10], ['#kn-peak-s', 11],
+    ['#steps-entry .ui-microcap', 11], ['#steps-sum', 12],
+];
 
 const state = (page) => page.evalFn(() => {
     const s = __ux.screen().shadowRoot;
@@ -135,6 +172,27 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.equal(button.iconLeft, true);
             assert.ok(button.iconSize >= 19, `chevron ${button.iconSize}`);
             assert.notEqual(button.border, '0px');
+        });
+
+        await t.test('on the Chart tab the profile totals of the other tabs follow Profile editor on one line', async () => {
+            const read = () => page.evalFn(() => {
+                const r = __ux.screen().shadowRoot;
+                const eyebrow = r.getElementById('eyebrow').getBoundingClientRect();
+                const totals = r.getElementById('totals');
+                const box = totals.getBoundingClientRect();
+                return {
+                    text: totals.textContent.trim(),
+                    sameLine: Math.abs(box.bottom - eyebrow.bottom) < 4 && box.left > eyebrow.right,
+                };
+            });
+            const chart = await read();
+            await page.evalFn(async () => { __ux.screen().tab = 'steps'; await __ux.settle(); });
+            const steps = await read();
+            await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
+            assert.match(chart.text, /^\d+ steps? · /);
+            assert.equal(chart.text, steps.text);
+            assert.equal(chart.sameLine, true);
+            assert.equal(steps.sameLine, false, 'Steps keeps its header');
         });
 
         await t.test('a tap on the title opens Pick a shot from the left edge, and Escape returns focus to the title', async () => {
@@ -248,6 +306,73 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.equal(series.filter((p) => p.series === 'P' || p.series === 'Q' || p.series === 'G').length, solid);
             await page.click(`${CHART} >>> #lk-T`);
             assert.deepEqual(await axisLabels(page), axes);
+        });
+
+        await t.test('the legend names each series with its unit and a line mark, the axes have titles and each step has its number and name', async () => {
+            const k = await page.evalFn(() => {
+                const c = __ux.chart().shadowRoot;
+                const mark = (id) => {
+                    const line = c.querySelector(`#${id} .mark line`);
+                    const cs = getComputedStyle(line);
+                    return { stroke: cs.stroke, dash: cs.strokeDasharray, width: cs.strokeWidth };
+                };
+                const names = (__ux.chart().profile?.steps ?? []).map((st) => st.name);
+                const labels = [...c.querySelectorAll('#main-chart .step-label')].map((n) => ({
+                    k: Number(n.dataset.step), text: n.textContent.trim(), y: n.getBoundingClientRect().bottom,
+                }));
+                const plot = c.querySelector('#main-chart .grid line').getBoundingClientRect().top;
+                const probe = (token) => {
+                    const i = document.createElement('i');
+                    i.style.color = `var(${token})`;
+                    c.appendChild(i);
+                    const v = getComputedStyle(i).color;
+                    i.remove();
+                    return v;
+                };
+                return {
+                    text: ['lk-P', 'lk-Q', 'lk-G', 'lk-T'].map((id) => c.getElementById(id).textContent.replace(/\s+/g, ' ').trim()),
+                    P: mark('lk-P'),
+                    T: mark('lk-T'),
+                    pressure: probe('--ui-channel-pressure'),
+                    stroke: getComputedStyle(__ux.chart()).getPropertyValue('--ui-chart-stroke').trim(),
+                    xTitle: c.getElementById('axis-x-title')?.textContent,
+                    yTitle: c.getElementById('axis-y-title')?.textContent,
+                    names,
+                    labels,
+                    plot,
+                    lines: [...c.querySelectorAll('#main-chart .step-line')].map((n) => n.getAttribute('stroke-dasharray')),
+                };
+            });
+            assert.deepEqual(k.text, ['Pressure bar', 'Flow mL/s', 'GFlow g/s', 'Target']);
+            assert.equal(k.P.stroke, k.pressure);
+            assert.equal(k.P.dash, 'none');
+            assert.equal(k.P.width, k.stroke);
+            assert.equal(k.T.dash, '16px, 10px', 'the dash of the target lines');
+            assert.equal(k.xTitle, 'Time (s)');
+            assert.equal(k.yTitle, 'bar · mL/s · g/s');
+            assert.ok(k.labels.length >= 2, `labels ${JSON.stringify(k.labels)}`);
+            assert.equal(k.labels[0].k, 0);
+            for (const l of k.labels) {
+                const full = `${l.k + 1} ${k.names[l.k]}`;
+                assert.ok(l.text === full || l.text === String(l.k + 1), `${l.text} is ${full} or its number`);
+                assert.ok(l.y <= k.plot, 'the step name sits above the plot');
+            }
+            assert.ok(k.labels.some((l) => l.text.includes(' ')), 'at least one step shows its name');
+            assert.ok(k.lines.length >= 1 && k.lines.every((d) => d === '15 15'));
+        });
+
+        await t.test('the strip and header text render at the designed CSS px size', async () => {
+            const strip = await textSizes(page, '__ux.chart().shadowRoot', STRIP_TEXT);
+            const head = await textSizes(page, '__ux.screen().shadowRoot', [['#idline #totals', 11]]);
+            assert.deepEqual([...offBy(strip, STRIP_TEXT), ...offBy(head, [['#idline #totals', 11]])], []);
+        });
+
+        await t.test('the plot area is the chart well with an axis edge and grid lines', async () => {
+            for (const c of await tokenColours(page, '__ux.chart().shadowRoot', [
+                ['#main-chart rect.well', 'fill', '--ui-chart-well'],
+                ['#main-chart rect.well', 'stroke', '--ui-chart-axis'],
+                ['#main-chart .grid line', 'stroke', '--ui-chart-grid'],
+            ])) assert.equal(c.seen, c.want, `${c.sel} ${c.prop}`);
         });
 
         await t.test('grind changes the edited run only, and Reset returns it to x1.00', async () => {
@@ -384,7 +509,16 @@ test('the Chart tab at 1280x800', async (t) => {
             }
         });
 
-        await t.test('DE1 emulation on the edited profile shows the notice and the reason', async () => {
+        await t.test('a shot that ran in DE1 emulation shows the refusal without the DE1 notice', async () => {
+            await loadRow(page, data.reasons.de1Profile);
+            const s = await state(page);
+            assert.equal(s.reason, 'de1Emulation');
+            assert.match(s.noModel, /The model cannot run this shot/);
+            assert.equal(await page.evalFn(() => __ux.screen()._draft?.de1_emulation), true, 'the loaded profile has DE1 emulation on');
+            assert.equal(await page.evalFn(() => Boolean(__ux.chart().shadowRoot.getElementById('de1-notice'))), false);
+        });
+
+        await t.test('DE1 emulation on the edited profile shows the notice over the model run of a native shot', async () => {
             await loadRow(page, USABLE_ID);
             await page.evalFn(() => __ux.waitFit());
             const has = await page.evalFn(async () => {
@@ -400,10 +534,31 @@ test('the Chart tab at 1280x800', async (t) => {
                 await __ux.settle();
             });
             const s = await state(page);
-            assert.equal(s.reason, 'de1Emulation');
-            assert.match(s.noModel, /The model cannot run the edited profile/);
+            assert.equal(s.noModel, null, 'no refusal over the chart');
+            assert.equal(s.reason, null);
             assert.equal(await page.evalFn(() => Boolean(__ux.chart().shadowRoot.getElementById('de1-notice'))), true);
-            assert.deepEqual(s.legendDisabled, [true, true, true, true, true, true]);
+            const tint = await page.evalFn(() => {
+                const c = __ux.chart().shadowRoot;
+                const n = c.getElementById('de1-notice');
+                const probe = document.createElement('i');
+                c.append(probe);
+                probe.style.color = 'var(--ui-status-attention)';
+                const attention = getComputedStyle(probe).color;
+                probe.style.color = 'color-mix(in srgb, var(--ui-status-attention) 10%, transparent)';
+                const fill = getComputedStyle(probe).color;
+                probe.remove();
+                return { border: getComputedStyle(n).borderTopColor, attention, background: getComputedStyle(n).backgroundColor, fill };
+            });
+            assert.equal(tint.border, tint.attention);
+            assert.equal(tint.background, tint.fill);
+            assert.deepEqual(s.legendDisabled, [false, false, false, false, false, false]);
+            const runs = await paths(page);
+            for (const series of ['P', 'Q', 'G', 'tP', 'tQ']) {
+                const line = runs.find((p) => p.run === 'edited' && p.series === series);
+                assert.ok(line && line.d.length > 20, `the edited run draws ${series}`);
+            }
+            const peak = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('kn-peak').textContent.trim());
+            assert.match(peak, /^\d+\.\d\d bar$/);
         });
 
         await t.test('on the Steps tab the title and the pencil keep the rename dialog and no shot line shows', async () => {
@@ -457,6 +612,30 @@ for (const geometry of [TABLET, FLOOR]) {
                 assert.ok(seen.count >= 12, `controls found ${seen.count}`);
                 assert.deepEqual(seen.small, []);
                 assert.deepEqual(seen.scroll, [0, 0]);
+            });
+
+            await t.test('the strip is one row: Grind on one line, Native shaping, Peak pressure and Step targets', async () => {
+                const seen = await page.evalFn(() => {
+                    const c = __ux.chart().shadowRoot;
+                    const box = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, w: b.width, h: b.height }; };
+                    const strip = box(c.getElementById('strip'));
+                    const ids = ['tip-grind-btn', 'grind', 'grind-value', 'grind-reset', 'shaping-entry', 'keys-btn', 'steps-entry'];
+                    const parts = Object.fromEntries(ids.map((id) => [id, box(c.getElementById(id))]));
+                    return { strip, parts,
+                        sum: c.getElementById('steps-sum').textContent.trim(),
+                        ends: c.querySelector('.grind-ends').textContent.trim() };
+                });
+                assert.ok(seen.strip.h >= 60 && seen.strip.h <= 70, `strip height ${seen.strip.h}`);
+                for (const [id, b] of Object.entries(seen.parts)) {
+                    assert.ok(b.top >= seen.strip.top - 0.5 && b.bottom <= seen.strip.bottom + 0.5, `${id} is inside the row`);
+                }
+                for (const id of ['tip-grind-btn', 'grind-reset', 'shaping-entry', 'keys-btn', 'steps-entry']) {
+                    const b = seen.parts[id];
+                    assert.ok(b.w >= 47.5 && b.h >= 47.5, `${id} ${b.w.toFixed(1)}x${b.h.toFixed(1)} CSS px`);
+                }
+                assert.ok(seen.parts.grind.h >= 47.5, `grind slider height ${seen.parts.grind.h}`);
+                assert.equal(seen.ends, 'Finer (x2)Coarser (x0.5)');
+                assert.match(seen.sum, /^[\d.]+ (mL\/s|bar)( · [\d.]+ (mL\/s|bar))+$/);
             });
 
             await t.test('the shot line is not cut', async () => {

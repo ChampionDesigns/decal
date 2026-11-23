@@ -4,7 +4,7 @@
   "generatedFrom": [
     "i18n/source/strings.json"
   ],
-  "sourceSha256": "554cad723827b9089da4f29dada62caa71d41b95dc6548ad8d365f161a577e04",
+  "sourceSha256": "a28084dc4ebe9b5f2578c02034a31a0166a4ce166a9c193a625fef74edd63041",
   "strings": {
     "A feel preset changes Spring and Give only. P0 stays as you set it.": "A feel preset changes Spring and Give only. P0 stays as you set it.",
     "A newer image is available": "A newer image is available",
@@ -1001,6 +1001,7 @@
     "Model fit is poor for this shot: {rms} bar rms": "Model fit is poor for this shot: {rms} bar rms",
     "The model is fitting to this shot.": "The model is fitting to this shot.",
     "Model run": "Model run",
+    "Time (s)": "Time (s)",
     "About the model run": "About the model run",
     "Grind": "Grind",
     "About the grind": "About the grind",
@@ -1008,9 +1009,9 @@
     "Coarser (x0.5)": "Coarser (x0.5)",
     "Peak pressure": "Peak pressure",
     "shot {v} bar": "shot {v} bar",
+    "no model run": "no model run",
     "Step targets": "Step targets",
     "{n} changed": "{n} changed",
-    "{n} steps": "{n} steps",
     "Results": "Results",
     "About the results": "About the results",
     "About the step targets": "About the step targets",
@@ -1062,7 +1063,8 @@
     "Curve off": "Curve off",
     "Curve off: only the Bengle pump line limits the flow": "Curve off: only the Bengle pump line limits the flow",
     "Curve on": "Curve on",
-    "Curve on, {n} points": "Curve on, {n} points",
+    "Pump curve on, {n} points": "Pump curve on, {n} points",
+    "Pump curve off": "Pump curve off",
     "DE1 240 V": "DE1 240 V",
     "Dashed grey line: the most flow a DE1 gives at each pressure on 240 V mains, from the 240 V table of the DE1 pump model: about 10.7 mL/s at 0 bar, 5.6 at 6 bar, 1.8 at 12 bar. It shows how a DE1 behaves. It is not a limit of this machine.": "Dashed grey line: the most flow a DE1 gives at each pressure on 240 V mains, from the 240 V table of the DE1 pump model: about 10.7 mL/s at 0 bar, 5.6 at 6 bar, 1.8 at 12 bar. It shows how a DE1 behaves. It is not a limit of this machine.",
     "Drag a point: the nearest point within about 36 px moves. With a keyboard, Tab to a point; the arrow keys move it (left and right: pressure, 0.1 bar; up and down: flow, 0.1 mL/s; Shift: 0.5 bar or 1 mL/s). This screen does not add or remove points.": "Drag a point: the nearest point within about 36 px moves. With a keyboard, Tab to a point; the arrow keys move it (left and right: pressure, 0.1 bar; up and down: flow, 0.1 mL/s; Shift: 0.5 bar or 1 mL/s). This screen does not add or remove points.",
@@ -1094,7 +1096,10 @@
     "Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.": "Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.",
     "draggable point": "draggable point",
     "s · 0 to 5": "s · 0 to 5",
-    "{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}": "{curve} · Flow τ {f} s{fm} · Pressure τ {p} s{pm} · Ramp factor {r}",
+    "{curve} · flow τ {f} · pressure τ {p} · ramp {r}": "{curve} · flow τ {f} · pressure τ {p} · ramp {r}",
+    "{tau} s": "{tau} s",
+    "{tau} s, {mode}": "{tau} s, {mode}",
+    "Bengle only; hidden in DE1 emulation.": "Bengle only; hidden in DE1 emulation.",
     "× τ · 0 to 4": "× τ · 0 to 4"
   }
 }

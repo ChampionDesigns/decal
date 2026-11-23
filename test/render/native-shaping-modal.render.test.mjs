@@ -58,6 +58,37 @@ const closeWith = async (page, id) => {
     assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the modal closed');
 };
 
+const textSizes = (page, rootExpr, parts) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
+    return Object.fromEntries(list.map(([sel]) => {
+        const e = root.querySelector(sel);
+        return [sel, e ? +(parseFloat(getComputedStyle(e).fontSize) * scale).toFixed(2) : null];
+    }));
+}, rootExpr, parts);
+
+const offBy = (seen, parts) => parts
+    .filter(([sel, want]) => !(Math.abs(seen[sel] - want) <= 0.5))
+    .map(([sel, want]) => `${sel} ${seen[sel]} not ${want}`);
+
+const tokenColours = (page, rootExpr, checks) => page.evalFn((expr, list) => {
+    const root = (0, eval)(expr);
+    const probe = document.createElement('i');
+    root.append(probe);
+    const resolve = (token) => { probe.style.color = `var(${token})`; return getComputedStyle(probe).color; };
+    const out = list.map(([sel, prop, token]) => {
+        const e = root.querySelector(sel);
+        return { sel, prop, seen: e ? getComputedStyle(e)[prop] : null, want: resolve(token) };
+    });
+    probe.remove();
+    return out;
+}, rootExpr, checks);
+
+const MODAL_TEXT = [
+    ['#shape-cancel', 12], ['#shape-apply', 12], ['#curve-on', 11], ['#curve-off', 11],
+    ['#ftau-sec .bank button', 11], ['#ftau-u', 12], ['#ftau-h', 13.33],
+];
+
 const draftBlock = (page) => page.evalFn(() => structuredClone(__ux.screen()._draft.native_shaping ?? null));
 
 async function withApp(geometry, fn, data = chartShotData()) {
@@ -111,12 +142,11 @@ const SHIFT = 8;
 async function controlSizes(page) {
     return page.evalFn(() => {
         const root = __ux.droot();
-        const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
         const out = [];
         const add = (el, name) => {
             const r = el.getBoundingClientRect();
             if (r.width === 0 && r.height === 0) return;
-            out.push({ name, w: Math.round(r.width / scale * 10) / 10, h: Math.round(r.height / scale * 10) / 10 });
+            out.push({ name, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 });
         };
         const dialog = root.getElementById('shape-dialog');
         for (const el of dialog.querySelectorAll('button')) add(el, el.id || el.textContent.trim());
@@ -160,11 +190,12 @@ test('the native shaping modal at 1280x800', async (t) => {
         await t.test('the button sits between the Grind card and the key cards and opens the modal at once', async () => {
             await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
             const order = await page.evalFn(() => [...__ux.chart().shadowRoot.getElementById('strip').children].map((n) => n.id));
-            assert.deepEqual(order, ['grind-card', 'shaping-entry', 'keys-btn', 'steps-entry']);
+            assert.deepEqual(order, ['grind-card', 'shaping-entry', 'keys']);
+            const keys = await page.evalFn(() => [...__ux.chart().shadowRoot.getElementById('keys').children].map((n) => n.id));
+            assert.deepEqual(keys, ['keys-btn', 'steps-entry']);
             const size = await page.evalFn(() => {
-                const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
                 const r = __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect();
-                return { w: r.width / scale, h: r.height / scale };
+                return { w: r.width, h: r.height };
             });
             assert.ok(size.h >= 47.5 && size.w >= 47.5, `button ${size.w}x${size.h}`);
             await openFromChart(page);
@@ -185,6 +216,29 @@ test('the native shaping modal at 1280x800', async (t) => {
             await page.click(SETTINGS_EDIT);
             assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true);
             await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the Settings row says what the block sets and that it is for the Bengle only', async () => {
+            const FIVE = [[1, 20], [3, 12], [6, 6], [9, 5], [12, 4]].map(([pressure, flow]) => ({ pressure, flow }));
+            const row = async (value) => page.evalFn(async (b) => {
+                await __ux.setBlock(b);
+                __ux.screen().tab = 'settings';
+                await __ux.settle();
+                const r = __ux.screen().shadowRoot.querySelector('[data-row="native-shaping"]');
+                return { caption: r.getAttribute('caption'), note: r.getAttribute('note') };
+            }, value);
+            const both = await row(block(FIVE, {
+                flow_tau: 0.5, flow_mode: 'both', pressure_tau: 0.5, pressure_mode: 'both', ramp_factor: 1,
+            }));
+            assert.deepEqual(both, {
+                caption: 'Pump curve on, 5 points · flow τ 0.50 s, both · pressure τ 0.50 s, both · ramp 1.00',
+                note: 'Bengle only; hidden in DE1 emulation.',
+            });
+            const other = await row(block([], {
+                flow_tau: 2.5, flow_mode: 'rise', pressure_tau: 0, pressure_mode: 'fall', ramp_factor: 1.5,
+            }));
+            assert.equal(other.caption, 'Pump curve off · flow τ 2.50 s, rise · pressure τ 0.00 s · ramp 1.50');
+            await page.evalFn(async () => { await __ux.setBlock(null); __ux.screen().tab = 'chart'; await __ux.settle(); });
         });
 
         await t.test('Apply with no change on a profile with no block leaves no block', async () => {
@@ -256,6 +310,17 @@ test('the native shaping modal at 1280x800', async (t) => {
                     pumpLabel: root.getElementById('bengle-pump-label').textContent,
                     de1Label: root.getElementById('de1-label').textContent,
                     de1Dash: root.getElementById('de1-curve').getAttribute('stroke-dasharray'),
+                    de1Width: getComputedStyle(root.getElementById('de1-curve')).strokeWidth,
+                    de1Stroke: getComputedStyle(root.getElementById('de1-curve')).stroke,
+                    chartStroke: getComputedStyle(root.host).getPropertyValue('--ui-chart-stroke').trim(),
+                    muted: (() => {
+                        const probe = document.createElement('i');
+                        probe.style.color = 'var(--ui-muted)';
+                        root.appendChild(probe);
+                        const c = getComputedStyle(probe).color;
+                        probe.remove();
+                        return c;
+                    })(),
                     pumpIndex: order.indexOf('bengle-pump'),
                     firstPoint: order.findIndex((id) => /^pt-/.test(id)),
                     curveOff: root.getElementById('curve-off').getAttribute('aria-pressed'),
@@ -265,7 +330,9 @@ test('the native shaping modal at 1280x800', async (t) => {
             assert.ok(chart.dots > 10, `dots ${chart.dots}`);
             assert.equal(chart.pumpLabel, 'Bengle pump');
             assert.equal(chart.de1Label, 'DE1 240 V');
-            assert.ok(chart.de1Dash && chart.de1Dash !== 'none');
+            assert.equal(chart.de1Dash, '9 9', 'the dash pattern of the chart legend');
+            assert.equal(chart.de1Width, chart.chartStroke);
+            assert.equal(chart.de1Stroke, chart.muted);
             assert.equal(chart.curveOff, 'true');
             assert.equal(chart.points, 0);
             assert.ok(chart.pumpIndex >= 0);
@@ -311,6 +378,24 @@ test('the native shaping modal at 1280x800', async (t) => {
             const after = await page.evalFn(() => __ux.points()[2]);
             assert.equal(Math.round((before[0] - after[0]) * 10), 1);
             assert.equal(Math.round((before[1] - after[1]) * 10), 1);
+        });
+
+        await t.test('only the selected point shows its number, up and to the right of it', async () => {
+            await focusPoint(page, 3);
+            const num = await page.evalFn(() => {
+                const root = __ux.droot();
+                const nums = [...root.querySelectorAll('.pt-num')];
+                const dot = root.querySelector('#pt-3 .dot').getBoundingClientRect();
+                const r = nums[0]?.getBoundingClientRect();
+                return {
+                    count: nums.length,
+                    text: nums[0]?.textContent,
+                    owner: nums[0]?.closest('.pt')?.id,
+                    right: r && r.left > dot.right,
+                    above: r && r.bottom < dot.top + dot.height / 2,
+                };
+            });
+            assert.deepEqual(num, { count: 1, text: '3', owner: 'pt-3', right: true, above: true });
         });
 
         await t.test('a move stops at each rule limit', async () => {
@@ -387,6 +472,19 @@ test('the native shaping modal at 1280x800', async (t) => {
             }
         });
 
+        await t.test('the dialog text renders at the designed CSS px size', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            const seen = await textSizes(page, '__ux.droot()', MODAL_TEXT);
+            assert.deepEqual(offBy(seen, MODAL_TEXT), []);
+            for (const c of await tokenColours(page, '__ux.droot()', [
+                ['#curve-chart rect', 'fill', '--ui-chart-well'],
+                ['#curve-chart rect', 'stroke', '--ui-chart-axis'],
+                ['#ftau-chart rect', 'fill', '--ui-chart-well'],
+            ])) assert.equal(c.seen, c.want, `${c.sel} ${c.prop}`);
+            await closeWith(page, 'shape-cancel');
+        });
+
         await t.test('the layout at 1280x800', async () => {
             await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
             await openFromChart(page);
@@ -398,6 +496,9 @@ test('the native shaping modal at 1280x800', async (t) => {
             const bottoms = l.cards.map((c) => c.card.bottom - c.chart.bottom);
             assert.ok(Math.max(...tops) - Math.min(...tops) <= 1, `top edges ${tops}`);
             assert.ok(Math.max(...bottoms) - Math.min(...bottoms) <= 1, `bottom edges ${bottoms}`);
+            for (const c of l.cards) {
+                assert.ok(c.stepper.top - c.card.top < 64, `${c.id} stepper at the top of its card`);
+            }
             for (const c of l.cards.slice(0, 2)) {
                 assert.ok(c.bank.top >= c.stepper.bottom - 0.5, `${c.id} toggle under the stepper`);
                 assert.ok(c.bank.right <= c.chart.left, `${c.id} toggle left of the chart`);
@@ -473,10 +574,7 @@ test('the native shaping modal at 1000x600', async () => {
         assert.deepEqual(l.curveKids, ['head', 'curve-box']);
         const small = (await controlSizes(page)).filter((c) => c.w < 47.5 || c.h < 47.5);
         assert.deepEqual(small, []);
-        const entry = await page.evalFn(() => {
-            const scale = parseFloat(getComputedStyle(__ux.root).getPropertyValue('--ui-app-scale')) || 1;
-            return __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect().height / scale;
-        });
+        const entry = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect().height);
         assert.ok(entry >= 47.5);
     });
 });
@@ -512,6 +610,43 @@ test('with no block in the profile the Edited run uses the settings the shot ran
         await page.settle(4);
         assert.equal(await edited(), noBlock);
     }, reportedShotData(SPEC_EXAMPLE));
+});
+
+test('with no block in the profile the modal opens on the settings the loaded shot ran', async () => {
+    const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(() => __ux.setBlock(null));
+        await loadUsableShot(page);
+        await openFromChart(page);
+        const draft = await page.evalFn(() => structuredClone(__ux.dialog().draft));
+        assert.equal(draft.on, true);
+        assert.deepEqual(draft.points, THREE);
+        assert.equal(draft.flowTau, 1.25);
+        assert.equal(draft.flowMode, 'rise');
+        assert.equal(draft.pressureTau, 0.75);
+        assert.equal(draft.ramp, 1.5);
+        await closeWith(page, 'shape-apply');
+        assert.equal(await draftBlock(page), null, 'an untouched Apply sends no block');
+        await page.evalFn(async () => { __ux.screen().tab = 'settings'; await __ux.settle(); });
+        await page.click(SETTINGS_EDIT);
+        assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true);
+        assert.equal(await page.evalFn(() => __ux.dialog().draft.flowTau), 1.25);
+        await closeWith(page, 'shape-cancel');
+    }, reportedShotData(ran));
+});
+
+test('with no block and no shot loaded the modal opens on the defaults', async () => {
+    await withApp(TABLET, async (page) => {
+        await page.evalFn(() => __ux.setBlock(null));
+        await openFromChart(page);
+        const draft = await page.evalFn(() => structuredClone(__ux.dialog().draft));
+        assert.equal(draft.on, false);
+        assert.deepEqual(draft.points, []);
+        assert.equal(draft.flowTau, 0);
+        assert.equal(draft.ramp, 1);
+        await closeWith(page, 'shape-apply');
+        assert.equal(await draftBlock(page), null);
+    });
 });
 
 test('no shaping dialog opens while the profile saves', async () => {

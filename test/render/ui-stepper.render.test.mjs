@@ -384,6 +384,21 @@ for (const geometry of GATE_A_GEOMETRIES) {
             },
         ));
 
+        test('size="lg" makes the caps and the row --ui-control-lg tall and the value --ui-display-sm', () => mounted(
+            one('size="lg"'), async (page) => {
+                const dec = await page.box('#s >>> #decrement');
+                const band = await page.box('#s >>> .band');
+                const font = await page.evalFn(() => getComputedStyle(
+                    document.querySelector('#s').shadowRoot.querySelector('#value')).fontSize);
+                const lg = await page.resolveValue('var(--ui-control-lg)', 'block-size');
+                const big = await page.resolveValue('var(--ui-display-sm)', 'font-size');
+                assert.equal(`${Math.round(dec.width)}px`, lg);
+                assert.equal(`${Math.round(band.height)}px`, lg);
+                assert.equal(Math.round(dec.height), Math.round(band.height) - 2, 'the cap fills the band inside its border');
+                assert.equal(font, big);
+            },
+        ));
+
         test('C3: compact is 28px per step cheaper, which is OQ-4\'s whole arithmetic', () => mounted(`
 <div id="stage" style="inline-size: 1400px;">
   <div style="display: flex;">
