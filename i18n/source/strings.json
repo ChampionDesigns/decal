@@ -1069,7 +1069,7 @@
     {"key":"How the Bengle shapes the targets of this profile. Bengle only. Changes here show in the preview at once; Apply sends them to the Chart tab. Save stores them with the profile.","note":"Native shaping dialog: tip text of the dialog title."},
     {"key":"Load a shot in the Chart tab to see the preview.","note":"Native shaping dialog: preview text when no shot is loaded or the fit is not ready."},
     {"key":"Native shaping","note":"the name of the native shaping settings: the Chart tab button, the Settings row heading and the dialog title."},
-    {"key":"Not set: the machine uses its defaults.","note":"Editor Settings, Native shaping row: caption when the profile has no native shaping block."},
+    {"key":"Not set: the machine uses its own settings.","note":"Editor Settings, Native shaping row: caption when the profile has no native shaping block."},
     {"key":"Orange dashed line: the Bengle pump. 20 mL/s from 0 to 5.5 bar, then down to 0 mL/s at 13.5 bar.","note":"Native shaping dialog: pump curve tip, paragraph 3."},
     {"key":"Point {n}: {p} bar, {q} mL/s","note":"Native shaping dialog: accessible name of a curve point. {n} is its number, {p} its pressure, {q} its flow."},
     {"key":"Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.","note":"Native shaping dialog: accessible name of the small pressure chart."},

@@ -187,29 +187,36 @@ test('the native shaping modal at 1280x800', async (t) => {
             await closeWith(page, 'shape-cancel');
         });
 
-        await t.test('values set back to the defaults on a profile with no stored block leave no block', async () => {
+        await t.test('Apply with no change on a profile with no block leaves no block', async () => {
             const stored = await page.evalFn(() => __ux.boot.profileEditor.get().record?.profile?.native_shaping ?? null);
             assert.equal(stored, null);
             await page.evalFn(() => __ux.setBlock(null));
-            const setFlowTau = (v) => page.evalFn(async (value) => {
-                __ux.droot().getElementById('ftau-sec').querySelector('ui-stepper')
-                    .dispatchEvent(new CustomEvent('change', { detail: { value }, bubbles: true, composed: true }));
-                await __ux.settle();
-            }, v);
-            const fallback = await page.evalFn(async () => {
-                const { NATIVE_SHAPING_DEFAULTS } = await import('/src/lib/native-shaping-rules.js');
-                return NATIVE_SHAPING_DEFAULTS.flow_tau;
-            });
+            const countNow = () => page.evalFn(() => __ux.boot.profileEditor.changeCount(__ux.screen()._draft));
+            const before = await countNow();
             await openFromChart(page);
-            await setFlowTau(2);
-            await closeWith(page, 'shape-apply');
-            assert.equal((await draftBlock(page)).flow_tau, 2);
-            await openFromChart(page);
-            await setFlowTau(fallback);
             await closeWith(page, 'shape-apply');
             assert.equal(await draftBlock(page), null);
+            const after = await countNow();
+            assert.equal(after.fields.includes('native_shaping'), false);
+            assert.equal(after.count, before.count);
+        });
+
+        await t.test('Curve on then Curve off on a profile with no block saves a block with every default value', async () => {
+            await page.evalFn(() => __ux.setBlock(null));
+            await openFromChart(page);
+            await page.click(`${D} >>> #curve-on`);
+            await page.click(`${D} >>> #curve-off`);
+            await closeWith(page, 'shape-apply');
+            const defaults = await page.evalFn(async () => {
+                const { checkNativeShaping } = await import('/src/lib/native-shaping-rules.js');
+                return checkNativeShaping({}).block;
+            });
+            const saved = await draftBlock(page);
+            assert.deepEqual(saved, defaults);
+            assert.deepEqual(saved.pump_curve, []);
             const fields = await page.evalFn(() => __ux.boot.profileEditor.changeCount(__ux.screen()._draft).fields);
-            assert.equal(fields.includes('native_shaping'), false);
+            assert.equal(fields.includes('native_shaping'), true);
+            await page.evalFn(() => __ux.setBlock(null));
         });
 
         await t.test('in DE1 emulation the button and the row are hidden and the Grind card takes the width', async () => {

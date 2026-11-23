@@ -1074,7 +1074,7 @@
     "How the Bengle shapes the targets of this profile. Bengle only. Changes here show in the preview at once; Apply sends them to the Chart tab. Save stores them with the profile.": "How the Bengle shapes the targets of this profile. Bengle only. Changes here show in the preview at once; Apply sends them to the Chart tab. Save stores them with the profile.",
     "Load a shot in the Chart tab to see the preview.": "Load a shot in the Chart tab to see the preview.",
     "Native shaping": "Native shaping",
-    "Not set: the machine uses its defaults.": "Not set: the machine uses its defaults.",
+    "Not set: the machine uses its own settings.": "Not set: the machine uses its own settings.",
     "Orange dashed line: the Bengle pump. 20 mL/s from 0 to 5.5 bar, then down to 0 mL/s at 13.5 bar.": "Orange dashed line: the Bengle pump. 20 mL/s from 0 to 5.5 bar, then down to 0 mL/s at 13.5 bar.",
     "Point {n}: {p} bar, {q} mL/s": "Point {n}: {p} bar, {q} mL/s",
     "Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.": "Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.",

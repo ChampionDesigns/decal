@@ -1253,7 +1253,7 @@ export class EditorScreen extends UiElement {
     #nativeShapingSummary(block) {
         const t = this.#i18n.t;
         const result = block && typeof block === 'object' ? checkNativeShaping(block) : null;
-        if (!result?.ok) return t('Not set: the machine uses its defaults.');
+        if (!result?.ok) return t('Not set: the machine uses its own settings.');
         const b = result.block;
         const n = b.pump_curve.length;
         const curve = n === 0 ? t('Curve off') : t('Curve on, {n} points', { n });
@@ -1282,8 +1282,7 @@ export class EditorScreen extends UiElement {
     #onShapingApply = (event) => {
         event.stopPropagation();
         if (!this._draft) return;
-        const stored = this.#record?.profile?.[NATIVE_SHAPING_KEY] ?? null;
-        const block = event.detail?.defaults === true && stored === null ? null : event.detail?.block ?? null;
+        const block = event.detail?.block ?? null;
         const next = { ...this._draft };
         if (block === null) delete next[NATIVE_SHAPING_KEY];
         else next[NATIVE_SHAPING_KEY] = block;

@@ -128,7 +128,7 @@ function blockFromDraft(draft) {
     };
 }
 
-function sameBlock(a, b) {
+function sameValue(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
 
@@ -446,6 +446,8 @@ export class EditorShapingDialog extends UiElement {
     #i18n = new I18nController(this);
     #resize = null;
     #drag = null;
+    #fromNone = false;
+    #touched = false;
 
     constructor() {
         super();
@@ -505,7 +507,10 @@ export class EditorShapingDialog extends UiElement {
     }
 
     show({ block = null, invoker = null } = {}) {
-        this._draft = draftFrom(block && typeof block === 'object' && !Array.isArray(block) ? block : null);
+        const given = block && typeof block === 'object' && !Array.isArray(block) ? block : null;
+        this.#fromNone = given === null;
+        this.#touched = false;
+        this._draft = draftFrom(given);
         this._selected = 0;
         this.updateComplete.then(() => {
             const dialog = this.renderRoot.getElementById('shape-dialog');
@@ -529,9 +534,9 @@ export class EditorShapingDialog extends UiElement {
     #apply = () => {
         const result = this.result;
         if (!result?.ok) return;
-        const defaults = sameBlock(result.block, checkNativeShaping({}).block);
+        const block = this.#fromNone && !this.#touched ? null : result.block;
         this.dispatchEvent(new CustomEvent('shaping-apply', {
-            detail: { block: result.block, defaults },
+            detail: { block },
             bubbles: true,
             composed: true,
         }));
@@ -539,7 +544,9 @@ export class EditorShapingDialog extends UiElement {
     };
 
     #set(patch) {
-        this._draft = { ...this._draft, ...patch };
+        const draft = this._draft;
+        if (Object.keys(patch).some((k) => !sameValue(patch[k], draft[k]))) this.#touched = true;
+        this._draft = { ...draft, ...patch };
     }
 
     #curveOn(on) {
