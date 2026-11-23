@@ -714,6 +714,59 @@ test('Clear in the native shaping modal', async (t) => {
             assert.deepEqual(await draftBlock(page), own);
         });
 
+        await t.test('Clear, a change, then Clear again shows the settings of the loaded shot again', async () => {
+            await openFromChart(page);
+            await page.click(`${D} >>> #shape-clear`);
+            await page.click(`${D} >>> #fmode-fall`);
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.flowMode), 'fall');
+            assert.equal((await clearState(page)).disabled, false);
+            await page.click(`${D} >>> #shape-clear`);
+            await page.settle(2);
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.flowMode), 'rise');
+            assert.equal((await clearState(page)).disabled, true);
+            await closeWith(page, 'shape-apply');
+            assert.equal(await draftBlock(page), null);
+            await page.evalFn((b) => __ux.setBlock(b), own);
+        });
+
+        await t.test('Clear during a point drag ends the drag', async () => {
+            await openFromChart(page);
+            const at = await pointCentre(page, 2);
+            await page.mouse('mousePressed', at.x, at.y, { clickCount: 1 });
+            await page.mouse('mouseMoved', at.x + 30, at.y + 30);
+            await page.settle(2);
+            assert.notDeepEqual(await page.evalFn(() => __ux.points()[1]), [EIGHT[1].pressure, EIGHT[1].flow], 'the drag moved the point');
+            await page.evalFn(async () => { __ux.droot().getElementById('shape-clear').click(); await __ux.settle(); });
+            await page.mouse('mouseMoved', at.x + 60, at.y + 60);
+            await page.mouse('mouseReleased', at.x + 60, at.y + 60, { clickCount: 1 });
+            await page.settle(2);
+            assert.deepEqual(await page.evalFn(() => __ux.points()), THREE.map((p) => [p.pressure, p.flow]));
+            assert.equal((await clearState(page)).disabled, true);
+            await closeWith(page, 'shape-cancel');
+            assert.deepEqual(await draftBlock(page), own);
+        });
+
+        await t.test('the preview after Clear is the run with no block', async () => {
+            await openFromChart(page);
+            await page.evalFn(() => {
+                const d = __ux.dialog();
+                const real = d.previewer;
+                __ux.previewArgs = [];
+                d.previewer = (b) => { __ux.previewArgs.push(b === null ? null : structuredClone(b)); return real(b); };
+            });
+            await page.click(`${D} >>> #shape-clear`);
+            await page.click(`${D} >>> #preview-btn`);
+            await page.evalFn(() => __ux.until('__ux.droot().getElementById("preview-chart")'));
+            const seen = await page.evalFn(() => {
+                const edited = [...__ux.droot().querySelectorAll('#preview-chart path.edited')].map((p) => p.getAttribute('d'));
+                const saved = [...__ux.droot().querySelectorAll('#preview-chart path.saved')].map((p) => p.getAttribute('d'));
+                return { last: __ux.previewArgs.at(-1), same: edited.length > 0 && edited.join('|') === saved.join('|') };
+            });
+            await page.click(`${D} >>> #preview-btn`);
+            await closeWith(page, 'shape-cancel');
+            assert.deepEqual(seen, { last: null, same: true });
+        });
+
         await t.test('a control touched after Clear makes a block from the values shown', async () => {
             await openFromChart(page);
             await page.click(`${D} >>> #shape-clear`);
