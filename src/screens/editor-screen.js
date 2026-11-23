@@ -677,6 +677,7 @@ export class EditorScreen extends UiElement {
                     .profile=${this._draft}
                     .baseline=${this._state?.baseline ?? null}
                     ?dirty=${this.#count > 0}
+                    ?saving=${this.#saving}
                     @chart-shot-load=${this.#onChartShotLoad}
                     @chart-status=${this.#onChartStatus}
                     @chart-picker=${this.#onChartPicker}
@@ -832,6 +833,10 @@ export class EditorScreen extends UiElement {
     #onChartShotLoad = (event) => {
         const record = event.detail?.record;
         if (!this.#store || !record || !record.profile) return;
+        if (this.#saving) {
+            this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
+            return;
+        }
         this.#store.open(record);
         this._draft = this.#store.get()?.record?.profile ?? record.profile;
     };

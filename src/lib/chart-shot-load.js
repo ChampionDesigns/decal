@@ -1,5 +1,5 @@
 import {
-    flowSamplesFromRecord, SHOT_NOT_USABLE, shotFromRecord, shotRanDe1Emulation, shotTargetWeight,
+    flowSamplesFromRecord, samplesFromRecord, SHOT_NOT_USABLE, shotFromRecord, shotRanDe1Emulation, shotTargetWeight,
 } from './puck-fit.js';
 import { settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from './shot-model.js';
 import { shotClock } from './shot-summary.js';
@@ -98,7 +98,7 @@ export function shotFacts(record, plan) {
     return {
         clock: shotClock(record?.timestamp),
         dose: shotDoseGrams(record),
-        yield: shot ? lastValue(shot.W) : null,
+        yield: lastValue((shot ?? samplesFromRecord(record))?.W),
         time: t.length ? t[t.length - 1] : null,
         de1: Boolean(plan?.de1),
         noTarget: Boolean(plan?.noTarget),

@@ -51,8 +51,10 @@ export async function mountChartApp(page, data = chartShotData(), { starts = 1 }
             }
             const id = u.pathname.match(/^\/api\/v1\/shots\/([^/]+)$/)?.[1];
             if (!id) return null;
-            const record = shots[decodeURIComponent(id)];
-            return record ? { body: record } : { body: { error: 'Not recorded' }, status: 404 };
+            const key = decodeURIComponent(id);
+            const record = shots[key];
+            const hold = window.__shotHolds?.[key]?.promise ?? null;
+            return record ? { body: record, hold } : { body: { error: 'Not recorded' }, status: 404, hold };
         };
         const { FIT_STARTS } = await import('/src/lib/puck-multistart.js');
         __ux.boot.profileEditor.open(__ux.loaded);
@@ -71,6 +73,13 @@ export async function mountChartApp(page, data = chartShotData(), { starts = 1 }
             }
             return false;
         };
+        window.__shotHolds = {};
+        __ux.holdShot = (key) => {
+            let release;
+            const promise = new Promise((r) => { release = r; });
+            window.__shotHolds[key] = { promise, release: () => { delete window.__shotHolds[key]; release(); } };
+        };
+        __ux.releaseShot = (key) => window.__shotHolds[key]?.release();
         __ux.until = async (source) => {
             for (let i = 0; i < 250; i++) {
                 if (Function(`return (${source})`)()) { await __ux.settle(); return true; }

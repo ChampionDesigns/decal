@@ -496,3 +496,262 @@ for (const geometry of [TABLET, FLOOR]) {
         });
     });
 }
+
+const shotReadCount = (page, id) => page.evalFn((shotId) => __ux.calls
+    .filter((c) => c.method === 'GET' && c.path === `/api/v1/shots/${shotId}`).length, id);
+
+const pickerError = (page) => page.evalFn(() => {
+    const c = __ux.chart().shadowRoot;
+    const note = c.getElementById('load-error');
+    return { text: note?.textContent.trim() ?? null, inPicker: Boolean(note && c.getElementById('picker').contains(note)),
+        pickerOpen: __ux.chart().pickerOpen };
+});
+
+const editSeconds = (page, value) => page.evalFn(async (v) => {
+    __ux.screen().dispatchEvent(new CustomEvent('step-change', {
+        bubbles: true, composed: true, detail: { index: 0, field: 'seconds', value: v },
+    }));
+    await __ux.settle();
+}, value);
+
+const settleFor = (page, ms) => page.evalFn(async (wait) => {
+    await new Promise((r) => setTimeout(r, wait));
+    await __ux.settle();
+}, ms);
+
+test('the picker keeps the shared shot list, the save and newer edits', async (t) => {
+    await withApp(TABLET, async (page, data) => {
+        await showChartTab(page);
+        const boot = await page.evalFn(async () => {
+            await __ux.boot.shotHistory.readPage({ limit: 25, offset: 0, order: 'desc' });
+            const s = __ux.boot.shotHistory.get();
+            return { offset: s.offset, limit: s.limit, first: s.items[0]?.id ?? null, count: s.items.length };
+        });
+
+        await t.test('two picker pages leave the shared shot list on its first page', async () => {
+            await openPicker(page);
+            await page.evalFn(async () => {
+                const list = __ux.chart().shadowRoot.getElementById('shot-list');
+                list.scrollTop = list.scrollHeight;
+                list.dispatchEvent(new Event('scroll'));
+            });
+            assert.equal(await page.evalFn((n) => __ux.until(`__ux.chart().shadowRoot.querySelectorAll(".shot-row").length === ${n}`), data.items.length), true);
+            assert.deepEqual(await page.evalFn(() => window.__shotReads.at(-1)), { limit: 20, offset: 20, order: 'desc' });
+            const after = await page.evalFn(() => {
+                const s = __ux.boot.shotHistory.get();
+                return { offset: s.offset, limit: s.limit, first: s.items[0]?.id ?? null, count: s.items.length };
+            });
+            assert.deepEqual(after, boot);
+            assert.equal(after.offset, 0);
+            assert.equal(after.limit, 25);
+            assert.equal(after.first, data.items[0].id);
+        });
+
+        await t.test('a shot that does not load shows the error in the open picker', async () => {
+            const missing = data.items[7].id;
+            await showRow(page, missing);
+            await page.click(row(missing));
+            assert.equal(await page.evalFn(() => __ux.until('Boolean(__ux.chart().shadowRoot.getElementById("load-error"))')), true);
+            assert.deepEqual(await pickerError(page), { text: 'The shot did not load.', inPicker: true, pickerOpen: true });
+            await page.click(`${CHART} >>> #picker-close`);
+            await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
+        });
+
+        await t.test('a shot that arrives after Escape does not replace newer edits', async () => {
+            assert.equal((await state(page)).changes, 0);
+            await page.evalFn((id) => __ux.holdShot(id), USABLE_ID);
+            await openPicker(page);
+            await showRow(page, USABLE_ID);
+            await page.click(row(USABLE_ID));
+            await page.evalFn((id) => __ux.until(`__ux.calls.some((c) => c.path === "/api/v1/shots/${id}")`), USABLE_ID);
+            await page.press('Escape');
+            assert.equal(await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen')), true);
+            await editSeconds(page, 9);
+            const edited = await state(page);
+            assert.ok(edited.changes > 0);
+            await page.evalFn((id) => __ux.releaseShot(id), USABLE_ID);
+            await settleFor(page, 300);
+            const after = await state(page);
+            assert.equal(after.changes, edited.changes);
+            assert.equal(after.recordId, edited.recordId);
+            assert.equal(after.shotLine, 'No shot loaded');
+            assert.equal(await page.evalFn(() => __ux.screen()._draft.steps[0].seconds), 9);
+            assert.equal(await page.evalFn(() => __ux.chart().loadedShot), null);
+        });
+
+        await t.test('a confirmed shot that arrives after the picker closed and opened again leaves both alone', async () => {
+            const before = await state(page);
+            await page.evalFn((id) => __ux.holdShot(id), DE1_ID);
+            await openPicker(page);
+            await showRow(page, DE1_ID);
+            await page.click(row(DE1_ID));
+            await page.evalFn(() => __ux.until('__ux.chart().shadowRoot.getElementById("load-confirm").open'));
+            await page.click(`${CHART} >>> #load-go`);
+            await page.evalFn(() => __ux.until('!__ux.chart().shadowRoot.getElementById("load-confirm").open'));
+            await page.press('Escape');
+            assert.equal(await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen')), true);
+            await openPicker(page);
+            await page.evalFn((id) => __ux.releaseShot(id), DE1_ID);
+            await settleFor(page, 300);
+            const after = await state(page);
+            assert.equal(after.pickerOpen, true);
+            assert.equal(after.changes, before.changes);
+            assert.equal(after.shotLine, 'No shot loaded');
+            await page.click(`${CHART} >>> #picker-close`);
+            await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
+        });
+
+        await t.test('a confirmed shot that arrives after the draft changed is dropped', async () => {
+            const other = data.reasons.stepNotModelled;
+            await page.evalFn((id) => __ux.holdShot(id), other);
+            await openPicker(page);
+            await showRow(page, other);
+            await page.click(row(other));
+            await page.evalFn(() => __ux.until('__ux.chart().shadowRoot.getElementById("load-confirm").open'));
+            await page.click(`${CHART} >>> #load-go`);
+            await page.evalFn((id) => __ux.until(`__ux.calls.some((c) => c.path === "/api/v1/shots/${id}")`), other);
+            await editSeconds(page, 10);
+            const edited = await state(page);
+            await page.evalFn((id) => __ux.releaseShot(id), other);
+            await settleFor(page, 300);
+            const after = await state(page);
+            assert.equal(after.pickerOpen, true);
+            assert.equal(after.changes, edited.changes);
+            assert.equal(after.shotLine, 'No shot loaded');
+            assert.equal(await page.evalFn(() => __ux.screen()._draft.steps[0].seconds), 10);
+            await editSeconds(page, 9);
+            await page.click(`${CHART} >>> #picker-close`);
+            await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
+        });
+
+        await t.test('a row tap during a save does not read the shot, and says why in the picker', async () => {
+            const before = await page.evalFn(() => ({
+                record: __ux.boot.profileEditor.get().record?.id ?? null,
+                favourites: JSON.stringify(__ux.kv.get('favouriteProfiles')),
+            }));
+            await page.evalFn(async () => {
+                __ux.control.holdProfile = true;
+                __ux.saving = __ux.boot.profileEditor.saveAsNewVersion(__ux.screen()._draft);
+                await __ux.until('__ux.boot.profileEditor.get().save === "saving"');
+            });
+            const reads = await shotReadCount(page, USABLE_ID);
+            await openPicker(page);
+            await showRow(page, USABLE_ID);
+            await page.click(row(USABLE_ID));
+            await settleFor(page, 200);
+            assert.equal(await page.evalFn(() => __ux.chart().shadowRoot.getElementById('load-confirm').open), false);
+            assert.equal(await shotReadCount(page, USABLE_ID), reads);
+            assert.deepEqual(await pickerError(page), { text: 'Still saving. One moment.', inPicker: true, pickerOpen: true });
+            await page.click(`${CHART} >>> #picker-close`);
+            await page.evalFn(() => __ux.until('!__ux.chart().pickerOpen'));
+            assert.equal(await page.evalFn(() => __ux.boot.profileEditor.get().record?.id ?? null), before.record);
+            await page.evalFn(async () => {
+                __ux.control.holdProfile = false;
+                __ux.control.release();
+                await __ux.saving;
+                await __ux.settle();
+            });
+            const saved = await page.evalFn(() => ({
+                record: __ux.boot.profileEditor.get().record,
+                favourites: __ux.kv.get('favouriteProfiles'),
+            }));
+            assert.equal(saved.record.profile.steps[0].seconds, 9);
+            assert.equal(await page.evalFn(() => __ux.chart().loadedShot), null);
+            assert.deepEqual(JSON.parse(before.favourites), { 0: before.record });
+            assert.deepEqual(saved.favourites, { 0: saved.record.id });
+        });
+
+        await t.test('a shot that arrives while the editor saves is dropped', async () => {
+            const before = await state(page);
+            assert.equal(before.changes, 0);
+            await page.evalFn((id) => __ux.holdShot(id), data.noTargetId);
+            await openPicker(page);
+            await showRow(page, data.noTargetId);
+            await page.click(row(data.noTargetId));
+            await page.evalFn((id) => __ux.until(`window.__shotHolds["${id}"] && __ux.calls.filter((c) => c.path === "/api/v1/shots/${id}").length > 0`), data.noTargetId);
+            const favourites = await page.evalFn(() => JSON.stringify(__ux.kv.get('favouriteProfiles')));
+            await page.evalFn(async () => {
+                __ux.control.holdProfile = true;
+                __ux.saving = __ux.boot.profileEditor.saveAsNewVersion(__ux.screen()._draft);
+                await __ux.until('__ux.boot.profileEditor.get().save === "saving"');
+            });
+            await page.evalFn((id) => __ux.releaseShot(id), data.noTargetId);
+            await settleFor(page, 300);
+            assert.equal(await page.evalFn(() => __ux.boot.profileEditor.get().record?.id ?? null), before.recordId);
+            assert.deepEqual(await pickerError(page), { text: 'Still saving. One moment.', inPicker: true, pickerOpen: true });
+            await page.evalFn(async () => {
+                __ux.control.holdProfile = false;
+                __ux.control.release();
+                await __ux.saving;
+                await __ux.settle();
+            });
+            const after = await state(page);
+            assert.equal(after.shotLine, 'No shot loaded');
+            assert.equal(await page.evalFn(() => __ux.chart().loadedShot), null);
+            const end = await page.evalFn(() => ({
+                record: __ux.boot.profileEditor.get().record,
+                favourites: __ux.kv.get('favouriteProfiles'),
+            }));
+            assert.equal(end.record.profile.title, before.draftTitle);
+            assert.deepEqual(JSON.parse(favourites), { 0: before.recordId });
+            assert.deepEqual(end.favourites, { 0: end.record.id });
+        });
+    });
+});
+
+test('the edited run stops where the fit stopped, and Step targets use the Steps ranges', async (t) => {
+    const data = shotData();
+    const shot = structuredClone(data.shots[USABLE_ID]);
+    shot.workflow.context = { ...shot.workflow.context, targetYield: 36 };
+    data.shots[USABLE_ID] = shot;
+    await withApp(TABLET, async (page) => {
+        await showChartTab(page);
+
+        await t.test('before any edit the edited run stops at the weight the fit used', async () => {
+            await loadRow(page, USABLE_ID);
+            assert.equal(await page.evalFn(() => __ux.waitFit()), true);
+            const loaded = await page.evalFn(() => ({
+                fitWeight: __ux.chart().loadedShot.plan.targetWeight,
+                draftWeight: __ux.screen()._draft.target_weight,
+                changes: __ux.boot.profileEditor.changeCount(__ux.screen()._draft).count,
+            }));
+            assert.deepEqual(loaded, { fitWeight: 36, draftWeight: 40, changes: 0 });
+            await page.click(`${CHART} >>> #keys-btn`);
+            await page.click(`${CHART} >>> #tip-results-btn`);
+            const tip = await page.evalFn(async () => {
+                await __ux.until('__ux.chart().shadowRoot.getElementById("tip").open');
+                return __ux.chart().shadowRoot.getElementById('tip').textContent.replace(/\s+/g, ' ');
+            });
+            assert.match(tip, /stops the run at 36\.0 g/);
+            await page.press('Escape');
+            await page.evalFn(() => __ux.until('!__ux.chart().shadowRoot.getElementById("tip").open'));
+            await page.click(`${CHART} >>> #results-close`);
+            await page.evalFn(() => __ux.until('!__ux.chart().shadowRoot.getElementById("results").open'));
+        });
+
+        await t.test('Step targets use the flow and time ranges of the Steps editor', async () => {
+            await page.evalFn(async () => {
+                __ux.boot.capabilities.machineClass = () => 'bengle';
+                for (const [field, value] of [['flow', 18], ['seconds', 200]]) {
+                    __ux.screen().dispatchEvent(new CustomEvent('step-change', {
+                        bubbles: true, composed: true, detail: { index: 0, field, value },
+                    }));
+                    await __ux.settle();
+                }
+                __ux.screen().requestUpdate();
+                await __ux.settle();
+            });
+            assert.deepEqual(await page.evalFn(() => [__ux.screen()._draft.steps[0].flow, __ux.screen()._draft.steps[0].seconds]), [18, 200]);
+            await page.click(`${CHART} >>> #steps-entry`);
+            await page.evalFn(() => __ux.until('__ux.chart().shadowRoot.getElementById("steps-sheet").open'));
+            for (const cls of ['step-target', 'step-seconds']) {
+                await page.click(`${CHART} >>> .step-block[data-step="0"] .${cls} >>> #decrement`);
+                await page.evalFn(() => __ux.settle());
+            }
+            const step = await page.evalFn(() => __ux.screen()._draft.steps[0]);
+            assert.ok(Math.abs(step.flow - 17.9) < 1e-9, `flow ${step.flow}`);
+            assert.equal(step.seconds, 199);
+            await page.click(`${CHART} >>> #steps-close`);
+        });
+    }, data);
+});

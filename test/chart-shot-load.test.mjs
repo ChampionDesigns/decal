@@ -101,3 +101,14 @@ test('the shot line facts use the last measured cup weight and the shot time', (
     assert.equal(facts.noTarget, false);
     assert.equal(shotFacts(withoutTarget(SHOT), shotPlan(withoutTarget(SHOT))).noTarget, true);
 });
+
+test('the shot line facts keep the last cup weight of a shot the model cannot run', () => {
+    const usable = shotFacts(SHOT, shotPlan(SHOT));
+    for (const record of [withoutTarget(SHOT), withShotFlag(SHOT, true)]) {
+        const plan = shotPlan(record);
+        assert.equal(plan.usable, false);
+        const facts = shotFacts(record, plan);
+        assert.equal(facts.yield, usable.yield);
+        assert.equal(facts.time, usable.time);
+    }
+});

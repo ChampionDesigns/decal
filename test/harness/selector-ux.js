@@ -30,7 +30,10 @@ export async function mountSelectorApp(page) {
             let body; try { body = JSON.parse(init.body); } catch { body = null; }
             calls.push({ path: u.pathname, method, body });
             const extra = window.__uxRoutes?.(u, method);
-            if (extra) return json(extra.body, extra.status ?? 200);
+            if (extra) {
+                if (extra.hold) await extra.hold;
+                return json(extra.body, extra.status ?? 200);
+            }
             const key = u.pathname.match(/\/store\/[^/]+\/(.+)$/)?.[1];
             if (key) {
                 if (method === 'GET') return kv.has(key) ? json(kv.get(key)) : json({}, 404);

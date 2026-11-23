@@ -12,6 +12,8 @@ import {
     CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts,
 } from 'src/lib/chart-shot-load.js';
 import { createMultiStartFit, fitSpread, FIT_STARTS } from 'src/lib/puck-multistart.js';
+import { authoringRange, modeRanges } from 'src/lib/profile-modes.js';
+import { createShotsStore } from 'src/stores/shots-store.js';
 import {
     GRIND_RANGE, MEASURED_SERIES, RUN_END, TARGET_SERIES, centredRate, chartXMax, chartYMax, grindFactor,
     isPoorFit, mainStepOf, resultChange, runResults, seriesToggle, shotResults, valueAt,
@@ -20,6 +22,8 @@ import {
 export const SHOT_PAGE_SIZE = 20;
 
 const FIT_SLICE_MS = 12;
+const STILL_SAVING = 'Still saving. One moment.';
+const NOT_LOADED = 'The shot did not load.';
 const CURSOR_STEP_S = 0.5;
 const CURSOR_JUMP_S = 2;
 const MODEL_T_MAX = 120;
@@ -93,6 +97,7 @@ class EditorChartPanel extends UiElement {
         profile: { attribute: false },
         baseline: { attribute: false },
         dirty: { type: Boolean },
+        saving: { type: Boolean },
         fitStarts: { attribute: false },
         _rows: { state: true },
         _total: { state: true },
@@ -429,7 +434,13 @@ class EditorChartPanel extends UiElement {
             flex: 1 1 auto;
         }
 
-        .picker-caption {
+        .picker-top {
+            display: grid;
+            gap: var(--ui-space-1);
+        }
+
+        .picker-caption,
+        #load-error {
             margin: 0;
         }
 
@@ -508,6 +519,8 @@ class EditorChartPanel extends UiElement {
     #fitJob = null;
     #fitTimer = 0;
     #loadSeq = 0;
+    #shots = null;
+    #shotsBoot = null;
     #resize = null;
     #drag = false;
     #memo = { key: null, value: null };
@@ -518,6 +531,7 @@ class EditorChartPanel extends UiElement {
         this.profile = null;
         this.baseline = null;
         this.dirty = false;
+        this.saving = false;
         this.fitStarts = FIT_STARTS;
         this._rows = [];
         this._total = null;
@@ -592,8 +606,10 @@ class EditorChartPanel extends UiElement {
 
     #onPickerOpenChange = (event) => {
         if (event.target !== event.currentTarget || event.detail?.open) return;
+        this.#loadSeq += 1;
         this._pickerOpen = false;
         this._pending = null;
+        this._loadError = '';
         this.#emitPicker();
     };
 
@@ -618,8 +634,17 @@ class EditorChartPanel extends UiElement {
         this.#readPage(this._rows.length);
     }
 
+    get #shotStore() {
+        if (this.#shotsBoot !== this.boot) {
+            this.#shotsBoot = this.boot;
+            const transport = this.boot?.transport ?? null;
+            this.#shots = transport ? createShotsStore({ transport, logger: this.boot?.logger ?? null }) : null;
+        }
+        return this.#shots;
+    }
+
     async #readPage(offset) {
-        const shots = this.boot?.shotHistory;
+        const shots = this.#shotStore;
         if (!shots || typeof shots.readPage !== 'function') {
             this._listStatus = 'failed';
             return;
@@ -642,7 +667,14 @@ class EditorChartPanel extends UiElement {
         this._listStatus = 'ready';
     }
 
+    #refuseWhileSaving() {
+        if (!this.saving) return false;
+        this._loadError = STILL_SAVING;
+        return true;
+    }
+
     #onRowPick(row) {
+        if (this.#refuseWhileSaving()) return;
         if (this.dirty) {
             this._pending = row;
             this.updateComplete.then(() => {
@@ -663,7 +695,7 @@ class EditorChartPanel extends UiElement {
         const row = this._pending;
         this.renderRoot.getElementById('load-confirm')?.hide('confirm');
         this._pending = null;
-        if (row) this.#load(row.id);
+        if (row && !this.#refuseWhileSaving()) this.#load(row.id);
     };
 
     #onConfirmClose = () => {
@@ -671,9 +703,10 @@ class EditorChartPanel extends UiElement {
     };
 
     async #load(id) {
-        const shots = this.boot?.shotHistory;
-        if (!shots || typeof shots.loadShot !== 'function') return;
+        const shots = this.#shotStore;
+        if (!shots) return;
         const seq = ++this.#loadSeq;
+        const draft = this.profile;
         this._loadError = '';
         let answer;
         try {
@@ -681,9 +714,10 @@ class EditorChartPanel extends UiElement {
         } catch {
             answer = null;
         }
-        if (seq !== this.#loadSeq) return;
+        if (seq !== this.#loadSeq || this.profile !== draft) return;
+        if (this.#refuseWhileSaving()) return;
         if (!answer || !answer.ok) {
-            this._loadError = 'The shot did not load.';
+            this._loadError = NOT_LOADED;
             return;
         }
         const record = answer.record;
@@ -694,7 +728,12 @@ class EditorChartPanel extends UiElement {
         this._fit = null;
         this._grind = 0;
         this._cursor = null;
-        this._loaded = { id, record, plan, facts: shotFacts(record, plan), mainStep: plan.shot ? mainStepOf(plan.shot) : null };
+        this._loaded = {
+            id, record, plan,
+            facts: shotFacts(record, plan),
+            mainStep: plan.shot ? mainStepOf(plan.shot) : null,
+            openedWeight: Number((opened?.profile ?? plan.profile)?.target_weight),
+        };
         this._rows = this._rows.map((r) => (r.id === id ? { ...r, time: this._loaded.facts.time } : r));
         if (opened) {
             this.dispatchEvent(new CustomEvent('chart-shot-load', {
@@ -777,7 +816,8 @@ class EditorChartPanel extends UiElement {
         if (!fit || !fit.best || !steps) return null;
         const profile = this.profile ?? this._loaded.plan.profile;
         const wanted = Number(profile?.target_weight);
-        const stopW = finite(wanted) && wanted > 0 ? wanted : this._loaded.plan.targetWeight;
+        const changed = finite(wanted) && wanted > 0 && wanted !== this._loaded.openedWeight;
+        const stopW = changed ? wanted : this._loaded.plan.targetWeight;
         const key = [fit, profile, this._grind, stopW];
         const memo = this.#memo;
         if (memo.key && memo.key.every((v, i) => v === key[i])) return memo.value;
@@ -1167,11 +1207,14 @@ class EditorChartPanel extends UiElement {
         const steps = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
         if (!steps.length) return html`
             <p>${t('No profile is open')}</p>`;
+        const machineClass = this.boot?.capabilities?.machineClass?.() ?? null;
+        const seconds = authoringRange('seconds', machineClass);
         return steps.map((s, i) => {
             const flow = s.pump === 'flow';
             const field = flow ? 'flow' : 'pressure';
             const name = typeof s.name === 'string' && s.name ? s.name : t('Step {n}', { n: i + 1 });
             const modelled = s.pump === 'flow' || s.pump === 'pressure';
+            const target = modelled ? modeRanges(s.pump, machineClass).target : null;
             return html`<div class="step-block" data-step=${i}>
                 <p class="ui-title-sm">${i + 1}. ${name}</p>
                 <div class="step-grid">
@@ -1180,9 +1223,9 @@ class EditorChartPanel extends UiElement {
                         label=${flow ? t('Step {n} target, mL/s', { n: i + 1 }) : t('Step {n} target, bar', { n: i + 1 })}
                         unit=${flow ? 'mL/s' : 'bar'}
                         .value=${Number(s[field]) || 0}
-                        .min=${0}
-                        .max=${flow ? 12 : 12}
-                        .step=${0.1}
+                        .min=${target.min}
+                        .max=${target.max}
+                        .step=${target.step}
                         @change=${(e) => this.#onStepValue(i, field, e)}
                     ></ui-stepper>` : nothing}
                     <ui-stepper
@@ -1190,9 +1233,9 @@ class EditorChartPanel extends UiElement {
                         label=${t('Step {n} time limit, s', { n: i + 1 })}
                         unit="s"
                         .value=${Number(s.seconds) || 0}
-                        .min=${0}
-                        .max=${127}
-                        .step=${1}
+                        .min=${seconds.min}
+                        .max=${seconds.max}
+                        .step=${seconds.step}
                         @change=${(e) => this.#onStepValue(i, 'seconds', e)}
                     ></ui-stepper>
                     <p class="ui-caption">${t('Exit')}: ${this.#exitText(s.exit)}</p>
@@ -1279,8 +1322,6 @@ class EditorChartPanel extends UiElement {
                 ${ok && fit && isPoorFit(rms) ? html`<p id="fit-warn" role="status">${t('Model fit is poor for this shot: {rms} bar rms', { rms: rms.toFixed(2) })}</p>` : nothing}
                 ${fitting ? html`<p
                     id="fit-caption" class="ui-caption" role="status">${t('The model is fitting to this shot.')}</p>` : nothing}
-                ${this._loadError ? html`<p
-                    id="load-error" class="ui-caption" role="status">${t(this._loadError)}</p>` : nothing}
             </div>
 
             <div id="toolbar">
@@ -1401,7 +1442,11 @@ class EditorChartPanel extends UiElement {
                     <button type="button" class="chip action" id="picker-close" @click=${() => this.closePicker()}>${t('Close')}</button>
                 </div>
                 <div slot="body" class="picker-body">
-                    <p class="picker-caption ui-caption">${t('Newest first. A shot loads the profile it ran into the editor, and the model fits the puck to that shot.')}</p>
+                    <div class="picker-top">
+                        <p class="picker-caption ui-caption">${t('Newest first. A shot loads the profile it ran into the editor, and the model fits the puck to that shot.')}</p>
+                        ${this._loadError ? html`<p
+                            id="load-error" class="ui-caption" role="status">${t(this._loadError)}</p>` : nothing}
+                    </div>
                     <ul id="shot-list" @scroll=${this.#onListScroll}>${this.#pickerRows()}</ul>
                 </div>
                 <ui-dialog id="load-confirm" heading=${t('Load this shot?')}
