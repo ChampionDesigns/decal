@@ -355,8 +355,12 @@ export function runShotModel(steps, settings, puck, options) {
     return { out, frames, end, W: cupWeight(pk, V), steps: n };
 }
 
+export function wireUnits(value, perUnit) {
+    return Math.floor(value * perUnit + 0.5 + 1e-9);
+}
+
 function onWireStep(value, perUnit) {
-    return Math.floor(value * perUnit + 0.5 + 1e-9) / perUnit;
+    return wireUnits(value, perUnit) / perUnit;
 }
 
 function finiteOr(value, fallback) {
