@@ -250,6 +250,59 @@ test('the Chart tab at 1280x800', async (t) => {
             assert.deepEqual(await axisLabels(page), axes);
         });
 
+        await t.test('the legend names each series with its unit and a line mark, the axes have titles and each step has its number and name', async () => {
+            const k = await page.evalFn(() => {
+                const c = __ux.chart().shadowRoot;
+                const mark = (id) => {
+                    const line = c.querySelector(`#${id} .mark line`);
+                    const cs = getComputedStyle(line);
+                    return { stroke: cs.stroke, dash: cs.strokeDasharray, width: cs.strokeWidth };
+                };
+                const names = (__ux.chart().profile?.steps ?? []).map((st) => st.name);
+                const labels = [...c.querySelectorAll('#main-chart .step-label')].map((n) => ({
+                    k: Number(n.dataset.step), text: n.textContent.trim(), y: n.getBoundingClientRect().bottom,
+                }));
+                const plot = c.querySelector('#main-chart .grid line').getBoundingClientRect().top;
+                const probe = (token) => {
+                    const i = document.createElement('i');
+                    i.style.color = `var(${token})`;
+                    c.appendChild(i);
+                    const v = getComputedStyle(i).color;
+                    i.remove();
+                    return v;
+                };
+                return {
+                    text: ['lk-P', 'lk-Q', 'lk-G', 'lk-T'].map((id) => c.getElementById(id).textContent.replace(/\s+/g, ' ').trim()),
+                    P: mark('lk-P'),
+                    T: mark('lk-T'),
+                    pressure: probe('--ui-channel-pressure'),
+                    stroke: getComputedStyle(__ux.chart()).getPropertyValue('--ui-chart-stroke').trim(),
+                    xTitle: c.getElementById('axis-x-title')?.textContent,
+                    yTitle: c.getElementById('axis-y-title')?.textContent,
+                    names,
+                    labels,
+                    plot,
+                    lines: [...c.querySelectorAll('#main-chart .step-line')].map((n) => n.getAttribute('stroke-dasharray')),
+                };
+            });
+            assert.deepEqual(k.text, ['Pressure bar', 'Flow mL/s', 'GFlow g/s', 'Target']);
+            assert.equal(k.P.stroke, k.pressure);
+            assert.equal(k.P.dash, 'none');
+            assert.equal(k.P.width, k.stroke);
+            assert.equal(k.T.dash, '16px, 10px', 'the dash of the target lines');
+            assert.equal(k.xTitle, 'Time (s)');
+            assert.equal(k.yTitle, 'bar · mL/s · g/s');
+            assert.ok(k.labels.length >= 2, `labels ${JSON.stringify(k.labels)}`);
+            assert.equal(k.labels[0].k, 0);
+            for (const l of k.labels) {
+                const full = `${l.k + 1} ${k.names[l.k]}`;
+                assert.ok(l.text === full || l.text === String(l.k + 1), `${l.text} is ${full} or its number`);
+                assert.ok(l.y <= k.plot, 'the step name sits above the plot');
+            }
+            assert.ok(k.labels.some((l) => l.text.includes(' ')), 'at least one step shows its name');
+            assert.ok(k.lines.length >= 1 && k.lines.every((d) => d === '15 15'));
+        });
+
         await t.test('grind changes the edited run only, and Reset returns it to x1.00', async () => {
             const before = await paths(page);
             const setGrind = (v) => page.evalFn(async (value) => {

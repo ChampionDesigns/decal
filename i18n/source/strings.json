@@ -996,6 +996,7 @@
     {"key":"Model fit is poor for this shot: {rms} bar rms","note":"Profile editor, Chart tab: the model chart, its toolbar and its notices."},
     {"key":"The model is fitting to this shot.","note":"Profile editor, Chart tab: the model chart, its toolbar and its notices."},
     {"key":"Model run","note":"Profile editor, Chart tab: the model chart, its toolbar and its notices."},
+    {"key":"Time (s)","note":"Profile editor, Chart tab: the title of the time axis of the model chart."},
     {"key":"About the model run","note":"Profile editor, Chart tab: an info sheet, or the name of the button that opens it."},
     {"key":"Grind","note":"Profile editor, Chart tab: the grind control, which scales the puck resistance of the model."},
     {"key":"About the grind","note":"Profile editor, Chart tab: an info sheet, or the name of the button that opens it."},

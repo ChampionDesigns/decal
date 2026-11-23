@@ -8,6 +8,7 @@ import 'src/components/ui-slider.js';
 import 'src/components/ui-stepper.js';
 import { runShotModel, settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
 import { de1EmulationOf } from 'src/lib/de1-emulation.js';
+import { DASH_PATTERNS, SERIES_LINE_CAP } from 'src/lib/chart-axis.js';
 import {
     CHART_NOT_USABLE, NOT_USABLE_WORDS, editorRecordForShot, shotFacts, shotPlan, shotRowFacts, shotShapingBlock,
 } from 'src/lib/chart-shot-load.js';
@@ -27,7 +28,10 @@ const NOT_LOADED = 'The shot did not load.';
 const CURSOR_STEP_S = 0.5;
 const CURSOR_JUMP_S = 2;
 const MODEL_T_MAX = 120;
-const PAD = Object.freeze({ left: 70, right: 16, top: 18, bottom: 44 });
+const PAD = Object.freeze({ left: 70, right: 22, top: 36, bottom: 52 });
+const STEP_LABEL_EM = 0.56;
+const STEP_NUMBER_EM = 0.6;
+const STEP_LABEL_PX = 14;
 const SERIES_KEYS = Object.freeze(['P', 'Q', 'G']);
 const SERIES_NAMES = Object.freeze({ P: 'Pressure', Q: 'Flow', G: 'GFlow', targets: 'Target' });
 const SERIES_UNITS = Object.freeze({ P: 'bar', Q: 'mL/s', G: 'g/s' });
@@ -217,12 +221,52 @@ class EditorChartPanel extends UiElement {
             background-color: currentColor;
         }
 
-        .k-P .swatch { background-color: var(--ui-channel-pressure); }
-        .k-Q .swatch { background-color: var(--ui-channel-flow); }
-        .k-G .swatch { background-color: var(--ui-channel-weight-flow); }
-        .k-T .swatch {
-            background: repeating-linear-gradient(90deg, var(--ui-text-2) 0 6px, transparent 6px 10px);
+        .chip.key {
+            background-color: var(--ui-key);
+            color: var(--ui-text-2);
+            font-size: var(--ui-chart-legend);
+            font-weight: var(--ui-weight-medium);
+            line-height: 1.2;
+            white-space: nowrap;
         }
+
+        .chip.key[aria-pressed="true"] {
+            border-color: var(--ui-line);
+            color: var(--ui-text-2);
+        }
+
+        .chip.key[aria-pressed="false"] {
+            background-color: transparent;
+            color: var(--ui-muted);
+        }
+
+        .key .mark {
+            flex: none;
+            inline-size: var(--ui-legend-swatch-w);
+            block-size: var(--ui-chart-stroke);
+            overflow: visible;
+        }
+
+        .key .mark line {
+            stroke: var(--_cp-ink, currentColor);
+            stroke-width: var(--ui-chart-stroke);
+            stroke-linecap: var(--_cp-cap);
+            stroke-dasharray: var(--_cp-dash, none);
+        }
+
+        .key[aria-pressed="false"] .mark {
+            opacity: .35;
+        }
+
+        .key .unit {
+            color: var(--ui-muted);
+            font-weight: var(--ui-weight-regular);
+        }
+
+        .k-P { --_cp-ink: var(--ui-channel-pressure); }
+        .k-Q { --_cp-ink: var(--ui-channel-flow); }
+        .k-G { --_cp-ink: var(--ui-channel-weight-flow); }
+        .k-T { --_cp-ink: var(--ui-text-2); }
 
         ui-icon-button.info {
             --_ui-icon-btn-box: var(--_cp-hit);
@@ -254,7 +298,7 @@ class EditorChartPanel extends UiElement {
         }
 
         .grid line { stroke: var(--ui-line); stroke-width: 1; }
-        .axis text { fill: var(--ui-text-2); font-size: 15px; }
+        .axis text { fill: var(--ui-text-2); font-size: var(--ui-chart-tick); font-variant-numeric: tabular-nums; }
         .s-P { stroke: var(--ui-channel-pressure); }
         .s-Q { stroke: var(--ui-channel-flow); }
         .s-G { stroke: var(--ui-channel-weight-flow); }
@@ -264,8 +308,8 @@ class EditorChartPanel extends UiElement {
         .edited { stroke-width: 3; }
         .shot { stroke-width: 9; opacity: .28; }
         .target { stroke-width: 2; stroke-dasharray: 16 10; }
-        .step-line { stroke: var(--ui-channel-step-boundary); stroke-width: 1.5; stroke-dasharray: 6 6; }
-        .step-label { fill: var(--ui-text-2); font-size: 14px; }
+        .step-line { stroke: var(--ui-channel-step-boundary); stroke-width: var(--ui-chart-stroke-minor); }
+        .step-label { fill: var(--ui-text-2); font-size: var(--ui-chart-step-label); font-weight: var(--ui-weight-medium); }
         .shot-mark { fill: var(--ui-channel-step-boundary); }
         .bloom { fill: var(--ui-channel-step-boundary); opacity: .12; }
         .cursor { stroke: var(--ui-text); stroke-width: 1.5; }
@@ -1195,9 +1239,28 @@ class EditorChartPanel extends UiElement {
         return svg`<g class="grid">
             ${ys.map((v) => svg`<line x1=${PAD.left} x2=${geo.w - PAD.right} y1=${geo.y(v)} y2=${geo.y(v)}></line>`)}
         </g><g class="axis">
-            ${ys.map((v) => svg`<text x=${PAD.left - 10} y=${geo.y(v) + 5} text-anchor="end">${v}</text>`)}
-            ${xs.map((v) => svg`<text x=${geo.x(v)} y=${geo.h - PAD.bottom + 24} text-anchor="middle">${v}</text>`)}
+            ${ys.map((v) => svg`<text x=${PAD.left - 9} y=${geo.y(v)} dy=".35em" text-anchor="end">${v}</text>`)}
+            ${xs.map((v) => svg`<text x=${geo.x(v)} y=${geo.h - PAD.bottom + 26} text-anchor="middle">${v}</text>`)}
+            <text id="axis-x-title" x=${PAD.left + geo.plotW / 2} y=${geo.h - 4} text-anchor="middle">${this.#i18n.t('Time (s)')}</text>
+            <text id="axis-y-title" x="3" y=${geo.h - 4}>${MEASURED_SERIES.map((k) => SERIES_UNITS[k]).join(' · ')}</text>
         </g>`;
+    }
+
+    #stepLabels(f) {
+        const { geo } = f;
+        const frames = f.edited.run.frames;
+        const names = Array.isArray(this.profile?.steps) ? this.profile.steps : [];
+        return frames.map((fr, i) => {
+            const x = geo.x(fr.t0);
+            const next = i + 1 < frames.length ? geo.x(frames[i + 1].t0) : PAD.left + geo.plotW;
+            const room = next - x - 9;
+            const name = names[fr.k]?.name;
+            const short = String(fr.k + 1);
+            const full = typeof name === 'string' && name ? `${short} ${name}` : short;
+            const text = full.length * STEP_LABEL_PX * STEP_LABEL_EM <= room ? full
+                : short.length * STEP_LABEL_PX * STEP_NUMBER_EM <= room + 6 ? short : '';
+            return text ? svg`<text class="step-label" data-step=${fr.k} x=${x + 6} y=${PAD.top - 15}>${text}</text>` : nothing;
+        });
     }
 
     #lines(f) {
@@ -1214,10 +1277,10 @@ class EditorChartPanel extends UiElement {
                 }
                 if (fr.k > 0) {
                     parts.push(svg`<line class="step-line" x1=${geo.x(fr.t0)} x2=${geo.x(fr.t0)}
-                        y1=${PAD.top} y2=${PAD.top + geo.plotH}></line>
-                        <text class="step-label" x=${geo.x(fr.t0) + 4} y=${PAD.top + 14}>${fr.k + 1}</text>`);
+                        y1=${PAD.top} y2=${PAD.top + geo.plotH} stroke-dasharray=${DASH_PATTERNS.longdash.join(' ')}></line>`);
                 }
             }
+            parts.push(this.#stepLabels(f));
         }
         if (f.shot && this._runs.shot) {
             for (const key of SERIES_KEYS) {
@@ -1562,8 +1625,11 @@ class EditorChartPanel extends UiElement {
                     id=${id}
                     ?disabled=${!ok}
                     aria-pressed=${this._show[key] ? 'true' : 'false'}
+                    style=${`--_cp-cap: ${SERIES_LINE_CAP};${key === TARGET_SERIES ? ` --_cp-dash: ${DASH_PATTERNS['compare-target-a'].join(' ')};` : ''}`}
                     @click=${() => this.#onKey(key)}
-                ><span class="swatch"></span>${t(SERIES_NAMES[key])}</button>`)}
+                ><svg class="mark" aria-hidden="true"><line x1="0" y1="50%" x2="100%" y2="50%"></line></svg
+                ><span class="kl">${t(SERIES_NAMES[key])}</span>${SERIES_UNITS[key]
+                    ? html` <span class="unit">${SERIES_UNITS[key]}</span>` : nothing}</button>`)}
                 <p id="chart-note" class="ui-caption sr-status" role="status">${this._note ? t(this._note) : ''}</p>
             </div>
 
