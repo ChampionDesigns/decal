@@ -12,7 +12,7 @@ const SETTINGS_EDIT = `${E} >>> #shaping-edit-settings`;
 const BAND_CANCEL = `${E} >>> #band >>> #cancel`;
 
 const SPEC_EXAMPLE = Object.freeze({
-    version: 1,
+    version: 2,
     pump_curve: [
         { pressure: 1, flow: 20 }, { pressure: 3, flow: 12 }, { pressure: 6, flow: 6 },
         { pressure: 9, flow: 5 }, { pressure: 12, flow: 4 },
@@ -21,10 +21,20 @@ const SPEC_EXAMPLE = Object.freeze({
     flow_mode: 'both',
     pressure_tau: 0,
     pressure_mode: 'both',
-    ramp_factor: 1,
+    pressure_filter_tau: 0,
+    pressure_ramp_tau: 1,
+    flow_ramp_tau: 0,
 });
 
 const block = (points, over = {}) => ({ ...SPEC_EXAMPLE, pump_curve: points, ...over });
+
+const V2_ONLY = ['pressure_filter_tau', 'pressure_ramp_tau', 'flow_ramp_tau'];
+
+const recordedV1 = (points, over = {}) => ({
+    ...Object.fromEntries(Object.entries(block(points)).filter(([key]) => !V2_ONLY.includes(key))),
+    version: 1,
+    ...over,
+});
 
 const THREE = [{ pressure: 2, flow: 14 }, { pressure: 6, flow: 8 }, { pressure: 10, flow: 3 }];
 const EIGHT = [1, 2.5, 4, 5.5, 7, 8.5, 10, 11.5].map((pressure, i) => ({ pressure, flow: 19 - i * 2 }));
@@ -150,11 +160,32 @@ async function controlSizes(page) {
         };
         for (const el of root.querySelectorAll('button')) add(el, el.id || el.textContent.trim());
         for (const el of root.querySelectorAll('ui-icon-button')) add(el, el.id);
-        for (const st of root.querySelectorAll('ui-stepper')) {
-            for (const b of st.shadowRoot.querySelectorAll('button')) add(b, `${st.id} ${b.getAttribute('aria-label') ?? ''}`);
-        }
         for (const g of root.querySelectorAll('.pt')) add(g, g.id);
         return out;
+    });
+}
+
+async function stepperSizes(page) {
+    return page.evalFn(async () => {
+        const root = __ux.droot();
+        const ref = document.createElement('ui-stepper');
+        Object.assign(ref, { min: 0, max: 5, step: 0.02, value: 0, label: 'ref' });
+        root.append(ref);
+        await ref.updateComplete;
+        const cap = ref.shadowRoot.querySelector('button').getBoundingClientRect();
+        const normal = { w: cap.width, h: cap.height };
+        ref.remove();
+        const out = [];
+        for (const st of root.querySelectorAll('ui-stepper')) {
+            if (st.hasAttribute('size')) out.push(`${st.id} size=${st.getAttribute('size')}`);
+            for (const b of st.shadowRoot.querySelectorAll('button')) {
+                const r = b.getBoundingClientRect();
+                if (r.height < normal.h - 0.5 || r.width < normal.w - 0.5) {
+                    out.push(`${st.id} ${b.getAttribute('aria-label') ?? ''} ${r.width}x${r.height}`);
+                }
+            }
+        }
+        return { normal, off: out };
     });
 }
 
@@ -165,11 +196,11 @@ async function layout(page) {
             const r = el.getBoundingClientRect();
             return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width };
         };
-        const cards = ['ftau', 'ptau', 'rfac'].map((id) => ({
+        const cards = [['ftau', 'ftau'], ['ptau', 'ptau'], ['ramp', 'pramp-l']].map(([id, stepper]) => ({
             id,
             card: box(root.getElementById(`${id}-sec`)),
             chart: box(root.getElementById(`${id}-chart`)),
-            stepper: box(root.getElementById(id)),
+            stepper: box(root.getElementById(stepper)),
             bank: root.querySelector(`#${id}-sec .bank`) ? box(root.querySelector(`#${id}-sec .bank`)) : null,
         }));
         const curveSec = root.getElementById('curve-sec');
@@ -227,16 +258,19 @@ test('the native shaping page at 1280x800', async (t) => {
                 return { caption: r.getAttribute('caption'), note: r.getAttribute('note') };
             }, value);
             const both = await row(block(FIVE, {
-                flow_tau: 0.5, flow_mode: 'both', pressure_tau: 0.5, pressure_mode: 'both', ramp_factor: 1,
+                flow_tau: 0.5, flow_mode: 'both', pressure_tau: 0.5, pressure_mode: 'both',
+                pressure_filter_tau: 0, pressure_ramp_tau: 1, flow_ramp_tau: 0,
             }));
             assert.deepEqual(both, {
-                caption: 'Pump curve on, 5 points · flow τ 0.50 s, both · pressure τ 0.50 s, both · ramp 1.00',
+                caption: 'Pump curve on, 5 points · flow τ 0.50 s, both · pressure τ 0.50 s, both · τ₂ 0.00 s · ramp pressure 1.00 s, flow 0.00 s',
                 note: 'Bengle only; hidden in DE1 emulation.',
             });
             const other = await row(block([], {
-                flow_tau: 2.5, flow_mode: 'rise', pressure_tau: 0, pressure_mode: 'fall', ramp_factor: 1.5,
+                flow_tau: 2.5, flow_mode: 'rise', pressure_tau: 0, pressure_mode: 'fall',
+                pressure_filter_tau: 0.8, pressure_ramp_tau: 1.5, flow_ramp_tau: 4.98,
             }));
-            assert.equal(other.caption, 'Pump curve off · flow τ 2.50 s, rise · pressure τ 0.00 s · ramp 1.50');
+            assert.equal(other.caption,
+                'Pump curve off · flow τ 2.50 s, rise · pressure τ 0.00 s · τ₂ 0.80 s · ramp pressure 1.50 s, flow 4.98 s');
             await page.evalFn(async () => { await __ux.setBlock(null); __ux.screen().tab = 'chart'; await __ux.settle(); });
         });
 
@@ -496,7 +530,7 @@ test('the native shaping page at 1280x800', async (t) => {
             assert.ok(Math.max(...tops) - Math.min(...tops) <= 1, `top edges ${tops}`);
             assert.ok(Math.max(...bottoms) - Math.min(...bottoms) <= 1, `bottom edges ${bottoms}`);
             for (const c of l.cards) {
-                assert.ok(c.stepper.top - c.card.top < 64, `${c.id} stepper at the top of its card`);
+                assert.ok(c.stepper.top - c.card.top < 64, `${c.id} first control at the top of its card`);
             }
             for (const c of l.cards.slice(0, 2)) {
                 assert.ok(c.bank.top >= c.stepper.bottom - 0.5, `${c.id} toggle under the stepper`);
@@ -505,6 +539,7 @@ test('the native shaping page at 1280x800', async (t) => {
             assert.ok(l.curveBox.height > 400, `curve chart ${l.curveBox.height}`);
             const small = (await controlSizes(page)).filter((c) => c.w < 47.5 || c.h < 47.5);
             assert.deepEqual(small, []);
+            assert.deepEqual((await stepperSizes(page)).off, []);
         });
 
         await t.test('Cancel and Escape leave the profile as before', async () => {
@@ -573,6 +608,7 @@ test('the native shaping page at 1000x600', async () => {
         assert.deepEqual(l.curveKids, ['head', 'curve-box']);
         const small = (await controlSizes(page)).filter((c) => c.w < 47.5 || c.h < 47.5);
         assert.deepEqual(small, []);
+        assert.deepEqual((await stepperSizes(page)).off, []);
         const entry = await page.evalFn(() => __ux.chart().shadowRoot.getElementById('shaping-entry').getBoundingClientRect().height);
         assert.ok(entry >= 47.5);
     });
@@ -612,7 +648,7 @@ test('with no block in the profile the Edited run uses the settings the shot ran
 });
 
 test('with no block in the profile the page opens on the settings the loaded shot ran', async () => {
-    const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
+    const ran = recordedV1(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
     await withApp(TABLET, async (page) => {
         await page.evalFn(() => __ux.setBlock(null));
         await loadUsableShot(page);
@@ -623,7 +659,9 @@ test('with no block in the profile the page opens on the settings the loaded sho
         assert.equal(draft.flowTau, 1.25);
         assert.equal(draft.flowMode, 'rise');
         assert.equal(draft.pressureTau, 0.75);
-        assert.equal(draft.ramp, 1.5);
+        assert.equal(draft.pressureFilter, 0);
+        assert.equal(draft.pressureRamp, 1.14);
+        assert.equal(draft.flowRamp, 1.9);
         await closeWith(page, 'shape-apply');
         assert.equal(await draftBlock(page), null, 'an untouched Apply sends no block');
         await page.evalFn(async () => { __ux.screen().tab = 'settings'; await __ux.settle(); });
@@ -650,8 +688,8 @@ const clearState = (page) => page.evalFn(() => {
 });
 
 test('Clear in the native shaping page', async (t) => {
-    const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
-    const own = block(EIGHT, { flow_tau: 2, pressure_tau: 0.5, ramp_factor: 0.5 });
+    const ran = recordedV1(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
+    const own = block(EIGHT, { flow_tau: 2, pressure_tau: 0.5, pressure_ramp_tau: 0.5, flow_ramp_tau: 0.5 });
     await withApp(TABLET, async (page) => {
         await page.evalFn(() => __ux.setBlock(null));
         await loadUsableShot(page);
@@ -690,7 +728,8 @@ test('Clear in the native shaping page', async (t) => {
             assert.equal(draft.flowTau, 1.25);
             assert.equal(draft.flowMode, 'rise');
             assert.equal(draft.pressureTau, 0.75);
-            assert.equal(draft.ramp, 1.5);
+            assert.equal(draft.pressureRamp, 1.14);
+            assert.equal(draft.flowRamp, 1.9);
             assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'Clear does not close the page');
             assert.deepEqual(await draftBlock(page), own, 'Clear does not change the draft by itself');
             assert.equal((await clearState(page)).disabled, true);
@@ -779,7 +818,9 @@ test('Clear in the native shaping page', async (t) => {
             const shown = await page.evalFn(async (b) => {
                 const { checkNativeShaping } = await import('/src/lib/native-shaping-rules.js');
                 return checkNativeShaping(b).block;
-            }, { ...ran, pressure_tau: 2 });
+            }, block(THREE, {
+                flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 2, pressure_ramp_tau: 1.14, flow_ramp_tau: 1.9,
+            }));
             assert.deepEqual(await draftBlock(page), shown);
             assert.deepEqual(shown.pump_curve, THREE);
             await page.evalFn((b) => __ux.setBlock(b), own);
@@ -848,7 +889,9 @@ test('with no block and no shot loaded the page opens on the defaults', async ()
         assert.equal(draft.on, false);
         assert.deepEqual(draft.points, []);
         assert.equal(draft.flowTau, 0);
-        assert.equal(draft.ramp, 1);
+        assert.equal(draft.pressureFilter, 0);
+        assert.equal(draft.pressureRamp, 0);
+        assert.equal(draft.flowRamp, 0);
         await closeWith(page, 'shape-apply');
         assert.equal(await draftBlock(page), null);
     });
@@ -937,7 +980,9 @@ const editorInert = (page) => page.evalFn(() => {
 const STEPPERS = Object.freeze([
     { id: 'ftau', field: 'flow_tau', heading: 'Flow τ', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
     { id: 'ptau', field: 'pressure_tau', heading: 'Pressure τ', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
-    { id: 'rfac', field: 'ramp_factor', heading: 'Ramp factor', unit: '× τ', limits: { min: 0, max: 4, step: 0.02 }, range: '0–4 × τ' },
+    { id: 'pfilt', field: 'pressure_filter_tau', heading: 'Second filter τ₂', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
+    { id: 'pramp', field: 'pressure_ramp_tau', heading: 'Pressure ramp time', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
+    { id: 'framp', field: 'flow_ramp_tau', heading: 'Flow ramp time', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
 ]);
 
 test('the native shaping page and its number pad at 1280x800', async (t) => {
@@ -958,7 +1003,8 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
                     name: host.getAttribute('aria-label'),
                     back: root.getElementById('shape-back')?.getAttribute('label'),
                     parts: ['tip-modal-btn', 'preview-btn', 'shape-clear', 'shape-cancel', 'shape-apply', 'curve-sec',
-                        'curve-chart', 'ftau-sec', 'ptau-sec', 'rfac-sec', 'ftau-chart', 'ptau-chart', 'rfac-chart']
+                        'curve-chart', 'ftau-sec', 'ptau-sec', 'ramp-sec', 'ftau-chart', 'ptau-chart', 'ramp-chart',
+                        'pfilt', 'pramp', 'framp']
                         .filter((id) => !root.getElementById(id)),
                     head: [...root.getElementById('shape-head').children].map((n) => n.id || n.className),
                     dialogs: (() => {
@@ -1084,14 +1130,14 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
             assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true);
             assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'pad Cancel leaves the page open');
             assert.equal(await page.evalFn(() => __ux.dialog().draft.flowTau), 0.5);
-            await openPad(page, 'rfac');
+            await openPad(page, 'pramp');
             await typeKeys(page, ['2']);
             await page.press('Escape');
             assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true);
             await page.settle(4);
             assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'pad Escape leaves the page open');
-            assert.equal(await page.evalFn(() => __ux.dialog().draft.ramp), 1);
-            assert.deepEqual((await deepFocus(page)).slice(-2), ['rfac', 'value']);
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.pressureRamp), 1);
+            assert.deepEqual((await deepFocus(page)).slice(-2), ['pramp', 'value']);
             await closeWith(page, 'shape-apply');
             assert.deepEqual(await draftBlock(page), SPEC_EXAMPLE);
         });
@@ -1115,14 +1161,17 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
             await openFromChart(page);
             await page.click(`${D} >>> #shape-clear`);
             const shown = await page.evalFn(() => structuredClone(__ux.dialog().draft));
-            await openPad(page, 'rfac');
+            await openPad(page, 'framp');
             await typeKeys(page, ['2']);
             await padConfirm(page);
             assert.equal(await page.evalFn(() => __ux.droot().getElementById('shape-clear').disabled), false, 'the entry undoes the cleared state');
             await closeWith(page, 'shape-apply');
             const saved = await draftBlock(page);
             assert.notEqual(saved, null);
-            assert.equal(saved.ramp_factor, 2);
+            assert.equal(saved.flow_ramp_tau, 2);
+            assert.equal(saved.pressure_ramp_tau, shown.pressureRamp);
+            assert.equal(saved.pressure_filter_tau, shown.pressureFilter);
+            assert.equal(Object.hasOwn(saved, 'ramp_factor'), false);
             assert.equal(saved.flow_tau, shown.flowTau);
             assert.equal(saved.pressure_tau, shown.pressureTau);
             assert.equal(saved.flow_mode, shown.flowMode);
@@ -1150,7 +1199,10 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
             await page.settle(4);
             const editable = await page.evalFn(() => [...__ux.droot().querySelectorAll('ui-stepper')]
                 .map((st) => [st.id, st.editable === true, st.shadowRoot.getElementById('value').tagName]));
-            assert.deepEqual(editable, [['ftau', true, 'BUTTON'], ['ptau', true, 'BUTTON'], ['rfac', true, 'BUTTON']]);
+            assert.deepEqual(editable, [
+                ['ftau', true, 'BUTTON'], ['ptau', true, 'BUTTON'], ['pfilt', true, 'BUTTON'],
+                ['pramp', true, 'BUTTON'], ['framp', true, 'BUTTON'],
+            ]);
             await page.click(`${D} >>> #preview-sum`);
             await page.click(`${D} >>> #ftau-chart`);
             await page.settle(2);
@@ -1175,6 +1227,203 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
             assert.equal(await page.evalFn(() => __ux.dialog().getAttribute('role')), 'dialog');
             await closeWith(page, 'shape-back');
             assert.deepEqual(await editorInert(page), { band: false, body: false });
+        });
+    });
+});
+
+const EVERY_FIELD = Object.freeze(block(SPEC_EXAMPLE.pump_curve, {
+    pressure_tau: 0.5, pressure_filter_tau: 0.8, pressure_ramp_tau: 1.2, flow_ramp_tau: 0.9,
+}));
+
+const openWith = async (page, value) => {
+    await page.evalFn((b) => __ux.setBlock(b), value);
+    await openFromChart(page);
+    await page.settle(4);
+};
+
+const miniPaths = (page, id) => page.evalFn((chart) => Object.fromEntries([...__ux.droot()
+    .querySelectorAll(`#${chart} path`)].map((p) => [p.getAttribute('class'), p.getAttribute('d')])), id);
+
+test('the native shaping page with every field above 0', async (t) => {
+    await withApp(TABLET, async (page) => {
+        await t.test('the page and each card fit at 1280x800 with no scroll', async () => {
+            await openWith(page, EVERY_FIELD);
+            const fit = await page.evalFn(() => {
+                const root = __ux.droot();
+                const scroll = Object.fromEntries(['shape-slot', 'shape-body', 'm-right']
+                    .map((id) => {
+                        const el = root.getElementById(id);
+                        return [id, el.scrollHeight - el.clientHeight];
+                    }));
+                const out = [];
+                for (const id of ['ftau', 'ptau', 'ramp']) {
+                    const sec = root.getElementById(`${id}-sec`);
+                    const box = sec.getBoundingClientRect();
+                    if (sec.scrollHeight !== sec.clientHeight) out.push(`${id} scrolls ${sec.scrollHeight - sec.clientHeight}`);
+                    const parts = [...sec.querySelector('.ctl-side').querySelectorAll('*'), root.getElementById(`${id}-chart`)];
+                    for (const el of parts) {
+                        const r = el.getBoundingClientRect();
+                        if (r.width === 0 && r.height === 0) continue;
+                        if (r.bottom > box.bottom + 0.5 || r.right > box.right + 0.5 || r.top < box.top - 0.5) {
+                            out.push(`${id} ${el.id || el.className || el.tagName} ${Math.round(r.bottom - box.bottom)} px`);
+                        }
+                    }
+                }
+                return { scroll, out };
+            });
+            assert.deepEqual(fit, { scroll: { 'shape-slot': 0, 'shape-body': 0, 'm-right': 0 }, out: [] });
+            const l = await layout(page);
+            const heights = l.cards.map((c) => c.chart.height);
+            assert.ok(Math.max(...heights) - Math.min(...heights) <= 1, `chart heights ${heights}`);
+            const small = (await controlSizes(page)).filter((c) => c.w < 47.5 || c.h < 47.5);
+            assert.deepEqual(small, []);
+            assert.deepEqual((await stepperSizes(page)).off, []);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the new steppers show the block values and the captions, with one tip per card', async () => {
+            await openWith(page, EVERY_FIELD);
+            const seen = await page.evalFn(() => {
+                const root = __ux.droot();
+                return {
+                    values: ['pfilt', 'pramp', 'framp'].map((id) => root.getElementById(id).value),
+                    captions: ['pfilt-l', 'pramp-l', 'framp-l'].map((id) => root.getElementById(id).textContent.trim()),
+                    tips: ['tip-pfilt-btn', 'tip-pramp-btn', 'tip-framp-btn'].map((id) => root.getElementById(id) !== null),
+                    perCard: ['ftau-sec', 'ptau-sec', 'ramp-sec'].map((id) => [...root.getElementById(id).querySelectorAll('ui-icon-button')].map((b) => b.id)),
+                    unit: [...root.querySelector('#ramp-sec .card-head .tt').children].map((n) => n.textContent.trim()),
+                    follows: root.getElementById('ramp-follows').textContent.trim(),
+                    modeBanks: root.querySelectorAll('#ramp-sec .bank').length,
+                };
+            });
+            assert.deepEqual(seen, {
+                values: [0.8, 1.2, 0.9],
+                captions: ['Second filter τ₂ · 0 = off', 'Pressure', 'Flow'],
+                tips: [false, false, false],
+                perCard: [['tip-ftau-btn'], ['tip-ptau-btn'], ['tip-ramp-btn']],
+                unit: ['Ramp time', 's · 0 to 5 · 0 = plain ramp'],
+                follows: 'Each ramp follows the mode of its kind.',
+                modeBanks: 0,
+            });
+            const tipText = async (id) => {
+                await page.click(`${D} >>> #tip-${id}-btn`);
+                assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-tip").open === true')), true, `${id} tip opened`);
+                const parts = await page.evalFn(() => [...__ux.droot().querySelectorAll('#shape-tip .tip > *')]
+                    .map((n) => `${n.tagName} ${n.textContent.trim()}`));
+                await page.press('Escape');
+                assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-tip").open === false')), true);
+                return parts;
+            };
+            assert.deepEqual(await tipText('ptau'), [
+                'P Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.',
+                'P Chart: a pressure step up at 0 s and down at 2.5 s. Dashed: the step. Solid: the shaped target.',
+                'H4 Second filter τ₂',
+                'P A second filter on the pressure target of a fast pressure step, after the first. Time constant 0 to 5 s, in steps of 0.02 s. 0 = off. It follows the Pressure τ mode.',
+                'P Chart: dotted, the first filter only. Solid: both filters.',
+            ]);
+            assert.deepEqual((await tipText('ramp')).slice(3), [
+                'H4 Pressure ramp time',
+                'P Time constant of the filter after a smooth pressure ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Pressure τ mode.',
+                'H4 Flow ramp time',
+                'P Time constant of the filter after a smooth flow ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Flow τ mode.',
+            ]);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the Pressure τ card has τ, then τ₂, then the mode selector', async () => {
+            await openWith(page, EVERY_FIELD);
+            const order = await page.evalFn(() => {
+                const card = __ux.droot().getElementById('ptau-sec');
+                const want = ['ptau', 'pfilt-l', 'pfilt', 'pmode-both'];
+                return want.map((id) => [id, card.querySelector(`#${id}`).getBoundingClientRect().top])
+                    .sort((a, b) => a[1] - b[1]).map(([id]) => id);
+            });
+            assert.deepEqual(order, ['ptau', 'pfilt-l', 'pfilt', 'pmode-both']);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('every stepper is as wide as the mode selector', async () => {
+            await openWith(page, EVERY_FIELD);
+            const widths = await page.evalFn(() => {
+                const root = __ux.droot();
+                const w = (el) => el.getBoundingClientRect().width;
+                const bank = { ftau: w(root.querySelector('#ftau-sec .bank')), ptau: w(root.querySelector('#ptau-sec .bank')) };
+                return {
+                    bank,
+                    steppers: { ftau: w(root.getElementById('ftau')), ptau: w(root.getElementById('ptau')), pfilt: w(root.getElementById('pfilt')),
+                        pramp: w(root.getElementById('pramp')), framp: w(root.getElementById('framp')) },
+                };
+            });
+            const against = { ftau: 'ftau', ptau: 'ptau', pfilt: 'ptau', pramp: 'ptau', framp: 'ptau' };
+            for (const [id, w] of Object.entries(widths.steppers)) {
+                assert.ok(Math.abs(w - widths.bank[against[id]]) <= 1, `${id} ${w} against the selector ${widths.bank[against[id]]}`);
+            }
+            assert.deepEqual((await stepperSizes(page)).off, []);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the pad heading keeps the Greek letters in lower case', async () => {
+            await openWith(page, EVERY_FIELD);
+            await openPad(page, 'pfilt');
+            const greek = await page.evalFn(() => {
+                const found = [];
+                const walk = (node) => {
+                    for (const el of node.querySelectorAll('*')) {
+                        if (el.classList.contains('as-is')) found.push([el.textContent, getComputedStyle(el).textTransform]);
+                        if (el.shadowRoot) walk(el.shadowRoot);
+                    }
+                };
+                walk(__ux.droot().getElementById('shape-pad').shadowRoot);
+                return found;
+            });
+            assert.deepEqual(greek, [['τ', 'none']]);
+            assert.equal((await padState(page)).heading, 'Second filter τ₂');
+            await page.press('Escape');
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the dotted first-filter line shows only when τ₂ is above 0', async () => {
+            await openWith(page, EVERY_FIELD);
+            const on = await miniPaths(page, 'ptau-chart');
+            assert.ok(on['first pressure'], Object.keys(on).join(','));
+            assert.notEqual(on['first pressure'], on['shaped pressure']);
+            const note = () => page.evalFn(() => [...__ux.droot().querySelectorAll('#ptau-chart text.note')].map((n) => n.textContent));
+            assert.deepEqual(await note(), ['dotted: first filter only']);
+            await closeWith(page, 'shape-cancel');
+            await openWith(page, { ...EVERY_FIELD, pressure_filter_tau: 0 });
+            const off = await miniPaths(page, 'ptau-chart');
+            assert.deepEqual(Object.keys(off).sort(), ['raw pressure', 'shaped pressure']);
+            assert.deepEqual(await note(), []);
+            await openPad(page, 'pfilt');
+            await typeKeys(page, ['1']);
+            await padConfirm(page);
+            await page.settle(2);
+            assert.ok((await miniPaths(page, 'ptau-chart'))['first pressure'], 'the line comes back after an entry');
+            await closeWith(page, 'shape-apply');
+            assert.equal((await draftBlock(page)).pressure_filter_tau, 1);
+        });
+
+        await t.test('the Ramp time chart follows the pressure mode and the flow mode', async () => {
+            const ramps = async (over) => {
+                await openWith(page, { ...EVERY_FIELD, ...over });
+                const p = await miniPaths(page, 'ramp-chart');
+                await closeWith(page, 'shape-cancel');
+                return {
+                    pressure: p['shaped pressure'] === p['raw pressure'] ? 'plain' : 'shaped',
+                    flow: p['shaped flow'] === p['raw flow'] ? 'plain' : 'shaped',
+                    p: p['shaped pressure'],
+                    f: p['shaped flow'],
+                };
+            };
+            const both = await ramps({ pressure_mode: 'both', flow_mode: 'both' });
+            const off = await ramps({ pressure_mode: 'fall', flow_mode: 'rise' });
+            const on = await ramps({ pressure_mode: 'rise', flow_mode: 'fall' });
+            const plain = await ramps({ pressure_ramp_tau: 0, flow_ramp_tau: 0 });
+            assert.deepEqual([both.pressure, both.flow], ['shaped', 'shaped']);
+            assert.deepEqual([off.pressure, off.flow], ['plain', 'plain']);
+            assert.deepEqual([on.pressure, on.flow], ['shaped', 'shaped']);
+            assert.deepEqual([plain.pressure, plain.flow], ['plain', 'plain']);
+            assert.equal(on.p, both.p);
+            assert.equal(on.f, both.f);
         });
     });
 });

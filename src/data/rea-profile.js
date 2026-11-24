@@ -2,6 +2,8 @@
 
 import { newStep } from '../lib/profile-modes.js';
 import { de1EmulationOf, withDe1Emulation } from '../lib/de1-emulation.js';
+import { isRetiredShapingBlock } from '../lib/native-shaping-rules.js';
+import { NATIVE_SHAPING_KEY } from '../lib/shot-model.js';
 
 /** `enum Visibility { visible, hidden, deleted }` (`profile_record.dart:6`). */
 export const PROFILE_VISIBILITY = Object.freeze({
@@ -61,6 +63,7 @@ export function sanitizeProfileForRea(profileData) {
 
     profile.version = profile.version || '2';
     for (const key of LEGACY_PROFILE_KEYS) delete profile[key];
+    if (isRetiredShapingBlock(profile[NATIVE_SHAPING_KEY])) delete profile[NATIVE_SHAPING_KEY];
 
     if (Array.isArray(profile.steps)) {
         for (const step of profile.steps) {

@@ -2,7 +2,7 @@ import {
     flowSamplesFromRecord, samplesFromRecord, SHOT_NOT_USABLE, shotFromRecord, shotRanDe1Emulation, shotTargetWeight,
 } from './puck-fit.js';
 import { settingsFromNativeShaping, stepsFromProfile, NATIVE_SHAPING_KEY } from './shot-model.js';
-import { checkNativeShaping } from './native-shaping-rules.js';
+import { checkNativeShaping, checkRecordedShaping } from './native-shaping-rules.js';
 import { shotClock } from './shot-summary.js';
 import { lastValue } from './chart-series.js';
 import { holdsActiveRecipe } from '../stores/profile-library-store.js';
@@ -51,7 +51,7 @@ function shotDoseGrams(record) {
 }
 
 function validBlock(block) {
-    return isBody(block) && checkNativeShaping(block).ok;
+    return isBody(block) && (checkNativeShaping(block).ok || checkRecordedShaping(block));
 }
 
 export function shotShapingBlock(record) {

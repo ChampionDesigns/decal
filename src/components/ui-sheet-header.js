@@ -13,6 +13,8 @@ export const SHEET_HEADING_LEVELS = Object.freeze([1, 2, 3, 4, 5, 6]);
 
 export const DEFAULT_LEVEL = 2;
 
+const GREEK_RUN = /([\u0370-\u03FF\u1F00-\u1FFF]+)/u;
+
 export class UiSheetHeader extends UiElement {
     static properties = {
         /** The title, as a string. Not a slot — see "WHAT IS DELIBERATELY NOT HERE". */
@@ -56,6 +58,10 @@ export class UiSheetHeader extends UiElement {
         .is-empty {
             display: none;
         }
+
+        .as-is {
+            text-transform: none;
+        }
     `];
 
     constructor() {
@@ -80,8 +86,10 @@ export class UiSheetHeader extends UiElement {
     }
 
     #renderHeading() {
-        const text = this.heading ?? '';
-        if (!text) return nothing;
+        const raw = this.heading ?? '';
+        if (!raw) return nothing;
+        const text = raw.split(GREEK_RUN).map((part, i) => (i % 2 ? html`<span class="as-is"
+            >${part}</span>` : part));
         switch (this.level) {
             case 1: return html`<h1 id="title" class="ui-title title"
                 >${text}</h1>`;

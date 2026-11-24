@@ -115,6 +115,9 @@ const MARKUP = `${RING_CSS}
         <button class="child" slot="trail" id="untitled-out" type="button">Close</button>
     </ui-sheet-header>
 </div>
+<div id="wide-11" style="inline-size: 680px; padding: 24px">
+    <ui-sheet-header id="greek" heading="Flow τ, then Δp and τ₂"></ui-sheet-header>
+</div>
 <div id="wide-10" style="inline-size: 680px; padding: 24px">
     <ui-sheet-header id="empty-title" heading="">
         <button class="child" slot="trail" id="empty-out" type="button">Close</button>
@@ -488,6 +491,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 'default 2, the level asked for, and a documented fallback for level="9"');
             assert.equal(await page.evalFn(() => document.getElementById('bogus').level), 2,
                 'an out-of-range level normalises to the default rather than rendering a non-heading');
+        }));
+
+        test('the title is upper case but a Greek letter keeps its own case', () => mounted(async (page) => {
+            const seen = await page.evalFn(() => {
+                const title = document.getElementById('greek').shadowRoot.querySelector('#title');
+                return { shown: title.innerText, text: title.textContent };
+            });
+            assert.deepEqual(seen, { shown: 'FLOW τ, THEN ΔP AND τ₂', text: 'Flow τ, then Δp and τ₂' });
         }));
 
         test('an EMPTY heading renders no heading element at all', () => mounted(async (page) => {

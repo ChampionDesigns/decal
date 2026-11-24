@@ -3,24 +3,31 @@ import { NATIVE_SHAPING_KEY, WIRE_STEPS_PER_UNIT, wireUnits } from './shot-model
 export const NATIVE_SHAPING_MODES = Object.freeze(['both', 'rise', 'fall']);
 
 export const NATIVE_SHAPING_LIMITS = Object.freeze({
-    version: 1,
+    version: 2,
     maxPoints: 8,
     fixedPoint: Object.freeze({ pressure: 0, flow: 20 }),
     pressure: Object.freeze({ min: 0.5, max: 13.5, rise: 0.5, step: 0.1 }),
     flow: Object.freeze({ min: 0, max: 20, step: 0.1 }),
     tau: Object.freeze({ min: 0, max: 5, step: 0.02 }),
-    ramp: Object.freeze({ min: 0, max: 4, step: 0.02 }),
 });
 
 export const NATIVE_SHAPING_DEFAULTS = Object.freeze({
-    version: 1,
+    version: 2,
     pump_curve: Object.freeze([]),
     flow_tau: 0,
     flow_mode: 'both',
     pressure_tau: 0,
     pressure_mode: 'both',
-    ramp_factor: 1,
+    pressure_filter_tau: 0,
+    pressure_ramp_tau: 0,
+    flow_ramp_tau: 0,
 });
+
+export const RETIRED_SHAPING_KEY = 'ramp_factor';
+
+const RECORDED_V1 = Object.freeze({ version: 1, ramp: Object.freeze({ min: 0, max: 4 }) });
+
+const V2_TIME_KEYS = Object.freeze(['pressure_filter_tau', 'pressure_ramp_tau', 'flow_ramp_tau']);
 
 export const DEFAULT_PUMP_CURVE = Object.freeze([
     Object.freeze({ pressure: 1, flow: 20 }),
@@ -39,6 +46,7 @@ export const NATIVE_SHAPING_RULE = Object.freeze({
     MODE: 'mode',
     PRESSURE_RISE: 'pressureRise',
     FLOW_RISE: 'flowRise',
+    RETIRED: 'retired',
 });
 
 const R = NATIVE_SHAPING_RULE;
@@ -75,14 +83,15 @@ function mode(raw, field, errors) {
     return null;
 }
 
-export function checkNativeShaping(input) {
-    const errors = [];
-    if (!input || typeof input !== 'object' || Array.isArray(input)) {
-        return { ok: false, block: null, errors: [{ field: NATIVE_SHAPING_KEY, rule: R.TYPE }] };
-    }
-    if (!absent(input.version) && input.version !== L.version) {
-        errors.push({ field: 'version', rule: R.VERSION });
-    }
+function isBody(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function isRetiredShapingBlock(block) {
+    return isBody(block) && Object.hasOwn(block, RETIRED_SHAPING_KEY);
+}
+
+function common(input, errors) {
     const rawCurve = absent(input.pump_curve) ? [] : input.pump_curve;
     const curve = [];
     if (!Array.isArray(rawCurve)) {
@@ -114,28 +123,66 @@ export function checkNativeShaping(input) {
     }
     const T = WIRE_STEPS_PER_UNIT.tau;
     const D = NATIVE_SHAPING_DEFAULTS;
-    const flowTau = units(input.flow_tau, 'flow_tau', T, L.tau, errors, D.flow_tau);
+    const tau = (key) => units(input[key], key, T, L.tau, errors, D[key]);
+    const flowTau = tau('flow_tau');
     const flowMode = mode(input.flow_mode, 'flow_mode', errors);
-    const pressureTau = units(input.pressure_tau, 'pressure_tau', T, L.tau, errors, D.pressure_tau);
+    const pressureTau = tau('pressure_tau');
     const pressureMode = mode(input.pressure_mode, 'pressure_mode', errors);
-    const ramp = units(input.ramp_factor, 'ramp_factor', WIRE_STEPS_PER_UNIT.ramp, L.ramp, errors, D.ramp_factor);
+    return {
+        pump_curve: () => curve.map(({ p, q }) => ({
+            pressure: p / WIRE_STEPS_PER_UNIT.pressure,
+            flow: q / WIRE_STEPS_PER_UNIT.flow,
+        })),
+        flow_tau: flowTau,
+        flow_mode: flowMode,
+        pressure_tau: pressureTau,
+        pressure_mode: pressureMode,
+        tau,
+    };
+}
+
+export function checkNativeShaping(input) {
+    const errors = [];
+    if (!isBody(input)) {
+        return { ok: false, block: null, errors: [{ field: NATIVE_SHAPING_KEY, rule: R.TYPE }] };
+    }
+    if (!absent(input.version) && input.version !== L.version) {
+        errors.push({ field: 'version', rule: R.VERSION });
+    }
+    if (isRetiredShapingBlock(input)) errors.push({ field: RETIRED_SHAPING_KEY, rule: R.RETIRED });
+    const c = common(input, errors);
+    const times = V2_TIME_KEYS.map((key) => c.tau(key));
     if (errors.length) return { ok: false, block: null, errors };
+    const T = WIRE_STEPS_PER_UNIT.tau;
     return {
         ok: true,
         errors,
         block: {
             version: L.version,
-            pump_curve: curve.map(({ p, q }) => ({
-                pressure: p / WIRE_STEPS_PER_UNIT.pressure,
-                flow: q / WIRE_STEPS_PER_UNIT.flow,
-            })),
-            flow_tau: flowTau / T,
-            flow_mode: flowMode,
-            pressure_tau: pressureTau / T,
-            pressure_mode: pressureMode,
-            ramp_factor: ramp / WIRE_STEPS_PER_UNIT.ramp,
+            pump_curve: c.pump_curve(),
+            flow_tau: c.flow_tau / T,
+            flow_mode: c.flow_mode,
+            pressure_tau: c.pressure_tau / T,
+            pressure_mode: c.pressure_mode,
+            ...Object.fromEntries(V2_TIME_KEYS.map((key, i) => [key, times[i] / T])),
         },
     };
+}
+
+export function checkRecordedShaping(input) {
+    if (!isBody(input)) return false;
+    const errors = [];
+    if (!absent(input.version) && input.version !== RECORDED_V1.version) {
+        errors.push({ field: 'version', rule: R.VERSION });
+    }
+    for (const key of V2_TIME_KEYS) {
+        if (!absent(input[key])) errors.push({ field: key, rule: R.VERSION });
+    }
+    common(input, errors);
+    if (!absent(input[RETIRED_SHAPING_KEY])) {
+        units(input[RETIRED_SHAPING_KEY], RETIRED_SHAPING_KEY, WIRE_STEPS_PER_UNIT.ramp, RECORDED_V1.ramp, errors);
+    }
+    return errors.length === 0;
 }
 
 export function pointLimits(points, i) {

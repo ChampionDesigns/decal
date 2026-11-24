@@ -1,5 +1,5 @@
 import {
-    MODEL_HZ, makePumpCurve, pumpCeiling, rampFromFactor, rampStart, shapedGoal,
+    MODEL_HZ, makePumpCurve, pumpCeiling, rampStart, shapedGoal,
 } from './shot-model.js';
 
 export const CURVE_AXES = Object.freeze({ pressureMax: 14, flowMax: 21 });
@@ -52,44 +52,61 @@ const STEP_SHAPES = Object.freeze({
     pressure: Object.freeze({ from: 1.5, to: 6, back: 3 }),
 });
 
-export function stepResponse(kind, tau, mode) {
+export function stepResponse(kind, tau, mode, tau2 = 0) {
     const shape = STEP_SHAPES[kind] ?? STEP_SHAPES.pressure;
     const pump = kind === 'flow' ? 'flow' : 'pressure';
     const { from, to, back } = shape;
+    const two = pump === 'pressure' && tau2 > 0;
     const rise = Math.round(0.5 * MODEL_HZ);
     const fall = Math.round(3 * MODEL_HZ);
     const count = Math.round(5.5 * MODEL_HZ);
     const t = [];
     const raw = [];
     const shaped = [];
+    const first = two ? [] : null;
     let goal = null;
+    let goalFirst = null;
     let v = from;
+    let w = from;
     for (let i = 0; i <= count; i++) {
         let r = from;
-        if (i === rise) goal = shapedGoal({ pump, smooth: false, seed: from, target: to, tau, mode });
-        if (i === fall) goal = shapedGoal({ pump, smooth: false, seed: v, target: back, tau, mode });
+        if (i === rise) {
+            goal = shapedGoal({ pump, smooth: false, seed: from, target: to, tau, mode, tau2 });
+            if (two) goalFirst = shapedGoal({ pump, smooth: false, seed: from, target: to, tau, mode });
+        }
+        if (i === fall) {
+            goal = shapedGoal({ pump, smooth: false, seed: v, target: back, tau, mode, tau2 });
+            if (two) goalFirst = shapedGoal({ pump, smooth: false, seed: w, target: back, tau, mode });
+        }
         if (i >= fall) r = back;
         else if (i >= rise) r = to;
         v = goal ? goal(r) : from;
+        w = goalFirst ? goalFirst(r) : from;
         if (i % 2 === 0) {
             t.push(-0.5 + i / MODEL_HZ);
             raw.push(r);
             shaped.push(v);
+            if (two) first.push(w);
         }
     }
-    return { t, raw, shaped };
+    return { t, raw, shaped, first };
 }
 
-export function rampResponse(rampFactor, tau, mode = 'both') {
-    const seed = 2;
-    const target = 9;
-    const begin = Math.round(0.5 * MODEL_HZ);
-    const width = 4 * MODEL_HZ;
-    const count = Math.round(6.5 * MODEL_HZ);
-    const from = rampStart('pressure', seed);
-    const goal = shapedGoal({
-        pump: 'pressure', smooth: true, seed, target, tau: rampFromFactor(rampFactor, tau), mode,
-    });
+const RAMP_SHAPES = Object.freeze({
+    pressure: Object.freeze({ from: 2, to: 9 }),
+    flow: Object.freeze({ from: 6, to: 2 }),
+});
+
+export const RAMP_WINDOW = Object.freeze({ start: -0.5, end: 5.5, seconds: 4 });
+
+export function rampResponse(kind, rampTau, mode = 'both') {
+    const pump = kind === 'flow' ? 'flow' : 'pressure';
+    const { from: seed, to: target } = RAMP_SHAPES[pump];
+    const begin = Math.round(-RAMP_WINDOW.start * MODEL_HZ);
+    const width = RAMP_WINDOW.seconds * MODEL_HZ;
+    const count = Math.round((RAMP_WINDOW.end - RAMP_WINDOW.start) * MODEL_HZ);
+    const from = rampStart(pump, seed);
+    const goal = shapedGoal({ pump, smooth: true, seed, target, tau: rampTau, mode });
     const t = [];
     const raw = [];
     const shaped = [];
@@ -98,7 +115,7 @@ export function rampResponse(rampFactor, tau, mode = 'both') {
         const u = n < 0 ? seed : from + (target - from) * Math.min(n / width, 1);
         const v = n < 0 ? seed : goal(u);
         if (i % 2 === 0) {
-            t.push(-0.5 + i / MODEL_HZ);
+            t.push(RAMP_WINDOW.start + i / MODEL_HZ);
             raw.push(u);
             shaped.push(v);
         }

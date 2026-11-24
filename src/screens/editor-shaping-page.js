@@ -17,7 +17,7 @@ import {
     CURVE_AXES, DE1_240V_CURVE, benglePumpLine, pumpCurveLine, rampResponse, stepResponse,
 } from 'src/lib/native-shaping-curves.js';
 import { DASH_PATTERNS } from 'src/lib/chart-axis.js';
-import { WIRE_STEPS_PER_UNIT, wireUnits } from 'src/lib/shot-model.js';
+import { WIRE_STEPS_PER_UNIT, settingsFromNativeShaping, wireUnits } from 'src/lib/shot-model.js';
 
 const GRAB_PX = 36;
 const PRESSURE_KEY_STEP = 0.1;
@@ -28,6 +28,8 @@ const CURVE_PAD = Object.freeze({ left: 70, right: 18, top: 16, bottom: 52 });
 const MINI_PAD = Object.freeze({ left: 44, right: 8, top: 22, bottom: 30 });
 const PREVIEW_PAD = Object.freeze({ left: 44, right: 12, top: 12, bottom: 30 });
 const MODE_WORDS = Object.freeze({ both: 'Both', rise: 'Rise', fall: 'Fall' });
+const RAMP_X = Object.freeze([-0.5, 5.5]);
+const RAMP_Y_MAX = 9.5;
 
 const TIPS = Object.freeze({
     modal: {
@@ -55,13 +57,21 @@ const TIPS = Object.freeze({
         body: [
             'Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.',
             'Chart: a pressure step up at 0 s and down at 2.5 s. Dashed: the step. Solid: the shaped target.',
+            { heading: 'Second filter τ₂' },
+            'A second filter on the pressure target of a fast pressure step, after the first. Time constant 0 to 5 s, in steps of 0.02 s. 0 = off. It follows the Pressure τ mode.',
+            'Chart: dotted, the first filter only. Solid: both filters.',
         ],
     },
-    rfac: {
-        heading: 'Ramp factor',
+    ramp: {
+        heading: 'Ramp time',
         body: [
-            'Smooth steps: the ramp, then a filter with time constant ramp factor × τ. 0 to 4, in steps of 0.02; 0 = the plain ramp.',
-            'Chart: a smooth pressure step, 2 to 9 bar in 4 s, with pressure τ times the ramp factor. Dashed: the ramp. Solid: the shaped target.',
+            'Smooth steps: the ramp, then a filter with this time constant. 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp.',
+            'Each ramp follows the mode of its kind: the pressure ramp follows the Pressure τ mode, and the flow ramp follows the Flow τ mode.',
+            'Chart: a smooth pressure step from 2 to 9 bar and a smooth flow step from 6 to 2 mL/s, both in 4 s. Dashed: the ramps. Solid: the shaped targets.',
+            { heading: 'Pressure ramp time' },
+            'Time constant of the filter after a smooth pressure ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Pressure τ mode.',
+            { heading: 'Flow ramp time' },
+            'Time constant of the filter after a smooth flow ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Flow τ mode.',
         ],
     },
     preview: {
@@ -126,6 +136,10 @@ function draftFrom(block) {
         : [];
     const num = (v, fallback) => (finite(Number(v)) && v !== null && v !== '' ? Number(v) : fallback);
     const mode = (v) => (NATIVE_SHAPING_MODES.includes(v) ? v : 'both');
+    const L = NATIVE_SHAPING_LIMITS.tau;
+    const T = WIRE_STEPS_PER_UNIT.tau;
+    const time = (v) => onStep(Math.min(L.max, Math.max(L.min, v)), T);
+    const s = settingsFromNativeShaping(b);
     return {
         on: points.length > 0,
         points,
@@ -133,7 +147,9 @@ function draftFrom(block) {
         flowMode: mode(b.flow_mode),
         pressureTau: num(b.pressure_tau, d.pressure_tau),
         pressureMode: mode(b.pressure_mode),
-        ramp: num(b.ramp_factor, d.ramp_factor),
+        pressureFilter: num(b.pressure_filter_tau, d.pressure_filter_tau),
+        pressureRamp: time(s.pRamp),
+        flowRamp: time(s.fRamp),
     };
 }
 
@@ -145,7 +161,9 @@ function blockFromDraft(draft) {
         flow_mode: draft.flowMode,
         pressure_tau: draft.pressureTau,
         pressure_mode: draft.pressureMode,
-        ramp_factor: draft.ramp,
+        pressure_filter_tau: draft.pressureFilter,
+        pressure_ramp_tau: draft.pressureRamp,
+        flow_ramp_tau: draft.flowRamp,
     };
 }
 
@@ -430,17 +448,23 @@ export class EditorShapingPage extends UiElement {
         }
 
         #m-right {
-            display: grid;
-            grid-template-rows: repeat(3, minmax(min-content, 1fr));
-            gap: var(--ui-space-3);
             min-block-size: 0;
             overflow-y: auto;
             overscroll-behavior: contain;
         }
 
-        .ctl-card {
+        #m-grid {
             display: grid;
             grid-template-columns: max-content minmax(0, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: var(--ui-space-3);
+            min-block-size: 100%;
+        }
+
+        .ctl-card {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: subgrid;
             gap: 0 var(--ui-space-4);
             padding: var(--ui-space-1) var(--ui-space-3) var(--ui-space-1) var(--ui-space-4);
         }
@@ -470,6 +494,23 @@ export class EditorShapingPage extends UiElement {
             flex: 1 1 0;
             min-inline-size: var(--_sd-hit);
             padding: 0 var(--ui-space-2);
+        }
+
+        .sub {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            min-inline-size: 0;
+        }
+
+        .sub-cap,
+        .follows {
+            margin: 0;
+            font-size: var(--ui-text-md);
+            line-height: 1.2;
+        }
+
+        .follows {
+            max-inline-size: 22ch;
         }
 
         .mini {
@@ -503,6 +544,12 @@ export class EditorShapingPage extends UiElement {
             margin: 0 0 var(--ui-space-2);
         }
 
+        .tip h4 {
+            margin: var(--ui-space-3) 0 var(--ui-space-1);
+            font-size: var(--ui-text-base);
+            font-weight: var(--ui-weight-medium);
+        }
+
         @container (max-width: 720px) {
             #shape-head {
                 padding: var(--ui-space-4);
@@ -528,8 +575,11 @@ export class EditorShapingPage extends UiElement {
 
             #m-right {
                 flex: none;
-                grid-template-rows: none;
                 overflow: visible;
+            }
+
+            #m-grid {
+                grid-template-rows: none;
             }
 
             #preview-sec {
@@ -603,7 +653,7 @@ export class EditorShapingPage extends UiElement {
             if (this.open) this.#applyInert();
             else this.#giveFocusBack();
         }
-        for (const id of ['curve-box', 'ftau-chart', 'ptau-chart', 'rfac-chart', 'preview-box']) {
+        for (const id of ['curve-box', 'ftau-chart', 'ptau-chart', 'ramp-chart', 'preview-box']) {
             const el = this.renderRoot.getElementById(id);
             if (el && !el.dataset.watched) {
                 el.dataset.watched = '1';
@@ -938,7 +988,7 @@ export class EditorShapingPage extends UiElement {
         `;
     }
 
-    #mini(id, data, x0, x1, yMax, color, unit) {
+    #mini(id, series, x0, x1, yMax, unit, note = '') {
         const size = this._sizes[id] ?? { w: 0, h: 0 };
         const w = Math.max(160, size.w);
         const h = Math.max(60, size.h);
@@ -960,8 +1010,12 @@ export class EditorShapingPage extends UiElement {
             <rect x=${p.left} y=${p.top} width=${pw} height=${ph} fill="var(--ui-chart-well)" stroke="var(--ui-chart-axis)"></rect>
             ${ticks}
             <text class="tick" x=${p.left + pw} y=${p.top - 6} text-anchor="end">${unit}</text>
-            <path class="raw" d=${seriesPath(data.t, data.raw, x, y)} fill="none" stroke=${color} stroke-width="1.6" stroke-dasharray="6 6"></path>
-            <path class="shaped" d=${seriesPath(data.t, data.shaped, x, y)} fill="none" stroke=${color} stroke-width="3"></path>
+            ${note ? svg`<text class="tick note" x=${p.left} y=${p.top - 6}>${note}</text>` : nothing}
+            ${series.map(({ kind, data, color }) => svg`
+                <path class=${`raw ${kind}`} d=${seriesPath(data.t, data.raw, x, y)} fill="none" stroke=${color} stroke-width="1.6" stroke-dasharray="6 6"></path>
+                ${data.first ? svg`<path
+                    class=${`first ${kind}`} d=${seriesPath(data.t, data.first, x, y)} fill="none" stroke=${color} stroke-width="1.6" stroke-dasharray="1.5 3.5" stroke-linecap="round"></path>` : nothing}
+                <path class=${`shaped ${kind}`} d=${seriesPath(data.t, data.shaped, x, y)} fill="none" stroke=${color} stroke-width="3"></path>`)}
         `;
     }
 
@@ -1047,10 +1101,30 @@ export class EditorShapingPage extends UiElement {
             @click=${() => this.#set({ [field]: m })}>${t(MODE_WORDS[m])}</button>`)}</div>`;
     }
 
-    #card(card) {
-        const { id, heading, unit, tip, field, perUnit, limits, mode, chart } = card;
+    #stepper(def) {
         const t = this.#i18n.t;
-        const value = this._draft[field];
+        return html`<ui-stepper
+            id=${def.id}
+            label=${t(def.label ?? def.heading)}
+            .value=${this._draft[def.field]}
+            .min=${def.limits.min}
+            .max=${def.limits.max}
+            .step=${def.limits.step}
+            editable
+            @change=${(e) => this.#onStepper(def.field, def.perUnit, e)}
+            @edit=${(e) => this.#onEdit(def, e)}
+        ></ui-stepper>`;
+    }
+
+    #sub(def) {
+        const t = this.#i18n.t;
+        return html`<span class="ui-caption sub-cap" id=${`${def.id}-l`}>${t(def.caption)}</span>
+            <div class="sub"
+                >${this.#stepper(def)}</div>`;
+    }
+
+    #card({ id, heading, unit, tip, stepper, blocks = [], chart }) {
+        const t = this.#i18n.t;
         return html`<section class="panel ctl-card" id=${`${id}-sec`}>
             <div class="ctl-side">
                 <div class="card-head">
@@ -1058,19 +1132,9 @@ export class EditorShapingPage extends UiElement {
                     <ui-icon-button class="info" id=${`tip-${id}-btn`} label=${t('About {name}', { name: t(heading) })}
                         @click=${(e) => this.#openTip(tip, e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 </div>
-                <ui-stepper
-                    id=${id}
-                    size="lg"
-                    label=${t(heading)}
-                    .value=${value}
-                    .min=${limits.min}
-                    .max=${limits.max}
-                    .step=${limits.step}
-                    editable
-                    @change=${(e) => this.#onStepper(field, perUnit, e)}
-                    @edit=${(e) => this.#onEdit(card, e)}
-                ></ui-stepper>
-                ${mode ?? nothing}
+                ${stepper ? html`<div class="sub"
+                    >${this.#stepper(stepper)}</div>` : nothing}
+                ${blocks}
             </div>
             ${chart}
         </section>`;
@@ -1083,6 +1147,7 @@ export class EditorShapingPage extends UiElement {
         const L = NATIVE_SHAPING_LIMITS;
         const curveSize = this._sizes['curve-box'] ?? { w: 0, h: 0 };
         const g = this.#geometry();
+        const tau = { perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau, padUnit: 's' };
         return html`
             <div id="shape-body" class=${this._preview ? 'prev' : ''}>
                 <section class="panel" id="curve-sec">
@@ -1110,28 +1175,50 @@ export class EditorShapingPage extends UiElement {
                     >${this.#curveChart()}</svg>` : nothing}</div>
                 </section>
 
-                <div id="m-right">
+                <div id="m-right"><div id="m-grid">
                     ${this.#card({
-                        id: 'ftau', heading: 'Flow τ', unit: 's · 0 to 5', tip: 'ftau', field: 'flowTau',
-                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau, padUnit: 's', recent: 'shapingFlowTau',
-                        mode: this.#modeBank('fmode', t('Flow τ acts on'), d.flowMode, 'flowMode'),
+                        id: 'ftau', heading: 'Flow τ', unit: 's · 0 to 5', tip: 'ftau',
+                        stepper: { ...tau, id: 'ftau', heading: 'Flow τ', field: 'flowTau', recent: 'shapingFlowTau' },
+                        blocks: [this.#modeBank('fmode', t('Flow τ acts on'), d.flowMode, 'flowMode')],
                         chart: this.#miniSvg('ftau-chart', t('Flow target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.'),
-                            this.#mini('ftau-chart', stepResponse('flow', d.flowTau, d.flowMode), -0.5, 5, 9, 'var(--ui-channel-flow)', 'mL/s · s')),
+                            this.#mini('ftau-chart', [{ kind: 'flow', data: stepResponse('flow', d.flowTau, d.flowMode), color: 'var(--ui-channel-flow)' }], -0.5, 5, 9, 'mL/s · s')),
                     })}
                     ${this.#card({
-                        id: 'ptau', heading: 'Pressure τ', unit: 's · 0 to 5', tip: 'ptau', field: 'pressureTau',
-                        perUnit: WIRE_STEPS_PER_UNIT.tau, limits: L.tau, padUnit: 's', recent: 'shapingPressureTau',
-                        mode: this.#modeBank('pmode', t('Pressure τ acts on'), d.pressureMode, 'pressureMode'),
-                        chart: this.#miniSvg('ptau-chart', t('Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Solid: the shaped target.'),
-                            this.#mini('ptau-chart', stepResponse('pressure', d.pressureTau, d.pressureMode), -0.5, 5, 7, 'var(--ui-channel-pressure)', 'bar · s')),
+                        id: 'ptau', heading: 'Pressure τ', unit: 's · 0 to 5', tip: 'ptau',
+                        stepper: { ...tau, id: 'ptau', heading: 'Pressure τ', field: 'pressureTau', recent: 'shapingPressureTau' },
+                        blocks: [
+                            this.#sub({
+                                ...tau, id: 'pfilt', heading: 'Second filter τ₂', caption: 'Second filter τ₂ · 0 = off',
+                                field: 'pressureFilter', recent: 'shapingPressureFilterTau',
+                            }),
+                            this.#modeBank('pmode', t('Pressure τ acts on'), d.pressureMode, 'pressureMode'),
+                        ],
+                        chart: this.#miniSvg('ptau-chart', t('Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Dotted: the first filter only. Solid: the shaped target.'),
+                            this.#mini('ptau-chart', [{
+                                kind: 'pressure', data: stepResponse('pressure', d.pressureTau, d.pressureMode, d.pressureFilter), color: 'var(--ui-channel-pressure)',
+                            }], -0.5, 5, 7, 'bar · s', d.pressureFilter > 0 ? t('dotted: first filter only') : '')),
                     })}
                     ${this.#card({
-                        id: 'rfac', heading: 'Ramp factor', unit: '× τ · 0 to 4', tip: 'rfac', field: 'ramp',
-                        perUnit: WIRE_STEPS_PER_UNIT.ramp, limits: L.ramp, padUnit: '× τ', recent: 'shapingRampFactor',
-                        chart: this.#miniSvg('rfac-chart', t('A smooth pressure step, 2 to 9 bar in 4 s, with pressure τ times the ramp factor. Dashed: the ramp. Solid: the shaped target.'),
-                            this.#mini('rfac-chart', rampResponse(d.ramp, d.pressureTau, d.pressureMode), -0.5, 6, 10, 'var(--ui-channel-pressure)', 'bar · s')),
+                        id: 'ramp', heading: 'Ramp time', unit: 's · 0 to 5 · 0 = plain ramp', tip: 'ramp',
+                        blocks: [
+                            this.#sub({
+                                ...tau, id: 'pramp', heading: 'Pressure ramp time', caption: 'Pressure',
+                                field: 'pressureRamp', recent: 'shapingPressureRampTau',
+                            }),
+                            this.#sub({
+                                ...tau, id: 'framp', heading: 'Flow ramp time', caption: 'Flow',
+                                field: 'flowRamp', recent: 'shapingFlowRampTau',
+                            }),
+                            html`<p class="ui-caption follows" id="ramp-follows"
+                                >${t('Each ramp follows the mode of its kind.')}</p>`,
+                        ],
+                        chart: this.#miniSvg('ramp-chart', t('Smooth steps: pressure 2 to 9 bar and flow 6 to 2 mL/s in 4 s. Dashed: the ramps. Solid: the shaped targets.'),
+                            this.#mini('ramp-chart', [
+                                { kind: 'pressure', data: rampResponse('pressure', d.pressureRamp, d.pressureMode), color: 'var(--ui-channel-pressure)' },
+                                { kind: 'flow', data: rampResponse('flow', d.flowRamp, d.flowMode), color: 'var(--ui-channel-flow)' },
+                            ], RAMP_X[0], RAMP_X[1], RAMP_Y_MAX, 'bar · mL/s · s')),
                     })}
-                </div>
+                </div></div>
 
                 ${this.#previewSection()}
             </div>
@@ -1161,8 +1248,11 @@ export class EditorShapingPage extends UiElement {
             </div>
             <div id="shape-slot">${this.#body()}</div>
             <ui-dialog id="shape-tip" heading=${this._tip ? t(TIPS[this._tip].heading) : ''}>
-                <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => html`<p
-                    >${t(p)}</p>`) : nothing}</div>
+                <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => (typeof p === 'string'
+                    ? html`<p
+                        >${t(p)}</p>`
+                    : html`<h4
+                        >${t(p.heading)}</h4>`)) : nothing}</div>
                 <button type="button" class="chip" slot="actions" id="shape-tip-close"
                     @click=${() => this.renderRoot.getElementById('shape-tip')?.hide('close')}>${t('Close')}</button>
             </ui-dialog>

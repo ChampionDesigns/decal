@@ -1282,11 +1282,13 @@ export class EditorScreen extends UiElement {
         const tau = (v, m) => (v > 0
             ? t('{tau} s, {mode}', { tau: v.toFixed(2), mode: t(SHAPING_MODE_WORDS[m] ?? SHAPING_MODE_WORDS.both) })
             : t('{tau} s', { tau: v.toFixed(2) }));
-        return t('{curve} · flow τ {f} · pressure τ {p} · ramp {r}', {
+        return t('{curve} · flow τ {f} · pressure τ {p} · τ₂ {q} s · ramp pressure {rp} s, flow {rf} s', {
             curve,
             f: tau(b.flow_tau, b.flow_mode),
             p: tau(b.pressure_tau, b.pressure_mode),
-            r: b.ramp_factor.toFixed(2),
+            q: b.pressure_filter_tau.toFixed(2),
+            rp: b.pressure_ramp_tau.toFixed(2),
+            rf: b.flow_ramp_tau.toFixed(2),
         });
     }
 
