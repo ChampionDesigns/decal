@@ -1,11 +1,14 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
     BENGLE_PUMP_END, DE1_240V_CURVE, benglePumpLine, pumpCurveLine, rampResponse, stepResponse,
 } from '../src/lib/native-shaping-curves.js';
-import { pumpCeiling } from '../src/lib/shot-model.js';
+import { FLOW_ZERO_SNAP, MODEL_HZ, pumpCeiling, switchTick } from '../src/lib/shot-model.js';
 import { DEFAULT_PUMP_CURVE } from '../src/lib/native-shaping-rules.js';
+
+const VEC = JSON.parse(readFileSync(new URL('./fixtures/native-shaping-vectors.json', import.meta.url), 'utf8'));
 
 function along(line, P) {
     for (let i = 1; i < line.length; i++) {
@@ -103,5 +106,45 @@ describe('the mini chart responses', () => {
             assert.notDeepEqual(r.shaped, r.raw, mode);
             assert.ok(r.shaped[r.shaped.length - 1] < 9, mode);
         }
+    });
+
+    test('the ramp drawing is the reference pressure ramp', () => {
+        const v = VEC.smooth_pressure.find((r) => r.tau === 0.5 && r.seed === 2 && r.target === 9 && r.seconds === 4);
+        const r = rampResponse(1, 0.5);
+        let checked = 0;
+        r.t.forEach((at, k) => {
+            const n = Math.round(at * MODEL_HZ);
+            if (n < 0 || n >= v.goal.length) return;
+            assert.ok(Math.abs(r.shaped[k] - v.goal[n]) < 1e-9, `${at} s: ${r.shaped[k]} against ${v.goal[n]}`);
+            checked++;
+        });
+        assert.ok(checked > 300, `${checked} samples`);
+    });
+
+    test('the step drawing follows the limited curve', () => {
+        const tau = 1.5;
+        const N = switchTick(tau);
+        const r = stepResponse('pressure', tau, 'both');
+        const dt = 1 / MODEL_HZ;
+        const curve = (n) => (n <= N
+            ? 6 - 4.5 / (1 + n * dt / tau) ** 2
+            : 6 - 4.5 / (1 + N * dt / tau) ** 2 * Math.exp(-(n - N) * dt / tau));
+        r.t.forEach((at, k) => {
+            const n = Math.round(at * MODEL_HZ);
+            if (n < 0 || at >= 2.5) return;
+            assert.ok(Math.abs(r.shaped[k] - curve(n)) < 1e-9, `${at} s: ${r.shaped[k]} against ${curve(n)}`);
+        });
+        const late = r.shaped[r.t.findIndex((x) => x >= 2.4)];
+        const hyperbolic = 6 - 4.5 / (1 + 2.4 / tau) ** 2;
+        assert.ok(late - hyperbolic > 0.02, `the curve after tau is not the old curve: ${late} against ${hyperbolic}`);
+    });
+
+    test('the flow step drawing snaps to 0 below the snap value', () => {
+        const r = stepResponse('flow', 0.2, 'both');
+        const tail = r.shaped.filter((_, k) => r.t[k] >= 2.5);
+        assert.ok(tail.includes(0));
+        assert.ok(tail.every((v) => v === 0 || v >= FLOW_ZERO_SNAP), 'no value between 0 and the snap value');
+        const first = tail.indexOf(0);
+        assert.ok(tail.slice(first).every((v) => v === 0));
     });
 });

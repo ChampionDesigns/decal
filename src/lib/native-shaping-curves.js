@@ -1,5 +1,5 @@
 import {
-    MODEL_HZ, directionOn, emaSpeed, hyperbolic, makePumpCurve, pumpCeiling,
+    MODEL_HZ, makePumpCurve, pumpCeiling, rampFromFactor, rampStart, shapedGoal,
 } from './shot-model.js';
 
 export const CURVE_AXES = Object.freeze({ pressureMax: 14, flowMax: 21 });
@@ -54,58 +54,51 @@ const STEP_SHAPES = Object.freeze({
 
 export function stepResponse(kind, tau, mode) {
     const shape = STEP_SHAPES[kind] ?? STEP_SHAPES.pressure;
+    const pump = kind === 'flow' ? 'flow' : 'pressure';
     const { from, to, back } = shape;
-    const dt = 1 / 60;
+    const rise = Math.round(0.5 * MODEL_HZ);
+    const fall = Math.round(3 * MODEL_HZ);
+    const count = Math.round(5.5 * MODEL_HZ);
     const t = [];
     const raw = [];
     const shaped = [];
-    let seed = from;
-    const count = Math.round(5.5 / dt);
+    let goal = null;
+    let v = from;
     for (let i = 0; i <= count; i++) {
-        const at = -0.5 + i * dt;
-        let r;
-        let v;
-        if (at < 0) {
-            r = from;
-            v = from;
-        } else if (at < 2.5) {
-            r = to;
-            v = tau > 0 && directionOn(mode, from, to) ? hyperbolic(from, to, tau, at) : to;
-            seed = v;
-        } else {
-            r = back;
-            v = tau > 0 && directionOn(mode, seed, back) && Math.abs(seed - back) > 1e-6
-                ? hyperbolic(seed, back, tau, at - 2.5) : back;
-            if (kind === 'flow' && back === 0 && v < 0.05) v = 0;
+        let r = from;
+        if (i === rise) goal = shapedGoal({ pump, smooth: false, seed: from, target: to, tau, mode });
+        if (i === fall) goal = shapedGoal({ pump, smooth: false, seed: v, target: back, tau, mode });
+        if (i >= fall) r = back;
+        else if (i >= rise) r = to;
+        v = goal ? goal(r) : from;
+        if (i % 2 === 0) {
+            t.push(-0.5 + i / MODEL_HZ);
+            raw.push(r);
+            shaped.push(v);
         }
-        t.push(at);
-        raw.push(r);
-        shaped.push(v);
     }
     return { t, raw, shaped };
 }
 
 export function rampResponse(rampFactor, tau, mode = 'both') {
+    const seed = 2;
+    const target = 9;
+    const begin = Math.round(0.5 * MODEL_HZ);
+    const width = 4 * MODEL_HZ;
+    const count = Math.round(6.5 * MODEL_HZ);
+    const from = rampStart('pressure', seed);
+    const goal = shapedGoal({
+        pump: 'pressure', smooth: true, seed, target, tau: rampFromFactor(rampFactor, tau), mode,
+    });
     const t = [];
     const raw = [];
     const shaped = [];
-    const lag = directionOn(mode, 2, 9) ? rampFactor * tau : 0;
-    let ema = 2;
-    const count = Math.round(6.5 * MODEL_HZ);
     for (let i = 0; i <= count; i++) {
-        const at = -0.5 + i / MODEL_HZ;
-        const u = at < 0 ? 2 : 2 + 7 * Math.min(at / 4, 1);
-        let v;
-        if (at < 0) {
-            v = 2;
-        } else if (lag > 0) {
-            ema += (u - ema) * emaSpeed(lag);
-            v = ema;
-        } else {
-            v = u;
-        }
+        const n = i - begin;
+        const u = n < 0 ? seed : from + (target - from) * Math.min(n / width, 1);
+        const v = n < 0 ? seed : goal(u);
         if (i % 2 === 0) {
-            t.push(at);
+            t.push(-0.5 + i / MODEL_HZ);
             raw.push(u);
             shaped.push(v);
         }

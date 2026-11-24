@@ -15,8 +15,14 @@ export const FIRMWARE_DEFAULT_SETTINGS = Object.freeze({
     fMode: 'both',
     pTau: 0,
     pMode: 'both',
-    rFac: 1,
+    pRamp: 0,
+    fRamp: 0,
+    pFilt: 0,
 });
+
+export const FLOW_ZERO_SNAP = 0.01;
+
+const RAMP_FACTOR_DEFAULT = 1;
 
 export const WIRE_STEPS_PER_UNIT = Object.freeze({ tau: 50, ramp: 50, pressure: 10, flow: 10 });
 
@@ -76,17 +82,56 @@ export function makePumpCurve(points) {
     };
 }
 
-export function directionOn(mode, a, b) {
+function directionOn(mode, a, b) {
     return mode === 'both' || (mode === 'rise' && b > a) || (mode === 'fall' && b < a);
 }
 
-export function hyperbolic(a, b, tau, t) {
-    const x = 1 + t / tau;
-    return b + (a - b) / (x * x);
+export function switchTick(tau) {
+    return Math.floor(tau * MODEL_HZ + 0.001);
 }
 
-export function emaSpeed(tau) {
-    return 1 - Math.exp(-1 / (MODEL_HZ * tau));
+function limitedCurve(tau, seed) {
+    const last = switchTick(tau);
+    const late = 1 - Math.exp(-DT / tau);
+    let n = 0;
+    let y = seed;
+    return (x) => {
+        if (n > 0) {
+            const k = n <= last ? DT * (2 * tau + (2 * n - 1) * DT) / ((tau + n * DT) * (tau + n * DT)) : late;
+            y += k * (x - y);
+        }
+        n++;
+        return y;
+    };
+}
+
+function plainEma(tau, seed) {
+    const s = -Math.expm1(-1 / (MODEL_HZ * tau));
+    let z = seed;
+    return (x) => {
+        z = z * (1 - s) + s * x;
+        return z;
+    };
+}
+
+export function rampStart(pump, seed) {
+    return pump === 'flow' ? seed : Math.max(seed, 0.01);
+}
+
+export function shapedGoal({ pump, smooth, seed, target, tau, mode, tau2 = 0 }) {
+    const flow = pump === 'flow';
+    const from = smooth ? rampStart(pump, seed) : seed;
+    const shaped = tau > 0 && directionOn(mode, from, target) && (smooth || Math.abs(seed - target) > 1e-6);
+    const first = shaped ? limitedCurve(tau, seed) : null;
+    const second = !flow && !smooth && tau2 > 0 && directionOn(mode, seed, target) ? plainEma(tau2, seed) : null;
+    const flush = !flow && !smooth && target === 0;
+    const snap = flow && shaped && target === 0;
+    return (x) => {
+        let y = first ? first(x) : x;
+        if (flush) return 0;
+        if (second) y = second(y);
+        return snap && y < FLOW_ZERO_SNAP ? 0 : y;
+    };
 }
 
 function fillShape(pk, V) {
@@ -163,7 +208,9 @@ export function runShotModel(steps, settings, puck, options) {
     const curve = makePumpCurve(set.curve);
     const fTau = set.fTau || 0;
     const pTau = set.pTau || 0;
-    const rFac = set.rFac === undefined ? 1 : set.rFac;
+    const fRamp = set.fRamp || 0;
+    const pRamp = set.pRamp || 0;
+    const pFilt = set.pFilt || 0;
     const fMode = set.fMode || 'both';
     const pMode = set.pMode || 'both';
     const nS = steps.length;
@@ -181,10 +228,8 @@ export function runShotModel(steps, settings, puck, options) {
     let Lr = [12, 12];
     const prevPump = steps[0].pump;
     let lastReq = 0;
-    let fSeed = 0;
-    let pSeed = 0;
-    let ema = 0;
-    let rampStart = 0;
+    let start = 0;
+    let goal = null;
     const lim = { seeded: false, f: 0, pf: null };
     const out = { t: [], P: [], Q: [], W: [], tQ: [], tP: [], k: [] };
     const frames = [];
@@ -215,10 +260,18 @@ export function runShotModel(steps, settings, puck, options) {
         tF = 0;
         fVol = 0;
         Lr = stepLimits(fr);
-        fSeed = lastReq > 0 && prev === 'flow' ? lastReq : Qp;
-        pSeed = P;
-        ema = fr.pump === 'flow' ? fSeed : pSeed;
-        rampStart = fr.pump === 'flow' ? fSeed : Math.max(pSeed, 0.01);
+        const flow = fr.pump === 'flow';
+        const seed = flow ? (lastReq > 0 && prev === 'flow' ? lastReq : Qp) : P;
+        start = rampStart(fr.pump, seed);
+        goal = shapedGoal({
+            pump: fr.pump,
+            smooth: fr.smooth,
+            seed,
+            target: fr.v,
+            tau: fr.smooth ? (flow ? fRamp : pRamp) : (flow ? fTau : pTau),
+            mode: flow ? fMode : pMode,
+            tau2: pFilt,
+        });
         if (fr.pump === 'pressure') lim.seeded = false;
         frames.push({ k, name: fr.name, t0: t, t1: null, exit: '' });
     }
@@ -234,23 +287,8 @@ export function runShotModel(steps, settings, puck, options) {
         let cmd;
         tq = null;
         tp = null;
+        x = goal(fr.smooth ? start + (b - start) * frac : b);
         if (fr.pump === 'flow') {
-            if (fr.smooth) {
-                const ramp = rampStart + (b - rampStart) * frac;
-                const tr = rFac * fTau;
-                if (tr > 0 && directionOn(fMode, rampStart, b)) {
-                    ema += (ramp - ema) * emaSpeed(tr);
-                    x = ema;
-                    if (b === 0 && x < 0.05) x = 0;
-                } else {
-                    x = ramp;
-                }
-            } else if (fTau > 0 && directionOn(fMode, fSeed, b) && Math.abs(fSeed - b) > 1e-6) {
-                x = hyperbolic(fSeed, b, fTau, tF);
-                if (b === 0 && x < 0.05) x = 0;
-            } else {
-                x = b;
-            }
             const req = Math.min(Math.max(x, 0), MAX_FLOW);
             tq = req;
             lastReq = req;
@@ -283,22 +321,6 @@ export function runShotModel(steps, settings, puck, options) {
             }
         } else {
             lastReq = 0;
-            if (fr.smooth) {
-                const ramp = rampStart + (b - rampStart) * frac;
-                const tr = rFac * pTau;
-                if (tr > 0 && directionOn(pMode, rampStart, b)) {
-                    ema += (ramp - ema) * emaSpeed(tr);
-                    x = ema;
-                } else {
-                    x = ramp;
-                }
-            } else if (b === 0) {
-                x = 0;
-            } else if (pTau > 0 && directionOn(pMode, pSeed, b) && Math.abs(pSeed - b) > 1e-6) {
-                x = hyperbolic(pSeed, b, pTau, tF);
-            } else {
-                x = b;
-            }
             tp = x;
             cmd = softKnee(puckFlow(pk, V, P, u) + compliance(P) * (tp - P) / TAU_CTL, Lr[0], Lr[1]);
             if (tp > 0.1) {
@@ -382,14 +404,34 @@ export function settingsFromNativeShaping(block) {
     const curve = points
         .filter((pt) => pt && Number.isFinite(pt.pressure) && Number.isFinite(pt.flow))
         .map((pt) => [onWireStep(pt.pressure, WIRE_STEPS_PER_UNIT.pressure), onWireStep(pt.flow, WIRE_STEPS_PER_UNIT.flow)]);
+    const fTau = onWireStep(finiteOr(block.flow_tau, d.fTau), WIRE_STEPS_PER_UNIT.tau);
+    const pTau = onWireStep(finiteOr(block.pressure_tau, d.pTau), WIRE_STEPS_PER_UNIT.tau);
     return {
         curve: curve.length ? curve : null,
-        fTau: onWireStep(finiteOr(block.flow_tau, d.fTau), WIRE_STEPS_PER_UNIT.tau),
+        fTau,
         fMode: modeOr(block.flow_mode, d.fMode),
-        pTau: onWireStep(finiteOr(block.pressure_tau, d.pTau), WIRE_STEPS_PER_UNIT.tau),
+        pTau,
         pMode: modeOr(block.pressure_mode, d.pMode),
-        rFac: onWireStep(finiteOr(block.ramp_factor, d.rFac), WIRE_STEPS_PER_UNIT.ramp),
+        ...rampTimes(block, fTau, pTau),
+        pFilt: onWireStep(finiteOr(block.pressure_filter_tau, d.pFilt), WIRE_STEPS_PER_UNIT.tau),
     };
+}
+
+function rampTimes(block, fTau, pTau) {
+    const d = FIRMWARE_DEFAULT_SETTINGS;
+    const keys = ['pressure_ramp_tau', 'flow_ramp_tau'].some((key) => Number.isFinite(block[key]));
+    if (keys) {
+        return {
+            pRamp: onWireStep(finiteOr(block.pressure_ramp_tau, d.pRamp), WIRE_STEPS_PER_UNIT.tau),
+            fRamp: onWireStep(finiteOr(block.flow_ramp_tau, d.fRamp), WIRE_STEPS_PER_UNIT.tau),
+        };
+    }
+    const factor = onWireStep(finiteOr(block.ramp_factor, RAMP_FACTOR_DEFAULT), WIRE_STEPS_PER_UNIT.ramp);
+    return { pRamp: rampFromFactor(factor, pTau), fRamp: rampFromFactor(factor, fTau) };
+}
+
+export function rampFromFactor(factor, tau) {
+    return factor * tau;
 }
 
 const MODELLED_PUMPS = Object.freeze(['flow', 'pressure']);

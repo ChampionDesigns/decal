@@ -88,20 +88,22 @@ for (const c of REF.cases) {
 }
 
 const SHOT_TIMES = [
-    ['first-test', 26.2],
-    ['first-test-pressure-tau-0', 26.0],
-    ['first-test-pressure-tau-0.25', 26.1],
-    ['first-test-pressure-tau-1', 26.6],
-    ['first-test-pressure-tau-2', 27.5],
-    ['first-test-pressure-tau-4', 29.0],
-    ['first-test-flow-tau-1.2', 35.4],
+    ['first-test', 23.0],
+    ['first-test-pressure-tau-0', 22.8],
+    ['first-test-pressure-tau-0.25', 22.9],
+    ['first-test-pressure-tau-1', 23.3],
+    ['first-test-pressure-tau-2', 24.1],
+    ['first-test-pressure-tau-4', 25.6],
+    ['first-test-flow-tau-1.2', 29.0],
     ['fw-defaults', 19.6],
-    ['first-test-smooth-1', 34.7],
-    ['first-test-smooth-1-2', 24.2],
+    ['first-test-smooth-1', 32.6],
+    ['first-test-smooth-1-2', 24.3],
     ['fw-defaults-smooth-1', 29.2],
     ['fw-defaults-smooth-1-2', 23.9],
-    ['first-test-grind-2', 44.9],
-    ['first-test-grind-0.5', 15.1],
+    ['first-test-grind-2', 39.9],
+    ['first-test-grind-0.5', 14.8],
+    ['first-test-second-filter-0.5', 23.4],
+    ['first-test-smooth-all-ramp-times', 24.1],
 ];
 
 for (const [id, seconds] of SHOT_TIMES) {
@@ -122,7 +124,7 @@ test('the reference cases cover every end reason and every step exit', () => {
 test('a smooth flow step leaves the puck settle state alone', () => {
     const steps = REF.steps.map((s, i) => ({ ...s, smooth: i === 0 }));
     const r = runShotModel(steps, REF.settings.firstTest, REF.puck, STOP);
-    near(r.end.t, 34.7, 0.1, 'shot time');
+    near(r.end.t, 32.6, 0.1, 'shot time');
     assert.ok(Math.abs(r.end.t - 27.6) > 1, `a ramp value written into the settle state gives about 27.6 s, got ${r.end.t}`);
     assert.equal(r.end.why, 'stop');
 });
@@ -172,7 +174,8 @@ test('each value runs as its wire step', () => {
     });
     assert.equal(set.fTau, 0.5);
     assert.equal(set.pTau, 0.52);
-    assert.equal(set.rFac, 0.98);
+    assert.equal(set.pRamp, 0.98 * 0.52);
+    assert.equal(set.fRamp, 0.98 * 0.5);
     assert.deepEqual(set.curve.slice(0, 2), [[1, 20], [3, 12]]);
     const rounded = settingsFromNativeShaping({ ...FIRST_TEST_BLOCK, flow_tau: 0.509 });
     const a = runShotModel(REF.steps, rounded, REF.puck, STOP);
@@ -185,7 +188,12 @@ test('a value whose product lands just under a half step still rounds up', () =>
         const set = settingsFromNativeShaping({ flow_tau: value, pressure_tau: value, ramp_factor: value });
         assert.equal(set.fTau, wire, `flow tau ${value}`);
         assert.equal(set.pTau, wire, `pressure tau ${value}`);
-        assert.equal(set.rFac, wire, `ramp factor ${value}`);
+        assert.equal(set.pRamp, wire * wire, `pressure ramp from the ramp factor ${value}`);
+        assert.equal(set.fRamp, wire * wire, `flow ramp from the ramp factor ${value}`);
+        const times = settingsFromNativeShaping({ pressure_ramp_tau: value, flow_ramp_tau: value, pressure_filter_tau: value });
+        assert.equal(times.pRamp, wire, `pressure ramp ${value}`);
+        assert.equal(times.fRamp, wire, `flow ramp ${value}`);
+        assert.equal(times.pFilt, wire, `second pressure filter ${value}`);
     }
     const curve = settingsFromNativeShaping({ pump_curve: [{ pressure: 1.25, flow: 19.95 }, { pressure: 2.45, flow: 0.05 }] }).curve;
     assert.deepEqual(curve, [[1.3, 20], [2.5, 0.1]]);
@@ -211,7 +219,7 @@ test('the profile steps run as the reference steps', () => {
     const r = runShotModel(steps, REF.settings.firstTest, REF.puck, STOP);
     const ref = runShotModel(REF.steps, REF.settings.firstTest, REF.puck, STOP);
     assert.equal(r.end.t, ref.end.t);
-    near(r.end.t, 26.2, 0.1, 'shot time');
+    near(r.end.t, 23.0, 0.1, 'shot time');
 });
 
 test('a smooth transition becomes a smooth step and a missing limiter gives no limit', () => {

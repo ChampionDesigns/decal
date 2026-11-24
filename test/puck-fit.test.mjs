@@ -27,6 +27,7 @@ function fitPuck(options) {
 }
 
 const BASE = { steps: REF.steps, settings: REF.settings.firstTest, targetWeight: REF.targetWeight };
+const FIT_PUCK = REF.fit.puck;
 
 test('the fit uses the eight puck values, bounds and steps of the reference', () => {
     assert.deepEqual(PUCK_SPEC.map((s) => s.key), Object.keys(REF.puck));
@@ -61,19 +62,19 @@ test('without restarts the fit ends at the reference J', () => {
 });
 
 function modelShot() {
-    const run = runShotModel(REF.steps, REF.settings.firstTest, REF.puck, { grind: 1, stopW: REF.targetWeight, tMax: 120 });
+    const run = runShotModel(REF.steps, REF.settings.firstTest, FIT_PUCK, { grind: 1, stopW: REF.targetWeight, tMax: 120 });
     return { shot: { t: run.out.t, P: run.out.P, W: run.out.W, frame: run.out.k }, time: run.end.t };
 }
 
 test('the fit keeps a puck that already repeats the shot', () => {
     const { shot } = modelShot();
-    const r = fitPuck({ shot, ...BASE, startPuck: REF.puck });
+    const r = fitPuck({ shot, ...BASE, startPuck: FIT_PUCK });
     assert.ok(r.check.rmsAll < 0.05, `rms ${r.check.rmsAll}`);
 });
 
 test('the fit from a puck 25 % off brings the modelled shot back near the sample', () => {
     const { shot, time } = modelShot();
-    const startPuck = Object.fromEntries(Object.entries(REF.puck).map(([k, v]) => [k, v * 1.25]));
+    const startPuck = Object.fromEntries(Object.entries(FIT_PUCK).map(([k, v]) => [k, v * 1.25]));
     const before = checkPuck(startPuck, { shot, ...BASE });
     const r = fitPuck({ shot, ...BASE, startPuck });
     assert.ok(r.check.rmsAll < before.rmsAll / 6, `rms ${before.rmsAll} to ${r.check.rmsAll}`);
@@ -148,8 +149,8 @@ test('the main step is aligned on the change into the last frame', () => {
     const first = shot.frame.indexOf(1);
     const late = { t: shot.t.slice(first), P: shot.P.slice(first), W: shot.W.slice(first), frame: shot.frame.slice(first) };
     late.t = late.t.map((v) => v - late.t[0]);
-    const full = checkPuck(REF.puck, { shot, ...BASE });
-    const c = checkPuck(REF.puck, { shot: late, ...BASE });
+    const full = checkPuck(FIT_PUCK, { shot, ...BASE });
+    const c = checkPuck(FIT_PUCK, { shot: late, ...BASE });
     assert.ok(c.rmsMain !== null);
     assert.ok(Math.abs(c.rmsMain - full.rmsMain) < 1e-9, `${c.rmsMain} against ${full.rmsMain}`);
 });
