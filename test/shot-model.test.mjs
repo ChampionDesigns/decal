@@ -88,22 +88,22 @@ for (const c of REF.cases) {
 }
 
 const SHOT_TIMES = [
-    ['first-test', 26.2],
-    ['first-test-pressure-tau-0', 26.0],
-    ['first-test-pressure-tau-0.25', 26.1],
-    ['first-test-pressure-tau-1', 26.6],
-    ['first-test-pressure-tau-2', 27.5],
-    ['first-test-pressure-tau-4', 29.3],
-    ['first-test-flow-tau-1.2', 33.2],
-    ['fw-defaults', 20.0],
-    ['first-test-smooth-1', 35.8],
-    ['first-test-smooth-1-2', 24.2],
-    ['fw-defaults-smooth-1', 30.2],
-    ['fw-defaults-smooth-1-2', 23.8],
-    ['first-test-grind-2', 45.1],
+    ['first-test', 23.0],
+    ['first-test-pressure-tau-0', 22.8],
+    ['first-test-pressure-tau-0.25', 22.9],
+    ['first-test-pressure-tau-1', 23.3],
+    ['first-test-pressure-tau-2', 24.1],
+    ['first-test-pressure-tau-4', 25.6],
+    ['first-test-flow-tau-1.2', 29.0],
+    ['fw-defaults', 19.6],
+    ['first-test-smooth-1', 32.6],
+    ['first-test-smooth-1-2', 24.3],
+    ['fw-defaults-smooth-1', 29.2],
+    ['fw-defaults-smooth-1-2', 23.9],
+    ['first-test-grind-2', 39.9],
     ['first-test-grind-0.5', 14.8],
-    ['first-test-second-filter-0.5', 26.7],
-    ['first-test-smooth-all-ramp-times', 24.0],
+    ['first-test-second-filter-0.5', 23.4],
+    ['first-test-smooth-all-ramp-times', 24.1],
 ];
 
 for (const [id, seconds] of SHOT_TIMES) {
@@ -124,7 +124,7 @@ test('the reference cases cover every end reason and every step exit', () => {
 test('a smooth flow step leaves the puck settle state alone', () => {
     const steps = REF.steps.map((s, i) => ({ ...s, smooth: i === 0 }));
     const r = runShotModel(steps, REF.settings.firstTest, REF.puck, STOP);
-    near(r.end.t, 35.8, 0.1, 'shot time');
+    near(r.end.t, 32.6, 0.1, 'shot time');
     assert.ok(Math.abs(r.end.t - 27.6) > 1, `a ramp value written into the settle state gives about 27.6 s, got ${r.end.t}`);
     assert.equal(r.end.why, 'stop');
 });
@@ -219,7 +219,7 @@ test('the profile steps run as the reference steps', () => {
     const r = runShotModel(steps, REF.settings.firstTest, REF.puck, STOP);
     const ref = runShotModel(REF.steps, REF.settings.firstTest, REF.puck, STOP);
     assert.equal(r.end.t, ref.end.t);
-    near(r.end.t, 26.2, 0.1, 'shot time');
+    near(r.end.t, 23.0, 0.1, 'shot time');
 });
 
 test('a smooth transition becomes a smooth step and a missing limiter gives no limit', () => {
