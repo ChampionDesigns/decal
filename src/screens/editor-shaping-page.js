@@ -57,11 +57,7 @@ const TIPS = Object.freeze({
         body: [
             'Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.',
             'Chart: a pressure step up at 0 s and down at 2.5 s. Dashed: the step. Solid: the shaped target.',
-        ],
-    },
-    pfilt: {
-        heading: 'Second filter τ₂',
-        body: [
+            { heading: 'Second filter τ₂' },
             'A second filter on the pressure target of a fast pressure step, after the first. Time constant 0 to 5 s, in steps of 0.02 s. 0 = off. It follows the Pressure τ mode.',
             'Chart: dotted, the first filter only. Solid: both filters.',
         ],
@@ -72,15 +68,11 @@ const TIPS = Object.freeze({
             'Smooth steps: the ramp, then a filter with this time constant. 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp.',
             'Each ramp follows the mode of its kind: the pressure ramp follows the Pressure τ mode, and the flow ramp follows the Flow τ mode.',
             'Chart: a smooth pressure step from 2 to 9 bar and a smooth flow step from 6 to 2 mL/s, both in 4 s. Dashed: the ramps. Solid: the shaped targets.',
+            { heading: 'Pressure ramp time' },
+            'Time constant of the filter after a smooth pressure ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Pressure τ mode.',
+            { heading: 'Flow ramp time' },
+            'Time constant of the filter after a smooth flow ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Flow τ mode.',
         ],
-    },
-    pramp: {
-        heading: 'Pressure ramp time',
-        body: ['Time constant of the filter after a smooth pressure ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Pressure τ mode.'],
-    },
-    framp: {
-        heading: 'Flow ramp time',
-        body: ['Time constant of the filter after a smooth flow ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Flow τ mode.'],
     },
     preview: {
         heading: 'Preview',
@@ -506,9 +498,7 @@ export class EditorShapingPage extends UiElement {
 
         .sub {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) max-content;
-            align-items: center;
-            gap: var(--ui-space-1);
+            grid-template-columns: minmax(0, 1fr);
             min-inline-size: 0;
         }
 
@@ -517,10 +507,6 @@ export class EditorShapingPage extends UiElement {
             margin: 0;
             font-size: var(--ui-text-md);
             line-height: 1.2;
-        }
-
-        .sub > .gap {
-            inline-size: var(--_sd-hit);
         }
 
         .follows {
@@ -556,6 +542,12 @@ export class EditorShapingPage extends UiElement {
 
         .tip p {
             margin: 0 0 var(--ui-space-2);
+        }
+
+        .tip h4 {
+            margin: var(--ui-space-3) 0 var(--ui-space-1);
+            font-size: var(--ui-text-base);
+            font-weight: var(--ui-weight-medium);
         }
 
         @container (max-width: 720px) {
@@ -1127,11 +1119,8 @@ export class EditorShapingPage extends UiElement {
     #sub(def) {
         const t = this.#i18n.t;
         return html`<span class="ui-caption sub-cap" id=${`${def.id}-l`}>${t(def.caption)}</span>
-            <div class="sub">
-                ${this.#stepper(def)}
-                <ui-icon-button class="info" id=${`tip-${def.id}-btn`} label=${t('About {name}', { name: t(def.heading) })}
-                    @click=${(e) => this.#openTip(def.tip, e.currentTarget)}>${infoIcon()}</ui-icon-button>
-            </div>`;
+            <div class="sub"
+                >${this.#stepper(def)}</div>`;
     }
 
     #card({ id, heading, unit, tip, stepper, blocks = [], chart }) {
@@ -1144,7 +1133,7 @@ export class EditorShapingPage extends UiElement {
                         @click=${(e) => this.#openTip(tip, e.currentTarget)}>${infoIcon()}</ui-icon-button>
                 </div>
                 ${stepper ? html`<div class="sub"
-                    >${this.#stepper(stepper)}<span class="gap" aria-hidden="true"></span></div>` : nothing}
+                    >${this.#stepper(stepper)}</div>` : nothing}
                 ${blocks}
             </div>
             ${chart}
@@ -1198,11 +1187,11 @@ export class EditorShapingPage extends UiElement {
                         id: 'ptau', heading: 'Pressure τ', unit: 's · 0 to 5', tip: 'ptau',
                         stepper: { ...tau, id: 'ptau', heading: 'Pressure τ', field: 'pressureTau', recent: 'shapingPressureTau' },
                         blocks: [
-                            this.#modeBank('pmode', t('Pressure τ acts on'), d.pressureMode, 'pressureMode'),
                             this.#sub({
-                                ...tau, id: 'pfilt', heading: 'Second filter τ₂', caption: 'Second filter τ₂ · 0 = off', tip: 'pfilt',
+                                ...tau, id: 'pfilt', heading: 'Second filter τ₂', caption: 'Second filter τ₂ · 0 = off',
                                 field: 'pressureFilter', recent: 'shapingPressureFilterTau',
                             }),
+                            this.#modeBank('pmode', t('Pressure τ acts on'), d.pressureMode, 'pressureMode'),
                         ],
                         chart: this.#miniSvg('ptau-chart', t('Pressure target: a step up at 0 s and a step down at 2.5 s. Dashed: the step. Dotted: the first filter only. Solid: the shaped target.'),
                             this.#mini('ptau-chart', [{
@@ -1213,11 +1202,11 @@ export class EditorShapingPage extends UiElement {
                         id: 'ramp', heading: 'Ramp time', unit: 's · 0 to 5 · 0 = plain ramp', tip: 'ramp',
                         blocks: [
                             this.#sub({
-                                ...tau, id: 'pramp', heading: 'Pressure ramp time', caption: 'Pressure', tip: 'pramp',
+                                ...tau, id: 'pramp', heading: 'Pressure ramp time', caption: 'Pressure',
                                 field: 'pressureRamp', recent: 'shapingPressureRampTau',
                             }),
                             this.#sub({
-                                ...tau, id: 'framp', heading: 'Flow ramp time', caption: 'Flow', tip: 'framp',
+                                ...tau, id: 'framp', heading: 'Flow ramp time', caption: 'Flow',
                                 field: 'flowRamp', recent: 'shapingFlowRampTau',
                             }),
                             html`<p class="ui-caption follows" id="ramp-follows"
@@ -1259,8 +1248,11 @@ export class EditorShapingPage extends UiElement {
             </div>
             <div id="shape-slot">${this.#body()}</div>
             <ui-dialog id="shape-tip" heading=${this._tip ? t(TIPS[this._tip].heading) : ''}>
-                <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => html`<p
-                    >${t(p)}</p>`) : nothing}</div>
+                <div slot="body" class="tip">${this._tip ? TIPS[this._tip].body.map((p) => (typeof p === 'string'
+                    ? html`<p
+                        >${t(p)}</p>`
+                    : html`<h4
+                        >${t(p.heading)}</h4>`)) : nothing}</div>
                 <button type="button" class="chip" slot="actions" id="shape-tip-close"
                     @click=${() => this.renderRoot.getElementById('shape-tip')?.hide('close')}>${t('Close')}</button>
             </ui-dialog>

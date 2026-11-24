@@ -1004,7 +1004,7 @@ test('the native shaping page and its number pad at 1280x800', async (t) => {
                     back: root.getElementById('shape-back')?.getAttribute('label'),
                     parts: ['tip-modal-btn', 'preview-btn', 'shape-clear', 'shape-cancel', 'shape-apply', 'curve-sec',
                         'curve-chart', 'ftau-sec', 'ptau-sec', 'ramp-sec', 'ftau-chart', 'ptau-chart', 'ramp-chart',
-                        'pfilt', 'pramp', 'framp', 'tip-pfilt-btn', 'tip-pramp-btn', 'tip-framp-btn']
+                        'pfilt', 'pramp', 'framp']
                         .filter((id) => !root.getElementById(id)),
                     head: [...root.getElementById('shape-head').children].map((n) => n.id || n.className),
                     dialogs: (() => {
@@ -1281,7 +1281,7 @@ test('the native shaping page with every field above 0', async (t) => {
             await closeWith(page, 'shape-cancel');
         });
 
-        await t.test('the new steppers show the block values, the captions and a tip each', async () => {
+        await t.test('the new steppers show the block values and the captions, with one tip per card', async () => {
             await openWith(page, EVERY_FIELD);
             const seen = await page.evalFn(() => {
                 const root = __ux.droot();
@@ -1289,6 +1289,7 @@ test('the native shaping page with every field above 0', async (t) => {
                     values: ['pfilt', 'pramp', 'framp'].map((id) => root.getElementById(id).value),
                     captions: ['pfilt-l', 'pramp-l', 'framp-l'].map((id) => root.getElementById(id).textContent.trim()),
                     tips: ['tip-pfilt-btn', 'tip-pramp-btn', 'tip-framp-btn'].map((id) => root.getElementById(id) !== null),
+                    perCard: ['ftau-sec', 'ptau-sec', 'ramp-sec'].map((id) => [...root.getElementById(id).querySelectorAll('ui-icon-button')].map((b) => b.id)),
                     unit: [...root.querySelector('#ramp-sec .card-head .tt').children].map((n) => n.textContent.trim()),
                     follows: root.getElementById('ramp-follows').textContent.trim(),
                     modeBanks: root.querySelectorAll('#ramp-sec .bank').length,
@@ -1297,17 +1298,66 @@ test('the native shaping page with every field above 0', async (t) => {
             assert.deepEqual(seen, {
                 values: [0.8, 1.2, 0.9],
                 captions: ['Second filter τ₂ · 0 = off', 'Pressure', 'Flow'],
-                tips: [true, true, true],
+                tips: [false, false, false],
+                perCard: [['tip-ftau-btn'], ['tip-ptau-btn'], ['tip-ramp-btn']],
                 unit: ['Ramp time', 's · 0 to 5 · 0 = plain ramp'],
                 follows: 'Each ramp follows the mode of its kind.',
                 modeBanks: 0,
             });
-            for (const id of ['pfilt', 'pramp', 'framp']) {
+            const tipText = async (id) => {
                 await page.click(`${D} >>> #tip-${id}-btn`);
                 assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-tip").open === true')), true, `${id} tip opened`);
+                const parts = await page.evalFn(() => [...__ux.droot().querySelectorAll('#shape-tip .tip > *')]
+                    .map((n) => `${n.tagName} ${n.textContent.trim()}`));
                 await page.press('Escape');
                 assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-tip").open === false')), true);
+                return parts;
+            };
+            assert.deepEqual(await tipText('ptau'), [
+                'P Time constant of a pressure step, 0 to 5 s, in steps of 0.02 s. 0 = a plain step. Both, Rise, Fall: the step directions it acts on.',
+                'P Chart: a pressure step up at 0 s and down at 2.5 s. Dashed: the step. Solid: the shaped target.',
+                'H4 Second filter τ₂',
+                'P A second filter on the pressure target of a fast pressure step, after the first. Time constant 0 to 5 s, in steps of 0.02 s. 0 = off. It follows the Pressure τ mode.',
+                'P Chart: dotted, the first filter only. Solid: both filters.',
+            ]);
+            assert.deepEqual((await tipText('ramp')).slice(3), [
+                'H4 Pressure ramp time',
+                'P Time constant of the filter after a smooth pressure ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Pressure τ mode.',
+                'H4 Flow ramp time',
+                'P Time constant of the filter after a smooth flow ramp, 0 to 5 s, in steps of 0.02 s. 0 = the plain ramp. It follows the Flow τ mode.',
+            ]);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the Pressure τ card has τ, then τ₂, then the mode selector', async () => {
+            await openWith(page, EVERY_FIELD);
+            const order = await page.evalFn(() => {
+                const card = __ux.droot().getElementById('ptau-sec');
+                const want = ['ptau', 'pfilt-l', 'pfilt', 'pmode-both'];
+                return want.map((id) => [id, card.querySelector(`#${id}`).getBoundingClientRect().top])
+                    .sort((a, b) => a[1] - b[1]).map(([id]) => id);
+            });
+            assert.deepEqual(order, ['ptau', 'pfilt-l', 'pfilt', 'pmode-both']);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('every stepper is as wide as the mode selector', async () => {
+            await openWith(page, EVERY_FIELD);
+            const widths = await page.evalFn(() => {
+                const root = __ux.droot();
+                const w = (el) => el.getBoundingClientRect().width;
+                const bank = { ftau: w(root.querySelector('#ftau-sec .bank')), ptau: w(root.querySelector('#ptau-sec .bank')) };
+                return {
+                    bank,
+                    steppers: { ftau: w(root.getElementById('ftau')), ptau: w(root.getElementById('ptau')), pfilt: w(root.getElementById('pfilt')),
+                        pramp: w(root.getElementById('pramp')), framp: w(root.getElementById('framp')) },
+                };
+            });
+            const against = { ftau: 'ftau', ptau: 'ptau', pfilt: 'ptau', pramp: 'ptau', framp: 'ptau' };
+            for (const [id, w] of Object.entries(widths.steppers)) {
+                assert.ok(Math.abs(w - widths.bank[against[id]]) <= 1, `${id} ${w} against the selector ${widths.bank[against[id]]}`);
             }
+            assert.deepEqual((await stepperSizes(page)).off, []);
             await closeWith(page, 'shape-cancel');
         });
 
