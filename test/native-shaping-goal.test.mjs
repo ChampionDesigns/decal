@@ -262,8 +262,14 @@ describe('the ramp times of a block', () => {
         assert.equal(set.fRamp, 0);
     });
 
-    test('no ramp key and no ramp factor give the pure ramp', () => {
+    test('no ramp key and no ramp factor give a ramp factor of 1', () => {
         const set = settingsFromNativeShaping({ flow_tau: 1.2, pressure_tau: 0.4 });
+        assert.equal(set.pRamp, 0.4);
+        assert.equal(set.fRamp, 1.2);
+    });
+
+    test('a block with no tau gives the pure ramp', () => {
+        const set = settingsFromNativeShaping({ ramp_factor: 2 });
         assert.equal(set.pRamp, 0);
         assert.equal(set.fRamp, 0);
     });
