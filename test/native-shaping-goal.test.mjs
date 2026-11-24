@@ -331,10 +331,22 @@ describe('the ramp times of a block', () => {
         assert.equal(set.fRamp, 0);
     });
 
-    test('no ramp key and no ramp factor give a ramp factor of 1', () => {
+    test('no version, no ramp key and no ramp factor read as version 2 with ramp times of 0', () => {
         const set = settingsFromNativeShaping({ flow_tau: 1.2, pressure_tau: 0.4 });
+        assert.equal(set.pRamp, 0);
+        assert.equal(set.fRamp, 0);
+    });
+
+    test('version 1 with no ramp factor gives a ramp factor of 1', () => {
+        const set = settingsFromNativeShaping({ version: 1, flow_tau: 1.2, pressure_tau: 0.4 });
         assert.equal(set.pRamp, 0.4);
         assert.equal(set.fRamp, 1.2);
+    });
+
+    test('a ramp factor with no version is mapped', () => {
+        const set = settingsFromNativeShaping({ flow_tau: 1.2, pressure_tau: 0.4, ramp_factor: 2 });
+        assert.equal(set.pRamp, 0.8);
+        assert.equal(set.fRamp, 2.4);
     });
 
     test('a block with no tau gives the pure ramp', () => {

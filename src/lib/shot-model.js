@@ -425,8 +425,9 @@ export function settingsFromNativeShaping(block) {
 
 function rampTimes(block, fTau, pTau) {
     const d = FIRMWARE_DEFAULT_SETTINGS;
+    const v1 = block.version === 1 || (block.ramp_factor !== undefined && block.ramp_factor !== null);
     const v2 = block.version === 2 || V2_ONLY_KEYS.some((key) => block[key] !== undefined && block[key] !== null);
-    if (v2) {
+    if (v2 || !v1) {
         return {
             pRamp: onWireStep(finiteOr(block.pressure_ramp_tau, d.pRamp), WIRE_STEPS_PER_UNIT.tau),
             fRamp: onWireStep(finiteOr(block.flow_ramp_tau, d.fRamp), WIRE_STEPS_PER_UNIT.tau),
