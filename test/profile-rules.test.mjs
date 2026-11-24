@@ -473,8 +473,9 @@ describe('rule 3\'s premise, re-read at the pin', () => {
 
     test('a metadata-only body keeps the id, because the hashes come from the unchanged profile', () => {
         const record = dart('lib/src/models/data/profile_record.dart');
-        assert.match(record, /final newProfile = profile \?\? this\.profile;/);
-        assert.match(record, /final hashes = ProfileHash\.calculateAll\(newProfile\);/);
+        assert.match(record, /final hashes = profile == null \? null : ProfileHash\.calculateAll\(profile\);/);
+        assert.match(record, /id: id \?\? hashes\?\.profileHash \?\? this\.id,/);
+        assert.match(record, /metadataHash: metadataHash \?\? hashes\?\.metadataHash \?\? this\.metadataHash,/);
     });
 
     test('a bundled profile refuses CONTENT edits and accepts metadata ones', () => {
