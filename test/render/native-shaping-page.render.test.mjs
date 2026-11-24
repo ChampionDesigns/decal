@@ -6,7 +6,7 @@ import { FLOOR, TABLET } from '../harness/geometry.js';
 import { CHART, TITLE, USABLE_ID, chartShotData, mountChartApp } from '../harness/chart-ux.js';
 
 const E = 'app-root >>> editor-screen';
-const D = `${E} >>> #shaping-dialog`;
+const D = `${E} >>> #shaping-page`;
 const ENTRY = `${CHART} >>> #shaping-entry`;
 const SETTINGS_EDIT = `${E} >>> #shaping-edit-settings`;
 const BAND_CANCEL = `${E} >>> #band >>> #cancel`;
@@ -31,9 +31,9 @@ const EIGHT = [1, 2.5, 4, 5.5, 7, 8.5, 10, 11.5].map((pressure, i) => ({ pressur
 
 async function setup(page) {
     await page.evalFn(async () => {
-        __ux.dialog = () => __ux.screen().shadowRoot.getElementById('shaping-dialog');
+        __ux.dialog = () => __ux.screen().shadowRoot.getElementById('shaping-page');
         __ux.droot = () => __ux.dialog().shadowRoot;
-        __ux.isOpen = () => __ux.droot().getElementById('shape-dialog').open === true;
+        __ux.isOpen = () => __ux.dialog().open === true;
         __ux.setBlock = async (value) => {
             const s = __ux.screen();
             const next = { ...s._draft };
@@ -49,13 +49,13 @@ async function setup(page) {
 const openFromChart = async (page) => {
     await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
     await page.click(ENTRY);
-    assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true, 'the modal opened');
+    assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true, 'the page opened');
     await page.evalFn(() => __ux.until('__ux.droot().getElementById("curve-chart")'));
 };
 
 const closeWith = async (page, id) => {
     await page.click(`${D} >>> #${id}`);
-    assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the modal closed');
+    assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the page closed');
 };
 
 const textSizes = (page, rootExpr, parts) => page.evalFn((expr, list) => {
@@ -148,10 +148,9 @@ async function controlSizes(page) {
             if (r.width === 0 && r.height === 0) return;
             out.push({ name, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 });
         };
-        const dialog = root.getElementById('shape-dialog');
-        for (const el of dialog.querySelectorAll('button')) add(el, el.id || el.textContent.trim());
-        for (const el of dialog.querySelectorAll('ui-icon-button')) add(el, el.id);
-        for (const st of dialog.querySelectorAll('ui-stepper')) {
+        for (const el of root.querySelectorAll('button')) add(el, el.id || el.textContent.trim());
+        for (const el of root.querySelectorAll('ui-icon-button')) add(el, el.id);
+        for (const st of root.querySelectorAll('ui-stepper')) {
             for (const b of st.shadowRoot.querySelectorAll('button')) add(b, `${st.id} ${b.getAttribute('aria-label') ?? ''}`);
         }
         for (const g of root.querySelectorAll('.pt')) add(g, g.id);
@@ -179,15 +178,15 @@ async function layout(page) {
             cards,
             curveKids: kids,
             curveBox: box(root.getElementById('curve-box')),
-            dialog: box(root.getElementById('shape-dialog').dialog),
-            text: root.getElementById('shape-dialog').textContent,
+            dialog: box(__ux.dialog()),
+            text: root.textContent,
         };
     });
 }
 
-test('the native shaping modal at 1280x800', async (t) => {
+test('the native shaping page at 1280x800', async (t) => {
     await withApp(TABLET, async (page) => {
-        await t.test('the button sits between the Grind card and the key cards and opens the modal at once', async () => {
+        await t.test('the button sits between the Grind card and the key cards and opens the page at once', async () => {
             await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
             const order = await page.evalFn(() => [...__ux.chart().shadowRoot.getElementById('strip').children].map((n) => n.id));
             assert.deepEqual(order, ['grind-card', 'shaping-entry', 'keys']);
@@ -206,7 +205,7 @@ test('the native shaping modal at 1280x800', async (t) => {
             await closeWith(page, 'shape-cancel');
         });
 
-        await t.test('the Settings row opens the same modal', async () => {
+        await t.test('the Settings row opens the same page', async () => {
             await page.evalFn(async () => { __ux.screen().tab = 'settings'; await __ux.settle(); });
             const row = await page.evalFn(() => {
                 const r = __ux.screen().shadowRoot.querySelector('[data-row="native-shaping"]');
@@ -432,7 +431,7 @@ test('the native shaping modal at 1280x800', async (t) => {
             assert.equal(await page.evalFn(() => __ux.droot().querySelectorAll('.pt').length), 5);
         });
 
-        await t.test('Off then On inside one modal brings the points back; Off then Apply saves an empty curve', async () => {
+        await t.test('Off then On inside one page brings the points back; Off then Apply saves an empty curve', async () => {
             const before = await page.evalFn(() => __ux.points());
             await page.click(`${D} >>> #curve-off`);
             assert.equal(await page.evalFn(() => __ux.droot().querySelectorAll('.pt').length), 0);
@@ -472,7 +471,7 @@ test('the native shaping modal at 1280x800', async (t) => {
             }
         });
 
-        await t.test('the dialog text renders at the designed CSS px size', async () => {
+        await t.test('the page text renders at the designed CSS px size', async () => {
             await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
             await openFromChart(page);
             const seen = await textSizes(page, '__ux.droot()', MODAL_TEXT);
@@ -562,7 +561,7 @@ test('the native shaping modal at 1280x800', async (t) => {
     });
 });
 
-test('the native shaping modal at 1000x600', async () => {
+test('the native shaping page at 1000x600', async () => {
     await withApp(FLOOR, async (page) => {
         await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
         await openFromChart(page);
@@ -612,7 +611,7 @@ test('with no block in the profile the Edited run uses the settings the shot ran
     }, reportedShotData(SPEC_EXAMPLE));
 });
 
-test('with no block in the profile the modal opens on the settings the loaded shot ran', async () => {
+test('with no block in the profile the page opens on the settings the loaded shot ran', async () => {
     const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
     await withApp(TABLET, async (page) => {
         await page.evalFn(() => __ux.setBlock(null));
@@ -650,7 +649,7 @@ const clearState = (page) => page.evalFn(() => {
     return { disabled: el.disabled, text: el.textContent.trim(), w: r.width, h: r.height };
 });
 
-test('Clear in the native shaping modal', async (t) => {
+test('Clear in the native shaping page', async (t) => {
     const ran = block(THREE, { flow_tau: 1.25, flow_mode: 'rise', pressure_tau: 0.75, ramp_factor: 1.5 });
     const own = block(EIGHT, { flow_tau: 2, pressure_tau: 0.5, ramp_factor: 0.5 });
     await withApp(TABLET, async (page) => {
@@ -692,7 +691,7 @@ test('Clear in the native shaping modal', async (t) => {
             assert.equal(draft.flowMode, 'rise');
             assert.equal(draft.pressureTau, 0.75);
             assert.equal(draft.ramp, 1.5);
-            assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'Clear does not close the modal');
+            assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'Clear does not close the page');
             assert.deepEqual(await draftBlock(page), own, 'Clear does not change the draft by itself');
             assert.equal((await clearState(page)).disabled, true);
             assert.equal(await page.evalFn(() => __ux.droot().activeElement?.id ?? null), 'shape-cancel');
@@ -710,7 +709,7 @@ test('Clear in the native shaping modal', async (t) => {
             await openFromChart(page);
             await page.click(`${D} >>> #shape-clear`);
             await page.press('Escape');
-            assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the modal closed');
+            assert.equal(await page.evalFn(() => __ux.until('!__ux.isOpen()')), true, 'the page closed');
             assert.deepEqual(await draftBlock(page), own);
         });
 
@@ -841,7 +840,7 @@ test('Save after Clear and Apply sends the profile and the workflow with no bloc
     });
 });
 
-test('with no block and no shot loaded the modal opens on the defaults', async () => {
+test('with no block and no shot loaded the page opens on the defaults', async () => {
     await withApp(TABLET, async (page) => {
         await page.evalFn(() => __ux.setBlock(null));
         await openFromChart(page);
@@ -855,7 +854,7 @@ test('with no block and no shot loaded the modal opens on the defaults', async (
     });
 });
 
-test('no shaping dialog opens while the profile saves', async () => {
+test('no shaping page opens while the profile saves', async () => {
     await withApp(TABLET, async (page) => {
         await page.evalFn(async () => {
             __ux.screen().shadowRoot.getElementById('notice')?.clear?.();
@@ -883,6 +882,299 @@ test('no shaping dialog opens while the profile saves', async () => {
             __ux.control.release();
             await __ux.saving;
             await __ux.settle();
+        });
+    });
+});
+
+const deepFocus = (page) => page.evalFn(() => {
+    const path = [];
+    let el = document.activeElement;
+    while (el) {
+        path.push(el.id || el.tagName.toLowerCase());
+        el = el.shadowRoot?.activeElement ?? null;
+    }
+    return path;
+});
+
+const padState = (page) => page.evalFn(() => {
+    const pad = __ux.droot().getElementById('shape-pad');
+    const confirm = pad.shadowRoot.getElementById('confirm');
+    return {
+        open: pad.open === true,
+        heading: pad.heading,
+        unit: pad.unit,
+        value: pad.value,
+        range: pad.range ? { min: pad.range.min, max: pad.range.max, step: pad.range.step } : null,
+        rangeText: pad.rangeText,
+        outOfBand: pad.outOfBand,
+        confirmDisabled: confirm?.disabled === true || confirm?.hasAttribute('disabled') === true,
+    };
+});
+
+const openPad = async (page, id) => {
+    await page.click(`${D} >>> #${id} >>> #value`);
+    assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === true')), true, `${id} pad opened`);
+    await page.settle(2);
+};
+
+const typeKeys = async (page, keys) => {
+    for (const key of keys) await page.press(key);
+};
+
+const padConfirm = async (page) => {
+    await page.click(`${D} >>> #shape-pad >>> #confirm`);
+    assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true, 'the pad closed');
+};
+
+const editorInert = (page) => page.evalFn(() => {
+    const root = __ux.screen().shadowRoot;
+    return {
+        band: root.getElementById('band')?.inert === true,
+        body: root.getElementById('body')?.inert === true,
+    };
+});
+
+const STEPPERS = Object.freeze([
+    { id: 'ftau', field: 'flow_tau', heading: 'Flow τ', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
+    { id: 'ptau', field: 'pressure_tau', heading: 'Pressure τ', unit: 's', limits: { min: 0, max: 5, step: 0.02 }, range: '0–5 s' },
+    { id: 'rfac', field: 'ramp_factor', heading: 'Ramp factor', unit: '× τ', limits: { min: 0, max: 4, step: 0.02 }, range: '0–4 × τ' },
+]);
+
+test('the native shaping page and its number pad at 1280x800', async (t) => {
+    await withApp(TABLET, async (page) => {
+        await t.test('the page covers the editor, shows its title and content, and keeps the editor out of reach', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            assert.deepEqual(await editorInert(page), { band: false, body: false });
+            await openFromChart(page);
+            const seen = await page.evalFn(() => {
+                const host = __ux.dialog();
+                const root = __ux.droot();
+                const r = host.getBoundingClientRect();
+                return {
+                    box: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)],
+                    title: root.getElementById('dlg-title')?.textContent.trim(),
+                    role: host.getAttribute('role'),
+                    modal: host.getAttribute('aria-modal'),
+                    name: host.getAttribute('aria-label'),
+                    back: root.getElementById('shape-back')?.getAttribute('label'),
+                    parts: ['tip-modal-btn', 'preview-btn', 'shape-clear', 'shape-cancel', 'shape-apply', 'curve-sec',
+                        'curve-chart', 'ftau-sec', 'ptau-sec', 'rfac-sec', 'ftau-chart', 'ptau-chart', 'rfac-chart']
+                        .filter((id) => !root.getElementById(id)),
+                    head: [...root.getElementById('shape-head').children].map((n) => n.id || n.className),
+                    dialogs: (() => {
+                        const found = [];
+                        const walk = (node) => {
+                            for (const el of node.querySelectorAll('*')) {
+                                if (el.tagName === 'DIALOG') found.push(el);
+                                if (el.shadowRoot) walk(el.shadowRoot);
+                            }
+                        };
+                        walk(root);
+                        return found.map((el) => `${el.getRootNode().host.tagName}#${el.getRootNode().host.id}:${el.open}`);
+                    })(),
+                };
+            });
+            assert.deepEqual(seen, {
+                box: [0, 0, 1280, 800],
+                title: 'Native shaping',
+                role: 'dialog',
+                modal: 'true',
+                name: 'Native shaping',
+                back: 'Back to the profile editor',
+                parts: [],
+                head: ['shape-back', 'title', 'spacer', 'preview-btn', 'shape-clear', 'shape-cancel', 'shape-apply'],
+                dialogs: ['UI-DIALOG#shape-tip:false', 'UI-DIALOG#dialog:false'],
+            });
+            assert.deepEqual(await editorInert(page), { band: true, body: true });
+        });
+
+        await t.test('Back closes the page and returns focus to the Chart tab button', async () => {
+            await closeWith(page, 'shape-back');
+            assert.deepEqual(await editorInert(page), { band: false, body: false });
+            assert.equal(await page.evalFn(() => __ux.dialog().getAttribute('role')), null);
+            assert.equal((await deepFocus(page)).at(-1), 'shaping-entry');
+        });
+
+        await t.test('Back from the Settings row returns focus to Edit', async () => {
+            await page.evalFn(async () => { __ux.screen().tab = 'settings'; await __ux.settle(); });
+            await page.click(SETTINGS_EDIT);
+            assert.equal(await page.evalFn(() => __ux.until('__ux.isOpen()')), true);
+            await closeWith(page, 'shape-back');
+            assert.deepEqual((await deepFocus(page)).slice(-2), ['shaping-edit-settings', 'btn']);
+            await page.evalFn(async () => { __ux.screen().tab = 'chart'; await __ux.settle(); });
+        });
+
+        await t.test('Back and Cancel keep the draft, with a block and with none, and ask nothing', async () => {
+            const discardOpen = () => page.evalFn(() => __ux.screen().shadowRoot.getElementById('discard-dialog').open === true);
+            for (const [start, closer] of [
+                [SPEC_EXAMPLE, 'shape-back'], [SPEC_EXAMPLE, 'shape-cancel'], [null, 'shape-back'], [null, 'shape-cancel'],
+            ]) {
+                await page.evalFn((b) => __ux.setBlock(b), start);
+                await openFromChart(page);
+                await page.click(`${D} >>> #ftau >>> #increment`);
+                await page.click(`${D} >>> #curve-${start ? 'off' : 'on'}`);
+                assert.equal(await page.evalFn(() => __ux.dialog().draft.on), start === null);
+                await closeWith(page, closer);
+                assert.equal(await discardOpen(), false, `${closer} asked nothing`);
+                assert.deepEqual(await draftBlock(page), start, `${closer} from ${start ? 'a block' : 'no block'}`);
+            }
+        });
+
+        for (const s of STEPPERS) {
+            await t.test(`a tap on the ${s.heading} value opens the number pad with its limits; a typed value goes to the block`, async () => {
+                await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+                await openFromChart(page);
+                const shown = await page.evalFn((id) => __ux.droot().getElementById(id).value, s.id);
+                await openPad(page, s.id);
+                const pad = await padState(page);
+                assert.deepEqual({ ...pad, confirmDisabled: undefined }, {
+                    open: true,
+                    heading: s.heading,
+                    unit: s.unit,
+                    value: shown.toFixed(2),
+                    range: s.limits,
+                    rangeText: s.range,
+                    outOfBand: false,
+                    confirmDisabled: undefined,
+                });
+                assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'the page stays open under the pad');
+                const stepperLimits = await page.evalFn((id) => {
+                    const st = __ux.droot().getElementById(id);
+                    return { min: st.min, max: st.max, step: st.step };
+                }, s.id);
+                assert.deepEqual(stepperLimits, s.limits);
+                await page.click(`${D} >>> #shape-pad >>> #key-1`);
+                await page.click(`${D} >>> #shape-pad >>> #key-decimal`);
+                await page.click(`${D} >>> #shape-pad >>> #key-2`);
+                await padConfirm(page);
+                assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'Confirm closes only the pad');
+                const after = await page.evalFn((id) => {
+                    const st = __ux.droot().getElementById(id);
+                    return { value: st.value, text: st.shadowRoot.getElementById('value').textContent.trim() };
+                }, s.id);
+                assert.deepEqual(after, { value: 1.2, text: '1.20' });
+                assert.deepEqual((await deepFocus(page)).slice(-2), [s.id, 'value']);
+                await closeWith(page, 'shape-apply');
+                const saved = await draftBlock(page);
+                assert.equal(saved[s.field], 1.2);
+                for (const other of STEPPERS.filter((o) => o !== s)) {
+                    assert.equal(saved[other.field], SPEC_EXAMPLE[other.field], `${other.field} unchanged`);
+                }
+            });
+        }
+
+        await t.test('a typed value takes the same step as the stepper', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await openPad(page, 'ftau');
+            await typeKeys(page, ['1', '.', '2', '3']);
+            await padConfirm(page);
+            const value = await page.evalFn(() => __ux.dialog().draft.flowTau);
+            assert.ok(Math.abs(value * 50 - Math.round(value * 50)) < 1e-9, `on the 0.02 step: ${value}`);
+            assert.ok(Math.abs(value - 1.23) <= 0.01 + 1e-9, `next to the typed value: ${value}`);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('pad Cancel and Escape close only the pad and keep the value', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await openPad(page, 'ftau');
+            await typeKeys(page, ['3']);
+            await page.click(`${D} >>> #shape-pad >>> #cancel`);
+            assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true);
+            assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'pad Cancel leaves the page open');
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.flowTau), 0.5);
+            await openPad(page, 'rfac');
+            await typeKeys(page, ['2']);
+            await page.press('Escape');
+            assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true);
+            await page.settle(4);
+            assert.equal(await page.evalFn(() => __ux.isOpen()), true, 'pad Escape leaves the page open');
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.ramp), 1);
+            assert.deepEqual((await deepFocus(page)).slice(-2), ['rfac', 'value']);
+            await closeWith(page, 'shape-apply');
+            assert.deepEqual(await draftBlock(page), SPEC_EXAMPLE);
+        });
+
+        await t.test('an entry out of range cannot be confirmed, as on the other screens', async () => {
+            await openFromChart(page);
+            await openPad(page, 'ptau');
+            await typeKeys(page, ['9']);
+            const pad = await padState(page);
+            assert.equal(pad.outOfBand, true);
+            assert.equal(pad.confirmDisabled, true);
+            assert.equal(await page.evalFn(() => __ux.droot().getElementById('shape-pad').confirm('press')), false);
+            await page.press('Escape');
+            assert.equal(await page.evalFn(() => __ux.until('__ux.droot().getElementById("shape-pad").open === false')), true);
+            assert.equal(await page.evalFn(() => __ux.dialog().draft.pressureTau), 0);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('a pad entry after Clear makes a block from the values shown', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await page.click(`${D} >>> #shape-clear`);
+            const shown = await page.evalFn(() => structuredClone(__ux.dialog().draft));
+            await openPad(page, 'rfac');
+            await typeKeys(page, ['2']);
+            await padConfirm(page);
+            assert.equal(await page.evalFn(() => __ux.droot().getElementById('shape-clear').disabled), false, 'the entry undoes the cleared state');
+            await closeWith(page, 'shape-apply');
+            const saved = await draftBlock(page);
+            assert.notEqual(saved, null);
+            assert.equal(saved.ramp_factor, 2);
+            assert.equal(saved.flow_tau, shown.flowTau);
+            assert.equal(saved.pressure_tau, shown.pressureTau);
+            assert.equal(saved.flow_mode, shown.flowMode);
+            assert.equal(saved.pressure_mode, shown.pressureMode);
+            assert.deepEqual(saved.pump_curve, shown.on ? shown.points : []);
+        });
+
+        await t.test('a confirmed entry on a profile with no block makes a block, even of the value shown', async () => {
+            await page.evalFn(() => __ux.setBlock(null));
+            await openFromChart(page);
+            const shown = await page.evalFn(() => __ux.dialog().draft.flowTau);
+            await openPad(page, 'ftau');
+            await padConfirm(page);
+            await closeWith(page, 'shape-apply');
+            const saved = await draftBlock(page);
+            assert.notEqual(saved, null);
+            assert.equal(saved.flow_tau, shown);
+            await page.evalFn(() => __ux.setBlock(null));
+        });
+
+        await t.test('the readouts on the page do not open the pad', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await page.click(`${D} >>> #preview-btn`);
+            await page.settle(4);
+            const editable = await page.evalFn(() => [...__ux.droot().querySelectorAll('ui-stepper')]
+                .map((st) => [st.id, st.editable === true, st.shadowRoot.getElementById('value').tagName]));
+            assert.deepEqual(editable, [['ftau', true, 'BUTTON'], ['ptau', true, 'BUTTON'], ['rfac', true, 'BUTTON']]);
+            await page.click(`${D} >>> #preview-sum`);
+            await page.click(`${D} >>> #ftau-chart`);
+            await page.settle(2);
+            assert.equal((await padState(page)).open, false);
+            await page.click(`${D} >>> #preview-btn`);
+            await closeWith(page, 'shape-cancel');
+        });
+
+        await t.test('the page keeps the editor out of reach when the editor is moved while it is open', async () => {
+            await page.evalFn((b) => __ux.setBlock(b), SPEC_EXAMPLE);
+            await openFromChart(page);
+            await page.evalFn(async () => {
+                const screen = __ux.screen();
+                const parent = screen.parentNode;
+                const next = screen.nextSibling;
+                parent.removeChild(screen);
+                parent.insertBefore(screen, next);
+                await __ux.settle();
+            });
+            assert.equal(await page.evalFn(() => __ux.isOpen()), true);
+            assert.deepEqual(await editorInert(page), { band: true, body: true });
+            assert.equal(await page.evalFn(() => __ux.dialog().getAttribute('role')), 'dialog');
+            await closeWith(page, 'shape-back');
+            assert.deepEqual(await editorInert(page), { band: false, body: false });
         });
     });
 });
