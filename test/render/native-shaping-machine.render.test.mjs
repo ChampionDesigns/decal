@@ -9,7 +9,7 @@ const E = 'app-root >>> editor-screen';
 const SAVE = `${E} >>> #band >>> #save`;
 
 const BLOCK = Object.freeze({
-    version: 1,
+    version: 2,
     pump_curve: [
         { pressure: 1, flow: 20 }, { pressure: 3, flow: 12 }, { pressure: 6, flow: 6 },
         { pressure: 9, flow: 5 }, { pressure: 12, flow: 4 },
@@ -18,7 +18,9 @@ const BLOCK = Object.freeze({
     flow_mode: 'both',
     pressure_tau: 0,
     pressure_mode: 'both',
-    ramp_factor: 1,
+    pressure_filter_tau: 0,
+    pressure_ramp_tau: 1,
+    flow_ramp_tau: 0,
 });
 
 async function withApp(machineClass, fn) {

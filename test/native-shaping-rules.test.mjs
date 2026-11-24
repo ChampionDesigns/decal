@@ -5,6 +5,8 @@ import { join } from 'node:path';
 
 import {
     checkNativeShaping,
+    checkRecordedShaping,
+    isRetiredShapingBlock,
     pointLimits,
     movePoint,
     DEFAULT_PUMP_CURVE,
@@ -56,13 +58,26 @@ describe('defaults', () => {
     });
 
     test('null values take the defaults', () => {
-        const r = check({ version: null, pump_curve: null, flow_tau: null, flow_mode: null, ramp_factor: null });
+        const r = check({
+            version: null, pump_curve: null, flow_tau: null, flow_mode: null,
+            pressure_filter_tau: null, pressure_ramp_tau: null, flow_ramp_tau: null,
+        });
         assert.equal(r.ok, true);
-        assert.equal(r.block.version, 1);
+        assert.equal(r.block.version, 2);
         assert.deepEqual(r.block.pump_curve, []);
         assert.equal(r.block.flow_tau, 0);
         assert.equal(r.block.flow_mode, 'both');
-        assert.equal(r.block.ramp_factor, 1);
+        assert.equal(r.block.pressure_filter_tau, 0);
+        assert.equal(r.block.pressure_ramp_tau, 0);
+        assert.equal(r.block.flow_ramp_tau, 0);
+        assert.equal('ramp_factor' in r.block, false);
+    });
+
+    test('the defaults are version 2 with every time constant at 0', () => {
+        assert.deepEqual({ ...NATIVE_SHAPING_DEFAULTS, pump_curve: [] }, {
+            version: 2, pump_curve: [], flow_tau: 0, flow_mode: 'both', pressure_tau: 0, pressure_mode: 'both',
+            pressure_filter_tau: 0, pressure_ramp_tau: 0, flow_ramp_tau: 0,
+        });
     });
 
     test('a block that is not an object is refused', () => {
@@ -138,8 +153,8 @@ describe('point flow', () => {
     });
 });
 
-describe('the time constants and the ramp factor', () => {
-    for (const field of ['flow_tau', 'pressure_tau']) {
+describe('the time constants', () => {
+    for (const field of ['flow_tau', 'pressure_tau', 'pressure_filter_tau', 'pressure_ramp_tau', 'flow_ramp_tau']) {
         test(`${field} 5.0 passes`, () => {
             const r = check({ [field]: 5.0 });
             assert.equal(r.ok, true);
@@ -159,20 +174,79 @@ describe('the time constants and the ramp factor', () => {
             assert.equal(check({ [field]: 0.51 }).block[field], 0.52);
             assert.equal(check({ [field]: 0.509 }).block[field], 0.5);
         });
+
+        test(`${field} absent takes 0`, () => {
+            const r = check({ version: 2 });
+            assert.equal(r.ok, true);
+            assert.equal(r.block[field], 0);
+        });
+
+        test(`${field} that is not a number is refused`, () => {
+            refused({ [field]: 'a' }, field, RULE.NUMBER);
+        });
     }
 
-    test('ramp 4.0 passes', () => {
-        const r = check({ ramp_factor: 4.0 });
+    test('each time constant is checked on its own', () => {
+        const r = check({ pressure_filter_tau: 1.5, pressure_ramp_tau: 2.5, flow_ramp_tau: 3.5 });
         assert.equal(r.ok, true);
-        assert.equal(r.block.ramp_factor, 4);
+        assert.equal(r.block.pressure_filter_tau, 1.5);
+        assert.equal(r.block.pressure_ramp_tau, 2.5);
+        assert.equal(r.block.flow_ramp_tau, 3.5);
+    });
+});
+
+describe('the retired ramp factor', () => {
+    test('a block with ramp_factor is refused, whatever its value', () => {
+        for (const value of [0, 1, 4, null]) {
+            refused({ ramp_factor: value }, 'ramp_factor', RULE.RETIRED);
+            refused({ ...SPEC_EXAMPLE, ramp_factor: value }, 'ramp_factor', RULE.RETIRED);
+        }
     });
 
-    test('ramp 4.01 rounds to 4.02 and is refused', () => {
-        refused({ ramp_factor: 4.01 }, 'ramp_factor', RULE.RANGE);
+    test('a checked block never has ramp_factor', () => {
+        for (const input of [{}, SPEC_EXAMPLE, { pressure_ramp_tau: 1 }]) {
+            assert.equal('ramp_factor' in check(input).block, false);
+        }
     });
 
-    test('ramp 0 passes', () => {
-        assert.equal(check({ ramp_factor: 0 }).block.ramp_factor, 0);
+    test('a block is retired only when it has the key', () => {
+        assert.equal(isRetiredShapingBlock({ ramp_factor: 1 }), true);
+        assert.equal(isRetiredShapingBlock({ ramp_factor: null }), true);
+        assert.equal(isRetiredShapingBlock(SPEC_EXAMPLE), false);
+        assert.equal(isRetiredShapingBlock(null), false);
+    });
+});
+
+describe('a recorded version 1 block', () => {
+    const V1 = { version: 1, pump_curve: DEFAULT_PUMP_CURVE, flow_tau: 0.5, flow_mode: 'both',
+        pressure_tau: 0.5, pressure_mode: 'rise', ramp_factor: 2 };
+
+    test('passes as a recorded block and is refused for a Save', () => {
+        assert.equal(checkRecordedShaping(V1), true);
+        assert.equal(check(V1).ok, false);
+    });
+
+    test('takes a ramp factor from 0 to 4 and an absent one', () => {
+        for (const ramp_factor of [0, 2.5, 4]) assert.equal(checkRecordedShaping({ ...V1, ramp_factor }), true);
+        const { ramp_factor: _, ...noFactor } = V1;
+        assert.equal(checkRecordedShaping(noFactor), true);
+        assert.equal(checkRecordedShaping({ ...V1, ramp_factor: 4.01 }), false);
+        assert.equal(checkRecordedShaping({ ...V1, ramp_factor: -0.02 }), false);
+    });
+
+    test('that breaks another rule is not taken', () => {
+        assert.equal(checkRecordedShaping({ ...V1, flow_tau: 6 }), false);
+        assert.equal(checkRecordedShaping({ ...V1, pressure_mode: 'up' }), false);
+        assert.equal(checkRecordedShaping({ ...V1, pump_curve: curve([1, 10], [1.2, 9]) }), false);
+        assert.equal(checkRecordedShaping({ ...V1, version: 3 }), false);
+        assert.equal(checkRecordedShaping(null), false);
+    });
+
+    test('with a version 2 key or version 2 is not a version 1 block', () => {
+        for (const key of ['pressure_filter_tau', 'pressure_ramp_tau', 'flow_ramp_tau']) {
+            assert.equal(checkRecordedShaping({ ...V1, [key]: 0 }), false);
+        }
+        assert.equal(checkRecordedShaping({ ...V1, version: 2 }), false);
     });
 });
 
@@ -191,10 +265,10 @@ describe('modes and version', () => {
         refused({ pressure_mode: 'BOTH' }, 'pressure_mode', RULE.MODE);
     });
 
-    test('version 1 passes and version 2 is refused', () => {
-        assert.equal(check({ version: 1 }).ok, true);
-        refused({ version: 2 }, 'version', RULE.VERSION);
-        refused({ version: '1' }, 'version', RULE.VERSION);
+    test('version 2 passes and version 1 is refused', () => {
+        assert.equal(check({ version: 2 }).ok, true);
+        refused({ version: 1 }, 'version', RULE.VERSION);
+        refused({ version: '2' }, 'version', RULE.VERSION);
     });
 });
 

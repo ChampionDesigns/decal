@@ -26,6 +26,8 @@ export const PRESSURE_GOAL_FLOOR = 0.01;
 
 const RAMP_FACTOR_DEFAULT = 1;
 
+const V2_ONLY_KEYS = Object.freeze(['pressure_filter_tau', 'pressure_ramp_tau', 'flow_ramp_tau']);
+
 export const WIRE_STEPS_PER_UNIT = Object.freeze({ tau: 50, ramp: 50, pressure: 10, flow: 10 });
 
 function compliance(P) {
@@ -423,8 +425,8 @@ export function settingsFromNativeShaping(block) {
 
 function rampTimes(block, fTau, pTau) {
     const d = FIRMWARE_DEFAULT_SETTINGS;
-    const keys = ['pressure_ramp_tau', 'flow_ramp_tau'].some((key) => Number.isFinite(block[key]));
-    if (keys) {
+    const v2 = block.version === 2 || V2_ONLY_KEYS.some((key) => block[key] !== undefined && block[key] !== null);
+    if (v2) {
         return {
             pRamp: onWireStep(finiteOr(block.pressure_ramp_tau, d.pRamp), WIRE_STEPS_PER_UNIT.tau),
             fRamp: onWireStep(finiteOr(block.flow_ramp_tau, d.fRamp), WIRE_STEPS_PER_UNIT.tau),
@@ -434,7 +436,7 @@ function rampTimes(block, fTau, pTau) {
     return { pRamp: rampFromFactor(factor, pTau), fRamp: rampFromFactor(factor, fTau) };
 }
 
-export function rampFromFactor(factor, tau) {
+function rampFromFactor(factor, tau) {
     return factor * tau;
 }
 

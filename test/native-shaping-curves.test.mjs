@@ -91,26 +91,53 @@ describe('the mini chart responses', () => {
         assert.ok(at(fall, 3) > 3);
     });
 
-    test('a ramp factor of 0 gives the plain ramp', () => {
-        const r = rampResponse(0, 1);
-        assert.deepEqual(r.shaped, r.raw);
-        const lagged = rampResponse(2, 1);
+    test('a ramp time of 0 gives the plain ramp', () => {
+        for (const kind of ['pressure', 'flow']) {
+            const r = rampResponse(kind, 0);
+            assert.deepEqual(r.shaped, r.raw, kind);
+        }
+        const lagged = rampResponse('pressure', 2);
         assert.ok(lagged.shaped[lagged.shaped.length - 1] < 9);
+        const flow = rampResponse('flow', 2);
+        assert.ok(flow.shaped[flow.shaped.length - 1] > 2);
     });
 
-    test('the ramp lags only when the pressure mode acts on a rising ramp', () => {
-        const fall = rampResponse(1, 1, 'fall');
+    test('the pressure ramp rises 2 to 9 bar and the flow ramp falls 6 to 2 mL/s, in 4 s from 0 s', () => {
+        const p = rampResponse('pressure', 0);
+        const q = rampResponse('flow', 0);
+        assert.equal(p.t[0], -0.5);
+        assert.ok(Math.abs(p.t.at(-1) - 5.5) < 1e-9);
+        const at = (r, s) => r.raw[r.t.findIndex((x) => x >= s - 1e-9)];
+        assert.equal(at(p, -0.5), 2);
+        assert.equal(at(p, 4), 9);
+        assert.equal(at(q, -0.5), 6);
+        assert.equal(at(q, 4), 2);
+        assert.ok(Math.abs(at(q, 2) - 4) < 1e-9);
+    });
+
+    test('the pressure ramp lags only when the pressure mode acts on a rising ramp', () => {
+        const fall = rampResponse('pressure', 1, 'fall');
         assert.deepEqual(fall.shaped, fall.raw);
         for (const mode of ['both', 'rise']) {
-            const r = rampResponse(1, 1, mode);
+            const r = rampResponse('pressure', 1, mode);
             assert.notDeepEqual(r.shaped, r.raw, mode);
             assert.ok(r.shaped[r.shaped.length - 1] < 9, mode);
         }
     });
 
+    test('the flow ramp lags only when the flow mode acts on a falling ramp', () => {
+        const rise = rampResponse('flow', 1, 'rise');
+        assert.deepEqual(rise.shaped, rise.raw);
+        for (const mode of ['both', 'fall']) {
+            const r = rampResponse('flow', 1, mode);
+            assert.notDeepEqual(r.shaped, r.raw, mode);
+            assert.ok(r.shaped[r.shaped.length - 1] > 2, mode);
+        }
+    });
+
     test('the ramp drawing is the reference pressure ramp', () => {
         const v = VEC.smooth_pressure.find((r) => r.tau === 0.5 && r.seed === 2 && r.target === 9 && r.seconds === 4);
-        const r = rampResponse(1, 0.5);
+        const r = rampResponse('pressure', 0.5);
         let checked = 0;
         r.t.forEach((at, k) => {
             const n = Math.round(at * MODEL_HZ);
@@ -119,6 +146,27 @@ describe('the mini chart responses', () => {
             checked++;
         });
         assert.ok(checked > 300, `${checked} samples`);
+    });
+
+    test('the first filter line is drawn only for a pressure step with a second filter', () => {
+        assert.equal(stepResponse('pressure', 1, 'both').first, null);
+        assert.equal(stepResponse('pressure', 1, 'both', 0).first, null);
+        assert.equal(stepResponse('flow', 1, 'both', 1).first, null);
+        const two = stepResponse('pressure', 1, 'both', 0.8);
+        const one = stepResponse('pressure', 1, 'both');
+        assert.deepEqual(two.first, one.shaped);
+        assert.deepEqual(two.t, one.t);
+        assert.notDeepEqual(two.shaped, one.shaped);
+        const at = (arr, r, s) => arr[r.t.findIndex((x) => x >= s)];
+        assert.ok(at(two.shaped, two, 1) < at(two.first, two, 1), 'the second filter lags the first');
+    });
+
+    test('the second filter follows the pressure mode', () => {
+        const fall = stepResponse('pressure', 1, 'fall', 0.8);
+        const plain = stepResponse('pressure', 1, 'fall');
+        const rising = (r) => r.shaped.filter((_, k) => r.t[k] < 2.5);
+        assert.deepEqual(rising(fall), rising(plain));
+        assert.notDeepEqual(fall.shaped, plain.shaped);
     });
 
     test('the step drawing follows the limited curve', () => {

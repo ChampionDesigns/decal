@@ -15,7 +15,7 @@ import { checkNativeShaping } from '../src/lib/native-shaping-rules.js';
 const LOCATION = { hostname: '127.0.0.1', protocol: 'http:' };
 
 const SPEC_BLOCK = Object.freeze({
-    version: 1,
+    version: 2,
     pump_curve: [
         { pressure: 1, flow: 20 }, { pressure: 3, flow: 12 }, { pressure: 6, flow: 6 },
         { pressure: 9, flow: 5 }, { pressure: 12, flow: 4 },
@@ -24,7 +24,19 @@ const SPEC_BLOCK = Object.freeze({
     flow_mode: 'both',
     pressure_tau: 0,
     pressure_mode: 'both',
-    ramp_factor: 1,
+    pressure_filter_tau: 0,
+    pressure_ramp_tau: 1,
+    flow_ramp_tau: 0,
+});
+
+const V1_BLOCK = Object.freeze({
+    version: 1,
+    pump_curve: SPEC_BLOCK.pump_curve,
+    flow_tau: 0.5,
+    flow_mode: 'both',
+    pressure_tau: 0.5,
+    pressure_mode: 'both',
+    ramp_factor: 2,
 });
 
 const recipe = (extra = {}) => ({
@@ -150,7 +162,8 @@ const editedBlock = () => {
     const points = SPEC_BLOCK.pump_curve.map((pt) => ({ ...pt }));
     points[2] = { pressure: 6.31, flow: 6.49 };
     const result = checkNativeShaping({
-        ...SPEC_BLOCK, pump_curve: points, pressure_tau: 1.239, pressure_mode: 'rise', ramp_factor: 1.5,
+        ...SPEC_BLOCK, pump_curve: points, pressure_tau: 1.239, pressure_mode: 'rise',
+        pressure_filter_tau: 0.71, pressure_ramp_tau: 4.999, flow_ramp_tau: 2.5,
     });
     assert.equal(result.ok, true);
     return result.block;
@@ -166,6 +179,11 @@ describe('the native shaping block is saved with the profile', () => {
             assert.equal(change.tell, CHANGE_TELL.COMPARED);
             assert.deepEqual(sent.profile.native_shaping, block);
             assert.equal(sent.profile.native_shaping.pressure_tau, 1.24);
+            assert.equal(sent.profile.native_shaping.version, 2);
+            assert.equal(sent.profile.native_shaping.pressure_filter_tau, 0.72);
+            assert.equal(sent.profile.native_shaping.pressure_ramp_tau, 5);
+            assert.equal(sent.profile.native_shaping.flow_ramp_tau, 2.5);
+            assert.equal(Object.hasOwn(sent.profile.native_shaping, 'ramp_factor'), false);
             assert.deepEqual(sent.profile.native_shaping.pump_curve[2], { pressure: 6.3, flow: 6.5 });
             assert.equal(sent.parentId, 'open-1');
             assert.notEqual(saved.id, 'open-1');
@@ -217,6 +235,30 @@ describe('the native shaping block is saved with the profile', () => {
             const second = await save(boot, server, off);
             assert.equal(second.sent.profile.de1_emulation, false);
             assert.deepEqual(second.sent.profile.native_shaping, SPEC_BLOCK);
+        });
+    });
+
+    test('the body has the version 2 keys and no ramp_factor', async () => {
+        await withEditor(recipe({ native_shaping: SPEC_BLOCK }), async ({ boot, server }) => {
+            const draft = { ...boot.profileEditor.get().record.profile, native_shaping: editedBlock() };
+            const { sent } = await save(boot, server, draft);
+            assert.deepEqual(Object.keys(sent.profile.native_shaping).sort(), [
+                'flow_mode', 'flow_ramp_tau', 'flow_tau', 'pressure_filter_tau', 'pressure_mode',
+                'pressure_ramp_tau', 'pressure_tau', 'pump_curve', 'version',
+            ]);
+            assert.equal(Object.hasOwn(server.workflowPuts.at(-1).profile.native_shaping, 'ramp_factor'), false);
+        });
+    });
+
+    test('a block with the retired ramp_factor is never sent', async () => {
+        await withEditor(recipe({ native_shaping: V1_BLOCK }), async ({ boot, server }) => {
+            const draft = { ...boot.profileEditor.get().record.profile, target_weight: 40 };
+            const { sent } = await save(boot, server, draft);
+            assert.equal(sent.profile.target_weight, 40);
+            assert.equal(Object.hasOwn(sent.profile, 'native_shaping'), false);
+            const armed = server.workflowPuts.at(-1);
+            assert.ok(armed, 'the saved record was armed');
+            assert.equal(Object.hasOwn(armed.profile, 'native_shaping'), false);
         });
     });
 
