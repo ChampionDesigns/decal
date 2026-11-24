@@ -22,6 +22,8 @@ export const FIRMWARE_DEFAULT_SETTINGS = Object.freeze({
 
 export const FLOW_ZERO_SNAP = 0.01;
 
+export const PRESSURE_GOAL_FLOOR = 0.01;
+
 const RAMP_FACTOR_DEFAULT = 1;
 
 export const WIRE_STEPS_PER_UNIT = Object.freeze({ tau: 50, ramp: 50, pressure: 10, flow: 10 });
@@ -126,10 +128,12 @@ export function shapedGoal({ pump, smooth, seed, target, tau, mode, tau2 = 0 }) 
     const second = !flow && !smooth && tau2 > 0 && directionOn(mode, seed, target) ? plainEma(tau2, seed) : null;
     const flush = !flow && !smooth && target === 0;
     const snap = flow && shaped && target === 0;
+    const floor = !flow && target > 0;
     return (x) => {
         let y = first ? first(x) : x;
         if (flush) return 0;
         if (second) y = second(y);
+        if (floor) return Math.max(y, PRESSURE_GOAL_FLOOR);
         return snap && y < FLOW_ZERO_SNAP ? 0 : y;
     };
 }

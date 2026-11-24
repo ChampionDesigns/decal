@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-    FLOW_ZERO_SNAP, MODEL_HZ, rampStart, runShotModel, settingsFromNativeShaping, shapedGoal, switchTick,
+    FLOW_ZERO_SNAP, MODEL_HZ, PRESSURE_GOAL_FLOOR, rampStart, runShotModel, settingsFromNativeShaping, shapedGoal, switchTick,
 } from '../src/lib/shot-model.js';
 
 const readJson = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
@@ -230,6 +230,75 @@ describe('the flow zero snap', () => {
         const after = goal.slice(v.first_zero_tick);
         assert.ok(after.every((y) => y === 0));
         assert.ok(goal[v.first_zero_tick - 1] >= FLOW_ZERO_SNAP);
+    });
+});
+
+describe('the pressure goal floor', () => {
+    function plainCurve(tau, seed, target, count) {
+        const N = switchTick(tau);
+        let y = seed;
+        const out = [y];
+        for (let n = 1; n < count; n++) {
+            const k = n <= N ? DT * (2 * tau + (2 * n - 1) * DT) / (tau + n * DT) ** 2 : 1 - Math.exp(-DT / tau);
+            y += k * (target - y);
+            out.push(y);
+        }
+        return out;
+    }
+
+    test('the floor is 0.01 bar', () => {
+        assert.equal(PRESSURE_GOAL_FLOOR, 0.01);
+    });
+
+    test('a pressure step from 0 to 6 bar sends 0.01 bar at the first tick', () => {
+        const goal = goalOf({ pump: 'pressure', smooth: false, seed: 0, target: 6, tau: 1, mode: 'both' }, Array(240).fill(6));
+        const own = plainCurve(1, 0, 6, 240);
+        assert.equal(goal[0], 0.01);
+        assert.ok(own[1] > 0.01);
+        for (let n = 1; n < own.length; n++) assert.ok(Math.abs(goal[n] - own[n]) < 1e-12, `tick ${n}`);
+    });
+
+    test('every tick under 0.01 bar sends 0.01 bar, and the curve goes on from its own value', () => {
+        const goal = goalOf({ pump: 'pressure', smooth: false, seed: 0, target: 1, tau: 5, mode: 'both' }, Array(240).fill(1));
+        const own = plainCurve(5, 0, 1, 240);
+        const low = own.filter((y) => y < 0.01).length;
+        assert.ok(low >= 3, `${low} ticks under the floor`);
+        for (let n = 0; n < own.length; n++) assert.ok(Math.abs(goal[n] - Math.max(own[n], 0.01)) < 1e-12, `tick ${n}`);
+        const fromFloor = plainCurve(5, 0.01, 1, 2)[1];
+        assert.ok(Math.abs(goal[low] - fromFloor) > 1e-6, 'the tick after the floor does not build on 0.01');
+    });
+
+    test('the second filter keeps its own value under the floor', () => {
+        const spec = { pump: 'pressure', smooth: false, seed: 0, target: 1, tau: 5, mode: 'both' };
+        const inputs = Array(240).fill(1);
+        const goal = goalOf({ ...spec, tau2: 1 }, inputs);
+        const first = plainCurve(5, 0, 1, 240);
+        const s = -Math.expm1(-1 / (MODEL_HZ * 1));
+        let z = 0;
+        for (let n = 0; n < first.length; n++) {
+            z = z * (1 - s) + s * first[n];
+            assert.ok(Math.abs(goal[n] - Math.max(z, 0.01)) < 1e-12, `tick ${n}`);
+        }
+    });
+
+    test('a smooth pressure frame above 0 bar has the floor', () => {
+        const ramp = Array.from({ length: 240 }, (_, n) => 0.01 + (9 - 0.01) * Math.min(n / 240, 1));
+        const goal = goalOf({ pump: 'pressure', smooth: true, seed: 0, target: 9, tau: 1, mode: 'both' }, ramp);
+        assert.equal(goal[0], 0.01);
+        assert.ok(goal.every((y) => y >= 0.01));
+    });
+
+    test('a pressure frame of 0 bar stays at 0, fast and smooth', () => {
+        const fast = goalOf({ pump: 'pressure', smooth: false, seed: 6, target: 0, tau: 1, mode: 'both' }, Array(60).fill(0));
+        assert.ok(fast.every((y) => y === 0));
+        const ramp = Array.from({ length: 241 }, (_, n) => 6 * (1 - Math.min(n / 120, 1)));
+        const smooth = goalOf({ pump: 'pressure', smooth: true, seed: 6, target: 0, tau: 0, mode: 'both' }, ramp);
+        assert.equal(smooth.at(-1), 0);
+    });
+
+    test('a flow frame has no floor', () => {
+        const goal = goalOf({ pump: 'flow', smooth: false, seed: 0, target: 6, tau: 1, mode: 'both' }, Array(10).fill(6));
+        assert.equal(goal[0], 0);
     });
 });
 
