@@ -2,7 +2,7 @@
   "$schema": "CONTRACTS.md documents every column. Hand-checked, never generated.",
   "version": 1,
   "wave": "5.6",
-  "pinnedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+  "pinnedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
   "pinnedBy": "scripts/lib/rea-source.js PINNED_COMMIT — the one place the pin is written; scripts/gate-d.js asserts this field equals it and that every row's checkedCommit does too.",
   "reaRoot": "${REA_ROOT}",
   "authority": "The handler body AS WRITTEN at the pinned commit. Not rest_v1.yml, not the previous skin's JSDoc. Where the document and the handler disagree the handler wins; see rea-routes.generated.js REA_ROUTE_EXCEPTIONS.",
@@ -17,7 +17,7 @@
       "wanted": "R2 — a machine limits endpoint (asked for by the ranges decision, and the answer to the open question of where numeric bounds come from)",
       "wantedBy": "item one-ranges-table. Every numeric input in the profile editor, plus the numpad hints and the settings fields, take their bounds from it once it exists.",
       "servedAt": null,
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "basis": "mechanical sweep of lib/src/services/webserver at the pin, RE-COUNTED at 8fee86dd: 156 app.get|put|post|delete|options('/api/v1/…') registrations — 65 GET, 46 POST, 28 PUT, 16 DELETE, 1 OPTIONS over 111 distinct paths (149 over 106 at 42f67f69; the same count method reproduces that figure). The count is unchanged at 1efd1a30 and at 2f831b54: neither range adds or removes a registration. NONE matches limit|range|bound|envelope|constraint, and no /api/v1 or /ws/v1 string literal anywhere in lib/ does either. Six paths were added (five under /grinder, and PUT /scales/<id>/tare) and one was removed (GET /machine/stopAtWeight). The nearest candidates were opened and all refuse: GET /machine/capabilities answers a bare array of feature-name strings with no numbers, GET /machine/calibration/<target> answers measured values, not a permitted range, and GET /grinder/info describes the connected GRINDER's own controls (grinder_handler.dart:23-45), not a bound on any machine or profile field.",
       "interim": "The decided feed — exactly one limits table in the skin, src/lib/machine-limits.js, reached ONLY through r2MachineLimits() in src/data/adapters-r.js and published as capabilities-store.js machineLimits(). The step-authoring half is AUTHORING_RANGES in src/lib/profile-modes.js; the two are disjoint by field.",
       "policy": "NO STUB, NO ROW. A contract row for a route that does not exist is a fabricated endpoint, and the rowRule above forbids it. The absence is recorded here and as DATA in src/lib/editor-ranges.js R2_INTERIM, pinned by test/editor-ranges.test.mjs, and declared on the wave manifest (in the notes' ECM-041 shape: 'limits from the interim single table pending R2'). The day R2 lands, this entry becomes a rest row and editor-ranges.js does not change — the adapter does."
@@ -26,7 +26,7 @@
       "wanted": "R5 — per-shot outcome scalars on the shot SUMMARY: duration, peak pressure, average flow (and average pressure, peak flow after first drop, time to first drop)",
       "wantedBy": "items hist-shot-list-derivation / hist-b5-scalars-q17. The History list wants to print '28 s' in a row cell without downloading the shot the row names.",
       "servedAt": null,
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "basis": "NOT A MISSING ROUTE — A MISSING FIELD, verified by reading both serializers at the pin rather than by sweeping paths. Neither `ShotRecord.toJson` (lib/src/models/data/shot_record.dart:66-80) nor `ShotRecord.toJsonWithoutMeasurements` (shot_record.dart:82-95) emits duration, peak pressure or average flow in any spelling; since 8fee86dd both serializers gained only de1Emulation, emitted as true and only for a shot that ran in DE1 emulation (shot_record.dart:76, :91); 42f67f69 added createdAt and updatedAt. `ShotAnnotations` (shot_annotations.dart:5-14) is unchanged too — six modelled fields plus a free `extras` map, no computed metric. The shots list maps every row through toJsonWithoutMeasurements (shots_handler.dart:153), so the gap is on the payload as well as in the model. Six paths were added since 42f67f69 (five under /grinder, and PUT /scales/<id>/tare) and one was removed (GET /machine/stopAtWeight); none of them serves a shot metric, and neither 1efd1a30 nor 2f831b54 adds or removes a path. Corroborating: the app's own history screen computes duration and peak pressure from record.measurements in-app, so the metrics live nowhere on the wire.",
       "interim": "decided: the scalars are computed IN THE SKIN from the data layer's single walk (src/lib/shot-derivation.js `scalars`, twelve keys, each null when absent), for the shots that have actually been downloaded because they are on the chart. Every other row shows a DASH. (the previous skin's module, 16 Aug) settled the open half: the list does NOT download a ~221 KB record to fill a list cell, so `fillMissingOutcomes` and the whole fetch-per-row machinery are not built and there is no code path to them.",
       "policy": "NO STUB, NO SENTINEL, NO FETCH. The absence is the recorded finding. The reading shape is src/lib/shot-summary.js SUMMARY_SCALAR_KEYS: each scalar names the summary field that carries it, or null for 'nothing serves this yet'. R5 lands as a STRING in that table — one field per scalar — and the dash fills in with nothing to delete, because nothing was built. Pinned by test/shot-summary.test.mjs (the dash truth table, and the per-row fetch count asserted at exactly 0) and declared on the wave manifest."
@@ -87,7 +87,7 @@
       ],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js"
@@ -112,7 +112,7 @@
       "responseShape": "202 {operation:{state}} — always 202 from the handler, whatever happened; it swallows every throw and reports the state it could read (firmware_handler.dart:269-282); 429 {error:'client_admission_limit'} or 503 {error:'global_admission_limit'}, each with retry-after: 1, from the admission middleware ahead of every /api/ route (webserver_service.dart:582, admission_control.dart:126-135, 216-225)",
       "handlerSymbol": "FirmwareHandler._cancelUpdate",
       "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/firmware-store.js cancel"
@@ -141,7 +141,7 @@
       "responseShape": "202 Accepted, no body; 503 {error:'Machine write queue is full', message} once one write is active and 32 more are queued (de1_controller.governor.dart:89-95); 504 {error} when a BLE GATT-133 on one of the seven MMR writes survives the reconnect retry (universal_ble_transport.dart:314 -> de1handler.dart:780-781); 500 {error} when it is not connected; 500 {error, st} otherwise, including the MmrTimeoutException a silent machine gives and the StateError a mid-write machine swap raises (de1_controller.governor.dart:212, :220) — 503 {error:'Machine unavailable'} is DEAD here since the route dropped retryOnReplacement: true (de1handler.dart:738-745): De1ReplayPolicy.never throws DeviceNotConnected at governor.dart:226 instead of waiting for a replacement; 409 superseded cannot fire because this route sets no coalescingKey; and 504 cannot arrive by EndpointUnavailableException, which is raised only on serial frame waits (unified_de1_transport.dart:793) and calibration reads (unified_de1.calibration.dart:29) that a pure MMR write never makes",
       "handlerSymbol": "De1Handler.addRoutes (DELETE /api/v1/machine/settings/reset) -> De1Controller.applySettingsDefaults",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-de1-settings.js"
@@ -182,7 +182,7 @@
       ],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js"
@@ -203,7 +203,7 @@
       "gates": [],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/presence-store.js"
@@ -231,7 +231,7 @@
       "responseShape": "200 {success:true, message:'Profile deleted', id}; 404 {error:'Not found', message} on ArgumentError (unknown id); 500",
       "handlerSymbol": "ProfileHandler._handleDelete -> ProfileController.delete",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js"
@@ -268,7 +268,7 @@
       "responseShape": "200 the whole updated ProfileRecord.toJson (jsonOk, profile_handler.dart:220) — ten keys, `visibility` among them, so the answer states the new state rather than acknowledging the request; 400 {error:'Invalid request', message:'Invalid argument(s): Profile not found: <id>'} for an unknown id AND for the refusals below, because both arrive as ArgumentError through the same clause (:223-224); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}; 500 {error:'Internal server error', message} (:225-228).",
       "handlerSymbol": "ProfileHandler._handleSetVisibility -> ProfileController.setVisibility",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-editor-store.js saveAsNewVersion — hides the superseded parent and un-hides a restored version, so a save leaves ONE row in the list (the owner's decision)"
@@ -317,7 +317,7 @@
       "responseShape": "200 {success:true, message:'Profile permanently deleted', id}; 400 {error:'Invalid request', message} on ArgumentError; 500",
       "handlerSymbol": "ProfileHandler._handlePurge",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js"
@@ -351,7 +351,7 @@
       "responseShape": "200 {}",
       "handlerSymbol": "KvStoreHandler.addRoutes (inline DELETE /api/v1/store/<namespace>/<key>)",
       "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-kv-backend.js remove()"
@@ -375,7 +375,7 @@
         "THE ONLY ACCOUNT ROUTE THAT ESTABLISHES NOTHING. There is no sign-in route on the web API — `DecentAccountService` owns the credentials and ReaPrime signs in through its own Flutter UI, while `/account/proxy/<rest>` forwards an already authenticated request. The leaf reports and does not ask.",
         "loggedIn:false DOES NOT MEAN 'not linked'. It also covers 'linked, but decentespresso.com could not be reached', 'linked, but the reply was neither an acceptance nor a rejection', 'linked, but the check did not finish within 30 s', and 'linked, but the last check was indeterminate and we are inside the 30 s cooldown' (decent_account_service.dart:495-499, :511-514, :516-581). Do not word a signed-out state as 'no account' on the strength of this route alone, and do not treat the first call of a session as cheap: it can block on an HTTP round trip for up to 30 s. At 8fee86dd that round trip HAS a deadline and an abort: verifyStoredCredentialsStatus wraps the check in a 30 s timeout that completes an abort trigger and answers indeterminate (:516-525), and _authedGet takes the AbortableRequest branch on this path (:743-749), where 42f67f69's untimed `_httpClient.get` branch (now :751-754) ran with no deadline."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/decent-account-store.js"
@@ -430,7 +430,7 @@
         "NO `since`. the previous skin passes it and keeps the thread in IndexedDB to compute it. This client asks for the whole thread every time — no second copy, no retention rule, and no query parameter with no evidence behind it. See the route table's account-proxy-query-passthrough exception, which adds subject and body for that reason and deliberately does not add since.",
         "The query string is still relayed verbatim: the handler passes `rawQuery: request.requestedUri.query` (account_proxy_handler.dart:25) and DecentProxyService._buildUri uses it in place of any query map (decent_proxy_service.dart:142-146). rest_v1.yml at 8fee86dd still documents only the `endpoint` path parameter on this GET, so the route table's account-proxy-query-passthrough exception is still what puts subject and body on it."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/decent-support-store.js"
@@ -457,7 +457,7 @@
       "responseShape": "200 array of Bean.toJson; 500 {error:<Dart exception>} (beans_handler.dart:40-42)",
       "handlerSymbol": "BeansHandler._getBeans",
       "handlerFile": "lib/src/services/webserver/beans_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES"
@@ -496,7 +496,7 @@
       "responseShape": "200 array of BeanBatch.toJson; 500 {error:<Dart exception>} (beans_handler.dart:155-157)",
       "handlerSymbol": "BeansHandler._getBatches",
       "handlerFile": "lib/src/services/webserver/beans_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES"
@@ -533,7 +533,7 @@
       "responseShape": "200 array of BeanBatch.toJson, with an ETag; 304 when If-None-Match matches (jsonOkConditional, beans_handler.dart:168); 500 {error:<Dart exception>} from the handler's own catch (:170-172)",
       "handlerSymbol": "BeansHandler._getAllBatches",
       "handlerFile": "lib/src/services/webserver/beans_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES"
@@ -567,7 +567,7 @@
       "responseShape": "200 array of DeviceInventory {name:string, id:string, state:ConnectionState, type:DeviceType (machine|scale|sensor|grinder), available:bool, connectionRole?:'primary'|'auxiliary'} — connectionRole is present only on a CONNECTED scale entry whose id has a role (_rolesFor devices_handler.dart:776-788, added at :906-915); the inventory now also carries the connected grinder and each connected auxiliary scale (_devicesForInventory :790-826); 500 {e, st} (:240-244)",
       "handlerSymbol": "DevicesHandler.addRoutes (inline) -> DevicesHandler._deviceList -> buildAvailabilityDeviceList",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js loadDevices"
@@ -603,7 +603,7 @@
       "responseShape": "200 array (the same DeviceInventory list as getDevices, built by _deviceList, devices_handler.dart:280-282); [] immediately when quick=true (:272-279); a scan that throws when not quick escapes the closure (no catch around `await scan`, :280) and is answered by the server's default 500",
       "handlerSymbol": "DevicesHandler.addRoutes (inline scan closure)",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js"
@@ -633,7 +633,7 @@
       "gates": [],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js"
@@ -660,7 +660,7 @@
       "responseShape": "200 array of Grinder.toJson; 500 {error:<Dart exception>} (grinders_handler.dart:33-35)",
       "handlerSymbol": "GrindersHandler._getGrinders",
       "handlerFile": "lib/src/services/webserver/grinders_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES"
@@ -687,7 +687,7 @@
       "responseShape": "200 {flowMultiplier: number} — the handler builds the map itself from de1.getFlowEstimation() (de1handler.dart:607-613); no 404 branch; withDe1 now routes through _mapDe1WriteErrors (de1handler.dart:751-787), so no machine connected is 500 {error} with NO st key, a BLE GATT failure during the MMR read is 504 {error}, and anything else — an MMR read timeout included — is 500 {error:<Dart exception>, st:<stack trace>}; the 409 superseded, 503 write-queue-full and 503 {error:'Machine unavailable'} branches CANNOT fire here, because withDe1 calls the device directly and never enters the write governor (de1_controller.governor.dart:47-104, :215-236)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/calibration)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/calibration-store.js readFlow() — reaches the settings row `calibration-flow-multiplier-factor` through src/stores/machine-fields-port.js"
@@ -722,7 +722,7 @@
       "responseShape": "200 {capabilities: string[]} — exactly ['cupWarmer','integratedScale','stopAtWeight','ledStrip','scaleCalibration','preheat','wakeSchedule'] when the machine is a BengleInterface, [] otherwise; 500 {error} when no machine is connected — withDe1 (de1handler.dart:751-756) now delegates to _mapDe1WriteErrors, whose DeviceNotConnectedException branch (:782-783) answers {error} ALONE where the old withDe1's own catch-all carried {error, st}; 500 {error:<Dart exception>, st:<stack trace>} still for any other throw (:784-785). That mapper's 503 'Machine write queue is full' (:763-767), 409 'Machine write was superseded' (:768-772), 503 'Machine unavailable' (:773-777) and 504 (:778-781) branches cannot fire here: the three write exceptions are raised only inside _enqueueDeviceWrite (de1_controller.governor.dart:43, :83, :92, :230; de1_controller.dart:849), which withDe1 never enters, and the two 504 sources are BLE/serial I/O exceptions this handler never provokes — it only runtime-tests the already-connected device with `de1 is BengleInterface` (:42)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/capabilities)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-routes.js capabilities helper"
@@ -758,7 +758,7 @@
       "responseShape": "200 {temperature:int, enabled:bool, currentTemperature:num} — THREE keys, and no prewarm* key of any kind; 504 {error} from EndpointUnavailableException or BleTimeoutException on the three MMR reads (de1handler.dart:778-781); 500 {error} for DeviceNotConnectedException, GattAttributeUnavailableException included (:782, errors.dart:27); 500 {error, st} for anything else, MmrTimeoutException included (:784) — withDe1 (:751) routes through _mapDe1WriteErrors, so a BLE or endpoint timeout is a 504, and the write-queue 503 and superseded 409 that mapper lists cannot fire on a read: both come only from _enqueueDeviceWrite and its capacity check (de1_controller.governor.dart:43, :83, :92), which withDe1 never calls",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/cupWarmer)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-routes.js cupWarmer helper"
@@ -791,7 +791,7 @@
       "responseShape": "200 CupWarmerPreheatState.toJson {enabled:bool, leadMinutes:int, active:bool}; 404 feature gate; 504 {error} when a BLE timeout on the MMR read survives reconnect (de1handler.dart:778-781 — a 500 before 42f67f69); 500 {error} on DeviceNotConnectedException, 500 {error:<Dart exception>, st:<stack trace>} otherwise (de1handler.dart:782-786) — withDe1 now runs inside _mapDe1WriteErrors, whose 503 'Machine write queue is full' and 409 'Machine write was superseded' branches cannot fire on a read: it never enters runDeviceWrite, and superseded needs a coalescing key (de1_controller.governor.dart:67-95)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/cupWarmer/preheat)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-routes.js cupWarmerPreheat helper"
@@ -823,7 +823,7 @@
       "responseShape": "200 {artifacts:[artifact + eligibility], machine:{model, build:int|null}|null, recommendedArtifactId:string|null, updateAvailable:bool|null, operation:{state}}",
       "handlerSymbol": "FirmwareHandler._getCatalog",
       "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/firmware-store.js load"
@@ -862,7 +862,7 @@
       "responseShape": "200 MachineInfo.toJson: {version:string, model:string, serialNumber:string, GHC:bool, extra:map} — `model` is DecentMachineModel.fromInt(...).name and THAT TABLE WAS RENUMBERED at the previous pin and stands so at this one (de1.models.dart:416-441): 1 and 2 answer 'DE1'/'DE1Plus' and 7 answers 'DE1XXXL' where all three once answered 'Unknown', 5 answers 'DE1Cafe' where it once answered 'DE1XXL', and 6 answers 'DE1XXL' where it once answered 'DE1XXXL', so the same machine can serve a different string from an older server; 500 {error:<Dart exception>} with NO st key when no machine is connected — withDe1 (de1handler.dart:751-756) runs inside _mapDe1WriteErrors, whose DeviceNotConnectedException branch (:782-783) answers {error} alone; 500 {error:<Dart exception>, st:<stack trace>} for any other throw (:784-785); 429 {error:'client_admission_limit'} or 503 {error:'global_admission_limit'}, each with retry-after: 1, from the admission middleware ahead of every /api/ route (webserver_service.dart:582, admission_control.dart:126-135, :216-225). NO OTHER STATUS FROM THE HANDLER: _mapDe1WriteErrors' 503 write-queue-full (:763-767), 409 superseded (:768-772), 503 'Machine unavailable' (:773-777) and 504 (:778-781) branches cannot fire here — the first three are raised only inside the device write governor (de1_controller.governor.dart:43, :83, :92, :230), which withDe1 never enters, and the body is a cached property read (de1.machineInfo, unified_de1.dart:175-183) that makes no BLE or serial call. The extension-management middleware added ahead of the body read at 8fee86dd (webserver_service.dart:580) does not list this route, so it needs no bearer token",
       "handlerSymbol": "De1Handler._infoHandler",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/machine-info-store.js (callRoute(transport, 'getMachineInfo') — the path is read out of the generated table, not spelled). Under `live-capability-gates-ghc`: the two R3 gates that answer from machineInfo had no feed, so groupHeadController() and profileModes() were pinned at unknown."
@@ -898,7 +898,7 @@
       "responseShape": "200 LedStripState.toJson; 503 {error:'ledStrip state unavailable (hydration failed or not yet complete)'}; 404 feature gate; 500 {error} when no machine is connected — withDe1 (de1handler.dart:751-757) now runs inside _mapDe1WriteErrors, whose DeviceNotConnectedException branch (:782-783) answers {error} alone where the old withDe1's own catch-all carried {error, st}; 500 {error, st} still for any other throw (:784-785). That wrapper's 503 write-queue (:763-767), 409 superseded (:768-772), 503 'Machine unavailable' (:773-777) and 504 (:778-781) branches cannot fire here: the handler enqueues no device write and does no BLE read, only awaiting the seeded BehaviorSubject (led_strip_capability.dart:7-8, 12)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/ledStrip)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/led-strip-store.js load() (callRoute(transport,'getMachineLedStrip'))"
@@ -935,7 +935,7 @@
       "responseShape": "200 ScaleCalibrationState.toJson; 404 feature gate; 504 {error} when a BLE GATT-133 on the MMR read's write leg survives the reconnect retry (universal_ble_transport.dart:314 -> de1handler.dart:780) — 500 before 42f67f69; 500 {error} on DeviceNotConnectedException, an explicit branch now (:782-783), so no st key, and a missing GATT attribute now lands here too; 500 {error, st} otherwise, including the MmrTimeoutException a silent machine gives (unified_de1.mmr.dart:97) — no 503 write-queue-full and no 409 superseded, because withDe1 bypasses the write governor and getScaleCalibrationState is a readMmrInt (scale_calibration_capability.dart:9-12), and no 504 by EndpointUnavailableException, which has no readFromMMR case in the serial read switch (unified_de1_transport.dart:757-782)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/scaleCalibration)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/calibration-store.js read() — also the countdown poll, which is armed ONLY while the machine reports zeroing or calLatch and disarmed by any terminal step"
@@ -966,7 +966,7 @@
       "responseShape": "200 {fan, usb:bool, flushTemp, flushTimeout, flushFlow, hotWaterFlow, steamFlow, tankTemp, steamPurgeMode} — nine keys, same names and types as before; on a UnifiedDe1 they now come from five serialized MMR reads, not nine: fan and tankTemp from one two-word read, flushFlow, flushTemp, flushTimeout and hotWaterFlow from one four-word read, steamFlow, steamPurgeMode and usb one read each (de1handler.dart:515-530 -> _machineSettingsSnapshot :789-801, unified_de1.dart:300-376). A Bengle takes the same path unless the build sets the bengleCoalescedSettings define without fanTank or flush (:19-30); any other De1Interface still makes nine single reads (de1_interface.dart:165-176). withDe1 routes through _mapDe1WriteErrors (de1handler.dart:751-787), so a BLE GATT failure on any read is 504 {error}, no machine connected is 500 {error} with NO st key, and anything else — an MMR read timeout or a short multi-word reply (unified_de1.mmr.dart:151-158) included — is 500 {error:<Dart exception>, st:<stack trace>}; the 409 superseded, 503 write-queue-full and 503 {error:'Machine unavailable'} branches CANNOT fire, because withDe1 never enters the write governor (de1_controller.governor.dart:47-104, :215-237)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/settings)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-de1-settings.js DE1_SETTINGS_PATH",
@@ -996,7 +996,7 @@
       "responseShape": "200 {heaterPh1Flow, heaterPh2Flow, heaterIdleTemp, heaterPh2Timeout, heaterVoltage:int, refillKitSetting:int} — six keys, but only the four heater values are live MMR reads; on a UnifiedDe1 they come from two reads, one three-word read for heaterPh1Flow, heaterPh2Flow and heaterIdleTemp and one for heaterPh2Timeout (de1handler.dart:593-605 -> _advancedMachineSettingsSnapshot :803-815, unified_de1.dart:378-414; a Bengle takes the same path unless the bengleCoalescedSettings define drops `heater`, :19-30; any other De1Interface makes four single reads, de1_interface.dart:178-184); heaterVoltage is De1HeaterVoltage.fromInt of the _voltage cached at connect (unified_de1.dart:494, :1174-1176), and refillKitSetting does not come from the machine at all: it is _refillKitSetting, a local mirror seeded and reset to auto.hex (2) at every connect (:440, :520) and moved only by a later setRefillKitSettings (:1190-1193) — so there is no 500 from an unrecognised refill-kit hex; 504 {error} from EndpointUnavailableException or BleTimeoutException on the heater reads (de1handler.dart:778-781); 500 {error} for DeviceNotConnectedException (:782); 500 {error, st} otherwise, an MMR read timeout or a short multi-word reply (unified_de1.mmr.dart:151-158) included (:784) — withDe1 (:751) routes through _mapDe1WriteErrors, and its write-queue 503 / superseded 409 cannot fire on a read (only _enqueueDeviceWrite and its capacity check raise them, de1_controller.governor.dart:43, :83, :92)",
       "handlerSymbol": "De1Handler.addRoutes (inline GET /api/v1/machine/settings/advanced)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-de1-settings.js DE1_ADVANCED_SETTINGS_PATH",
@@ -1027,7 +1027,7 @@
       "responseShape": "200 array of the plugin manifest's own JSON (PluginManifest.toJson, plugin_manifest.dart:339-352) — whose drivers entries are now {id, type, capabilities?, observations?, ble?:{match}, controls?, surfaces?} (PluginDriverDeclaration.toJson, plugin_manifest.dart:252-269; observations, controls and surfaces are new at 8fee86dd, and a grinder driver's capabilities are its grinder capabilities) — plus four fields the handler adds: loaded (bool, is it running now), autoLoad (bool), source (PluginSource.toJson with pendingUpdate stripped: {kind:'github_release'|'github_branch'|'local_zip'|'local_folder', repo, branch, commit, releaseTag, assetName, includePrerelease:bool, installedAt, lastChecked, lastError}, null when the plugin has no source metadata) and pendingUpdate ({version, releaseTag, commit, addedPermissions:array of string, detectedAt} or null) — plugins_handler.dart:21-33, _sourceJson at :144-148",
       "handlerSymbol": "PluginsHandler.addRoutes (inline) -> PluginService.availablePlugins",
       "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js",
@@ -1064,7 +1064,7 @@
       "responseShape": "200 object — the PLUGIN's own answer, forwarded verbatim, so the KEYS are that plugin's contract and not this route's; enumerating them from one recording would turn one plugin's fields into a promise about every plugin. The one GET this app addresses is the generator plugin's `ui` endpoint, which answers a page rather than JSON and is navigated to rather than fetched. 400 {error} for a missing id/endpoint or a non-http endpoint type; 404 {error} for a plugin that is not loaded or an endpoint that does not exist; 403 {error} when the manifest lacks the `api` permission; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}.",
       "handlerSymbol": "PluginsHandler._handlePluginApiEndpoint (registered as app.all)",
       "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js generatorUrl — for the PATH only, never fetched",
@@ -1100,7 +1100,7 @@
         "The reconciled maps are written BACK inside this GET (plugin_loader_service.dart:801-809, guarded by mapEquals; unconditionally on the legacy-secure migration path at :814-815), so a plain read now mutates stored state permanently.",
         "Listed in extensionManagementReadRoutes (extension_management_auth.dart:58), but at 8fee86dd that list only widens what a plugin may reach through the local API bridge (plugin_local_api_bridge.dart:10-13). No HTTP middleware gates it — buildWebServerHandler mounts extensionManagementAuthMiddleware with extensionManagementRoutes only (webserver_service.dart:580; extension_management_auth.dart:120-123) — and the handler does not call mayManageExtensions, so a served skin reads it with no token and nothing redacted."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js"
@@ -1123,7 +1123,7 @@
       "notes": [
         "DECLARED AND DELIBERATELY NOT CALLED: `GET /presence/settings` returns the same list in its own body, and this store reads that one. The row exists because the schedule SHAPE is what `presence-store.js` parses."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [],
       "id": "getPresenceSchedules",
@@ -1144,7 +1144,7 @@
       "notes": [
         "ONE READ SERVES BOTH CARDS: this body carries the schedules as well, so `GET /presence/schedules` is never called — two reads for one answer is two chances to show a list that disagrees with the switch above it."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/presence-store.js"
@@ -1173,7 +1173,7 @@
       "responseShape": "200 array of ProfileRecord.toJson; 400 {error:'Invalid visibility value', message:'Valid values: visible, hidden, deleted'} (profile_handler.dart:45-48) — the `message` key was omitted here while postProfiles and putProfilesById both spell theirs; 500 {error:'Internal server error', message} (:68-70)",
       "handlerSymbol": "ProfileHandler._handleGetAll",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES",
@@ -1218,7 +1218,7 @@
       "responseShape": "200 ProfileRecord.toJson — the WHOLE record, not the inner Profile; 404 {error:'Profile not found', id} when the controller has no record for the id; 500 {error:'Internal server error', message}",
       "handlerSymbol": "ProfileHandler._handleGetById",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-editor-store.js loadById (contract-check-editor — the DEEP-LINK open, where the editor has an id and no listing in hand)"
@@ -1261,7 +1261,7 @@
       "responseShape": "200 array of ProfileRecord.toJson, NEVER EMPTY — getLineage adds the profile itself (profile_controller.dart:352) before it walks parents and children, so a profile with no other versions answers 200 with exactly ONE entry; 500 {error:'Internal server error', message:'Invalid argument(s): Profile not found: <id>'} for an id storage does not hold; 500 {error:'Internal server error', message} for anything else. THERE IS NO REACHABLE 404 — the handler's own jsonNotFound at :232-233 is dead code.",
       "handlerSymbol": "ProfileHandler._handleGetLineage",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js versionsOf (the lineage entry point — it lives in the detail pane's overflow menu)"
@@ -1298,7 +1298,7 @@
       "responseShape": "200 array of {id: sensor.deviceId, info: SensorInfo.toJson{name, vendor, data:[{key,type,unit}], commands}} (sensors_handler.dart:10-16; SensorInfo.toJson lib/src/models/device/sensor.dart:27-34)",
       "handlerSymbol": "SensorsHandler.addRoutes (inline GET /api/v1/sensors)",
       "handlerFile": "lib/src/services/webserver/sensors_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-sensors.js SENSORS_ROUTE (routeById('getSensors'))"
@@ -1336,7 +1336,7 @@
         "REAPRIME'S OWN preferences — a third owner beside the skin's storage and the machine's MMRs. ReaPrime ACTS on some of them itself: `blockOnNoScale` is read in `_requestStateHandler` before a state request is allowed through.",
         "preferredGrinderDeviceId is new at 8fee86dd (settings_handler.dart:31, :47). The GET is not gated and not redacted: defaultSkinId and automaticUpdateCheck are served to any caller, a served skin included — only the POST consults mayManageExtensions."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-app-settings.js",
@@ -1377,10 +1377,10 @@
           "orderBy — documented in rest_v1.yml, read by no handler; sending it produces exactly nothing and looks like a working sort"
         ]
       },
-      "responseShape": "200 {items:[ShotRecord.toJsonWithoutMeasurements], total:int, limit:int, offset:int} — the paginated branch. The `ids=` branch (ids with NO filter) returns a BARE ARRAY of full ShotRecord.toJson instead. NEVER {shots:[...]}. Both record shapes carry createdAt and updatedAt as ISO-8601 UTC strings (shot_record.dart:70-71 and :86-87 — emitted unconditionally, and non-null on this route because every record is read through ShotMapper.fromRow, which falls back to createdAt then timestamp, lib/src/services/database/mappers/shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:187-195), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:194; rest_v1.yml:7368), whose settings may be absent, and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78) — each of those emitted only when non-null. 400 {error:'minEnjoyment must be a number between 0 and 10'} or {error:'minEnjoyment must be between 0 and 10, got <raw>'} (:45-61); 400 {error:'ids cannot be combined with other filters'} (:79-83) — NEW at 8fee86dd, where 42f67f69 fell through to the paginated branch; 400 {error:'Invalid order value. Supported: asc, desc'} on the ids= branch only (:92-97); 400 {error:'beanId filtering requires bean storage'} when beanId is sent to a server with no bean storage configured (:111-115); 500 {error:<Dart exception>} (:160-163). A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:193); every other record carries neither key.",
+      "responseShape": "200 {items:[ShotRecord.toJsonWithoutMeasurements], total:int, limit:int, offset:int} — the paginated branch. The `ids=` branch (ids with NO filter) returns a BARE ARRAY of full ShotRecord.toJson instead. NEVER {shots:[...]}. Both record shapes carry createdAt and updatedAt as ISO-8601 UTC strings (shot_record.dart:70-71 and :86-87 — emitted unconditionally, and non-null on this route because every record is read through ShotMapper.fromRow, which falls back to createdAt then timestamp, lib/src/services/database/mappers/shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:196-204), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:203; rest_v1.yml:7396), whose settings may be absent, and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78) — each of those emitted only when non-null. 400 {error:'minEnjoyment must be a number between 0 and 10'} or {error:'minEnjoyment must be between 0 and 10, got <raw>'} (:45-61); 400 {error:'ids cannot be combined with other filters'} (:79-83) — NEW at 8fee86dd, where 42f67f69 fell through to the paginated branch; 400 {error:'Invalid order value. Supported: asc, desc'} on the ids= branch only (:92-97); 400 {error:'beanId filtering requires bean storage'} when beanId is sent to a server with no bean storage configured (:111-115); 500 {error:<Dart exception>} (:160-163). A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:202); every other record carries neither key.",
       "handlerSymbol": "ShotsHandler._getShots",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js CONDITIONAL_ROUTES + shotsListIsConditional",
@@ -1440,10 +1440,10 @@
           "id — percent-decoded by the handler, so percent-ENCODE it on the way out"
         ]
       },
-      "responseShape": "200 ShotRecord.toJson including measurements (~221 KB, shot_record.dart:66-80), carrying createdAt and updatedAt (shot_record.dart:70-71 — keys emitted unconditionally and always non-null on this route, since ShotMapper.fromRow falls back to timestamp, lib/src/services/database/mappers/shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:187-195), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:194; rest_v1.yml:7368), whose settings may be absent, and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78); 404 {error:'Shot not found'} (:201-203); 500 {error:<Dart exception>} (:205-207), which is also the answer for a stored row ShotMapper.fromRow cannot read A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:193); every other record carries neither key.",
+      "responseShape": "200 ShotRecord.toJson including measurements (~221 KB, shot_record.dart:66-80), carrying createdAt and updatedAt (shot_record.dart:70-71 — keys emitted unconditionally and always non-null on this route, since ShotMapper.fromRow falls back to timestamp, lib/src/services/database/mappers/shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:196-204), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:203; rest_v1.yml:7396), whose settings may be absent, and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78); 404 {error:'Shot not found'} (:201-203); 500 {error:<Dart exception>} (:205-207), which is also the answer for a stored row ShotMapper.fromRow cannot read A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:202); every other record carries neither key.",
       "handlerSymbol": "ShotsHandler._getShot",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS",
@@ -1482,7 +1482,7 @@
       "responseShape": "200 array of id strings; 500 {error:<Dart exception>} (:181-183)",
       "handlerSymbol": "ShotsHandler._getIds",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS"
@@ -1509,10 +1509,10 @@
         "query": [],
         "body": null
       },
-      "responseShape": "200 ShotRecord.toJsonWithoutMeasurements, now also carrying createdAt and updatedAt (shot_record.dart:86-87 — emitted unconditionally and always non-null on this route, since ShotMapper.fromRow falls back to timestamp, shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:187-195), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:194; rest_v1.yml:7368), whose settings may be absent, and a workflow.context that may add targetWaterVolume (workflow_context.dart:73); or 200 with a body of literal `null` when nothing has ever been stored; 500 {error:<Dart exception>} (:196-198) A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:193); every other record carries neither key.",
+      "responseShape": "200 ShotRecord.toJsonWithoutMeasurements, now also carrying createdAt and updatedAt (shot_record.dart:86-87 — emitted unconditionally and always non-null on this route, since ShotMapper.fromRow falls back to timestamp, shot_mapper.dart:43-44), a workflow.machine that may add provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:196-204), and, new at 2f831b54, nativeShaping, the NativeShapingReport of a Bengle shot (workflow.dart:203; rest_v1.yml:7396), whose settings may be absent, and a workflow.context that may add targetWaterVolume (workflow_context.dart:73); or 200 with a body of literal `null` when nothing has ever been stored; 500 {error:<Dart exception>} (:196-198) A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:202); every other record carries neither key.",
       "handlerSymbol": "ShotsHandler._getLatestShot",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "declared",
       "consumedBy": [
         "src/data/rea-conditional.js NON_CONDITIONAL_SHOT_READS"
@@ -1551,7 +1551,7 @@
       "responseShape": "200 array of key strings; with ?full=1, 200 object of {key: value} AND conditional (jsonOkConditional); 400 {error:'Missing namespace'}",
       "handlerSymbol": "KvStoreHandler.addRoutes (inline GET /api/v1/store/<namespace>)",
       "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-kv-backend.js keys()"
@@ -1587,7 +1587,7 @@
       "responseShape": "200 carrying the stored JSON value; 200 carrying null when the key was never written; 400 {error} only when a path segment is missing",
       "handlerSymbol": "KvStoreHandler.addRoutes (inline GET /api/v1/store/<namespace>/<key>)",
       "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-kv-backend.js get()"
@@ -1618,7 +1618,7 @@
       "responseShape": "200 array of WebUISkin.toJson {id, name, path, description, version, isBundled, reaMetadata} (webui_handler.dart:41-49, webui_storage.dart:132-142); 500 {error} on any throw",
       "handlerSymbol": "WebUIHandler._handleListSkins",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js load() — the display-skin 2-up card grid and the updates-skin-app update list, which are ONE list read once"
@@ -1654,7 +1654,7 @@
       "responseShape": "200 WebUISkin.toJson {id, name, path, description, version, isBundled, reaMetadata}; 404 {error:'No default skin available'}; 500 {error} (webui_handler.dart:64-75)",
       "handlerSymbol": "WebUIHandler._handleGetDefaultSkin",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js load() — marks which card is Active"
@@ -1691,7 +1691,7 @@
       "responseShape": "200 {success:true, message:'Default skin updated successfully', skinId}; 400 {error:'Missing required field: skinId'}; 404 {error:'Exception: Skin not found: <id>'} when the id is not installed; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 64 KiB / 10 s bounded read (webui_handler.dart:79-85), answered before any field check runs; 500 {error} (:77-109); 401 {error:'Missing or malformed bearer token'} (with WWW-Authenticate: Bearer) or 401 {error:'Invalid token'}, and 403 {error:'Token is not scoped for extensions:manage'}, from extensionManagementAuthMiddleware before the handler runs (extension_management_auth.dart:95-117, :218-228) — new at 8fee86dd, and what a served skin always gets",
       "handlerSymbol": "WebUIHandler._handleSetDefaultSkin",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js switchTo"
@@ -1723,7 +1723,7 @@
       "responseShape": "200 {message:'WebUI server stopped'} or {message:'Not serving'}; 500 {error:'Failed to stop: ...'} (webui_handler.dart:285-295); 401 {error:'Missing or malformed bearer token'} (with WWW-Authenticate: Bearer) or 401 {error:'Invalid token'}, and 403 {error:'Token is not scoped for extensions:manage'}, from extensionManagementAuthMiddleware before the handler runs (extension_management_auth.dart:95-117, :218-228) — new at 8fee86dd, and what a served skin always gets",
       "handlerSymbol": "WebUIHandler._handleServerStop",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js switchTo"
@@ -1755,7 +1755,7 @@
       "responseShape": "200 {message:'WebUI server started', path} — or {message:'Already serving'} when it is already up; 400 {error:'No default skin set. Set defaultSkinId in settings first.'} when no default skin resolves; 500 {error:'Failed to start: ...'} (webui_handler.dart:264-283); 401 {error:'Missing or malformed bearer token'} (with WWW-Authenticate: Bearer) or 401 {error:'Invalid token'}, and 403 {error:'Token is not scoped for extensions:manage'}, from extensionManagementAuthMiddleware before the handler runs (extension_management_auth.dart:95-117, :218-228) — new at 8fee86dd, and what a served skin always gets",
       "handlerSymbol": "WebUIHandler._handleServerStart",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js switchTo"
@@ -1787,7 +1787,7 @@
       "responseShape": "200 {message:'Skin update check completed'}; 500 {error:\"Couldn't check for skin updates. <advice>\"}, or {error:\"Some updates couldn't be completed. <advice>\"} when only some sources failed (webui_handler.dart:247-253, remoteErrorMessage at remote_error.dart:40-55) — a per-skin failure now reaches this 500; 401 {error:'Missing or malformed bearer token'} (with WWW-Authenticate: Bearer) or 401 {error:'Invalid token'}, and 403 {error:'Token is not scoped for extensions:manage'}, from extensionManagementAuthMiddleware before the handler runs (extension_management_auth.dart:95-117, :218-228) — new at 8fee86dd, and what a served skin always gets",
       "handlerSymbol": "WebUIHandler._handleUpdateSkins",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js updateAll"
@@ -1822,7 +1822,7 @@
       "responseShape": "200 {success:true, message:'Skin removed successfully', id}; 403 {error:'Exception: Cannot remove bundled skin: <id>'} — the only string-matched branch (webui_handler.dart:236-238); 500 {error:'Exception: Skin not found: <id>'} for an id that is not installed, because WebUIStorage.removeSkin throws a plain Exception (webui_storage.dart:833-834) that no branch maps and it falls through to jsonError (webui_handler.dart:239); 500 {error} for any other throw — THERE IS NO 404 ON THIS ROUTE; 401 {error:'Missing or malformed bearer token'} (with WWW-Authenticate: Bearer) or 401 {error:'Invalid token'}, and 403 {error:'Token is not scoped for extensions:manage'}, from extensionManagementAuthMiddleware before the handler runs (extension_management_auth.dart:95-117, :218-228) — new at 8fee86dd, and what a served skin always gets — a 403 from the middleware has a different error text from the bundled-skin 403",
       "handlerSymbol": "WebUIHandler._handleRemoveSkin",
       "handlerFile": "lib/src/services/webserver/webui_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/skins-store.js remove"
@@ -1851,10 +1851,10 @@
         "query": [],
         "body": null
       },
-      "responseShape": "200 Workflow.toJson: {id, name, description, profile:Profile.toJson, context?, steamSettings, hotWaterData, rinseData, machine?}. Plain jsonOk — no ETag. Two nested serializers grew: context (WorkflowContext.toJson) gained targetWaterVolume (workflow_context.dart:73), and machine (WorkflowMachine.toJson) gained provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:187-195, enum :136-148), and, new at 2f831b54, nativeShaping (workflow.dart:194) — every key in both omitted when null. machine.de1Emulation (workflow.dart:193) and profile.de1_emulation (profile.dart:118) are emitted only as true; false is the absent key.",
+      "responseShape": "200 Workflow.toJson: {id, name, description, profile:Profile.toJson, context?, steamSettings, hotWaterData, rinseData, machine?}. Plain jsonOk — no ETag. Two nested serializers grew: context (WorkflowContext.toJson) gained targetWaterVolume (workflow_context.dart:73), and machine (WorkflowMachine.toJson) gained provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model and firmwareVersion beside flowCalibration (workflow.dart:196-204, enum :145-157), and, new at 2f831b54, nativeShaping (workflow.dart:203) — every key in both omitted when null. machine.de1Emulation (workflow.dart:202) and profile.de1_emulation (profile.dart:132) are emitted only as true; false is the absent key.",
       "handlerSymbol": "WorkflowHandler._getWorkflow",
       "handlerFile": "lib/src/services/webserver/workflow_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js readLoaded (callRoute(transport,'getWorkflow'); the body is handed to adapters-r.js r1LoadedProfileId WHOLE and no field of it is read here)"
@@ -1888,7 +1888,7 @@
       "notes": [
         "All three WiFi routes answer with the WHOLE list, so a write needs no re-read."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js"
@@ -1921,7 +1921,7 @@
       "responseShape": "201 FeedbackResult.toJson {success, issueUrl?, errorMessage?, issueNumber?} on success (feedback_handler.dart:52-53, feedback_result.dart:40-45); 400 {error:'Missing required field', message} for a missing or blank description (:30-36); 400 {success:false, error:'Decent account required', message} when the stored Decent account is absent, rejected or cannot be verified — checked BEFORE the token, so this 400 is what an unconfigured build answers too when no account is signed in (:41-46, feedback_service.dart:43-62); 503 {error:'Service unavailable', message:'Feedback service is not configured…'} only once the account is authenticated and the build has no token (:47-51, feedback_service.dart:64-68); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — the body is read bounded at 1 MiB / 30 s (:24-27); 500 FeedbackResult.toJson on submit failure (:54-55), and 500 {error:'Internal server error', message} for a body that is not a JSON object or a non-string description (:59-62)",
       "handlerSymbol": "FeedbackHandler._handleSubmitFeedback",
       "handlerFile": "lib/src/services/webserver/feedback_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/feedback-store.js"
@@ -1961,7 +1961,7 @@
       "responseShape": "202 with a NULL body (jsonAccepted() with no data) and Content-Type: application/json; 400 {error:'Invalid JSON body'|'Request body must be a JSON object'}; 408 {error:'Request body timed out'} and 413 {error:'Request body is too large'} from the 64 KiB / 10 s bounded read (de1handler.dart:618-624); 503 {error:'Machine write queue is full', message} at 32 pending device writes; 504 {error} on a BLE or endpoint timeout; 500 {error} with no machine connected, otherwise 500 {error:<Dart exception>, st:<stack trace>} — the write now runs through De1Controller.updateMachineCalibration inside _mapDe1WriteErrors (de1handler.dart:636-639, de1_controller.dart:678-685); the 409 superseded branch cannot fire (runDeviceWrite passes no coalescing key, de1_controller.dart:431-441 vs governor.dart:67-87), and 503 {error:'Machine unavailable'} cannot fire under the default De1ReplayPolicy.never",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/calibration)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/calibration-store.js writeFlow()"
@@ -2000,7 +2000,7 @@
       "responseShape": "200 with Content-Type application/x-ndjson (:409-412) — a STREAM of newline-delimited objects {status:'erasing'|'uploading'|'done'|'error', progress:num, error?:string, stage?:string, cause?:string} — an error frame for a failed write now also carries `stage` (FirmwareUpdateStageException.stage, e.g. 'initialization' or 'controller' for a pre-start failure, else 'firmware-upload') and `cause` (firmware_handler.dart:359-382), while an error frame for a CANCELLED write carries only status, progress and error (:350-357), the 'erasing' frame emitted from the controller's onStart when the queued write reaches the head of the queue, not at request time (firmware_handler.dart:335, de1_controller.dart:873), so a pre-start failure can end the stream with an error frame and no 'erasing'; 409 {error:'firmware_update_in_progress', message} (:387-396); 503 {error:'machine_unavailable', message} when no machine is connected (:153-154, :299-308); 503 {error:'Machine write queue is full', message} when the device-write queue is full (:397-406, de1_controller.dart:847-850); 413 {error:'payload_too_large', message:'Firmware image exceeds the 16 MiB limit'}; 408 {error:'request_timeout', message:'Firmware body was not received within the time limit'} (:127-144)",
       "handlerSymbol": "FirmwareHandler._uploadRaw -> FirmwareHandler._streamFirmwareUpload",
       "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/firmware-store.js installFile"
@@ -2043,7 +2043,7 @@
       "responseShape": "200 with Content-Type application/x-ndjson — the same progress lines as postMachineFirmware, {status:'erasing'|'uploading'|'done'|'error', progress:num, error?:string, stage?:string, cause?:string} — an error frame for a failed write now also carries `stage` (FirmwareUpdateStageException.stage, e.g. 'initialization' or 'controller' for a pre-start failure, else 'firmware-upload') and `cause` (firmware_handler.dart:359-382), while an error frame for a CANCELLED write carries only status, progress and error (:350-357), with the 'erasing' frame emitted from the controller's onStart when the queued write reaches the head of the queue rather than at request time (firmware_handler.dart:335, de1_controller.dart:873), so on a busy machine the stream can open with no frame at all; 400 {error:'invalid_request', message} — not JSON, not an object, no artifactId, or a non-bool force (:186-200, helper :292-297); 404 {error:'artifact_not_found', message} (:213-221); 422 {error:'artifact_validation_failed', message} — message, not reasons (:227-236); 422 {error:'artifact_not_applicable', reasons} (:253-264); 409 {error:'firmware_update_in_progress', message} (:387-396); 503 {error:'machine_unavailable', message:'No machine is connected'} (:299-308, checked at :203 and again at :238-239 after the catalog load); 503 {error:'Machine write queue is full', message} when the device-write governor is saturated (:397-406, de1_controller.dart:847-850); 413 {error:'payload_too_large', message:'Managed firmware request exceeds the 64 KiB limit'} and 408 {error:'request_timeout', message:'Managed firmware request was not received in time'} from this route's OWN 64 KiB / 10 s bounded read (:162-185) — it catches RequestBodyReadException itself and does NOT fall through to requestBodyReadMiddleware's generic bodies",
       "handlerSymbol": "FirmwareHandler._applyManaged -> _streamFirmwareUpload",
       "handlerFile": "lib/src/services/webserver/firmware_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/firmware-store.js installLatest"
@@ -2077,7 +2077,7 @@
       "responseShape": "202, no body; 404 feature gate; 503 {error:'Machine write queue is full', message} once 32 writes are already queued (de1_controller.governor.dart:89-95 — the queue was unbounded before 42f67f69); 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise, including a machine swapped mid-write — retryOnReplacement:true is gone (De1ReplayPolicy.never), so the swap is no longer waited out and 503 {error:'Machine unavailable', message} can no longer answer here (de1handler.dart:326-333, 758-787; governor.dart:123-237). No 413/408 (reads no body), no 504 (commitLedStrip() is an empty no-op, led_strip_capability.dart:129), no 409 (withQueuedDe1 sets no coalescing key)",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/ledStrip/commit)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "recorded",
       "consumedBy": [],
       "gates": [
@@ -2106,7 +2106,7 @@
       "responseShape": "200 LedStripState.toJson (the reloaded NVM state); 503 {error:'ledStrip state unavailable (firmware read failed)'}; 503 {error:'Machine write queue is full', message} when the device-write governor is saturated (de1_controller.governor.dart:89-95); 404 feature gate — NO 409 superseded (runDeviceWrite passes no coalescing key) and NO 504 (_hydrateLedStrip swallows every MMR error into the 503 above); the queued write no longer retries across a machine swap (retryOnReplacement dropped, de1handler.dart:346), so a replacement mid-write is a 500, not 503 'Machine unavailable'",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/ledStrip/reset)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/led-strip-store.js reset()"
@@ -2136,13 +2136,13 @@
         "body": {
           "$raw": "the bare Profile object — NOT wrapped. Profile.fromJson(jsonDecode(payload)) reads the whole body.",
           "$cap": "read with readBoundedRequestBodyString at largeRequestBodyBytes = 1 MiB / 30 s (de1handler.dart:980-984), BEFORE the parse; over either bound the handler never runs and requestBodyReadMiddleware answers 413/408",
-          "$limiter": "every step `limiter` that is not null must carry BOTH `value` and `range` as finite numbers (a numeric string is read too); a missing, null, non-numeric or non-finite `range` is now a 400 like `value` (profile.dart:204-214, :260-264). A power step needs a limiter whose value is not 0 (:520-527)"
+          "$limiter": "every step `limiter` that is not null must carry BOTH `value` and `range` as finite numbers (a numeric string is read too); a missing, null, non-numeric or non-finite `range` is now a 400 like `value` (profile.dart:239-249, :295-299). A power step needs a limiter whose value is not 0 (:520-527)"
         }
       },
-      "responseShape": "200 with a body of null on success; 400 {error:'Unsupported profile', message} on the capability refusal AND, new at 8fee86dd, on a value the machine cannot hold, checked before anything is written (unified_de1.profile.dart:40-55, :81-162); new at 2f831b54, a profile with more than 20 steps is refused the same way (:82-87): message 'Profile \"<title>\" step <n> (\"<name>\"): <field> <value> <problem>' for a step temperature outside 0 to 127.5 C, a NaN target, exit value, limiter value or range, negative seconds, a volume below 0 or above 1023 ml, a power step whose pressure cap is not finite or encodes to 0, a POWER EXIT VALUE outside 0 to 25.5 W (:132-142, rest_v1.yml StepExitCondition.value), and a tank temperature that is not finite; 400 {error:'Invalid profile', message} on a parse failure (de1handler.dart:989-995) — a FormatException, an ArgumentError, and now a TypeError too (:993-994, a body that is not a JSON object or a step that is not a map, which used to escape as a non-JSON shelf 500); a step or exit number or a profile tank_temperature, target_weight, target_volume or target_volume_count_start that parses to NaN or an infinity is a FormatException too (profile.dart:216-252, :720, rest_v1.yml POST /machine/profile 400); a limiter with a missing or null `value` OR `range` is a FormatException (profile.dart:204-214, :260-264) — the old default of a missing range to 0.0 is GONE; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 1 MiB / 30 s bounded read (de1handler.dart:980-984), which happens BEFORE the parse; 503 {error:'Machine write queue is full', message} once one device write is active and 32 more are queued — reachable now, because setProfile runs through _controller.runDeviceWrite (:999-1001, de1_controller.governor.dart:89-95); 504 {error} when a BLE GATT-133 on one of the profile's writes survives the reconnect retry (universal_ble_transport.dart:314 -> de1handler.dart:780-781); 500 {error} for DeviceNotConnectedException (:782-783), so no st key, and GattAttributeUnavailableException extends it (errors.dart:27) so a missing GATT attribute lands there too; 500 {error:<Dart exception>, st:<stack trace>} for any other fault, the StateError a machine change during the queued write raises included (de1_controller.governor.dart:212, :220) — withDe1 (:751-756) runs inside _mapDe1WriteErrors, whose 409 'Machine write was superseded' branch CANNOT fire here (runDeviceWrite passes no coalescingKey, governor.dart:67-87), 503 'Machine unavailable' cannot either (MachineReplacementTimeoutException is thrown only at governor.dart:230, under a replay policy this call does not use), and no 504 arrives by EndpointUnavailableException, which only a serial frame WAIT raises (unified_de1_transport.dart:785-795) while a profile upload writes headerWrite/frameWrite/writeToMMR only. On a Bengle with DE1 emulation off, the upload also writes the profile's native_shaping block to frame slots 21-23 before the tail (_writeNativeShapingBlock :336-349, new at 2f831b54); the block never causes a refusal",
+      "responseShape": "200 with a body of null on success; 400 {error:'Unsupported profile', message} on the capability refusal AND, new at 8fee86dd, on a value the machine cannot hold, checked before anything is written (unified_de1.profile.dart:41-56, :82-163); new at 2f831b54, a profile with more than 20 steps is refused the same way (:82-87): message 'Profile \"<title>\" step <n> (\"<name>\"): <field> <value> <problem>' for a step temperature outside 0 to 127.5 C, a NaN target, exit value, limiter value or range, negative seconds, a volume below 0 or above 1023 ml, a power step whose pressure cap is not finite or encodes to 0, a POWER EXIT VALUE outside 0 to 25.5 W (:132-142, rest_v1.yml StepExitCondition.value), and a tank temperature that is not finite; 400 {error:'Invalid profile', message} on a parse failure (de1handler.dart:989-995) — a FormatException, an ArgumentError, and now a TypeError too (:993-994, a body that is not a JSON object or a step that is not a map, which used to escape as a non-JSON shelf 500); a step or exit number or a profile tank_temperature, target_weight, target_volume or target_volume_count_start that parses to NaN or an infinity is a FormatException too (profile.dart:251-287, :755, rest_v1.yml POST /machine/profile 400); a limiter with a missing or null `value` OR `range` is a FormatException (profile.dart:239-249, :295-299) — the old default of a missing range to 0.0 is GONE; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 1 MiB / 30 s bounded read (de1handler.dart:980-984), which happens BEFORE the parse; 503 {error:'Machine write queue is full', message} once one device write is active and 32 more are queued — reachable now, because setProfile runs through _controller.runDeviceWrite (:999-1001, de1_controller.governor.dart:89-95); 504 {error} when a BLE GATT-133 on one of the profile's writes survives the reconnect retry (universal_ble_transport.dart:314 -> de1handler.dart:780-781); 500 {error} for DeviceNotConnectedException (:782-783), so no st key, and GattAttributeUnavailableException extends it (errors.dart:27) so a missing GATT attribute lands there too; 500 {error:<Dart exception>, st:<stack trace>} for any other fault, the StateError a machine change during the queued write raises included (de1_controller.governor.dart:212, :220) — withDe1 (:751-756) runs inside _mapDe1WriteErrors, whose 409 'Machine write was superseded' branch CANNOT fire here (runDeviceWrite passes no coalescingKey, governor.dart:67-87), 503 'Machine unavailable' cannot either (MachineReplacementTimeoutException is thrown only at governor.dart:230, under a replay policy this call does not use), and no 504 arrives by EndpointUnavailableException, which only a serial frame WAIT raises (unified_de1_transport.dart:785-795) while a profile upload writes headerWrite/frameWrite/writeToMMR only. On a Bengle with DE1 emulation off, the upload also writes the profile's native_shaping block to frame slots 21-24 before the tail (_writeNativeShapingBlock :337-350, new at 2f831b54; four slots of 7 bytes, the version 2 block, at 31c9a9ba); the block never causes a refusal",
       "handlerSymbol": "De1Handler._profileHandler",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileArmBody + profileRefusal (bodies and refusal reading)",
@@ -2152,7 +2152,7 @@
       "gates": [
         {
           "kind": "arm-time-refusal",
-          "meaning": "setProfile now runs INSIDE runDeviceWrite with the default De1ReplayPolicy.never (de1handler.dart:997-1009); that policy rethrows the original exception (de1_controller.governor.dart:203-209), so a ProfileModeUnsupportedException still maps to a clean 400 instead of the catch-all 500. It is raised on any machine for a Lever step with a HOLD transition (unified_de1.dart:722-733), when the machine cannot run a Power or Lever step, a HOLD transition or a power exit (unified_de1.dart:721-800), and, through its subclass ProfileValueUnsupportedException (unified_de1.profile.dart:16-37), when a value is outside what the machine can hold",
+          "meaning": "setProfile now runs INSIDE runDeviceWrite with the default De1ReplayPolicy.never (de1handler.dart:997-1009); that policy rethrows the original exception (de1_controller.governor.dart:203-209), so a ProfileModeUnsupportedException still maps to a clean 400 instead of the catch-all 500. It is raised on any machine for a Lever step with a HOLD transition (unified_de1.dart:722-733), when the machine cannot run a Power or Lever step, a HOLD transition or a power exit (unified_de1.dart:721-800), and, through its subclass ProfileValueUnsupportedException (unified_de1.profile.dart:17-38), when a value is outside what the machine can hold",
           "action": "— SEND the profile and surface the server's `message` verbatim. Never pre-strip a step to avoid the refusal: a silently altered profile is the worst failure shape in the register, because the shot looks like it followed the profile and did not. The same holds for an out-of-range value: send it and show the refusal, never clamp it in the client."
         },
         {
@@ -2193,7 +2193,7 @@
       "responseShape": "202 with a NULL body (jsonAccepted() with no data, de1handler.dart:511) — the {results:{<field>:{requested, actual, status}}} write report is GONE at 8fee86dd: updateMachineSettings returns void, writes each key the body carried once and reads nothing back (de1_controller.dart:639-676), and machine_settings_write_report.dart no longer exists; 400 {error:'Invalid JSON body'}; 400 {error:'Request body must be a JSON object'}; 503 {error:'Machine write queue is full', message} once 32 writes are pending (de1_controller.governor.dart:89-95); 504 {error} on EndpointUnavailableException or BleTimeoutException; 500 {error} when no machine is connected, {error, st} on any other throw including the StateError a machine change raises (de1_controller.governor.dart:212, :220, :234); 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} — NOT 409 superseded, the write carries no coalescing key (de1_controller.dart:650), and not 503 'Machine unavailable', the call takes De1ReplayPolicy.never",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/settings)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-de1-settings.js writeSettings"
@@ -2235,7 +2235,7 @@
       "responseShape": "202, no body; 400 {error:'Invalid JSON body'}; 400 {error:'Request body must be a JSON object'}; 400 {error:'refillKitSetting must be 0 (force off), 1 (force on) or 2 (auto)'} (:568-575); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — 64 KiB / 10 s (:535-541); 503 {error:'Machine write queue is full', message} once one write is active and 32 more are queued (de1_controller.governor.dart:89-95); 504 {error} when a BLE GATT-133 on one of the six MMR writes survives the reconnect retry (:780-781); 500 {error} when no machine is connected; 500 {error, st} otherwise, including an MMR response timeout and the StateError a mid-write machine swap raises — the writes now run in De1Controller.updateAdvancedMachineSettings (de1handler.dart:580-590 -> de1_controller.dart:696-727) under _mapDe1WriteErrors with the default De1ReplayPolicy.never, so 503 {error:'Machine unavailable'} cannot fire (de1_controller.governor.dart:218-231), 409 superseded needs a coalescingKey this route never sets, and 504 cannot arrive by EndpointUnavailableException, which only a serial frame wait raises",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/settings/advanced)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-de1-settings.js writeAdvancedSettings"
@@ -2261,7 +2261,7 @@
       "responseShape": "200 with the body `null` — jsonOk(null), Content-Type application/json. Not 204, and not {}. A caller that treats an empty-ish body as failure is reading a success as an error; a caller that calls response.json() gets null, which is correct. 400 {error:'Invalid JSON body'} on a body that is not a JSON object; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 1 MiB / 30 s bounded read (de1handler.dart:1014-1017 — largeRequestBodyBytes with readBoundedRequestBodyString's default largeRequestBodyTimeout), which _mapDe1WriteErrors rethrows to the middleware (:761-762) — though the machine is decided FIRST, withDe1 calling connectedDe1() before the body is read (:751-756); 503 {error:'Machine write queue is full', message} once a write is active and 32 more are queued (de1_controller.governor.dart:89-95); 504 {error} when a GATT-133 BleTimeoutException on the 9-byte shotSettings write survives the reconnect retry (unified_de1_transport.dart:977-980 → de1handler.dart:780-781); 500 {error} with NO st key for ANY DeviceNotConnectedException — no machine connected, the transport not connected when the write starts (unified_de1_transport.dart:943-945), the device gone or Bluetooth off mid-write, and the GattAttributeUnavailableException subclass when the characteristic is missing (errors.dart:27, universal_ble_transport.dart:301) — all of which the old withDe1 catch-all reported as {error, st}; 500 {error:<Dart exception>, st:<stack trace>} otherwise, De1ShotSettings.fromJson's own throws, an initialization timeout and the StateError a mid-write machine swap raises included (de1_controller.governor.dart:212, :220, :234) — 409 'Machine write was superseded' cannot fire, runDeviceWrite passing no coalescingKey (de1_controller.dart:431-441 vs governor.dart:67-87), and 503 {error:'Machine unavailable'} went away with retryOnReplacement: true, the call now taking De1ReplayPolicy.never, under which _resolveDeviceFor throws rather than waiting out a replacement (governor.dart:218-231)",
       "handlerSymbol": "De1Handler._shotSettingsHandler",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "recorded",
       "consumedBy": [],
       "gates": [
@@ -2298,7 +2298,7 @@
       "responseShape": "200 object — the PLUGIN's own answer, forwarded verbatim, so the KEYS are that plugin's contract and not this route's. For visualizer.reaplugin/import the plugin answers {success, profileTitle, profileId, shotId}. 400 {error} for a missing id/endpoint or a non-http endpoint type; 404 {error} for a plugin that is not loaded or an endpoint that does not exist; 403 {error} when the manifest lacks the `api` permission. For visualizer/import the plugin's own pair: 401 with no Visualizer credentials, 400 for a bad code. 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 1 MiB / 30 s bounded body read (plugins_handler.dart:398-401), which sits outside the handler's try/catch and is answered by requestBodyReadMiddleware before the plugin is dispatched",
       "handlerSymbol": "PluginsHandler._handlePluginApiEndpoint (registered as app.all)",
       "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js importShareCode"
@@ -2335,7 +2335,7 @@
       ],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js"
@@ -2364,7 +2364,7 @@
       "notes": [
         "ONE CALL DOES TWO THINGS: it sets auto-load AND loads the plugin now. So the list switch is one request, and `loaded`/`autoLoad` move together."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js"
@@ -2411,7 +2411,7 @@
       "notes": [
         "The reply is the new truth, so there is no re-read: the handler answers with `pluginSettings(id)` after saving, and the RELOAD is CONDITIONAL — `_reloadPluginIfLoaded` (called at plugin_loader_service.dart:686, defined at :556-561) skips a plugin that is not loaded, so a POST to an installed-but-unloaded plugin answers 200 where an older ReaPrime's unconditional `reloadPlugin` threw and shelf answered 500."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/plugins-store.js"
@@ -2438,7 +2438,7 @@
       ],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/presence-store.js"
@@ -2470,7 +2470,7 @@
       ],
       "retires": [],
       "notes": [],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/presence-store.js"
@@ -2494,14 +2494,14 @@
           "profile": "Profile — REQUIRED; a body without it is 400 {error:'Missing required field'}",
           "parentId": "string — optional",
           "metadata": "object — optional",
-          "$limiter": "a step limiter must carry BOTH `value` and `range` as finite numbers (or numeric strings) at 8fee86dd: _requireLimiterNumber throws FormatException 'limiter \"<field>\" must be a number' or '… must be a finite number' (profile.dart:204-214, StepLimiter.fromJson :260-264), answered 400 {error:'Invalid request'}. 42f67f69 let `range` be omitted or null and stored range:0.0, a hard cap; that spelling is now a 400. `limiter: null` (no limit) is unchanged",
+          "$limiter": "a step limiter must carry BOTH `value` and `range` as finite numbers (or numeric strings) at 8fee86dd: _requireLimiterNumber throws FormatException 'limiter \"<field>\" must be a number' or '… must be a finite number' (profile.dart:239-249, StepLimiter.fromJson :260-264), answered 400 {error:'Invalid request'}. 42f67f69 let `range` be omitted or null and stored range:0.0, a hard cap; that spelling is now a 400. `limiter: null` (no limit) is unchanged",
           "$cap": "read with readBoundedRequestBodyString at largeRequestBodyBytes = 1 MiB / 30 s (profile_handler.dart:102-106); over either bound the request never reaches the handler and requestBodyReadMiddleware answers 413/408 — the handler rethrows RequestBodyReadException past its own catches (:127-128)"
         }
       },
-      "responseShape": "201 ProfileRecord.toJson (jsonCreated, profile_handler.dart:126); 400 {error:'Missing required field', message} when the body has no profile key (:109-114); 400 {error:'Invalid request', message} on ArgumentError, FormatException OR TypeError (:129-134), so a non-object body, a non-object or explicitly null profile and a non-object metadata are 400, as is a step limiter that omits or nulls `value` OR `range`, or sends a non-finite number for either (profile.dart:204-214, :260-264) — a limiter that omits `range` is REFUSED at 8fee86dd, where 42f67f69 stored it as range:0.0; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — the body is read bounded at 1 MiB / 30 s and rethrown past the handler's catches to requestBodyReadMiddleware (:107-111, :133-134); 500 {error:'Internal server error', message} for anything else (:143-146)",
+      "responseShape": "201 ProfileRecord.toJson (jsonCreated, profile_handler.dart:126); 400 {error:'Missing required field', message} when the body has no profile key (:109-114); 400 {error:'Invalid request', message} on ArgumentError, FormatException OR TypeError (:129-134), so a non-object body, a non-object or explicitly null profile and a non-object metadata are 400, as is a step limiter that omits or nulls `value` OR `range`, or sends a non-finite number for either (profile.dart:239-249, :295-299) — a limiter that omits `range` is REFUSED at 8fee86dd, where 42f67f69 stored it as range:0.0; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — the body is read bounded at 1 MiB / 30 s and rethrown past the handler's catches to requestBodyReadMiddleware (:107-111, :133-134); 500 {error:'Internal server error', message} for anything else (:143-146)",
       "handlerSymbol": "ProfileHandler._handleCreate",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileCreateBody",
@@ -2552,7 +2552,7 @@
       "responseShape": "200 ProfileRecord.toJson; 404 {error:'Not found', message} on any ArgumentError (a filename that is not bundled); 500 {error:'Internal server error', message}",
       "handlerSymbol": "ProfileHandler._handleRestoreDefault",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/profile-library-store.js restoreToFactory (the first half — restore, not purge)"
@@ -2600,7 +2600,7 @@
       "notes": [
         "`APP_SETTINGS_WRITE_KEYS` is SIXTEEN of the twenty-three keys the handler reads (preferredGrinderDeviceId is new at 8fee86dd, settings_handler.dart:199-208). The handler ACTS on every other key it recognises, so an accidental extra in the body is applied and not ignored — `webUiPath`, `defaultSkinId` and `simulatedDevices` are deliberately unreachable from this skin, and the first two are now refused or skipped for it anyway."
       ],
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-app-settings.js",
@@ -2634,7 +2634,7 @@
       "responseShape": "200 {} — a body, not a 204 (kv_store_handler.dart:54); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}",
       "handlerSymbol": "KvStoreHandler.addRoutes (inline POST /api/v1/store/<namespace>/<key>)",
       "handlerFile": "lib/src/services/webserver/kv_store_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-kv-backend.js set()"
@@ -2677,7 +2677,7 @@
       "responseShape": "200 DeviceConnectResult {deviceId, operation:'connect', outcome, state, connectionError, connectionRole?} (connected | alreadyConnected) — connectionRole is the role name, present only for a scale on a successful outcome (_connectResultBody :733-748); 409 conflict; 503 failed; 504 timedOut (:374-380); 400 {error:'Missing deviceId'} (:354-356); 400 {error:'Invalid connectionRole'} for a role that is not 'primary'/'auxiliary' (:357-359); 400 {error:'connectionRole auxiliary is only valid for scales'} (:366-371); 404 {error:'Device not found: <id>'} (:364); 409 {error:'Device is inventory-only and cannot be controlled here: <id>'} — a SECOND 409 with a DIFFERENT body, decided BEFORE the 404 when the id names a connected-but-undiscovered device the inventory lists (devices_handler.dart:360-364, _inventoryOnlyCommandError :654-668, _devicesForInventory :790-826; an id the auxiliary scale registry holds a connection for is excluded from it, :655-658, and so answers the 404), so a 409 must be told apart by its body: `outcome` present is the connect conflict, `error` alone is a permanent refusal for that id; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — _extractConnectRequest reads any body it is given bounded at 64 KiB / 10 s (:386-390) and rethrows past the ?deviceId= fallback (:415-416), which still backs a body that is merely empty or unparseable",
       "handlerSymbol": "DevicesHandler._handleConnect (id and role via _extractConnectRequest, body via _connectResultBody)",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-devices.js DEVICES_ROUTES.connect (routeById('putDevicesConnect') — the path is read out of the generated table, not spelled)",
@@ -2718,7 +2718,7 @@
       "responseShape": "200 with a body of null (:466, or :451 for a reserved auxiliary scale); 400 {error:'Missing deviceId'} (:443-445); 409 {error:'Device is inventory-only and cannot be controlled here: <id>'} — checked AHEAD of the 404 (:456-457, helper :654-668, _devicesForInventory :790-826), for the connected-but-undiscovered device that is in the inventory to be shown, not to be driven; 404 {error:'Device not found: <id>'} (:458); 500 {error:'Disconnect failed: <error>'} — NEW at 8fee86dd: the disconnect is now caught (:460-464, and :449-454 for a reserved auxiliary scale); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — _extractDeviceId reads any body it is given bounded at 64 KiB / 10 s (:311-315) and rethrows past the ?deviceId= fallback (:316-317), which still backs an empty or unparseable body (:318-332)",
       "handlerSymbol": "DevicesHandler._handleDisconnect",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-devices.js DEVICES_ROUTES.disconnect (routeById('putDevicesDisconnect'))",
@@ -2758,7 +2758,7 @@
       "responseShape": "200 with a body of null; 503 {error:'remembered devices not available'} — decided FIRST, at devices_handler.dart:336-341, before the body is touched, so a build with no RememberedDevicesController answers 503 even to an oversize body; 400 {error:'Missing deviceId'}; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 64 KiB / 10 s bounded read inside _extractDeviceId (:311-315), which rethrows RequestBodyReadException (:316-317) past its own catch and so past the ?deviceId= fallback — before 42f67f69 there was no bound at all and neither refusal existed",
       "handlerSymbol": "DevicesHandler._handleForget",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-connect-store.js forgetDevice"
@@ -2792,7 +2792,7 @@
       "responseShape": "200 {status:'accepted'}; 400 {error} for bad JSON, non-object, neither key, out-of-range temperature, non-bool enabled; 404 feature gate; 408 {error:'Request body timed out'} and 413 {error:'Request body is too large'} from the 64 KiB / 10 s bounded read (de1handler.dart:82-88); 503 {error:'Machine write queue is full', message} at 32 pending device writes; 504 {error} on a BLE or endpoint timeout; 500 {error} with no machine connected, otherwise 500 {error:<Dart exception>, st:<stack trace>} — the 409 superseded branch cannot fire (runDeviceWrite passes no coalescing key), and 503 {error:'Machine unavailable'} went away with retryOnReplacement",
       "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/cupWarmer)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-routes.js setCupWarmer helper"
@@ -2835,7 +2835,7 @@
       "responseShape": "200 {status:'accepted'}; 400 {error}; 404 feature gate; 413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} from the 64 KiB / 10 s bounded body read (de1handler.dart:150-155, rethrown past the handler's own catch at :156); 503 {error:'Machine write queue is full', message} when a write is active and the pending queue is full (:763, de1_controller.governor.dart:89-95); 504 {error} from EndpointUnavailableException or BleTimeoutException on the MMR read and writes (:778-781); 500 {error} for DeviceNotConnectedException (:782), 500 {error, st} otherwise (:784) — the 409 superseded branch cannot fire, because withQueuedDe1 (:844) passes no coalescingKey and De1WriteSupersededException is raised only for a coalesced write (de1_controller.governor.dart:83); and 503 {error:'Machine unavailable'} is gone with retryOnReplacement, the call being De1ReplayPolicy.never, under which a missing machine is DeviceNotConnectedException rather than a replacement wait (:847, de1_controller.governor.dart:218-226)",
       "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/cupWarmer/preheat)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-routes.js setCupWarmerPreheat helper"
@@ -2872,7 +2872,7 @@
       "responseShape": "200 LedStripState.toJson {frontStrip, backStrip, frontSwitch}, each {sleeping, awake} of 12 hex — the read-back of the state the app holds after the write, not a firmware read: setLedStrip stores state.canonical(), quantised to 8 bits per channel with frontSwitch derived from the front strip, so not necessarily the bytes sent (de1handler.dart:251-258; led_strip_capability.dart:14-43, led_strip.dart:104-118); 200 {status:'accepted'} only if that held state is null; rest_v1.yml now documents the success body as {}, and the handler still serves the state; 400 {error:'Invalid JSON body'|'invalid JSON body'}; 404 feature gate; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}; 503 {error:'Machine write queue is full', message} once 32 writes are queued; 504 {error} on a BLE timeout the reconnect does not clear; 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise, including a machine swapped mid-write — the call takes De1ReplayPolicy.never, so that swap is not waited out and 503 {error:'Machine unavailable', message} cannot answer here. 409 'Machine write was superseded' cannot fire: withQueuedDe1 enqueues with no coalescing key (de1_controller.governor.dart:67-87). A failed register write sets the held state to null (led_strip_capability.dart:34-38), so GET /machine/ledStrip answers 503 until a reset or reconnect re-reads it",
       "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/ledStrip)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/led-strip-store.js commit() — the STORING write, sent once on Save and never during a drag"
@@ -2913,7 +2913,7 @@
       "responseShape": "202, no body; 400 {error:'Invalid JSON body'|'invalid JSON body'}; 400 {error:'name at least one of frontStrip or backStrip'} when the body names neither (de1handler.dart:280-284); 400 {error:'<field> must be exactly 12 hexadecimal characters'} (:285-295, new at 8fee86dd — 42f67f69 passed any value to Color16.fromJson inside the queue); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}; 404 feature gate (:303-304); 503 {error:'Machine write queue is full', message}; 504 {error} when a BLE GATT-133 on a live-register write survives the reconnect retry (universal_ble_transport.dart:314 -> de1handler.dart:780-781); 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise — NO 409 (withQueuedDe1 sets no coalescing key)",
       "handlerSymbol": "De1Handler.addRoutes",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/led-strip-store.js preview() and power() — the drag write: one request in flight, a latest-wins slot, no timer"
@@ -2949,7 +2949,7 @@
       "responseShape": "202, no body; 404 feature gate (de1handler.dart:315-316); 503 {error} from LedStripStateUnavailableException (:317-321, new at 8fee86dd): 'ledStrip state unavailable (hydration failed or not yet complete)' when the stored palette cannot be re-read, 'machine state unavailable (stateInfo not yet received)', or 'machine awake/sleep phase did not settle after five restore passes' (led_strip_capability.dart:89-127); 503 {error:'Machine write queue is full', message}; 504 {error} when a BLE GATT-133 on a read or write survives the reconnect retry (de1handler.dart:780-781); 500 {error} when no machine is connected; 500 {error:<Dart exception>, st:<stack trace>} otherwise — reads no body, so no 413/408; no 409 (no coalescing key). At 42f67f69 a clear with no held palette answered 202 having done nothing; it is now a 503",
       "handlerSymbol": "De1Handler.addRoutes",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/led-strip-store.js endPreview() — reached from commit(), reset(), and the leaf’s leave and disconnect paths"
@@ -2982,7 +2982,7 @@
       "responseShape": "202 {status:'accepted', state:ScaleCalibrationState.toJson}; 409 {status:'rejected', reason:'machine busy or shot in progress', state:…} — always this shape, never the superseded 409, because runDeviceWrite passes no coalescing key; 400 {error}; 404 feature gate; 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'}; 503 {error:'Machine write queue is full', message} (de1_controller.governor.dart:89-95); 504 {error} when an MMR write raises BleTimeoutException or EndpointUnavailableException (de1handler.dart:778-781) — a 500 before 42f67f69, though an MMR read timeout is still a 500 via MmrTimeoutException; the queued write no longer retries across a machine swap, so a replacement mid-write is a 500 rather than 503 'Machine unavailable'",
       "handlerSymbol": "De1Handler.addRoutes (inline PUT /api/v1/machine/scaleCalibration)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/calibration-store.js command() / zero() / latch() / abort()"
@@ -3021,7 +3021,7 @@
       "responseShape": "200 jsonOk(null) once _controller.requestMachineState(newState) resolves (de1handler.dart:937-977) — for idle that is still a direct de1.requestState (de1_controller.dart:812-815), but EVERY OTHER state is a QUEUED device write (runDeviceWrite, :816), so the 200 can wait behind the writes ahead of it; 400 {details:'Unknown machine state: <newState>'} for a name that is not a MachineState member, answered BEFORE withDe1 and so with or without a machine (de1handler.dart:941-944, new at 8fee86dd — 42f67f69 threw ArgumentError from MachineState.values.byName inside withDe1 and answered 500 {error, st}); 400 {details:'No scale detected, blocking espresso request', type:'block_no_scale'} for ESPRESSO only, and only when settings.blockOnNoScale is on, no scale is connected and the loaded profile's beverageType is not cleaning (:956-967); 503 {error:'Machine write queue is full', message} for a non-idle state once one write is active and 32 more are queued (de1_controller.governor.dart:89-95, de1_controller.dart:136) — unreachable for idle, which bypasses the governor; 504 {error} when a BLE GATT-133 on the state write survives the reconnect retry (universal_ble_transport.dart:314 -> unified_de1_transport.dart:976-992 -> de1handler.dart:780-781); 500 {error} with NO st key when no machine is connected (:782-783); 500 {error:<Dart exception>, st:<stack trace>} otherwise, including the StateError a machine swapped before or during the write raises (de1_controller.governor.dart:212, :220, :234) — 409 'Machine write was superseded' cannot fire, runDeviceWrite setting no coalescingKey (de1_controller.dart:431-441 vs governor.dart:67-87), and 503 {error:'Machine unavailable'} cannot either, the queued write taking De1ReplayPolicy.never, under which a missing machine is DeviceNotConnectedException rather than a replacement wait (governor.dart:218-231); no 504 by EndpointUnavailableException, which only a serial frame wait raises and the state write awaits none (unified_de1.dart:604-609, unified_de1_transport.dart:1079-1097). `schedIdle` is now a MachineState member in rest_v1.yml as in machine.dart:188-210, so it is a name the route accepts",
       "handlerSymbol": "De1Handler._requestStateHandler (PUT /api/v1/machine/state/<newState>)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/machine-state-store.js (callRoute(transport, 'putMachineStateByNewState')). The owner asked: \"please add slates black sleep screen for when it goes to sleep\" — <ui-screensaver> raises the blank on a confirmed sleep and reports the press; the shell asks for MACHINE_STATE.IDLE."
@@ -3062,7 +3062,7 @@
       "responseShape": "202, no body; 400 {error:'Invalid JSON body'|'Request body must be a JSON object'}; 408 {error:'Request body timed out'} and 413 {error:'Request body is too large'} from the 64 KiB / 10 s bounded read (de1handler.dart:432-438); 503 {error:'Machine write queue is full', message} at 32 pending device writes; 504 {error} on a BLE or endpoint timeout; 500 {error} with no machine connected, otherwise 500 {error:<Dart exception>, st:<stack trace>} — the write now runs in De1Controller.updateRefillLevel under _mapDe1WriteErrors (de1handler.dart:450-453, de1_controller.dart:687-694); the 409 superseded branch cannot fire (runDeviceWrite passes no coalescing key), and 503 {error:'Machine unavailable'} cannot fire under the default De1ReplayPolicy.never. An absent or null refillLevel is still queued and answers 202 having written nothing (de1_controller.dart:690)",
       "handlerSymbol": "De1Handler.addRoutes (inline POST /api/v1/machine/waterLevels)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/screens/settings-model.js (waterLevelsDoorFor's post)"
@@ -3108,7 +3108,7 @@
       "responseShape": "200 WakeSchedule.toJson; 400 {error} for out-of-range time/day/keepAwakeFor; 404 {error:'Schedule not found', id} — decided before the body is read (presence_handler.dart:194, :200), so it wins over the bounded-read refusals; 413 {error:'Request body is too large'} over 64 KiB and 408 {error:'Request body timed out'} after 10 s (presence_handler.dart:203-207)",
       "handlerSymbol": "PresenceHandler._updateScheduleHandler",
       "handlerFile": "lib/src/services/webserver/presence_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/presence-store.js"
@@ -3135,18 +3135,18 @@
       "requestFields": {
         "query": [],
         "body": {
-          "profile": "Profile — OPTIONAL; only parsed `if (json.containsKey('profile'))` (profile_handler.dart:152-158). An EXPLICIT `profile: null` is refused 400 message:'Field \"profile\" cannot be null' (:154-156). A step limiter inside it must carry both `value` and `range` as finite numbers (profile.dart:204-214, :260-264); a limiter without `range` is a 400 at 8fee86dd.",
-          "metadata": "object — optional; an EXPLICIT `metadata: null` CLEARS the stored map (clearMetadata: metadataPresent && metadata == null, profile_controller.dart:264, fed by metadataPresent: json.containsKey('metadata'), profile_handler.dart:166; profile_record.dart:103, :118). OMITTING the key is the only spelling that leaves it unchanged.",
+          "profile": "Profile — OPTIONAL; only parsed `if (json.containsKey('profile'))` (profile_handler.dart:152-158). An EXPLICIT `profile: null` is refused 400 message:'Field \"profile\" cannot be null' (:154-156). A step limiter inside it must carry both `value` and `range` as finite numbers (profile.dart:239-249, :295-299); a limiter without `range` is a 400 at 8fee86dd.",
+          "metadata": "object — optional; an EXPLICIT `metadata: null` CLEARS the stored map (clearMetadata: metadataPresent && metadata == null, profile_controller.dart:264, fed by metadataPresent: json.containsKey('metadata'), profile_handler.dart:166; profile_record.dart:103, :117). OMITTING the key is the only spelling that leaves it unchanged.",
           "$cap": "read with readBoundedRequestBodyString at largeRequestBodyBytes = 1 MiB / 30 s (profile_handler.dart:144-148); over either bound the RequestBodyReadException is rethrown past the handler's own catches (:170-171) and requestBodyReadMiddleware answers 413/408"
         },
         "path": [
           "id — percent-decoded by the handler"
         ]
       },
-      "responseShape": "200 ProfileRecord.toJson (profile_handler.dart:169); 400 {error:'Invalid request', message} on ArgumentError, FormatException OR TypeError (:172-177), so a non-object body, a non-object metadata and a bad step limiter (a missing or non-finite `value` or `range`, profile.dart:204-214, :260-264) are 400; 400 message:'Field \"profile\" cannot be null' for an explicit profile:null (:165-167); 400 message:'Profile not found: <id>' for an unknown id — never a 404 — and message:'Cannot modify default profile content' when a body carrying `profile` names a bundled record (profile_controller.dart:252-259); 200 with the STORED record when an edit's new content hash lands on a record that is already stored: the controller returns that record and writes nothing, so the old record survives and the body's metadata is not written (profile_controller.dart:267-274, new at 2f831b54; before it this was 400 message:'Profile already exists: <newId>' from _storage.replace, drift_profile_storage.dart:41-56); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — the body is read bounded at 1 MiB / 30 s and rethrown past the handler's catches to requestBodyReadMiddleware (:145-149, :171-172); 500 {error:'Internal server error', message} for anything else (:179-182)",
+      "responseShape": "200 ProfileRecord.toJson (profile_handler.dart:169); 400 {error:'Invalid request', message} on ArgumentError, FormatException OR TypeError (:172-177), so a non-object body, a non-object metadata and a bad step limiter (a missing or non-finite `value` or `range`, profile.dart:239-249, :295-299) are 400; 400 message:'Field \"profile\" cannot be null' for an explicit profile:null (:165-167); 400 message:'Profile not found: <id>' for an unknown id — never a 404 — and message:'Cannot modify default profile content' when a body carrying `profile` names a bundled record (profile_controller.dart:252-259); 200 with the STORED record when an edit's new content hash lands on a record that is already stored: the controller returns that record and writes nothing, so the old record survives and the body's metadata is not written (profile_controller.dart:267-274, new at 2f831b54; before it this was 400 message:'Profile already exists: <newId>' from _storage.replace, drift_profile_storage.dart:55-70); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — the body is read bounded at 1 MiB / 30 s and rethrown past the handler's catches to requestBodyReadMiddleware (:145-149, :171-172); 500 {error:'Internal server error', message} for anything else (:179-182)",
       "handlerSymbol": "ProfileHandler._handleUpdate",
       "handlerFile": "lib/src/services/webserver/profile_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileUpdateBody",
@@ -3161,7 +3161,7 @@
         },
         {
           "kind": "wholesale-metadata",
-          "meaning": "ProfileController.update calls existing.copyWith(metadata: metadata, clearMetadata: metadataPresent && metadata == null) (profile_controller.dart:261-265, fed by metadataPresent: json.containsKey('metadata'), profile_handler.dart:166) and ProfileRecord.copyWith ends `metadata: clearMetadata ? null : metadata ?? this.metadata` (profile_record.dart:103, :118) — a supplied map REPLACES the stored one entirely, there is no server-side merge, and an explicit null CLEARS it",
+          "meaning": "ProfileController.update calls existing.copyWith(metadata: metadata, clearMetadata: metadataPresent && metadata == null) (profile_controller.dart:261-265, fed by metadataPresent: json.containsKey('metadata'), profile_handler.dart:166) and ProfileRecord.copyWith ends `metadata: clearMetadata ? null : metadata ?? this.metadata` (profile_record.dart:103, :117) — a supplied map REPLACES the stored one entirely, there is no server-side merge, and an explicit null CLEARS it",
           "action": "serialize read-modify-write through one chain per record (the previous skin's module transcribed rule 3), or two writers read the same base and the last PUT to resolve silently drops the other's values. `metadata: null` NOW CLEARS — it is no longer the no-op the Dart `??` used to make it, so a client that sends an explicit null expecting nothing to happen WIPES the record's metadata; `{}` stores an empty map, and OMITTING the key is the only spelling that leaves the stored map alone."
         },
         {
@@ -3176,7 +3176,7 @@
         },
         {
           "kind": "hash-change-deletes-the-old-record",
-          "meaning": "`ProfileController.update` compares `updated.id != existing.id` and, when it moved, runs the single transactional `_storage.replace(existing.id, updated)` (profile_controller.dart:267-282; drift_profile_storage.dart:41-56), which inserts the new record, moves the children of the old record onto it (reparentChildren, :53, new at 2f831b54) and deletes the old one. When the new hash is already stored, it returns that record and replaces nothing (profile_controller.dart:267-274). Its own log line reads 'Profile hash changed from X to Y. This creates a new profile. Consider using parentId for versioning.'",
+          "meaning": "`ProfileController.update` compares `updated.id != existing.id` and, when it moved, runs the single transactional `_storage.replace(existing.id, updated)` (profile_controller.dart:267-282; drift_profile_storage.dart:55-70), which inserts the new record, moves the children of the old record onto it (reparentChildren, :67, new at 2f831b54) and deletes the old one. When the new hash is already stored, it returns that record and replaces nothing (profile_controller.dart:267-274). Its own log line reads 'Profile hash changed from X to Y. This creates a new profile. Consider using parentId for versioning.'",
           "action": "— A CONTENT EDIT PUSHED THROUGH PUT DOES NOT KEEP THE OLD VERSION; it destroys it, and no lineage entry is created. The path that keeps it is POST /profiles with parentId. `profile-lineage.js versionKeptBy()` answers NOT_LINKED for this case so the editor cannot word a keep it did not get. The id-stable gate above states the same mechanism from the metadata side; this states what it costs. The FAILURE is survivable since the re-pin: when the new content hash lands on a record that is already stored, `replace` refuses inside the one transaction and THE OLD RECORD SURVIVES as 400 message:'Profile already exists: <newId>', where 42f67f69 had already deleted it and let the plain insert fail as a 500 with the original gone. At 2f831b54 that case is no longer a failure: the PUT answers 200 with the stored record and the old record survives."
         }
       ],
@@ -3200,7 +3200,7 @@
       "responseShape": "200 jsonOk(null) once ScaleController.tare() resolves (scale_handler.dart:56); 400 {details:'Tare blocked: a shot is in progress', type:'block_tare_during_shot'} when settings.blockTareDuringShot is on, a shot is active and gatewayMode is not full (the check is _tarePrimary, :127-138; the 400 at :44-48); 500 {error:<Dart exception>, code?:string} if the controller throws — `code` is present only for a ScaleOperationException (:49-54, lib/src/models/device/scale.dart:17-25); 404 {error:'Unknown command: <command>'} for any other command on this path (:57-58)",
       "handlerSymbol": "ScaleHandler.addRoutes (PUT /api/v1/scale/<command>, case 'tare') → ScaleHandler._tarePrimary",
       "handlerFile": "lib/src/services/webserver/scale_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/scale-tare-store.js (callRoute(transport, 'putScaleTare')). The owner asked: \"with the previous skin, if you tough the weight value it sends the tare command to the machine resetting the weigh to 0.0g\" — the Live band's WEIGHT tile is the affordance."
@@ -3240,10 +3240,10 @@
           "id — percent-decoded by the handler (:213), so percent-ENCODE it on the way out"
         ]
       },
-      "responseShape": "200 ShotRecord.toJson including measurements — the WHOLE updated record, ~221 KB, for a one-number write (:287), carrying createdAt and updatedAt (shot_record.dart:70-71) with updatedAt REWRITTEN on every PUT (:265-273 — now() when ShotRecord.sameContent says the content moved, else the record's own previous stamp), a workflow.machine that may add provenanceStatus/serialNumber/model/firmwareVersion/nativeShaping (workflow.dart:187-195) and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78); 400 {error:<FormatException message>} for a body that is not valid JSON (:220-224) — NEW at 8fee86dd, where it was a 500; 400 {error:'ID in path does not match ID in body'} (:226-230); 400 {error:'measurements is not editable via this endpoint'} (:232-236); 400 {error:'createdAt and updatedAt are system-managed and cannot be modified via this endpoint'} (:238-244); 400 {error:'annotations.enjoyment must be …'} (:246-249, :304-318) — all of these checked BEFORE the lookup, so a refused key on a missing shot is a 400, not a 404; 404 {error:'Shot not found'} (:251-254); 400 {error:<FormatException message>} when the merged record does not parse, for example a workflow.context.grinderRpm that is not a non-negative integer (:275-277, workflow_context.dart:217-223); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — 1 MiB / 30 s (:214-218); 500 {error:<Dart exception>} (:285-288) A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:193); every other record carries neither key.",
+      "responseShape": "200 ShotRecord.toJson including measurements — the WHOLE updated record, ~221 KB, for a one-number write (:287), carrying createdAt and updatedAt (shot_record.dart:70-71) with updatedAt REWRITTEN on every PUT (:265-273 — now() when ShotRecord.sameContent says the content moved, else the record's own previous stamp), a workflow.machine that may add provenanceStatus/serialNumber/model/firmwareVersion/nativeShaping (workflow.dart:196-204) and a workflow.context that may add targetWaterVolume, grinderBurrs and grinderRpm (workflow_context.dart:73, :76, :78); 400 {error:<FormatException message>} for a body that is not valid JSON (:220-224) — NEW at 8fee86dd, where it was a 500; 400 {error:'ID in path does not match ID in body'} (:226-230); 400 {error:'measurements is not editable via this endpoint'} (:232-236); 400 {error:'createdAt and updatedAt are system-managed and cannot be modified via this endpoint'} (:238-244); 400 {error:'annotations.enjoyment must be …'} (:246-249, :304-318) — all of these checked BEFORE the lookup, so a refused key on a missing shot is a 400, not a 404; 404 {error:'Shot not found'} (:251-254); 400 {error:<FormatException message>} when the merged record does not parse, for example a workflow.context.grinderRpm that is not a non-negative integer (:275-277, workflow_context.dart:217-223); 413 {error:'Request body is too large'}; 408 {error:'Request body timed out'} — 1 MiB / 30 s (:214-218); 500 {error:<Dart exception>} (:285-288) A record that ran in DE1 emulation also carries de1Emulation:true at the top level (shot_record.dart:76, :91) and in workflow.machine (workflow.dart:202); every other record carries neither key.",
       "handlerSymbol": "ShotsHandler._updateShot",
       "handlerFile": "lib/src/services/webserver/shots_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/shots-store.js setEnjoyment(id, value) — callRoute(transport,'putShotsById',{params:{id},body:{annotations:{enjoyment}}}) (hist-b5-scalars-q17)",
@@ -3306,16 +3306,16 @@
         "body": {
           "$merge": "a PARTIAL workflow object; the handler deep-merges it into the current workflow (deepMergeJson) and re-reads on a revision race",
           "$nonNullable": "explicit null is REJECTED with 400 for steamSettings and, inside it, for targetTemperature / duration / flow / stopAtTemperature; a non-object steamSettings is 400 too (workflow_handler.dart:201-211, json_patch.dart:1-10). At 8fee86dd the same holds for context: an explicit null context, a non-object context, a null context.targetYield or a non-number context.targetYield is 400 (workflow_handler.dart:201, :212-217, json_patch.dart:12-31)",
-          "$limiter": "a merged profile step whose limiter omits value or range, or sends either as null, non-numeric or non-finite, is 400 {error:'Invalid request'} (profile.dart:204-214, :260-264). At 8fee86dd range is REQUIRED like value; the previous pin defaulted an absent range to 0.0",
-          "$nativeShaping": "profile.native_shaping is ONE value, never deep-merged (_takeNativeShapingAsOneValue workflow_handler.dart:177-197, called at :223-229; rest_v1.yml PUT /workflow and Profile.native_shaping). A complete profile (with `steps`) sets the block it sends, and a complete profile that omits the key REMOVES the block; a partial profile that sends the key replaces the whole block and null removes it; a partial profile without the key keeps it. A key absent inside a sent block takes its default. A block that breaks a rule of NativeShaping (native_shaping.dart) is 400, so a client must send only a block that passes those rules",
+          "$limiter": "a merged profile step whose limiter omits value or range, or sends either as null, non-numeric or non-finite, is 400 {error:'Invalid request'} (profile.dart:239-249, :295-299). At 8fee86dd range is REQUIRED like value; the previous pin defaulted an absent range to 0.0",
+          "$nativeShaping": "profile.native_shaping is ONE value, never deep-merged (_takeNativeShapingAsOneValue workflow_handler.dart:177-197, called at :223-229; rest_v1.yml PUT /workflow and Profile.native_shaping). A complete profile (with `steps`) sets the block it sends, and a complete profile that omits the key REMOVES the block; a partial profile that sends the key replaces the whole block and null removes it; a partial profile without the key keeps it. A key absent inside a sent block takes its default. A block that breaks a rule of NativeShaping (native_shaping.dart) is 400, so a client must send only a block that passes those rules. At 31c9a9ba the block is version 2 only: the retired key ramp_factor is 400, and the ramp times are pressure_ramp_tau and flow_ramp_tau",
           "$de1Emulation": "a `profile` that carries `steps` is a COMPLETE profile: its de1_emulation REPLACES the current value and is on only when the body sends true, so a complete profile that omits the key turns DE1 emulation off; a partial `profile` without `steps` is deep-merged and keeps the current value (workflow_handler.dart:157-176, called at :223-229; rest_v1.yml PUT /workflow)",
-          "$finite": "a merged profile step or exit number, or a profile tank_temperature, target_weight, target_volume or target_volume_count_start, that parses to NaN or an infinity is 400 {error:'Invalid request'} with message FormatException: step|exit|profile \"<field>\" must be a finite number (profile.dart:216-252, :720)"
+          "$finite": "a merged profile step or exit number, or a profile tank_temperature, target_weight, target_volume or target_volume_count_start, that parses to NaN or an infinity is 400 {error:'Invalid request'} with message FormatException: step|exit|profile \"<field>\" must be a finite number (profile.dart:251-287, :755)"
         }
       },
-      "responseShape": "200 the merged Workflow.toJson — machine, when present, also carries {provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model, firmwareVersion, nativeShaping} (workflow.dart:187-195) and context a targetWaterVolume (workflow_context.dart:73), all emitted only when non-null; 400 {error:'Invalid request'|'Request body must be a JSON object'}; 408 request timeout; 409 {error:'Workflow update was superseded', message} when a later PUT coalesces over this one on workflow.rinse/steam/hotWater (workflow_handler.dart:245-249); 413 payload too large (>1 MiB); 429 {error:'Workflow request queue is full'} at 8 pending; 503 {error:'Machine write queue is full', message} at 32 pending device writes (:240-244), {error:'Workflow request queue timed out'} at the 30 s queue wait, or {error:'Machine unavailable', message} on a machine-replacement timeout or on ANY TimeoutException raised inside the update (workflow_handler.dart:250-259)",
+      "responseShape": "200 the merged Workflow.toJson — machine, when present, also carries {provenanceStatus:'captured'|'unavailable'|'unknown', serialNumber, model, firmwareVersion, nativeShaping} (workflow.dart:196-204) and context a targetWaterVolume (workflow_context.dart:73), all emitted only when non-null; 400 {error:'Invalid request'|'Request body must be a JSON object'}; 408 request timeout; 409 {error:'Workflow update was superseded', message} when a later PUT coalesces over this one on workflow.rinse/steam/hotWater (workflow_handler.dart:245-249); 413 payload too large (>1 MiB); 429 {error:'Workflow request queue is full'} at 8 pending; 503 {error:'Machine write queue is full', message} at 32 pending device writes (:240-244), {error:'Workflow request queue timed out'} at the 30 s queue wait, or {error:'Machine unavailable', message} on a machine-replacement timeout or on ANY TimeoutException raised inside the update (workflow_handler.dart:250-259)",
       "handlerSymbol": "WorkflowHandler._updateWorkflow -> _applyPayload -> _applyUpdate",
       "handlerFile": "lib/src/services/webserver/workflow_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/data/rea-profile.js profileUpdateBody/sanitizeProfileForRea (the arm-by-workflow path)",
@@ -3358,7 +3358,7 @@
       "responseShape": "200 {commit, commitShort, branch, buildTime, version, buildNumber, appStore:bool, fullVersion, localIp} — every field written unconditionally by _infoHandler. NO OTHER STATUS FROM THE HANDLER: it reads seven compile-time constants (six String.fromEnvironment plus bool.fromEnvironment('APP_STORE')) and one derived getter, and one IP lookup that is itself inside a try answering '' on a throw, so it has no branch that can fail — but the handler is no longer the only thing that answers. apiAdmissionMiddleware now sits ahead of every /api/ route (webserver_service.dart:582, admission_control.dart:123-142) and can answer 429 {error:'client_admission_limit'} or 503 {error:'global_admission_limit'}, each with retry-after: 1 (:216-224), before _infoHandler runs.",
       "handlerSymbol": "InfoHandler._infoHandler",
       "handlerFile": "lib/src/services/webserver/info_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "consumedBy": [
         "src/stores/app-info-store.js (callRoute(transport, 'getInfo') — the path is read out of the generated table, not spelled). Adopted: the route had sat in the generated table with NO caller anywhere in src/, while Updates › Skin / App promised an 'App' half it did not have and Send Feedback told the user it appends an app version the skin could not show."
@@ -3388,7 +3388,7 @@
       "path": "/ws/v1/machine/snapshot",
       "handlerSymbol": "De1Handler._handleSnapshot (via _withDe1Ws)",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "MachineSnapshot.toJson — TWELVE unconditional keys (timestamp, state, flow, pressure, targetFlow, targetPressure, mixTemperature, groupTemperature, targetMixTemperature, targetGroupTemperature, profileFrame, steamTemperature; machine.dart:138-151) plus the three conditional *Derived channels (:152-157). `timestamp` is the key the staleness clock reads. Derived channels are OMITTED, not null, and `state` is itself the nested pair {state, substate}.",
       "commands": null,
@@ -3408,7 +3408,7 @@
       "path": "/ws/v1/scale/snapshot",
       "handlerSymbol": "ScaleHandler._handleSnapshot",
       "handlerFile": "lib/src/services/webserver/scale_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "WeightSnapshot — the ONE gravimetric source, including weightFlow",
       "commands": null,
@@ -3425,7 +3425,7 @@
       "path": "/ws/v1/machine/shotSettings",
       "handlerSymbol": "De1Handler._handleShotSettings",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "De1ShotSettings, re-emitted on change",
       "commands": null,
@@ -3439,7 +3439,7 @@
       "path": "/ws/v1/machine/shotState",
       "handlerSymbol": "De1Handler._handleShotState",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "shot phase and decision frames — ShotStateEvent.toJson {event, timestamp, shotId, state, machineState, machineSubstate, profileFrame, scaleConnected, scaleLost, machineHasAutonomousSAW, decision} (shot_state_event.dart:89-101), sent as each event arrives on _controller.shotState (de1handler.dart:1033-1050)",
       "commands": null,
@@ -3453,7 +3453,7 @@
       "path": "/ws/v1/machine/waterLevels",
       "handlerSymbol": "De1Handler._handleWaterLevels",
       "handlerFile": "lib/src/services/webserver/de1handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "{currentLevel, refillLevel} in MILLIMETRES",
       "commands": null,
@@ -3470,7 +3470,7 @@
       "path": "/ws/v1/devices",
       "handlerSymbol": "DevicesHandler._handleDevicesSocket",
       "handlerFile": "lib/src/services/webserver/devices_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "devices[], scanning, charging?, connectionStatus{}",
       "commands": [
@@ -3491,7 +3491,7 @@
       "path": "/ws/v1/display",
       "handlerSymbol": "DisplayHandler._handleWebSocket",
       "handlerFile": "lib/src/services/webserver/display_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "DisplayState frames (brightness / dim state)",
       "commands": [
@@ -3509,7 +3509,7 @@
       "path": "/ws/v1/update",
       "handlerSymbol": "UpdateHandler._handleSocket",
       "handlerFile": "lib/src/services/webserver/update_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "UpdateState frames (check/download/install progress)",
       "commands": [
@@ -3526,7 +3526,7 @@
       "path": "/ws/v1/sensors/<id>/snapshot",
       "handlerSymbol": "SensorsHandler._handleSensorSnapshot",
       "handlerFile": "lib/src/services/webserver/sensors_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "one sensor's channel map — read through rea-address.js by key-presence",
       "commands": null,
@@ -3546,7 +3546,7 @@
       "path": "/ws/v1/plugins/<id>/<endpoint>",
       "handlerSymbol": "PluginsHandler._handlePluginSocketEndpoint",
       "handlerFile": "lib/src/services/webserver/plugins_handler.dart",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d",
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919",
       "status": "consumed",
       "carries": "the plugin event payload verbatim (data['payload'])",
       "commands": null,
@@ -3617,7 +3617,7 @@
       "adds": "429 {error:'client_admission_limit'} or 503 {error:'global_admission_limit'}, each with retry-after: 1, BEFORE the handler runs",
       "action": "both are TRANSIENT. Honour retry-after and retry; never read either as absence or as a refusal of the request itself.",
       "onRows": "written into a row only where that row claims exhaustiveness — getInfo, getMachineInfo, deleteMachineFirmware",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "admission gate on every websocket upgrade",
@@ -3625,7 +3625,7 @@
       "adds": "the same 429/503 arrive INSTEAD of the upgrade, so no socket opens",
       "action": "retry after the header. A pre-upgrade refusal is NOT feature absence — the rows that tell a client to read one that way name this explicitly.",
       "onRows": "devices, pluginEndpoint, shotState",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "bounded request-body read",
@@ -3633,7 +3633,7 @@
       "adds": "413 {error:'Request body is too large'} and 408 {error:'Request body timed out'} on any route that reads a body",
       "action": "the cap is a per-call argument and therefore belongs to the ROW: smallRequestBodyBytes 64 KiB / 10 s, largeRequestBodyBytes 1 MiB / 30 s. Each such row carries it in requestFields.body.$cap.",
       "onRows": "every row that reads a body",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "_mapDe1WriteErrors gained four branches",
@@ -3641,7 +3641,7 @@
       "adds": "503 {error:'Machine write queue is full', message}; 409 {error:'Machine write was superseded', message}; 504 {error} from EndpointUnavailableException or BleTimeoutException; and DeviceNotConnectedException now answers {error} ALONE where the old catch-all carried {error, st}",
       "action": "a row records only the branches its route can actually reach, and says why when it claims one cannot. A property read enters no write governor, so it can raise neither the queue-full nor the superseded branch.",
       "onRows": "every withDe1 / withQueuedDe1 route",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "MachineSubstate gained pausedSteam and puffing",
@@ -3649,7 +3649,7 @@
       "adds": "both used to arrive as `idle`; they now map to their own names, so a steam pause and the post-steam purge are newly distinguishable",
       "action": "treat the substate as an OPEN enum. An unrecognised value is a pass-through label, never an error, and 'nothing happening' must not be keyed off `idle` alone.",
       "onRows": "shotState",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "extension-management authorization",
@@ -3657,7 +3657,7 @@
       "adds": "401 {error} without a valid bearer token, or 403 {error} for a token without the extensions:manage scope, BEFORE the handler runs, on the plugin and skin management writes listed at extension_management_auth.dart:32-53 (PUT /api/v1/webui/skins/default and POST /api/v1/webui/server/start and /stop among them). POST /api/v1/settings answers the same 401 or 403 when the body sets webUiPath, changes defaultSkinId, or turns automaticUpdateCheck on; a defaultSkinId from a caller without that grant is not applied (settings_handler.dart:209). The GET routes stay open.",
       "action": "a 401 or 403 on these routes is a refusal of the caller, not a missing feature and not a transient fault. Do not retry it; show it as not permitted.",
       "onRows": "every row for a listed route",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "JSON not-found body",
@@ -3665,7 +3665,7 @@
       "adds": "a path no route matches answers 404 {error:'Route not found', hint} as application/json, where the router before answered 404 with a plain-text body",
       "action": "read absence from the 404 status alone, never from the body or its content type.",
       "onRows": "the conditional routes (rea-conditional.js), whose absence is a 404",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     },
     {
       "what": "MachineSubstate gained refillStopped, pumpZeroing and five pump and switch errors",
@@ -3673,7 +3673,7 @@
       "adds": "firmware substate 0x11 used to arrive as `idle` and now arrives as refillStopped; pumpZeroing (0x15) and errorPumpZero, errorPumpNeedsCalibration, errorFrontSwitchOff, errorPumpFault, errorPumpSilent (218-222) are new names",
       "action": "the substate stays an OPEN enum. A name the client does not know is a pass-through label, never an error, and a refill that stopped is not `idle`.",
       "onRows": "shotState",
-      "checkedCommit": "2f831b541209ebb25ee783d218223cd085ac4f0d"
+      "checkedCommit": "31c9a9ba83ac2e5e4bea40dc36f7337448982919"
     }
   ]
 }
