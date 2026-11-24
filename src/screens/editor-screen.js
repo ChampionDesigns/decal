@@ -29,6 +29,7 @@ import {
     VERSION_KEPT, versionChangeFacts, parentRecordOf, lineageFactsOf,
 } from 'src/lib/profile-lineage.js';
 
+const SHAPING_MODE_WORDS = Object.freeze({ both: 'both', rise: 'rise', fall: 'fall' });
 const VERSION_FIELD_WORDS = Object.freeze({
     title: 'the name',
     notes: 'the notes',
@@ -40,19 +41,24 @@ const VERSION_FIELD_WORDS = Object.freeze({
     target_volume_count_start: 'volume count start',
     tank_temperature: 'tank temperature',
     [DE1_EMULATION_KEY]: 'DE1 emulation',
+    [NATIVE_SHAPING_KEY]: 'Native shaping',
 });
 import { SAVE_STATUS, VISIBILITY_WRITE } from 'src/stores/profile-editor-store.js';
 import {
     DE1_EMULATION_KEY, de1EmulationBlockOf, de1EmulationOf, de1EmulationSupported,
-    withDe1Emulation,
+    nativeShapingShown, withDe1Emulation,
 } from 'src/lib/de1-emulation.js';
 import { shownProfileName } from 'src/lib/profile-name.js';
 import { CAPABILITY } from 'src/stores/capabilities-store.js';
 import { historyIcon, penIcon } from 'src/lib/icons.js';
+import { NATIVE_SHAPING_KEY } from 'src/lib/shot-model.js';
+import { checkNativeShaping } from 'src/lib/native-shaping-rules.js';
 
 import 'src/screens/editor-body.js';
 import 'src/screens/editor-settings-panel.js';
 import 'src/screens/editor-review-panel.js';
+import 'src/screens/editor-chart-panel.js';
+import 'src/screens/editor-shaping-page.js';
 
 import 'src/screens/step-matrix.js';
 import 'src/screens/editor-preview.js';
@@ -82,10 +88,26 @@ import 'src/components/ui-empty-state.js';
 export const EDITOR_TABS = Object.freeze([
     Object.freeze({ value: 'steps', label: 'Steps' }),
     Object.freeze({ value: 'settings', label: 'Settings' }),
+    Object.freeze({ value: 'chart', label: 'Chart' }),
     Object.freeze({ value: 'review', label: 'Review' }),
 ]);
 
 export const DEFAULT_EDITOR_TAB = 'steps';
+
+const CHART_TAB = 'chart';
+
+function chevronLeftIcon() {
+    return html`<svg
+        class="chevron"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    ><path d="M15 5l-7 7 7 7"></path></svg>`;
+}
 
 export const EDITOR_REGIONS = Object.freeze(['steps', 'settings', 'preview', 'overlays']);
 
@@ -113,6 +135,10 @@ export class EditorScreen extends UiElement {
         _callerRegions: { state: true },
 
         _renameRefusal: { state: true },
+
+        _shotLine: { state: true },
+
+        _pickerOpen: { state: true },
     };
 
     static styles = [typeRoles, seams, css`
@@ -125,6 +151,7 @@ export class EditorScreen extends UiElement {
         }
 
         :host(.seam-grid) {
+            position: relative;
             grid-template-rows: var(--ui-band-h) minmax(0, 1fr);
             block-size: 100%;
         }
@@ -143,6 +170,7 @@ export class EditorScreen extends UiElement {
             min-inline-size: 0;
             min-block-size: 0;
         }
+
 
         #recovery {
             grid-row: 2;
@@ -281,6 +309,60 @@ export class EditorScreen extends UiElement {
             cursor: pointer;
         }
 
+        :host(.seam-grid[tab="chart"]) {
+            grid-template-rows: minmax(var(--ui-band-h), auto) minmax(0, 1fr);
+        }
+
+        :host([tab="chart"]) #identity {
+            grid-template-rows: auto auto auto;
+            max-block-size: none;
+            padding-block: var(--ui-space-1);
+        }
+
+        #editor-title.pick {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--ui-space-2);
+            min-block-size: max(var(--ui-hit-min), var(--_ui-hit-floor, 0px));
+            max-inline-size: 100%;
+            padding-inline: var(--ui-space-2) var(--ui-space-4);
+            border: var(--ui-border-w) solid var(--ui-line);
+            border-radius: var(--ui-radius);
+            background-color: transparent;
+            color: inherit;
+        }
+
+        #editor-title.pick[aria-expanded="true"] {
+            border-color: var(--ui-steel);
+        }
+
+        #editor-title .chevron {
+            flex: 0 0 auto;
+            inline-size: max(20px, calc(20px / var(--ui-app-scale, 1)));
+            block-size: max(20px, calc(20px / var(--ui-app-scale, 1)));
+        }
+
+        #editor-title .label {
+            min-inline-size: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #idline {
+            display: flex;
+            align-items: baseline;
+            gap: var(--ui-space-2);
+            min-inline-size: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #idline #totals {
+            color: var(--ui-muted);
+            font-size: var(--ui-text-note);
+        }
+
+        #shot-line,
         #totals {
             max-inline-size: none;
             min-inline-size: 0;
@@ -319,6 +401,8 @@ export class EditorScreen extends UiElement {
 
     /** The draft as it was sent, so a later edit to it can be seen. */
     #submitted = null;
+    #sentDe1Emulation = null;
+
     /** The last save status announced, so one outcome is announced exactly once. */
     #announced = SAVE_STATUS.IDLE;
 
@@ -332,6 +416,8 @@ export class EditorScreen extends UiElement {
         this._draft = null;
         this._callerRegions = EMPTY_REGIONS;
         this._renameRefusal = null;
+        this._shotLine = '';
+        this._pickerOpen = false;
     }
 
     connectedCallback() {
@@ -516,6 +602,7 @@ export class EditorScreen extends UiElement {
         const identity = this._draft !== null;
         const steps = this._draft && Array.isArray(this._draft.steps) ? this._draft.steps : null;
         const unseated = this.#unseated;
+        const shownName = identity ? shownProfileName(this._draft, this.boot?.capabilities, t('Untitled')) : '';
 
         return html`
             <ui-page-header
@@ -529,26 +616,40 @@ export class EditorScreen extends UiElement {
             >
                 ${identity ? html`
                     <div id="identity" slot="lead">
-                        <span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>
+                        ${this.tab === CHART_TAB ? html`<p id="idline"
+                            ><span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span
+                            ><span id="totals" class="ui-numeric">${this.#totalsLine()}</span></p>`
+                            : html`<span id="eyebrow" class="ui-microcap">${t('Profile editor')}</span>`}
                         <div class="name-row">
-                            <button
+                            ${this.tab === CHART_TAB ? html`<button
+                                id="editor-title"
+                                class="ui-title pick"
+                                type="button"
+                                aria-haspopup="dialog"
+                                aria-expanded=${this._pickerOpen ? 'true' : 'false'}
+                                aria-label=${t('Pick a shot: {title}', { title: shownName })}
+                                @click=${this.#onPickShot}
+                            >${chevronLeftIcon()}<span class="label">${shownName}</span></button>` : html`<button
                                 id="editor-title"
                                 class="ui-title"
                                 type="button"
                                 @click=${this.#onRenameOpen}
-                            >${shownProfileName(this._draft, this.boot?.capabilities, t('Untitled'))}</button>
+                            >${shownName}</button>
                             <ui-icon-button
                                 id="title-pencil"
                                 label=${t('Edit profile name')}
                                 @click=${this.#onRenameOpen}
                                 >${penIcon()}</ui-icon-button
-                            >
+                            >`}
                         </div>
                         ${this.#saving
                             ? html`<p id="saving" class="ui-caption" role="status"
                                 >${t('Saving…')}</p>`
-                            : html`<p id="totals" class="ui-caption ui-numeric"
-                                >${this.#totalsLine()}</p>`}
+                            : this.tab === CHART_TAB
+                                ? html`<p id="shot-line" class="ui-caption ui-numeric"
+                                    >${this._shotLine || t('No shot loaded')}</p>`
+                                : html`<p id="totals" class="ui-caption ui-numeric"
+                                    >${this.#totalsLine()}</p>`}
                     </div>` : nothing}
 
                 <ui-tab-bar
@@ -593,6 +694,21 @@ export class EditorScreen extends UiElement {
                     </slot>
                 </editor-settings-panel>
 
+                <editor-chart-panel
+                    id="chart-panel"
+                    slot="chart"
+                    .boot=${this.boot}
+                    .profile=${this._draft}
+                    .baseline=${this._state?.baseline ?? null}
+                    ?shaping=${nativeShapingShown(this._draft, this.boot?.capabilities)}
+                    ?dirty=${this.#count > 0}
+                    ?saving=${this.#saving}
+                    @chart-shot-load=${this.#onChartShotLoad}
+                    @chart-status=${this.#onChartStatus}
+                    @chart-picker=${this.#onChartPicker}
+                    @shaping-open=${this.#onShapingOpen}
+                ></editor-chart-panel>
+
                 <editor-review-panel
                     id="review-panel"
                     slot="review"
@@ -606,6 +722,11 @@ export class EditorScreen extends UiElement {
                     </slot>
                 </editor-review-panel>
             </editor-body>
+
+            <editor-shaping-page
+                id="shaping-page"
+                @shaping-apply=${this.#onShapingApply}
+            ></editor-shaping-page>
 
             ${unseated ? html`
                 <div id="recovery">
@@ -728,13 +849,36 @@ export class EditorScreen extends UiElement {
         if (!bar || this.#panels) return;
         const map = new Map();
         for (const { value } of EDITOR_TABS) {
-            const el = this.renderRoot.querySelector(`[slot="${value}"]`);
+            const el = this.renderRoot.querySelector(`#body > [slot="${value}"]`);
             if (el) map.set(value, el);
         }
         if (map.size !== EDITOR_TABS.length) return;
         this.#panels = map;
         bar.panels = map;
     }
+
+    #onPickShot = (event) => {
+        this.renderRoot.getElementById('chart-panel')?.openPicker(event.currentTarget);
+    };
+
+    #onChartShotLoad = (event) => {
+        const record = event.detail?.record;
+        if (!this.#store || !record || !record.profile) return;
+        if (this.#saving) {
+            this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
+            return;
+        }
+        this.#store.open(record);
+        this._draft = this.#store.get()?.record?.profile ?? record.profile;
+    };
+
+    #onChartStatus = (event) => {
+        this._shotLine = typeof event.detail?.line === 'string' ? event.detail.line : '';
+    };
+
+    #onChartPicker = (event) => {
+        this._pickerOpen = event.detail?.open === true;
+    };
 
     #onTabChange(event) {
         const value = event?.detail?.value;
@@ -763,11 +907,14 @@ export class EditorScreen extends UiElement {
             if (status !== SAVE_STATUS.SAVING && status !== SAVE_STATUS.IDLE) {
                 this.#pending = null;
                 this.#submitted = null;
+                const sentDe1Emulation = this.#sentDe1Emulation;
+                this.#sentDe1Emulation = null;
                 if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
                     this.#sayNewerEditsKept();
                 } else {
                     this.#announce(state);
                 }
+                if (status === SAVE_STATUS.SAVED) this.#sayWhatWasNotStored(state, sentDe1Emulation);
 
                 if (status === SAVE_STATUS.SAVED && editedSinceSubmitting) {
                     this.#closeOnSaved = false;
@@ -1015,6 +1162,7 @@ export class EditorScreen extends UiElement {
                     this.#onTankTemperature,
                 )}
                 ${this.#de1EmulationRow()}
+                ${this.#nativeShapingRow()}
 
                 <p class="group ui-microcap">${t('The limiters')}</p>
                 ${tolerance(
@@ -1105,6 +1253,72 @@ export class EditorScreen extends UiElement {
                 ></ui-switch>
             </ui-settings-row>`;
     }
+
+    #nativeShapingRow() {
+        const draft = this._draft;
+        if (!draft || !nativeShapingShown(draft, this.boot?.capabilities)) return nothing;
+        const t = this.#i18n.t;
+        return html`
+            <ui-settings-row
+                data-row="native-shaping"
+                heading=${t('Native shaping')}
+                caption=${this.#nativeShapingSummary(draft[NATIVE_SHAPING_KEY])}
+                note=${t('Bengle only; hidden in DE1 emulation.')}
+            >
+                <ui-button
+                    id="shaping-edit-settings"
+                    @click=${this.#onShapingOpen}
+                >${t('Edit')}</ui-button>
+            </ui-settings-row>`;
+    }
+
+    #nativeShapingSummary(block) {
+        const t = this.#i18n.t;
+        const result = block && typeof block === 'object' ? checkNativeShaping(block) : null;
+        if (!result?.ok) return t('Not set: the machine uses its own settings.');
+        const b = result.block;
+        const n = b.pump_curve.length;
+        const curve = n === 0 ? t('Pump curve off') : t('Pump curve on, {n} points', { n });
+        const tau = (v, m) => (v > 0
+            ? t('{tau} s, {mode}', { tau: v.toFixed(2), mode: t(SHAPING_MODE_WORDS[m] ?? SHAPING_MODE_WORDS.both) })
+            : t('{tau} s', { tau: v.toFixed(2) }));
+        return t('{curve} · flow τ {f} · pressure τ {p} · τ₂ {q} s · ramp pressure {rp} s, flow {rf} s', {
+            curve,
+            f: tau(b.flow_tau, b.flow_mode),
+            p: tau(b.pressure_tau, b.pressure_mode),
+            q: b.pressure_filter_tau.toFixed(2),
+            rp: b.pressure_ramp_tau.toFixed(2),
+            rf: b.flow_ramp_tau.toFixed(2),
+        });
+    }
+
+    #onShapingOpen = (event) => {
+        event?.stopPropagation?.();
+        const page = this.renderRoot.getElementById('shaping-page');
+        const chart = this.renderRoot.getElementById('chart-panel');
+        if (!page || !this._draft) return;
+        if (this.#saving) {
+            this.#toast(this.#i18n.t('Still saving. One moment.'), 'warn');
+            return;
+        }
+        page.shot = chart?.shotPoints ?? null;
+        page.previewer = chart ? (block) => chart.shapingPreview(block) : null;
+        page.show({
+            block: this._draft[NATIVE_SHAPING_KEY] ?? null,
+            start: chart?.shotShaping ?? null,
+            invoker: event?.detail?.invoker ?? event?.currentTarget ?? null,
+        });
+    };
+
+    #onShapingApply = (event) => {
+        event.stopPropagation();
+        if (!this._draft) return;
+        const block = event.detail?.block ?? null;
+        const next = { ...this._draft };
+        if (block === null) delete next[NATIVE_SHAPING_KEY];
+        else next[NATIVE_SHAPING_KEY] = block;
+        this._draft = next;
+    };
 
     #onDe1EmulationSwitch = (event) => {
         event.stopPropagation();
@@ -1414,6 +1628,8 @@ export class EditorScreen extends UiElement {
         if (!body) return this.#nothingToSave(plan);
         this.#pending = plan.operation;
         this.#submitted = plan.operation === SAVE_OPERATION.NEW_VERSION ? body : null;
+        this.#sentDe1Emulation = typeof body?.[DE1_EMULATION_KEY] === 'boolean'
+            ? body[DE1_EMULATION_KEY] : null;
         Promise.resolve(this.#store[plan.operation](body))
             .catch((error) => this.#saveThrew(error));
 
@@ -1442,6 +1658,7 @@ export class EditorScreen extends UiElement {
     #saveThrew(error) {
         this.#pending = null;
         this.#submitted = null;
+        this.#sentDe1Emulation = null;
         this.#closeOnSaved = false;
         this.#log('error', `editor: the save threw — ${error?.message ?? error}`);
         this.#store?.clearSave?.();
@@ -1452,6 +1669,18 @@ export class EditorScreen extends UiElement {
         this.#toast(
             this.#i18n.t('Saved. The changes you made since are still unsaved.'), 'ok',
         );
+    }
+
+    #sayWhatWasNotStored(state, sentDe1Emulation) {
+        const t = this.#i18n.t;
+        if (state?.savedHidden === true) {
+            this.#toast(t('The saved version is still hidden, so favourites stay on the version you opened.'),
+                'warn');
+        }
+        const served = state?.record?.profile ?? null;
+        if (sentDe1Emulation !== null && served && de1EmulationOf(served) !== sentDe1Emulation) {
+            this.#toast(t('This Decide did not store DE1 emulation.'), 'warn');
+        }
     }
 
     /** Show one line on the screen's own toast. */

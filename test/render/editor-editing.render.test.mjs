@@ -326,10 +326,11 @@ for (const geometry of GATE_A_GEOMETRIES) {
                             : 0
                     ), EDITOR.overlays);
 
-                    assert.equal(count.total, overlays + 3,
-                        `each overlay must own one #18 and no second machinery, and the screen owns `
-                        + `the rename and the discard guard: ${count.total} dialogs for ${overlays} `
-                        + `overlays + 2`);
+                    assert.equal(count.total, overlays + 3 + 5,
+                        `each overlay must own one #18 and no second machinery, the screen owns `
+                        + `the rename, the discard guard and the versions, the Chart panel owns five, `
+                        + `and the closed native shaping page owns none: ${count.total} `
+                        + `dialogs for ${overlays} overlays + 3 + 5`);
                     assert.equal(count.open, 1, 'exactly one modal may be open at a time');
                     assert.equal(await page.exists(EDITOR.leverCard), true, 'and the open one is #18\'s');
                 }, { steps: [{ ...LEVER_STEP }] }));

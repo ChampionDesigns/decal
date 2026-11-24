@@ -45,6 +45,9 @@ class UiStepper extends UiElement {
          */
         density: { type: String, reflect: true },
 
+        /** `lg` - taller caps and a larger value, for a stepper that is the main control of a dialog. */
+        size: { type: String, reflect: true },
+
         /** Paint on the host from --ui-opacity-disabled; behaviour on the controls. */
         disabled: { type: Boolean, reflect: true },
 
@@ -68,6 +71,8 @@ class UiStepper extends UiElement {
     static styles = [typeRoles, visuallyHidden, css`
         :host {
             --_ui-cap: var(--ui-stepper-cap);
+            --_ui-h: var(--ui-control-h);
+            --_ui-inner: calc(var(--_ui-h) - 2 * var(--ui-hairline));
 
             --_ui-value-min: var(--ui-stepper-value-min);
 
@@ -96,6 +101,12 @@ class UiStepper extends UiElement {
             --_ui-cap: var(--ui-control-h);
         }
 
+        :host([size="lg"]) {
+            --_ui-cap: max(var(--ui-control-lg), var(--_ui-hit-floor, 0px));
+            --_ui-inner: max(calc(var(--ui-control-lg) - 2 * var(--ui-hairline)), var(--_ui-hit-floor, 0px));
+            --_ui-h: calc(var(--_ui-inner) + 2 * var(--ui-hairline));
+        }
+
         .band {
             box-sizing: border-box;
             display: grid;
@@ -110,7 +121,7 @@ class UiStepper extends UiElement {
                 var(--_ui-cap-fit);
             align-items: stretch;
 
-            min-block-size: var(--ui-control-h);
+            min-block-size: var(--_ui-h);
             border: var(--ui-border-w) solid var(--ui-line);
             border-radius: var(--ui-radius);
 
@@ -137,7 +148,7 @@ class UiStepper extends UiElement {
             place-items: center;
 
             box-sizing: border-box;
-            min-block-size: var(--ui-control-inner);
+            min-block-size: var(--_ui-inner);
             min-inline-size: 0;
             padding: 0;
             border: 0;
@@ -183,7 +194,7 @@ class UiStepper extends UiElement {
             box-sizing: border-box;
             display: block;
             min-inline-size: 0;
-            block-size: var(--ui-control-inner);
+            block-size: var(--_ui-inner);
             padding: 0;
             border: 0;
 
@@ -197,7 +208,7 @@ class UiStepper extends UiElement {
              * rendering 40px in the editor and 18px in Settings. */
             font-size: var(--ui-display-xs);
             font-weight: var(--ui-weight-light);
-            line-height: var(--ui-control-inner);
+            line-height: var(--_ui-inner);
 
             /* Section 2.4 without the silence: a value too long for its cell says so
              * with an ellipsis, and the full text is still in the accessible name. */
@@ -206,9 +217,13 @@ class UiStepper extends UiElement {
             text-overflow: ellipsis;
         }
 
+        :host([size="lg"]) .value {
+            font-size: var(--ui-display-sm);
+        }
+
         :host([note]) .value {
             block-size: auto;
-            min-block-size: var(--ui-control-inner);
+            min-block-size: var(--_ui-inner);
             line-height: 1.1;
             display: flex;
             align-items: center;

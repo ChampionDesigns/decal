@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
     DE1_EMULATION_BLOCK, DE1_EMULATION_KEY, DE1_EMULATION_PREFIX, de1EmulationBlockOf,
-    de1EmulationName, de1EmulationOf, de1EmulationSupported, profileRunsAsDe1, shotRanAsDe1,
-    withDe1Emulation,
+    de1EmulationName, de1EmulationOf, de1EmulationSupported, nativeShapingShown, profileRunsAsDe1,
+    shotRanAsDe1, withDe1Emulation,
 } from '../src/lib/de1-emulation.js';
 import { markedFavourites, shownProfileName } from '../src/lib/profile-name.js';
 import { shotName, shotOptionLabel, shotRow } from '../src/lib/shot-summary.js';
@@ -60,6 +60,26 @@ describe('the steps that block DE1 emulation', () => {
 
     test('a hold step blocks it', () => {
         assert.equal(de1EmulationBlockOf([step(), step({ transition: 'hold' })]), DE1_EMULATION_BLOCK.HOLD);
+    });
+});
+
+describe('whether the native shaping controls show', () => {
+    const bengle = { de1Emulation: () => true };
+    const de1 = { de1Emulation: () => false };
+
+    test('a Bengle shows them for a profile that is not in DE1 emulation', () => {
+        assert.equal(nativeShapingShown({ steps: [] }, bengle), true);
+        assert.equal(nativeShapingShown({ steps: [], de1_emulation: false }, bengle), true);
+    });
+
+    test('DE1 emulation hides them on a Bengle', () => {
+        assert.equal(nativeShapingShown({ steps: [], de1_emulation: true }, bengle), false);
+    });
+
+    test('a DE1 or a machine that is not known hides them', () => {
+        assert.equal(nativeShapingShown({ steps: [] }, de1), false);
+        assert.equal(nativeShapingShown({ steps: [] }, null), false);
+        assert.equal(nativeShapingShown({ steps: [] }, { machineLimits: () => null }), false);
     });
 });
 

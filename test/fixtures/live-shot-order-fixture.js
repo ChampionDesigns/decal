@@ -177,7 +177,7 @@ const scriptedFetch = async (input, init = {}) => {
     if (method === 'GET' && url.pathname === '/api/v1/plugins') return json([]);
 
     if (method === 'GET' && url.pathname === '/api/v1/shots') {
-        /* THE HANDLER'S OWN ARITHMETIC (`_getShots` :29-176 at pin 1efd1a30): `limit` is
+        /* THE HANDLER'S OWN ARITHMETIC (`_getShots` :30-177 at pin 31c9a9ba): `limit` is
          * clamped 1..100 for the query and ECHOED UNCLAMPED in the body, `offset` is
          * clamped at zero, and anything that is not the literal `asc` is descending. */
         const params = url.searchParams;

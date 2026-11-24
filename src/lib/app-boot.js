@@ -19,7 +19,8 @@ import { createWorkflowStore } from '../stores/workflow-store.js';
 import { createMachineStateStore } from '../stores/machine-state-store.js';
 import { createProfileArmStore } from '../stores/profile-arm-store.js';
 import { createProfileEditorStore, SAVE_STATUS } from '../stores/profile-editor-store.js';
-import { ASSIGN_RESULT, createProfileLibraryStore } from '../stores/profile-library-store.js';
+import { FOLLOW_RESULT, createProfileLibraryStore } from '../stores/profile-library-store.js';
+import { PROFILE_VISIBILITY, profileVisibilityOf } from '../data/rea-profile.js';
 import { createScaleTareStore } from '../stores/scale-tare-store.js';
 import { createShotsStore } from '../stores/shots-store.js';
 import { createPluginsStore } from '../stores/plugins-store.js';
@@ -232,13 +233,17 @@ export function createAppBoot({
         if (status !== SAVE_STATUS.SAVED || wasSave === SAVE_STATUS.SAVED) return;
         const savedId = editorRecordId(state);
         const savedParentId = typeof state.record.parentId === 'string' ? state.record.parentId : null;
-        if (savedId) adoptSavedProfile(savedId, [openedId, savedParentId]);
+        const follow = {
+            visible: profileVisibilityOf(state.record) === PROFILE_VISIBILITY.VISIBLE,
+            hidden: state.hidRecordId ? [state.hidRecordId] : [],
+        };
+        if (savedId) adoptSavedProfile(savedId, [openedId, savedParentId], follow);
     });
 
     /** The half above, performed. Separate so the subscription stays a decision. */
-    async function adoptSavedProfile(savedId, supersededIds) {
+    async function adoptSavedProfile(savedId, supersededIds, follow) {
         try {
-            await followSave(savedId, supersededIds);
+            await followSave(savedId, supersededIds, follow);
             await library.refresh();
 
             const saved = library.recordFor(savedId);
@@ -268,21 +273,22 @@ export function createAppBoot({
         }
     }
 
-    async function followSave(savedId, supersededIds) {
-        if (library.favouriteSlotHolding(savedId) !== null) return;
-        for (const supersededId of supersededIds) {
-            if (!supersededId || supersededId === savedId) continue;
-            const slot = library.favouriteSlotHolding(supersededId);
-            if (slot === null) continue;
-            const moved = await library.setFavourite(slot, savedId);
-            if (moved.result === ASSIGN_RESULT.ASSIGNED) {
-                note('info', `profile editor: favourite slot ${slot} follows the save `
-                    + `(${supersededId} -> ${savedId})`);
-            } else {
-                note('warn', `profile editor: favourite slot ${slot} did not follow the save `
-                    + `(${supersededId} -> ${savedId}): ${moved.result}`);
-            }
+    async function followSave(savedId, supersededIds, { visible, hidden }) {
+        if (!visible) {
+            note('warn', `profile editor: ${savedId} is not visible — the favourite slots stay `
+                + 'on the record that was edited');
             return;
+        }
+        const followed = await library.followFavourite(savedId, supersededIds, { hidden });
+        const { slot, from } = followed;
+        if (followed.result === FOLLOW_RESULT.MOVED) {
+            note('info', `profile editor: favourite slot ${slot} follows the save (${from} -> ${savedId})`);
+        } else if (followed.result === FOLLOW_RESULT.CLEARED) {
+            note('info', `profile editor: favourite slot ${slot} cleared — ${savedId} already has a slot `
+                + `and the save hid ${from}`);
+        } else if (followed.result === FOLLOW_RESULT.FAILED) {
+            note('warn', `profile editor: favourite slot ${slot} did not follow the save `
+                + `(${from} -> ${savedId}): ${followed.result}`);
         }
     }
 

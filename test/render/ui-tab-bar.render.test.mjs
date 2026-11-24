@@ -730,6 +730,26 @@ for (const geometry of GATE_A_GEOMETRIES) {
                     'connectedCallback re-syncs: Lit does not request an update on reconnect');
             }));
 
+        test('a focused control in a modal dialog of the open panel keeps the focus when the tab bar updates',
+            () => mounted(async (page) => {
+                const kept = await page.evalFn(async () => {
+                    const bar = document.getElementById('charts');
+                    const panel = bar.querySelector('[data-tab]:not([hidden])');
+                    const dialog = document.createElement('dialog');
+                    const button = document.createElement('button');
+                    button.textContent = 'inside';
+                    dialog.append(button);
+                    panel.attachShadow({ mode: 'open' }).append(dialog);
+                    dialog.showModal();
+                    button.focus();
+                    const before = panel.shadowRoot.activeElement === button;
+                    bar.requestUpdate();
+                    await bar.updateComplete;
+                    return { before, after: panel.shadowRoot.activeElement === button };
+                });
+                assert.deepEqual(kept, { before: true, after: true });
+            }));
+
         test('exactly one tab is the tab stop, and it is the selected one (the roving contract)',
             () => mounted(async (page) => {
                 const stops = await page.evalFn(() => {

@@ -1,6 +1,12 @@
 {
   "_rule": "Exported functions in src/ that no other src/ module calls. `vouched` gives a reason a reader can check against the code; `baseline` is a plain list, so the gate fails on the next one rather than on all of them. Rewrite it with --baseline only to drop a name that now has a caller: the list may shrink, never grow.",
-  "vouched": {},
+  "vouched": {
+    "checkPuck": "src/lib/puck-fit.js: the fit quality of a puck against a shot (rms of pressure, of the main step and of weight). No screen in src/ calls it yet. test/puck-fit.test.mjs checks it against the reference puck.",
+    "valuesNearBound": "src/lib/puck-fit.js: the puck values within 10 % of a bound; createPuckFit puts them in its result. test/puck-fit.test.mjs checks it.",
+    "shotShapingSettings": "src/lib/chart-shot-load.js: the native shaping settings of a shot and their source; shotPlan puts them in its result. test/chart-shot-settings.test.mjs checks each source.",
+    "pointLimits": "src/lib/native-shaping-rules.js: the limits of one pump curve point; movePoint clamps a move to them. test/native-shaping-rules.test.mjs checks them against the rules.",
+    "switchTick": "src/lib/shot-model.js: the last tick of the first part of the limited curve; limitedCurve calls it. test/native-shaping-goal.test.mjs checks it for every wire value."
+  },
   "baseline": [
     "adoptSeams",
     "adoptTypeRoles",
@@ -103,7 +109,6 @@
     "offeredSlots",
     "orderShots",
     "overcastIcon",
-    "parsePx",
     "partitionProfiles",
     "partlyIcon",
     "partlyNightIcon",

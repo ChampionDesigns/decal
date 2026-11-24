@@ -3,6 +3,7 @@
  */
 
 import { DE1_EMULATION_KEY, de1EmulationOf } from './de1-emulation.js';
+import { NATIVE_SHAPING_KEY } from './shot-model.js';
 
 export const OUTCOME_SOURCE = Object.freeze({
     /** The server said it. Only reachable once R8 lands and a reader is injected. */
@@ -32,7 +33,7 @@ export const PROFILE_RECORD_KEYS = Object.freeze([
 const PROFILE_SCALAR_KEYS = Object.freeze([
     'title', 'notes', 'author', 'beverage_type', 'version',
     'target_volume', 'target_weight', 'target_volume_count_start', 'tank_temperature',
-    DE1_EMULATION_KEY,
+    DE1_EMULATION_KEY, NATIVE_SHAPING_KEY,
 ]);
 
 const SCALAR_READERS = Object.freeze({

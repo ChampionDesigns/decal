@@ -536,7 +536,7 @@ const api = {
      */
     async tab(value) {
         const bar = screen.shadowRoot.getElementById('tabs');
-        const index = ['steps', 'settings', 'review'].indexOf(value);
+        const index = ['steps', 'settings', 'chart', 'review'].indexOf(value);
         const button = bar.shadowRoot?.getElementById('tablist')
             ?.shadowRoot?.getElementById(`item-${index}`);
         if (!button) throw new Error(`editor fixture: no tab button for '${value}'`);

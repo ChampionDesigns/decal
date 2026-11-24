@@ -24,6 +24,7 @@ export const EDITOR = Object.freeze({
     tablist: 'editor-screen >>> #tabs >>> #tablist',
     settings: 'editor-screen >>> #settings-panel',
     settingsGrid: 'editor-screen >>> #settings-panel >>> #panel',
+    chart: 'editor-screen >>> #chart-panel',
     review: 'editor-screen >>> #review-panel',
     reviewGrid: 'editor-screen >>> #review-panel >>> #panel',
     reviewColumns: 'editor-screen >>> #review-panel >>> .column',
@@ -75,7 +76,7 @@ export const textOf = (page, selector) => page.evalFn(
     (s) => (window.__h.q(s)?.textContent ?? '').trim(), selector,
 );
 
-export const EDITOR_PANELS = Object.freeze(['steps', 'settings', 'review']);
+export const EDITOR_PANELS = Object.freeze(['steps', 'settings', 'chart', 'review']);
 
 /** One tab button inside the bank, by index. */
 export const editorTab = (index) => `${EDITOR.tablist} >>> #item-${index}`;
@@ -273,7 +274,7 @@ export async function assertNoSilentClip(page, selector) {
  */
 export async function visiblePanels(page) {
     const boxes = await Promise.all(
-        [EDITOR.steps, EDITOR.settings, EDITOR.review].map((s) => page.box(s)),
+        [EDITOR.steps, EDITOR.settings, EDITOR.chart, EDITOR.review].map((s) => page.box(s)),
     );
     return boxes
         .map((b, i) => (b.width > 0 && b.height > 0 ? EDITOR_PANELS[i] : null))

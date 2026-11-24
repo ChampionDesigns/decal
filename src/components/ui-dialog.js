@@ -133,6 +133,60 @@ export class UiDialog extends UiElement {
             padding: var(--_ui-dialog-pad);
         }
 
+        :host([placement="start"]) .dialog {
+            inset: 0 auto 0 0;
+            margin: 0;
+            inline-size: min(var(--_ui-dialog-inline), 100%);
+            block-size: 100%;
+            max-block-size: 100%;
+            border-radius: 0;
+            transform: translateX(-100%);
+            transition: opacity var(--ui-dur) var(--ui-ease), transform var(--ui-dur) var(--ui-ease);
+        }
+
+        :host([placement="start"]) .dialog[open] {
+            transform: none;
+        }
+
+        @starting-style {
+            :host([placement="start"]) .dialog[open] {
+                transform: translateX(-100%);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            :host([placement="start"]) .dialog {
+                transition-duration: 0s;
+            }
+        }
+
+        :host([placement="start"]) .cell {
+            border-radius: 0;
+        }
+
+        :host([placement="full"]) .dialog {
+            inset: 0;
+            margin: 0;
+            inline-size: 100%;
+            max-inline-size: 100%;
+            block-size: 100%;
+            max-block-size: 100%;
+            grid-template-rows: auto minmax(0, 1fr);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        :host([placement="full"]) .cell {
+            border-radius: 0;
+        }
+
+        :host([placement="full"]) .body {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+
         .cell:first-child {
             border-start-start-radius: var(--ui-radius-xl);
             border-start-end-radius: var(--ui-radius-xl);

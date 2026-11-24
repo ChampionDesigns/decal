@@ -80,6 +80,14 @@ export const ASSIGN_RESULT = Object.freeze({
     FAILED: 'failed',
 });
 
+export const FOLLOW_RESULT = Object.freeze({
+    MOVED: 'moved',
+    CLEARED: 'cleared',
+    KEPT: 'kept',
+    NONE: 'none',
+    FAILED: 'failed',
+});
+
 /** What `hide` or `purge` did. */
 export const MANAGE_RESULT = Object.freeze({
     DONE: 'done',
@@ -187,7 +195,7 @@ function activeRecipeOf(report) {
     return profile ? structuredClone(profile) : null;
 }
 
-function holdsActiveRecipe(record, active) {
+export function holdsActiveRecipe(record, active) {
     if (!active || !isBody(record)) return false;
     if (sameBody(active, record.profile ?? null)) return true;
     const armed = workflowApplyBody(record);
@@ -690,6 +698,54 @@ export function createProfileLibraryStore({
             return Object.freeze({
                 result: ASSIGN_RESULT.ASSIGNED, slot, id: id ?? null, held: null, state,
             });
+        },
+
+        async followFavourite(savedId, supersededIds, { hidden = [] } = {}) {
+            const ended = (result, slot = null, from = null) => Object.freeze({
+                result, slot, from, to: savedId ?? null,
+            });
+            if (!savedId) return ended(FOLLOW_RESULT.NONE);
+            const held = await loadFavouriteAssignments(storage, { count: FAVOURITE_SLOT_COUNT });
+            const stored = { ...held.assignments };
+            const slotOf = (id) => {
+                for (let slot = 0; slot < FAVOURITE_SLOT_COUNT; slot += 1) {
+                    if (stored[slot] === id) return slot;
+                }
+                return null;
+            };
+            const savedSlot = slotOf(savedId);
+            let from = null;
+            let slot = null;
+            for (const id of Array.isArray(supersededIds) ? supersededIds : []) {
+                if (!id || id === savedId) continue;
+                slot = slotOf(id);
+                if (slot !== null) { from = id; break; }
+            }
+            if (slot === null) return ended(FOLLOW_RESULT.NONE);
+            let result;
+            if (savedSlot === null) {
+                stored[slot] = savedId;
+                result = FOLLOW_RESULT.MOVED;
+            } else if (hidden.includes(from)) {
+                stored[slot] = null;
+                result = FOLLOW_RESULT.CLEARED;
+            } else {
+                return ended(FOLLOW_RESULT.KEPT, slot, from);
+            }
+            const save = await saveFavouriteAssignments(storage, stored, { logger });
+            if (!save.saved) {
+                log.warn('the favourite follow step did not persist — the rail is left as it was');
+                return ended(FOLLOW_RESULT.FAILED, slot, from);
+            }
+            const assignments = {};
+            for (let index = 0; index < FAVOURITE_SLOT_COUNT; index += 1) {
+                assignments[index] = typeof stored[index] === 'string' && stored[index] !== ''
+                    ? stored[index] : null;
+            }
+            patch({
+                favourites: Object.freeze({ assignments: Object.freeze(assignments), seeded: save.marked }),
+            });
+            return ended(result, slot, from);
         },
 
         async healFavourites() {
