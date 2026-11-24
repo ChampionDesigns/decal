@@ -21,7 +21,6 @@ export const FIRMWARE_DEFAULT_SETTINGS = Object.freeze({
 });
 
 export const FLOW_ZERO_SNAP = 0.01;
-const SHAPE_TAU_MAX = 5;
 
 export const WIRE_STEPS_PER_UNIT = Object.freeze({ tau: 50, ramp: 50, pressure: 10, flow: 10 });
 
@@ -430,7 +429,7 @@ function rampTimes(block, fTau, pTau) {
 }
 
 export function rampFromFactor(factor, tau) {
-    return Math.min(factor * tau, SHAPE_TAU_MAX);
+    return factor * tau;
 }
 
 const MODELLED_PUMPS = Object.freeze(['flow', 'pressure']);

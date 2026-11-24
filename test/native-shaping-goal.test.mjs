@@ -250,10 +250,10 @@ describe('the ramp times of a block', () => {
         assert.equal(set.pFilt, 0);
     });
 
-    test('a ramp from a ramp factor stops at 5 s', () => {
+    test('a ramp from a ramp factor has no upper limit', () => {
         const set = settingsFromNativeShaping({ flow_tau: 5, pressure_tau: 2, ramp_factor: 4 });
-        assert.equal(set.pRamp, 5);
-        assert.equal(set.fRamp, 5);
+        assert.equal(set.pRamp, 8);
+        assert.equal(set.fRamp, 20);
     });
 
     test('a ramp time key wins over a ramp factor', () => {
