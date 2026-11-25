@@ -227,10 +227,10 @@ describe('the editor says what a save did not store', () => {
         await page.settle(8);
     };
 
-    const NOT_STORED = 'This Decide did not store DE1 emulation.';
+    const NOT_STORED = 'This Decaid Lab did not store DE1 emulation.';
     const STILL_HIDDEN = 'The saved version is still hidden, so favourites stay on the version you opened.';
 
-    test('a Decide that drops the value: the request carries true, the switch shows off, and one line says why',
+    test('a Decaid Lab that drops the value: the request carries true, the switch shows off, and one line says why',
         () => browser.withPage({ geometry }, async (page) => {
             await switchOnAndSave(page, {
                 'POST /profiles': { ok: true, status: 201, data: savedRecord() },
@@ -247,7 +247,7 @@ describe('the editor says what a save did not store', () => {
             assert.equal(said.some((n) => n.text === STILL_HIDDEN), false);
         }));
 
-    test('a Decide that stores the value says nothing more than the save',
+    test('a Decaid Lab that stores the value says nothing more than the save',
         () => browser.withPage({ geometry }, async (page) => {
             await switchOnAndSave(page, null);
             const seen = await face(page);

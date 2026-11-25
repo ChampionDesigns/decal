@@ -221,7 +221,7 @@ async function updateCheckRig(storedOn) {
 describe('automatic update checks: a skin may turn them off, never on', () => {
     test('the row is marked as one this skin can only turn off', () => {
         assert.equal(UPDATE_ROW.offOnly, true);
-        assert.equal(UPDATE_ROW.offOnlyNote, 'Turn this on in Decide. This skin can only turn it off.');
+        assert.equal(UPDATE_ROW.offOnlyNote, 'Turn this on in Decaid Lab. This skin can only turn it off.');
     });
 
     test('while it is off the switch is drawn disabled and says where to turn it on', async () => {
