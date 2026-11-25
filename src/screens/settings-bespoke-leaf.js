@@ -236,7 +236,7 @@ function defaultsDetail(t, pages) {
             return `${t('Anything you have set on the')} ${list} ${t('pages goes back to the machine’s own value.')}`;
         })();
 
-    return `${opening} ${t('Older versions of Decaid Lab also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.')}`;
+    return `${opening} ${t('Older app versions also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration does not change.')}`;
 }
 
 const PLUGIN_FIELD_COPY = Object.freeze({
@@ -4031,7 +4031,7 @@ export class SettingsBespokeLeaf extends UiElement {
                 </div>
 
                 <p class="ui-caption prose"
-                    >${t('Puts seven machine settings back to the values the machine ships with. Older versions of Decaid Lab also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.')}</p>
+                    >${t('Puts seven machine settings back to the values the machine ships with. Older app versions also set the flow calibration to 1. Newer versions do not change it. The load-cell calibration, your profiles and your shot history do not change.')}</p>
 
                 <div class="resets" id="defaults-list">
                     <span class="ui-microcap resets-head">${t('Page')}</span>
