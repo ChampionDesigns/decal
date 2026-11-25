@@ -228,7 +228,7 @@ export class WeatherModal extends UiElement {
         const t = this.#i18n.t;
         return html`<p class="note"
         >${this.locked
-            ? t('No reading yet. Set a location in Decide and it will arrive shortly.')
+            ? t('No reading yet. Set a location in Decaid Lab and it will arrive shortly.')
             : t('No reading yet. Set a location below and it will arrive shortly.')}</p>`;
     }
 
@@ -300,7 +300,7 @@ export class WeatherModal extends UiElement {
                 <div class="row">
                     <span class="current">${place || t('Not set')}</span>
                 </div>
-                <span class="note locked">${t('Set the location in Decide. This skin cannot change it.')}</span>
+                <span class="note locked">${t('Set the location in Decaid Lab. This skin cannot change it.')}</span>
             </div>`;
         }
         if (!this.editing) {

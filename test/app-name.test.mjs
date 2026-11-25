@@ -11,7 +11,8 @@ const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const OLD_NAME = /reaprime/i;
 const SHOWN_FIELDS = Object.freeze(['heading', 'caption', 'offOnlyNote', 'label', 'title', 'control']);
 const ITEM_FIELDS = Object.freeze(['label', 'note']);
-const VID_NAME = /decaid/i;
+const VID_NAME = /decaid(?! lab)/i;
+const APP_NAME = /\bDecaid Lab\b/;
 const TRACKER_TEXTS = Object.freeze([
     'Feedback is filed as an issue on Decaid’s public issue tracker. Nobody replies here; for an answer, write to help@decentespresso.com.',
     'Thank you. It was filed against the Decaid project.',
@@ -26,23 +27,23 @@ test('no string in the English catalog names the app by its old name', () => {
     assert.deepEqual(named.map(([key]) => key), []);
 });
 
-test('the catalog carries the texts that send the user to the app, under the name Decide', () => {
+test('the catalog carries the texts that send the user to the app, under the name Decaid Lab', () => {
     const { strings } = readJson('i18n/en.json');
     for (const key of [
-        'Decide address',
-        'Manage skins and plugins in Decide. This skin cannot change them.',
-        'Sending feedback needs a Decent account. Sign in to your Decent account in Decide, then submit again.',
-        'Decide has not answered for its installed plugins.',
-        'This Decide build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.',
+        'Decaid Lab address',
+        'Manage skins and plugins in Decaid Lab. This skin cannot change them.',
+        'Sending feedback needs a Decent account. Sign in to your Decent account in Decaid Lab, then submit again.',
+        'Decaid Lab has not answered for its installed plugins.',
+        'This Decaid Lab build cannot send feedback — it was compiled without a feedback token. Nothing you do here will change that.',
     ]) {
         assert.equal(strings[key], key);
     }
 });
 
-test('the skin description that the app lists names the app as Decide', () => {
+test('the skin description that the app lists names the app as Decaid Lab', () => {
     const { description } = readJson('skin-manifest.json');
     assert.doesNotMatch(description, OLD_NAME);
-    assert.match(description, /\bDecide\b/);
+    assert.match(description, APP_NAME);
 });
 
 test('no text shown on a settings row names the app by its old name', () => {
@@ -50,7 +51,7 @@ test('no text shown on a settings row names the app by its old name', () => {
         .filter((field) => typeof row[field] === 'string' && OLD_NAME.test(row[field]))
         .map((field) => `${row.id ?? row.field}: ${field}`));
     assert.deepEqual(named, []);
-    assert.ok(SETTINGS_ROWS.some((row) => row.heading === 'Decide address'));
+    assert.ok(SETTINGS_ROWS.some((row) => row.heading === 'Decaid Lab address'));
 });
 
 test('no label or note of a settings row choice names the app by its old name', () => {
@@ -73,20 +74,20 @@ test('the feedback texts name the issue tracker that reports go to as Decaid', (
         assert.equal(strings[key], key);
     }
     const trackerTexts = Object.keys(strings).filter((key) => /issue tracker|filed against|filed as an issue/i.test(key));
-    assert.deepEqual(trackerTexts.filter((key) => /\bDecide\b/.test(key)), []);
+    assert.deepEqual(trackerTexts.filter((key) => APP_NAME.test(key)), []);
     assert.deepEqual([...trackerTexts].sort(), [...filing].sort());
 });
 
-test('only the three issue tracker texts say Decaid, and every other text names the app as Decide', () => {
+test('only the three issue tracker texts say Decaid, and every other text names the app as Decaid Lab', () => {
     const { strings } = readJson('i18n/en.json');
     const inCatalog = Object.entries(strings)
         .filter(([key, value]) => VID_NAME.test(key) || VID_NAME.test(value))
         .map(([key]) => key);
     assert.deepEqual([...inCatalog].sort(), [...TRACKER_TEXTS].sort());
     for (const key of [
-        'Decide',
-        'If this keeps happening, reopen the skin from Decide or reinstall its app files.',
-        'Reload failed. Open the skin again from Decide.',
+        'Decaid Lab',
+        'If this keeps happening, reopen the skin from Decaid Lab or reinstall its app files.',
+        'Reload failed. Open the skin again from Decaid Lab.',
     ]) {
         assert.equal(strings[key], key);
     }
@@ -97,7 +98,7 @@ test('only the three issue tracker texts say Decaid, and every other text names 
     assert.deepEqual(navNames, []);
     const appLeaf = SETTINGS_TREE.flatMap((category) => category.leaves)
         .find((leaf) => leaf.id === 'extensions-decent-app-settings');
-    assert.equal(appLeaf.name, 'Decide');
+    assert.equal(appLeaf.name, 'Decaid Lab');
 
     const rowTexts = SETTINGS_ROWS.flatMap((row) => [
         ...SHOWN_FIELDS.map((field) => [`${row.id ?? row.field}: ${field}`, row[field]]),
@@ -111,10 +112,10 @@ test('only the three issue tracker texts say Decaid, and every other text names 
 });
 
 test('a search for either name of the app finds the app update check', () => {
-    for (const query of ['decide', 'Decaid']) {
+    for (const query of ['decide', 'Decaid', 'decaid lab']) {
         const targets = searchSettingControls(query).map((hit) => hit.target ?? hit.node.id);
         assert.ok(targets.includes('app-check'), `${query}: ${targets.join(', ')}`);
     }
-    const leaves = searchSettingControls('decide').map((hit) => hit.node.id);
+    const leaves = searchSettingControls('decaid lab').map((hit) => hit.node.id);
     assert.ok(leaves.includes('extensions-decent-app-settings'), leaves.join(', '));
 });

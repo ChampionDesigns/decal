@@ -1679,7 +1679,7 @@ export class EditorScreen extends UiElement {
         }
         const served = state?.record?.profile ?? null;
         if (sentDe1Emulation !== null && served && de1EmulationOf(served) !== sentDe1Emulation) {
-            this.#toast(t('This Decide did not store DE1 emulation.'), 'warn');
+            this.#toast(t('This Decaid Lab did not store DE1 emulation.'), 'warn');
         }
     }
 

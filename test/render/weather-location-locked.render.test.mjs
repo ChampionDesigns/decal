@@ -7,7 +7,7 @@ const LIVE = ['/src/screens/live-screen.js'];
 const MODAL = ['/src/screens/weather-modal.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"><live-screen></live-screen></div>';
 const geometry = GATE_A_GEOMETRIES[0];
-const LOCKED_NOTE = 'Set the location in Decide. This skin cannot change it.';
+const LOCKED_NOTE = 'Set the location in Decaid Lab. This skin cannot change it.';
 
 const FRESH = Object.freeze({
     ok: true, place: 'Brunswick, Victoria, Australia', ageMinutes: 3,
@@ -89,14 +89,14 @@ describe('the weather location, when this skin cannot write plugin settings', ()
         },
     ));
 
-    test('a locked detail with no reading says to set the location in Decide', () => browser.withPage(
+    test('a locked detail with no reading says to set the location in Decaid Lab', () => browser.withPage(
         { geometry },
         async (page) => {
             await page.mount('<weather-modal id="m" open locked></weather-modal>', MODAL);
             await page.evalFn(() => { window.__h.need('#m').reading = { ok: false, reason: 'no_location' }; });
             await page.settle(3);
             const seen = await page.evalFn(PLACE);
-            assert.equal(seen.empty, 'No reading yet. Set a location in Decide and it will arrive shortly.');
+            assert.equal(seen.empty, 'No reading yet. Set a location in Decaid Lab and it will arrive shortly.');
             assert.equal(seen.place, 'Not set');
             assert.equal(seen.buttons, 0, 'no Set button');
             assert.equal(seen.note, LOCKED_NOTE);
