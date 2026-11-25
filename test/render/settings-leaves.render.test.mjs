@@ -39,6 +39,7 @@ const rowReport = (page) => page.evalFn(() => {
             staged: row.hasAttribute('data-staged'),
             heading: row.shadowRoot.getElementById('heading')?.textContent.trim() ?? '',
             hint: row.shadowRoot.getElementById('hint')?.textContent.trim() ?? '',
+            caption: row.shadowRoot.getElementById('caption')?.textContent.trim() ?? '',
             reading: row.shadowRoot.getElementById('reading')?.textContent.trim() ?? null,
             paddingBlock: style.paddingBlockStart + '/' + style.paddingBlockEnd,
             gap: style.columnGap,
@@ -1287,6 +1288,14 @@ for (const geometry of GATE_A_GEOMETRIES) {
                 assert.equal(leave.control[0].tag, 'ui-button');
                 assert.equal(leave.control[0].name, 'Leave',
                     'rule 0: a control that names itself keeps its name (WCAG 2.5.3)');
+            });
+
+            test('its caption names Decaid Lab as what shows after the skin closes', async () => {
+                await showLeaf('display', 'display-skin');
+                const rows = await rowReport(page);
+                const leave = rows.find((row) => row.id === 'display-skin-leave');
+                assert.match(leave.caption, /^Closes the skin and shows Decaid Lab underneath\./, leave.caption);
+                assert.doesNotMatch(leave.caption, /Decent app/, leave.caption);
             });
 
             test('pressing it asks the HOST once, navigates nowhere, and opens no dialog', async () => {

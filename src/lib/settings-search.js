@@ -13,6 +13,10 @@ const ALIASES = Object.freeze({
     'calibration-flow-multiplier-weight': 'scale weight stop lookahead',
     'units-language-temperature-unit': 'degrees celsius fahrenheit °c °f',
     'units-language-time-format': 'clock time 12h 24h am pm',
+    'connection-machine-host': 'decide',
+});
+const LEAF_ALIASES = Object.freeze({
+    'extensions-decent-app-settings': 'decide',
 });
 const UNIT_WORDS = Object.freeze({
     '°C': 'celsius fahrenheit degrees °c °f', '°F': 'celsius fahrenheit degrees °c °f',
@@ -71,9 +75,10 @@ export function searchSettingControls(query, {
         if (ordinary.some((hit) => hit.node === category)
             || matches(terms, translate(category.name))) results.push({ kind: NAV_KIND.CATEGORY, node: category, category });
         for (const leaf of leavesFor(category, machineClass, capability)) {
+            const leafAliases = LEAF_ALIASES[leaf.id] ?? '';
             if (ordinary.some((hit) => hit.node === leaf)
-                || matches(terms, translate(leaf.name))) results.push({ kind: NAV_KIND.LEAF, node: leaf, category, leaf });
-            const context = `${category.name} ${leaf.name} ${translate(category.name)} ${translate(leaf.name)}`;
+                || matches(terms, `${translate(leaf.name)} ${leafAliases}`)) results.push({ kind: NAV_KIND.LEAF, node: leaf, category, leaf });
+            const context = `${category.name} ${leaf.name} ${translate(category.name)} ${translate(leaf.name)} ${leafAliases}`;
             const rows = views ? views(leaf.id) : rowsForLeaf(leaf.id).filter((row) => rowShownOn(row, machineClass))
                 .filter((row) => !row.capability || capability?.(row.capability) !== 'absent')
                 .map((row) => ({ row, heading: row.heading, bounds: limits[row.limit], items: row.items }));

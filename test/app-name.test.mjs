@@ -119,3 +119,31 @@ test('a search for either name of the app finds the app update check', () => {
     const leaves = searchSettingControls('decaid lab').map((hit) => hit.node.id);
     assert.ok(leaves.includes('extensions-decent-app-settings'), leaves.join(', '));
 });
+
+test('a search that uses the old app name still finds the rows that now say Decaid Lab', () => {
+    const address = searchSettingControls('Decide address').find((hit) => hit.target === 'connection-machine-host');
+    assert.ok(address, 'Decide address finds the machine address row');
+    assert.equal(address.heading, 'Decaid Lab address');
+
+    const updates = searchSettingControls('Decide automatic update').find((hit) => hit.target === 'extensions-decent-app-updates');
+    assert.ok(updates, 'Decide automatic update finds the automatic update toggle');
+    assert.equal(updates.leaf.name, 'Decaid Lab');
+
+    for (const target of ['extensions-decent-app-gateway', 'extensions-decent-app-log-level', 'extensions-decent-app-path']) {
+        const query = `decide ${SETTINGS_ROWS.find((row) => row.id === target).heading}`;
+        assert.ok(searchSettingControls(query).some((hit) => hit.target === target), query);
+    }
+
+    const page = searchSettingControls('decide').find((hit) => hit.node.id === 'extensions-decent-app-settings');
+    assert.ok(page, 'decide finds the app settings page');
+    assert.equal(page.node.name, 'Decaid Lab');
+    assert.ok(!searchSettingControls('decide').some((hit) => hit.target === 'extensions-decent-app-updates'),
+        'the old name alone lists the page, not each of its rows');
+});
+
+test('no text names an older version of the app by the new name', () => {
+    const { strings } = readJson('i18n/en.json');
+    const named = Object.keys(strings).filter((key) => /older versions of decaid lab/i.test(key));
+    assert.deepEqual(named, []);
+    assert.ok(Object.keys(strings).some((key) => key.includes('Older app versions also set the flow calibration to 1.')));
+});

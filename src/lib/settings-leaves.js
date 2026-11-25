@@ -707,7 +707,7 @@ export const SETTINGS_ROWS = Object.freeze([
         source: SOURCE.ACTION,
         action: 'leave-skin',
         heading: 'Leave this skin',
-        caption: 'Closes the skin and shows the Decent app underneath. Only the app can do this — a browser tab stays where it is. Nothing is uninstalled.',
+        caption: 'Closes the skin and shows Decaid Lab underneath. Only the app can do this — a browser tab stays where it is. Nothing is uninstalled.',
         control: 'Leave',
     }),
 
