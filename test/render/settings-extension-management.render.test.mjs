@@ -5,8 +5,8 @@ import { launch, BENCH } from '../harness/index.js';
 
 const MODULES = ['/test/fixtures/settings-shell-fixture.js'];
 const STAGE = '<div id="stage" style="inline-size: 100%; block-size: 100dvh"></div>';
-const ELSEWHERE = 'Manage skins and plugins in Decide. This skin cannot change them.';
-const UPDATE_NOTE = 'Turn this on in Decide. This skin can only turn it off.';
+const ELSEWHERE = 'Manage skins and plugins in Decaid Lab. This skin cannot change them.';
+const UPDATE_NOTE = 'Turn this on in Decaid Lab. This skin can only turn it off.';
 
 const WRITE_ROUTES = [
     /^PUT \/webui\/skins\/default$/,
@@ -160,6 +160,20 @@ describe('skin and plugin management is shown as not available', () => {
         assert.equal(drawn.enabled, true);
         assert.equal(drawn.save, false);
         assert.equal(drawn.line, ELSEWHERE);
+    });
+
+    test('the app entry in the Extensions list shows the name Decaid Lab', async () => {
+        await show('extensions', 'extensions-decent-app-settings');
+        const entry = await page.evalFn(() => window.__settings.screen().shadowRoot.getElementById('subnav')
+            ?.querySelector('ui-subnav-row[data-id="extensions-decent-app-settings"]')?.textContent.trim() ?? null);
+        assert.equal(entry, 'Decaid Lab');
+    });
+
+    test('the app section of the update page is headed Decaid Lab', async () => {
+        await show('updates', 'updates-skin-app');
+        const heading = await page.evalFn(() => window.__settings.bespokeEl()
+            ?.shadowRoot.querySelector('#app-info h3')?.textContent.trim() ?? null);
+        assert.equal(heading, 'Decaid Lab');
     });
 
     test('automatic update checks, while off, cannot be turned on here and say where to', async () => {

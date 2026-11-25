@@ -484,7 +484,7 @@ export class AppRoot extends UiElement {
                 <section class="recovery" aria-labelledby="recovery-heading">
                     <h1 id="recovery-heading">${t('Decal could not start')}</h1>
                     <p role="alert">${t('The screen could not be loaded. Reload Decal to try again.')}</p>
-                    <p>${t('If this keeps happening, reopen the skin from Decide or reinstall its app files.')}</p>
+                    <p>${t('If this keeps happening, reopen the skin from Decaid Lab or reinstall its app files.')}</p>
                     <div class="recovery-actions">
                         <button id="recovery-reload" class="reload" @click=${this.#reload}>${t('Reload Decal')}</button>
                         ${canOpenDashboard(win) ? html`<button id="recovery-dashboard" @click=${this.#openDashboard}
@@ -521,7 +521,7 @@ export class AppRoot extends UiElement {
 
     #reload = () => {
         try { this.ownerDocument.defaultView.location.reload(); }
-        catch { this._recoveryFailure = 'Reload failed. Open the skin again from Decide.'; }
+        catch { this._recoveryFailure = 'Reload failed. Open the skin again from Decaid Lab.'; }
     };
 
     #openDashboard = () => {
